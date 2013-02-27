@@ -1,0 +1,1 @@
+Feature files and steps for integrational testing of scalarizr
