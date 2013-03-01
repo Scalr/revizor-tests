@@ -19,7 +19,6 @@ Feature: Linux server lifecycle
     Scenario: Linux reboot
         Given I have running linux server
         When I reboot it
-        Then Scalr receives RebootStart
         And Scalr receives RebootFinish
 
     Scenario: Execute script on Linux

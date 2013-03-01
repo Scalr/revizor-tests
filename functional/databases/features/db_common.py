@@ -279,7 +279,6 @@ def check_bundle_type(step, serv_as, bundle_type):
 
 @step('I increase storage to ([\d]+) Gb in ([\w\d]+) role$')
 def increase_storage(step, size, role_type):
-	#TODO Check grow storage
 	size = int(size)
 	if role_type == 'percona2':
 		role_type = 'percona'

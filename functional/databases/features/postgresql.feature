@@ -48,7 +48,6 @@ Feature: PostgreSQL database server
 	@reboot
     Scenario: Reboot server
         When I reboot server M1
-        Then Scalr receives RebootStart from M1
         And Scalr receives RebootFinish from M1
 
     @nocloudstack

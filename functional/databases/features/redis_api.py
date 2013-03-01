@@ -6,8 +6,12 @@ from lettuce import step, world
 
 from revizor2.cloud import Cloud
 from revizor2.conf import CONF
-from revizor2.helpers.jsonrpc_http import HttpServiceProxy
-from scalarizr.rpc import ServiceError
+try:
+	#TODO: Rewrite RPC (not use scalarizr!!!)
+	from revizor2.helpers.jsonrpc_http import HttpServiceProxy
+	from scalarizr.rpc import ServiceError
+except:
+	pass
 
 LOG = logging.getLogger(__name__)
 

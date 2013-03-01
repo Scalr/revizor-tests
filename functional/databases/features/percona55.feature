@@ -56,7 +56,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@reboot
     Scenario: Reboot server
         When I reboot server M1
-        Then Scalr receives RebootStart from M1
         And Scalr receives RebootFinish from M1
 
 	@backup
