@@ -111,7 +111,7 @@ def assert_check_message_in_log(step, message):
 	raise AssertionError("Not see message %s in scripts logs" % message)
 
 
-@step('I reboot scalarizr')
+@step('I reboot scalarizr$')
 def reboot_scalarizr(step):
 	c = Cloud()
 
@@ -129,7 +129,7 @@ def check_log(step):
 	world.assert_not_in('Scalarizr terminated', out, 'Scalarizr was not restarting')
 	
 
-@step('scalarizr process is (.+)')
+@step('scalarizr process is ([\d]+)$')
 def check_processes(step, count):
 	time.sleep(60)
 	list_proc = world.node.run('ps aux | grep scalarizr')[0]
