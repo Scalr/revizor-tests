@@ -13,7 +13,7 @@ from revizor2.cloud import Cloud
 LOG = logging.getLogger('pkg-update')
 
 
-@step('I add role to this farm')
+@step('I add role to this farm$')
 def having_role_in_farm(step):
 	role_type = os.environ.get('RV_BEHAVIOR', 'base')
 	role = world.add_role_to_farm(role_type=role_type)
