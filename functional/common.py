@@ -48,7 +48,7 @@ def give_empty_running_farm():
 
 
 @world.absorb
-def add_role_to_farm(role_type=None, options=None, scripting=None):
+def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None):
 	role = None
 	if CONF.main.role_id:
 		role = roles_table[CONF.main.role_id]
@@ -59,7 +59,7 @@ def add_role_to_farm(role_type=None, options=None, scripting=None):
 	if not role:
 		raise AssertionError('Not find role in roles table')
 	old_roles_ids = [r.id for r in world.farm.roles]
-	world.farm.add_role(role.keys()[0], options=options, scripting=scripting)
+	world.farm.add_role(role.keys()[0], options=options, scripting=scripting, storages=storages)
 	LOG.info('Add role %s to farm %s\n options: %s\n scripting: %s' % (role.keys()[0], world.farm.id, options, scripting))
 	time.sleep(5)
 	world.farm.roles.reload()

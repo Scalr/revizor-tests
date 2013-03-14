@@ -278,9 +278,16 @@ def wait_time(step, minutes):
 	time.sleep(int(minutes)*60)
 
 
-@step('I start farm')
+@step('I start farm$')
 def farm_launch(step):
 	"""Start farm"""
+	world.farm.launch()
+	LOG.info('Launch farm \'%s\' (%s)' % (world.farm.id, world.farm.name))
+
+
+@step('I start farm with delay$')
+def farm_launch(step):
+	"""Start farm with delay for cloudstack"""
 	if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
 		time.sleep(1800)
 	world.farm.launch()

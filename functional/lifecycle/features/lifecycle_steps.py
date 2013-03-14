@@ -8,7 +8,7 @@ from lettuce import world, step
 from revizor2.api import Farm, Script, IMPL
 from revizor2.conf import CONF 
 from revizor2.utils import wait_until
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 from revizor2.cloud import Cloud
 
 
@@ -28,6 +28,39 @@ def having_a_stopped_farm(step):
 @step('I add role to this farm with deploy')
 def having_role_in_farm(step):
 	role_type = os.environ.get('RV_BEHAVIOR', 'base')
+	storages = None
+	if CONF.main.driver in [Platform.EC2]:
+		storages = {
+			"configs": [{
+				"id": None,
+				"type": "ebs",
+				"fs": "ext3",
+				"settings": {
+					"ebs.size": "1",
+					"ebs.type": "standard",
+					"ebs.snapshot": None,
+				},
+				"mount": True,
+				"mountPoint": "/media/ebsmount",
+				"reUse": True,
+				"status": "",
+			}, {
+				"id": None,
+				"type": "raid.ebs",
+				"fs": "ext3",
+				"settings": {
+					"raid.level": "10",
+					"raid.volumes_count": 4,
+					"ebs.size": "1",
+					"ebs.type": "standard",
+					"ebs.snapshot": None,
+				},
+				"mount": True,
+				"mountPoint": "/media/raidmount",
+				"reUse": True,
+				"status": "",
+			}]
+		}
 	role = world.add_role_to_farm(role_type=role_type,
 								options={"dm.application_id": "217",
 										 "dm.remote_path": "/var/www", })
@@ -74,29 +107,25 @@ def check_path(step, path, serv_as):
 		raise AssertionError('No path %s' % path)
 
 
-# @step('I reboot it')
-# def reboot_server(step):
-# 	world.server.reboot()
-# 	LOG.info('Server reboot')
+@step("I create (\d+) files in '(.+)' in ([\w\d]+)")
+def create_files(step, file_count, directory, serv_as):
+	server = getattr(world, serv_as)
+	c = Cloud()
+	node = c.get_node(server)
+	LOG.info('Create %s files in directory %s' % (file_count, directory))
+	node.run('cd %s && for (( i=0;i<%s;i++ )) do cp whatever "file$i"; done' % (directory, file_count))
 
 
-#@step('Scalr (receives|sends) ([\w]+)$')
-#def message_received(step, msgtype, msgname, timeout=1000):
-#	msgname = msgname.strip()
-#	wait_until(world.check_message_status, args=(msgname, world.server, msgtype), timeout=timeout, error_text="I'm not see message %s in server" % msgname)
-#	LOG.info('Scalr %s %s' % (msgtype, msgname))
-
-
-# @step('I execute on it script (.+)')
-# def execute_script_on_server(step, script_name):
-# 	LOG.info('Execute script name %s' % script_name)
-# 	script = Script.get_id(script_name.strip()[1:-1])
-# 	Script.script_execute(world.server.farm_id, world.server.farm_role_id, world.server.id, script['id'], revision=script['version'])
-# 	LOG.info('Execute script id %s (%s, %s)' % (script['id'], script['name'], script['version']))
-# 	world.server.scriptlogs.reload()
-# 	script_log_count = len(world.server.scriptlogs)
-# 	LOG.info('Save count scripts log: %s' % script_log_count)
-# 	setattr(world, 'server_script_count', script_log_count)
+@step("count of files in directory '(.+)' is (\d+) in ([\w\d]+)")
+def check_file_count(step, directory, file_count, serv_as):
+	server = getattr(world, serv_as)
+	c = Cloud()
+	node = c.get_node(server)
+	LOG.info('Check count of files in directory %s' % directory)
+	out = node.run('cd %s && ls' % directory)
+	count = len(out[0].split())
+	if not int(file_count) == count:
+		raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, count))
 
 
 @step('I see execution result in scripting log')
@@ -114,56 +143,6 @@ def assert_check_message_in_log(step, message, serv_as):
 		if message.strip()[1:-1] in log.message:
 			return True
 	raise AssertionError("Not see message %s in scripts logs" % message)
-
-
-# @step('I reboot scalarizr$')
-# def reboot_scalarizr(step):
-# 	c = Cloud()
-#
-# 	world.node = c.get_node(world.server)
-# 	world.node.run('/etc/init.d/scalarizr restart')
-# 	LOG.info('Scalarizr restart complete')
-
-#
-# @step("see 'Scalarizr terminated' in log")
-# def check_log(step):
-# 	#TODO: More smart alghoritm
-# 	time.sleep(15)
-# 	LOG.info('Check scalarizr log for  termination')
-# 	out = world.node.run('cat /var/log/scalarizr_debug.log | grep "Scalarizr terminated"')[0]
-# 	world.assert_not_in('Scalarizr terminated', out, 'Scalarizr was not restarting')
-#
-#
-# @step('scalarizr process is ([\d]+)$')
-# def check_processes(step, count):
-# 	time.sleep(60)
-# 	list_proc = world.node.run('ps aux | grep scalarizr')[0]
-# 	c = 0
-# 	for pr in list_proc.split('\n'):
-# 		if 'bin/scalarizr' in pr:
-# 			c += 1
-# 	LOG.info('Scalarizr count of processes %s' % c)
-# 	world.assert_not_equal(c, int(count), 'Scalarizr processes is: %s but processes \n%s' % (c, list_proc))
-#
-#
-# @step('not ERROR in log')
-# def check_error_in_log(step):
-# 	out = world.node.run('cat /var/log/scalarizr_debug.log | grep ERROR')[0]
-# 	LOG.info('Check scalarizr error')
-# 	errors = []
-# 	if 'ERROR' in out:
-# 		log = out.splitlines()
-# 		for l in log:
-# 			try:
-# 				d = datetime.strptime(l.split()[0], '%Y-%m-%d')
-# 			except:
-# 				continue
-# 			now = datetime.now()
-# 			if not d.year == now.year or not d.month == now.month or not d.day == now.day:
-# 				continue
-# 			errors.append(l)
-# 	if errors:
-# 		raise AssertionError('ERROR in log: %s' % errors)
 
 
 @step("I deploy app with name '(.+)'")

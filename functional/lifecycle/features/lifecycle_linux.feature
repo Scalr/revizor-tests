@@ -15,6 +15,14 @@ Feature: Linux server lifecycle
         Then Scalr receives DeployResult from M1
         And directory '/var/www/src' exist in M1
 
+    @ec2 @cloudstack
+    Scenario: Check attached storages
+        Given I have running server M1
+        And directory '/media/ebsmount' exist in M1
+        And directory '/media/raidmount' exist in M1
+        And I create 100 files in '/media/ebsmount' in M1
+        And I create 100 files in '/media/raidmount' in M1
+
     @boot @reboot
     Scenario: Linux reboot
         Given I have running server M1
@@ -48,16 +56,24 @@ Feature: Linux server lifecycle
 		And server M1 contain '/tmp/f1'
 		And server M1 contain '/tmp/f2'
 
-   Scenario: Check deploy action
-       Given I have running server M1
-       When I deploy app with name 'deploy-test'
-       And Scalr sends Deploy to M1
-       Then Scalr receives DeployResult from M1
-       And deploy task deployed
+    Scenario: Check deploy action
+        Given I have running server M1
+        When I deploy app with name 'deploy-test'
+        And Scalr sends Deploy to M1
+        Then Scalr receives DeployResult from M1
+        And deploy task deployed
 
-   @restart_farm
-   Scenario: Restart farm
-	   When I stop farm
-	   And wait all servers are terminated
-	   Then I start farm
-	   And I expect server bootstrapping as M1
+    @restart_farm
+    Scenario: Restart farm
+        When I stop farm
+        And wait all servers are terminated
+        Then I start farm
+        And I expect server bootstrapping as M1
+
+    @ec2 @cloudstack
+    Scenario: Check attached storages after restart farm
+        Given I have running server M1
+        And directory '/media/ebsmount' exist in M1
+        And directory '/media/raidmount' exist in M1
+        And count of files in directory '/media/ebsmount' is 100 in M1
+        And count of files in directory '/media/raidmount' is 100 in M1

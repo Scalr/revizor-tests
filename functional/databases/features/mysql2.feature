@@ -164,7 +164,7 @@ Feature: MySQL database server with behavior mysql2
 	Scenario: Restart farm
 		When I stop farm
 		And wait all servers are terminated
-		Then I start farm
+		Then I start farm with delay
 		And I expect server bootstrapping as M1
 		And scalarizr version is last in M1
 		And mysql is running on M1
