@@ -1,5 +1,6 @@
 import os
 import time
+import json
 from datetime import datetime
 import logging
 
@@ -94,6 +95,38 @@ def waiting_server(step, spec, serv_as, timeout=1400):
 def having_server(step, state, serv_as):
 	server = getattr(world, serv_as)
 	world.assert_not_equal(server.status, ServerStatus.from_code(state), "Server %s is not in state %s" % (server.id, state))
+
+
+@step("I save (\w+) configuration in '([\w]+)' message in ([\w\d]+)$")
+def save_config_from_message(step, config_group, message, serv_as):
+	server = getattr(world, serv_as)
+	c = Cloud()
+	node = c.get_node(server)
+	LOG.info('Get messages from server %s' % server.id)
+	messages = world.get_szr_messages(node)
+	msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
+	LOG.info('Message id for %s is %s' % (message, msg_id))
+	message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])
+	LOG.info('Message details is %s' % message_details)
+	LOG.info('Save message part %s' % config_group)
+	setattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), message_details[config_group])
+
+
+@step("(\w+) configuration in '([\w]+)' message in ([\w\d]+) is old")
+def check_message_config(step, config_group, message, serv_as):
+	server = getattr(world, serv_as)
+	c = Cloud()
+	node = c.get_node(server)
+	LOG.info('Get messages from server %s' % server.id)
+	messages = world.get_szr_messages(node)
+	msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
+	LOG.info('Message id for %s is %s' % (message, msg_id))
+	message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])
+	LOG.info('Message details is %s' % message_details)
+	old_details = getattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), '')
+	if not old_details == message_details[config_group]:
+		LOG.error('New and old details is not equal: %s\n %s' % (old_details, message_details[config_group]))
+		raise AssertionError('New and old details is not equal')
 
 
 @step("directory '(.+)' exist in (.+)$")

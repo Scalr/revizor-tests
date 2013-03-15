@@ -453,6 +453,31 @@ def check_server_storage(serv_as, status):
 
 
 @world.absorb
+def get_szr_messages(node):
+	LOG.info('Get messages list from server %s' % node.id)
+	out = node.run('szradm list-messages')
+
+	if out[0] in ('', ' '):
+		return []
+	lines = out[0].splitlines()
+	# remove horizontal borders
+	lines = filter(lambda x: not x.startswith("+"), lines)
+	# split each line
+
+	def split_tline(line):
+		return map(lambda x: x.strip("| "), line.split(" | "))
+
+	lines = map(split_tline, lines)
+	# get column names
+	head = lines.pop(0)
+
+	# [{column_name: value}]
+	messages = [dict(zip(head, line)) for line in lines]
+	LOG.info('Server messages: %s' % messages)
+	return messages
+
+
+@world.absorb
 def check_mongo_status(status):
 	if world.farm.db_info('mongodb')['status'] == status:
 		return True
