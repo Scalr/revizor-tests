@@ -58,10 +58,10 @@ def assert_bundle_task_created(step):
 
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
-	image = tables('%s.images' % CONF.main.platform).filter().first()
 	world.farm.add_role(world.new_role_id)
 	world.farm.roles.reload()
-	setattr(world, 'role_type', image['behavior'])
-	setattr(world, '%s_role' % image['behavior'], world.farm.roles[0])
+	role = world.farm.roles[0]
+	setattr(world, 'role_type', ','.join(role.role.behaviors))
+	setattr(world, '%s_role' % ','.join(role.role.behaviors), role)
 
 
