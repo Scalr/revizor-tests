@@ -36,9 +36,8 @@ def execute_import(step):
 	time.sleep(180)
 	role_name = 'test-import-%s' % datetime.now().strftime('%m%d-%H%M')
 	LOG.info('Start import')
-	server_id = IMPL.import2_start(platform=CONF.main.platform,
-	                               roleName=role_name)
-	start_cmd = IMPL.import_check(server_id=server_id)
+	server_id = IMPL.bundle.import_start(platform=CONF.main.platform, name=role_name)
+	start_cmd = IMPL.bundle.import_check(server_id=server_id)
 	LOG.info('Start import command in scalarizr: %s' % start_cmd)
 	world.server = Server(**{'id':server_id})
 	world.cloud_server.run('screen -d -m %s &' % start_cmd)
