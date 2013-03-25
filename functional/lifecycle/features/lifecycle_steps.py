@@ -64,7 +64,8 @@ def having_role_in_farm(step):
 		}
 	role = world.add_role_to_farm(role_type=role_type,
 								options={"dm.application_id": "217",
-										 "dm.remote_path": "/var/www", })
+										 "dm.remote_path": "/var/www", },
+								storages=storages)
 	LOG.info('Add role to farm %s' % role)
 	world.role_type = role_type
 	if not role:
@@ -97,6 +98,7 @@ def having_server(step, state, serv_as):
 	world.assert_not_equal(server.status, ServerStatus.from_code(state), "Server %s is not in state %s" % (server.id, state))
 
 
+#TODO: Add check hostup message and direction
 @step("I save (\w+) configuration in '([\w]+)' message in ([\w\d]+)$")
 def save_config_from_message(step, config_group, message, serv_as):
 	server = getattr(world, serv_as)
@@ -106,7 +108,7 @@ def save_config_from_message(step, config_group, message, serv_as):
 	messages = world.get_szr_messages(node)
 	msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
 	LOG.info('Message id for %s is %s' % (message, msg_id))
-	message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])
+	message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])['body']
 	LOG.info('Message details is %s' % message_details)
 	LOG.info('Save message part %s' % config_group)
 	setattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), message_details[config_group])
@@ -121,10 +123,10 @@ def check_message_config(step, config_group, message, serv_as):
 	messages = world.get_szr_messages(node)
 	msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
 	LOG.info('Message id for %s is %s' % (message, msg_id))
-	message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])
+	message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])['body']
 	LOG.info('Message details is %s' % message_details)
 	old_details = getattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), '')
-	if not old_details == message_details[config_group]:
+	if not config_group in message_details or old_details == message_details[config_group]:
 		LOG.error('New and old details is not equal: %s\n %s' % (old_details, message_details[config_group]))
 		raise AssertionError('New and old details is not equal')
 
@@ -146,7 +148,7 @@ def create_files(step, file_count, directory, serv_as):
 	c = Cloud()
 	node = c.get_node(server)
 	LOG.info('Create %s files in directory %s' % (file_count, directory))
-	node.run('cd %s && for (( i=0;i<%s;i++ )) do cp whatever "file$i"; done' % (directory, file_count))
+	node.run('cd %s && for (( i=0;i<%s;i++ )) do touch "file$i"; done' % (directory, file_count))
 
 
 @step("count of files in directory '(.+)' is (\d+) in ([\w\d]+)")
@@ -157,7 +159,7 @@ def check_file_count(step, directory, file_count, serv_as):
 	LOG.info('Check count of files in directory %s' % directory)
 	out = node.run('cd %s && ls' % directory)
 	count = len(out[0].split())
-	if not int(file_count) == count:
+	if not int(file_count) == count + 1:
 		raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, count))
 
 

@@ -346,8 +346,7 @@ def get_all_logs(scenario):
 			try:
 				node = c.get_node(serv)
 				if node:
-					node.sftp_get_file('/var/log/scalarizr_debug.log', os.path.join(path,
-					                                                      serv.id + '_scalarizr_debug.log'))
+					node.sftp_get_file('/var/log/scalarizr_debug.log', os.path.join(path, serv.id + '_scalarizr_debug.log'))
 					LOG.info('Save scalarizr log from server %s' % serv.id)
 					node.run('echo -n > /var/log/scalarizr_debug.log')
 					LOG.info('Scalarizr log was cleaned')

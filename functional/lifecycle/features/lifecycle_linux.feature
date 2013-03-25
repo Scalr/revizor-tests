@@ -18,7 +18,7 @@ Feature: Linux server lifecycle
     @ec2 @cloudstack @storages
     Scenario: Check attached storages
         Given I have running server M1
-        Then I save volumes configuration in 'HostInitResponse' message in M1
+        Then I save volumes configuration in 'HostUp' message in M1
         And directory '/media/ebsmount' exist in M1
         And directory '/media/raidmount' exist in M1
         And I create 100 files in '/media/ebsmount' in M1
@@ -74,7 +74,7 @@ Feature: Linux server lifecycle
     @ec2 @cloudstack @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
-        Then storage configuration in 'HostInitResponse' message in M1 is old
+        Then volumes configuration in 'HostInitResponse' message in M1 is old
         And directory '/media/ebsmount' exist in M1
         And directory '/media/raidmount' exist in M1
         And count of files in directory '/media/ebsmount' is 100 in M1

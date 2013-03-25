@@ -209,6 +209,7 @@ def assert_check_slave(step, slave_serv, master_serv):
 	
 @step('I create a ([\w]+)$')
 def do_action(step, action):
+	#TODO: Wait databundle will complete
 	action = action.strip()
 	getattr(world.farm, 'db_create_%s' % action)(world.db.db_name)
 	LOG.info("Create %s" % action)
