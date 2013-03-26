@@ -15,7 +15,7 @@ LOG = logging.getLogger('scripting')
 @step('I add role to this farm with scripts attached')
 def having_role_in_farm(step):
 	role_type = os.environ.get('RV_BEHAVIOR', 'base')
-	script_id = Script.get_id('Linux ping-pong')
+	script_id = Script.get_id('Linux ping-pong')['id']
 	role = world.add_role_to_farm(role_type=role_type,
 	                              scripting=[
 		                              {
@@ -23,7 +23,7 @@ def having_role_in_farm(step):
 			                              "script": "Linux ping-pong",
 			                              "params": [],
 			                              "target": "instance",
-			                              "version": "1",
+			                              "version": "-1",
 			                              "timeout": "1200",
 			                              "issync": "1",
 			                              "order_index": "1",
@@ -34,7 +34,7 @@ def having_role_in_farm(step):
 			                              "script": "Linux ping-pong",
 			                              "params": [],
 			                              "target": "instance",
-			                              "version": "1",
+			                              "version": "-1",
 			                              "timeout": "1200",
 			                              "issync": "1",
 			                              "order_index": "10",
@@ -45,7 +45,7 @@ def having_role_in_farm(step):
 			                              "script": "Linux ping-pong",
 			                              "params": [],
 			                              "target": "instance",
-			                              "version": "1",
+			                              "version": "-1",
 			                              "timeout": "1200",
 			                              "issync": "1",
 			                              "order_index": "20",
