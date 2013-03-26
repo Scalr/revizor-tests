@@ -350,6 +350,12 @@ def get_all_logs(scenario):
 					LOG.info('Save scalarizr log from server %s' % serv.id)
 					node.run('echo -n > /var/log/scalarizr_debug.log')
 					LOG.info('Scalarizr log was cleaned')
+					LOG.info('Compressing /etc/scalr directory')
+					node.run('tar -czf /tmp/scalr.tar.gz /etc/scalr')
+					LOG.info('Download archive with scalr directory')
+					node.sftp_get_file('/tmp/scalr.tar.gz', os.path.join(path, serv.id + '_scalr.tar.gz'))
+					LOG.info('Remove archive')
+					node.run('rm -rf /tmp/scalr.tar.gz')
 			except paramiko.AuthenticationException:
 				LOG.error('Can\'t authenticated to server: %s for get log' % serv.id)
 			except IOError:

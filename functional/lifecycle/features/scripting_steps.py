@@ -6,6 +6,7 @@ import logging
 from lettuce import world, step
 
 from revizor2.utils import wait_until
+from revizor2.api import Script
 
 
 LOG = logging.getLogger('scripting')
@@ -14,10 +15,11 @@ LOG = logging.getLogger('scripting')
 @step('I add role to this farm with scripts attached')
 def having_role_in_farm(step):
 	role_type = os.environ.get('RV_BEHAVIOR', 'base')
+	script_id = Script.get_id('Linux ping-pong')
 	role = world.add_role_to_farm(role_type=role_type,
 	                              scripting=[
 		                              {
-			                              "script_id": "2369",
+			                              "script_id": script_id,
 			                              "script": "Linux ping-pong",
 			                              "params": [],
 			                              "target": "instance",
@@ -28,7 +30,7 @@ def having_role_in_farm(step):
 			                              "event": "HostInit"
 		                              },
 			                          {
-			                              "script_id": "2369",
+			                              "script_id": script_id,
 			                              "script": "Linux ping-pong",
 			                              "params": [],
 			                              "target": "instance",
@@ -39,7 +41,7 @@ def having_role_in_farm(step):
 			                              "event": "BeforeHostUp"
 		                              },
 			                          {
-			                              "script_id": "2369",
+			                              "script_id": script_id,
 			                              "script": "Linux ping-pong",
 			                              "params": [],
 			                              "target": "instance",
