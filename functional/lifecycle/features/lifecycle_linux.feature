@@ -15,7 +15,7 @@ Feature: Linux server lifecycle
         Then Scalr receives DeployResult from M1
         And directory '/var/www/src' exist in M1
 
-    @ec2 @cloudstack @rackspaceng @storages
+    @ec2 @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -76,7 +76,7 @@ Feature: Linux server lifecycle
         Then I start farm
         And I expect server bootstrapping as M1
 
-    @ec2 @cloudstack @rackspaceng @storages
+    @ec2 @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old
