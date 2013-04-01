@@ -103,14 +103,6 @@ Feature: PostgreSQL database server functional test
 		And not ERROR in M2 scalarizr log
 		And postgresql is running on M1
 
-	@ec2 @grow
-	Scenario: Grow storage
-		When I increase storage to 5 Gb in postgresql role
-		Then grow status is ok
-		And new storage size is 5 Gb in postgresql role
-		And not ERROR in M1 scalarizr log
-        And not ERROR in M2 scalarizr log
-
 	@ec2 @cloudstack @rackspaceng @volumes
     Scenario: Slave delete volumes
     	When I know M2 storages
