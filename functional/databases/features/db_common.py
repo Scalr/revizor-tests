@@ -311,6 +311,8 @@ def wait_grow_status(status):
 @step('And new storage size is ([\d]+) Gb in ([\w\d]+) role')
 def check_new_storage_size(step, size, role_type):
 	size = int(size)
+	if role_type == 'percona2':
+		role_type = 'percona'
 	new_size = int(round(world.farm.db_info(role_type)['storage']['size']['total']))
 	LOG.info('New size is %s, must be: %s (old size: %s)' % (new_size, size, world.grow_old_size))
 	if not new_size == size:

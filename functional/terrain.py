@@ -406,8 +406,8 @@ def cleanup_all(total):
 		world.farm.roles.reload()
 		for r in world.farm.roles:
 			IMPL.farm.edit_role(world.farm.id, r.role_id,
-							options={"system.timeouts.reboot" : 9999,
-									 "system.timeouts.launch" : 9999, })
+							options={"system.timeouts.reboot": 9999,
+									 "system.timeouts.launch": 9999, })
 	for v in dir(world):
 		if isinstance(getattr(world, v), ExtendedNode):
 			world.__delattr__(v)
