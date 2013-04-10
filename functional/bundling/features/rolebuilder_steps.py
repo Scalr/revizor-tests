@@ -62,7 +62,7 @@ def assert_build_started(step):
 
 @step('I have new role id')
 def assert_build_started(step):
-    logs = IMPL.IMPL.bundle.logs(world.bundle_id)
+    logs = IMPL.bundle.logs(world.bundle_id)
     for l in logs:
         if 'Role ID:' in l['message']:
             world.new_role_id = re.findall(r"Role ID: ([\d]+)", l['message'])[0]
