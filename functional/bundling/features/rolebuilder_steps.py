@@ -39,7 +39,7 @@ def start_rolebuild(step):
                                         os_family=os_family,
                                         os_version=os_version,
                                         name='tmp-%s-%s-%s' % (CONF.main.platform, CONF.main.dist,
-                                                               datetime.now().strftime('%m%d')),
+                                                               datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.main.branch,)
     setattr(world, 'role_type', CONF.main.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
