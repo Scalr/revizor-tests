@@ -414,6 +414,7 @@ def mongodb_wait_data(conn, data, **kwargs):
 
 @world.absorb
 def mongodb_wait_data2(node, data):
+    #TODO: rewrite it and use only python!
     node.put_file(path='/root/mongoslave.js', content=resources('scripts/mongoslave.js').get())
     res = node.run('mongo localhost:27018 < /root/mongoslave.js')
     node.run('rm /root/mongoslave.js')
