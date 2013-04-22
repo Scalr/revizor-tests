@@ -94,7 +94,7 @@ Feature: Redis database server functional test
 		And not ERROR in M2 scalarizr log
 		And redis is running on M1
 
-	@ec2 @cloudstack @rackspaceng @volumes
+	@ec2 @cloudstack @volumes
     Scenario: Slave delete volumes
     	When I know M2 storages
     	And M2 storage is use
@@ -102,7 +102,7 @@ Feature: Redis database server functional test
    		And M2 storage is deleted
    		And not ERROR in M1 scalarizr log
 
-	@ec2 @cloudstack @rackspaceng @volumes
+	@ec2 @cloudstack @volumes
 	Scenario: Setup replication for volume delete test
         When I increase minimum servers to 2 for redis role
         Then I expect server bootstrapping as M2

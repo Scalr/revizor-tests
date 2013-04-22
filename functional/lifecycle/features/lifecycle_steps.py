@@ -62,6 +62,34 @@ def having_role_in_farm(step):
                         "status": "",
                 }]
         }
+    elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+        storages = {
+                "configs": [{
+                        "id": None,
+                        "type": "csvol",
+                        "fs": "ext3",
+                        "settings": {
+                                "csvol.size": "1",
+                        },
+                        "mount": True,
+                        "mountPoint": "/media/ebsmount",
+                        "reUse": True,
+                        "status": "",
+                }, {
+                        "id": None,
+                        "type": "raid.csvol",
+                        "fs": "ext3",
+                        "settings": {
+                                "raid.level": "10",
+                                "raid.volumes_count": 4,
+                                "csvol.size": "1",
+                        },
+                        "mount": True,
+                        "mountPoint": "/media/raidmount",
+                        "reUse": True,
+                        "status": "",
+                }]
+        }
     role = world.add_role_to_farm(role_type=role_type,
                                                             options={"dm.application_id": "217",
                                                                              "dm.remote_path": "/var/www", },
@@ -159,7 +187,7 @@ def check_file_count(step, directory, file_count, serv_as):
     LOG.info('Check count of files in directory %s' % directory)
     out = node.run('cd %s && ls' % directory)
     count = len(out[0].split())
-    if not int(file_count) == count + 1:
+    if not int(file_count) == count:
         raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, count))
 
 

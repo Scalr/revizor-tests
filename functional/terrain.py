@@ -191,12 +191,13 @@ def assert_scalarizr_version(step, serv_as):
 @step('I know ([\w]+) storages$')
 def get_ebs_for_instance(step, serv_as):
     """Give EBS storages for server"""
+    #TODO: Add support for rackspaceng
     server = getattr(world, serv_as)
     volumes = server.get_volumes()
     LOG.debug('Volumes for server %s is: %s' % (server.id, volumes))
-    if CONF.main.platform == 'ec2':
+    if CONF.main.driver == Platform.EC2:
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
-    elif CONF.main.platform in ['cloudstack', 'idcf', 'ucloud']:
+    elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
         storages = filter(lambda x: x.extra['type'] == 'DATADISK', volumes)
     LOG.info('Storages for server %s is: %s' % (server.id, storages))
     if not storages:
