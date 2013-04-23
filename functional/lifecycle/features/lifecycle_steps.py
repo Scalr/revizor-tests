@@ -185,10 +185,14 @@ def check_file_count(step, directory, file_count, serv_as):
     c = Cloud()
     node = c.get_node(server)
     LOG.info('Check count of files in directory %s' % directory)
-    out = node.run('cd %s && ls' % directory)
-    count = len(out[0].split())
-    if not int(file_count) == count:
-        raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, count))
+    out = node.run('cd %s && ls' % directory)[0].split()
+    for i in ['..', '.', '...', 'lost+found']:
+        try:
+            out.remove(i)
+        except ValueError:
+            continue
+    if not int(file_count) == len(out):
+        raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
 
 @step('I see execution result in scripting log')

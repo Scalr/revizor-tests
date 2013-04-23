@@ -20,56 +20,76 @@ LOG = logging.getLogger('databases')
 #TODO: add to all methods which call dbmsr 3 retries
 
 PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379, 'mongodb': 27018,
-             'mysqlproxy':4040}
+             'mysqlproxy': 4040}
 
-STORAGE_ENGINES_EC2 = {'eph':{'db.msr.data_storage.engine': 'eph',
-                          'db.msr.data_storage.eph.disk': '/dev/sda2',
-                          'aws.instance_type':'m1.small',
-                          'aws.use_ebs': '0'},
-                   'lvm':{'db.msr.data_storage.engine': 'lvm',
-                          'aws.instance_type':'m1.small',
-                          'db.msr.data_storage.fstype': 'ext3',
-                          'db.msr.storage.lvm.volumes': '{"ephemeral0":"150"}',
-                          'db.msr.data_storage.eph.disk': '/dev/sda2'},
-                   'raid10':{'db.msr.data_storage.engine': 'raid.ebs',
-                             'db.msr.data_storage.raid.level': '10',
-                             'db.msr.data_storage.raid.volume_size': '1',
-                             'db.msr.data_storage.raid.volumes_count': '4',},
-                   'raid5':{'db.msr.data_storage.engine': 'raid.ebs',
-                            'db.msr.data_storage.raid.level': '5',
-                            'db.msr.data_storage.raid.volume_size': '1',
-                            'db.msr.data_storage.raid.volumes_count': '3',},
-                   'raid0':{'db.msr.data_storage.engine': 'raid.ebs',
-                            'db.msr.data_storage.raid.level': '0',
-                            'db.msr.data_storage.raid.volume_size': '1',
-                            'db.msr.data_storage.raid.volumes_count': '2',},
-                   'raid1':{'db.msr.data_storage.engine': 'raid.ebs',
-                            'db.msr.data_storage.raid.level': '1',
-                            'db.msr.data_storage.raid.volume_size': '1',
-                            'db.msr.data_storage.raid.volumes_count': '2',},
-                   'ebs':{'db.msr.data_storage.engine':'ebs',
-                          'db.msr.data_storage.ebs.size': '1',}
+STORAGE_ENGINES_EC2 = {'eph': {'db.msr.data_storage.engine': 'eph',
+                               'db.msr.data_storage.eph.disk': '/dev/sda2',
+                               'aws.instance_type':'m1.small',
+                               'aws.use_ebs': '0'},
+                       'lvm': {'db.msr.data_storage.engine': 'lvm',
+                               'aws.instance_type':'m1.small',
+                               'db.msr.data_storage.fstype': 'ext3',
+                               'db.msr.storage.lvm.volumes': '{"ephemeral0":"150"}',
+                               'db.msr.data_storage.eph.disk': '/dev/sda2'},
+                       'raid10': {'db.msr.data_storage.engine': 'raid.ebs',
+                                  'db.msr.data_storage.raid.level': '10',
+                                  'db.msr.data_storage.raid.volume_size': '1',
+                                  'db.msr.data_storage.raid.volumes_count': '4'},
+                       'raid5': {'db.msr.data_storage.engine': 'raid.ebs',
+                                 'db.msr.data_storage.raid.level': '5',
+                                 'db.msr.data_storage.raid.volume_size': '1',
+                                 'db.msr.data_storage.raid.volumes_count': '3'},
+                       'raid0': {'db.msr.data_storage.engine': 'raid.ebs',
+                                 'db.msr.data_storage.raid.level': '0',
+                                 'db.msr.data_storage.raid.volume_size': '1',
+                                 'db.msr.data_storage.raid.volumes_count': '2'},
+                       'raid1': {'db.msr.data_storage.engine': 'raid.ebs',
+                                 'db.msr.data_storage.raid.level': '1',
+                                 'db.msr.data_storage.raid.volume_size': '1',
+                                 'db.msr.data_storage.raid.volumes_count': '2'},
+                       'ebs': {'db.msr.data_storage.engine': 'ebs',
+                               'db.msr.data_storage.ebs.size': '1'}
 }
 
-STORAGE_ENGINES_RSNG = {
-        'cinder': {
-                "db.msr.data_storage.engine": "cinder",
-                "db.msr.data_storage.cinder.size": "100",
-            "db.msr.data_storage.fstype": "ext3",
 
+STORAGE_ENGINES_RSNG = {
+    'cinder': {
+        "db.msr.data_storage.engine": "cinder",
+        "db.msr.data_storage.cinder.size": "100",
+        "db.msr.data_storage.fstype": "ext3",
         },
-        'lvm': {
-                "db.msr.data_storage.engine": "lvm",
-            "db.msr.data_storage.fstype": "ext3",
-            "db.msr.data_storage.cinder.size": "1",
+
+    'lvm': {
+        "db.msr.data_storage.engine": "lvm",
+        "db.msr.data_storage.fstype": "ext3",
+        "db.msr.data_storage.cinder.size": "1",
         },
     'eph': {
-            "db.msr.data_storage.engine": "eph",
-                "db.msr.data_storage.fstype": "ext3",
-                "db.msr.data_storage.eph.disk": "/dev/loop0"
+        "db.msr.data_storage.engine": "eph",
+        "db.msr.data_storage.fstype": "ext3",
+        "db.msr.data_storage.eph.disk": "/dev/loop0"
     }
 }
 
+
+STORAGE_ENGINES_GCE = {
+    'persistent': {
+        "db.msr.data_storage.engine": "gce_persistent",
+        "db.msr.data_storage.gced.size": "1",
+        "db.msr.data_storage.fstype": "ext3"
+    },
+    'lvm': {
+        "db.msr.data_storage.engine": "lvm",
+        "db.msr.data_storage.fstype": "ext3",
+        "db.msr.data_storage.eph.disk": "ephemeral-disk-0",
+        "db.msr.storage.lvm.volumes": "{\"google-ephemeral-disk-0\":420}"
+    },
+    'eph': {
+        "db.msr.data_storage.engine": "eph",
+        "db.msr.data_storage.eph.disk": "ephemeral-disk-0",
+        "db.msr.data_storage.fstype": "ext3",
+    }
+}
 
 @step(r'I add (.+) role to this farm(?: on (.+))?$')
 def add_role_to_given_farm(step, role_type, storage=None):
@@ -83,15 +103,15 @@ def add_role_to_given_farm(step, role_type, storage=None):
     world.role_type = role_type
     scripting = []
     if CONF.main.driver == Platform.EC2:
-        if role_type == 'mysql':
-            options = {'mysql.data_storage_engine' : 'ebs',
-                   'mysql.ebs_volume_size'  : 1}
-        else:
-            options = STORAGE_ENGINES_EC2[engine]
+        options = STORAGE_ENGINES_EC2[engine]
     elif CONF.main.driver in [Platform.RACKSPACE_US, Platform.ENTERIT]:
         if not engine in STORAGE_ENGINES_RSNG:
             engine = 'cinder'
         options = STORAGE_ENGINES_RSNG[engine]
+    elif CONF.main.driver == Platform.GCE:
+        if not engine in STORAGE_ENGINES_GCE:
+            engine = 'persistent'
+        options = STORAGE_ENGINES_GCE[engine]
     else:
         options = {}
     if role_type == 'redis':
