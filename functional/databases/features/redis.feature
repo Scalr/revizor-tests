@@ -152,7 +152,7 @@ Feature: Redis database server functional test
 		Then I start farm with delay
 		And I expect server bootstrapping as M1
 		And redis is running on M1
-		And M1 contains database D3
+		And M1 contains database 3
 		And scalarizr version is last in M1
 		Then I expect server bootstrapping as M2
 		And M2 is slave of M1

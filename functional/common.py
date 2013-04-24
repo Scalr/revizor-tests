@@ -173,10 +173,11 @@ def wait_servers_running(role_id, count):
     world.farm.servers.reload()
     run_count = 0
     for server in world.farm.servers:
-        check_server_status('running', role_id)
         if server.role_id == role_id and server.status == ServerStatus.RUNNING:
+            LOG.info('Server %s is Running' % server.id)
             run_count += 1
     if int(count) == run_count:
+        LOG.info('Servers in running state are %s' % run_count)
         return True
     return False
 
