@@ -1,17 +1,14 @@
 import os
 import time
 import json
-from datetime import datetime
 import logging
 
 from lettuce import world, step
 
-from revizor2.api import Farm, Script, IMPL
+from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.cloud import Cloud
-
 
 LOG = logging.getLogger('lifecycle')
 
@@ -91,9 +88,8 @@ def having_role_in_farm(step):
                 }]
         }
     role = world.add_role_to_farm(role_type=role_type,
-                                                            options={"dm.application_id": "217",
-                                                                             "dm.remote_path": "/var/www", },
-                                                            storages=storages)
+                                  options={"dm.application_id": "217", "dm.remote_path": "/var/www", },
+                                  storages=storages)
     LOG.info('Add role to farm %s' % role)
     world.role_type = role_type
     if not role:
