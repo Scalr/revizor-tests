@@ -21,10 +21,9 @@ def assert_check_service(step, app_name, serv_as):
     server = (getattr(world, serv_as))
     http_port = 80
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        cloud = Cloud()
-        node = cloud.get_node(server)
-        http_port = cloud.open_port(node, 80, server.public_ip)
-        https_port = cloud.open_port(node, 443, server.public_ip)
+        node = world.cloud.get_node(server)
+        http_port = world.cloud.open_port(node, 80, server.public_ip)
+        https_port = world.cloud.open_port(node, 443, server.public_ip)
         world._https_port = https_port
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
@@ -66,8 +65,7 @@ def assert_check_resolv(step, vhost_name, serv_as, timeout=1800):
 def check_index(step, proto, vhost_name, vhost2_name):
     #TODO: add support idcf and other, when must open port
     domain = getattr(world, vhost_name)
-    c = Cloud()
-    node = c.get_node(getattr(world, 'A1'))
+    node = world.cloud.get_node(getattr(world, 'A1'))
     node.run('rm /var/www/%s/index.html' % vhost_name)
     world.check_index_page(node, proto, domain, vhost2_name)
     world._domain = domain

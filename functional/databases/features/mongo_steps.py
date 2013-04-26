@@ -77,7 +77,6 @@ def write_data(step, serv_as):
 def check_data(step, serv_as):
     server = getattr(world, serv_as)
     data = {'db':'supertestdb', 'id': world.data_id}
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     wait_until(world.mongodb_wait_data2, args=(node, data), timeout=600, error_text="Server %s not have data" %
                                                                                     serv_as)

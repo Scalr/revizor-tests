@@ -8,7 +8,6 @@ import redis
 from lettuce import step, world
 
 from revizor2.conf import CONF
-from revizor2.cloud import Cloud
 from revizor2.dbmsr import Database
 
 LOG = logging.getLogger(__name__)
@@ -76,8 +75,7 @@ def add_role_to_given_farm(step, role_type, redis_count):
 def get_redis_ports(step, ports, serv_as):
     server = getattr(world, serv_as)
     ports = [int(p) for p in ports.split(',')]
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     out = node.run('netstat -ap | grep redis-server')
     server_ports =  [int(port.split()[3].split(':')[1]) for port in out[0].splitlines() if port.split()[3].startswith('*')]
     LOG.debug('Redis ports in server: %s' % server_ports)

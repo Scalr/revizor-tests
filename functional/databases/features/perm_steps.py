@@ -12,7 +12,7 @@ LOG = logging.getLogger('permissions')
 @step('Then I install ([\w]+) client to ([\w\d]+)')
 def prepare_environment(step, env, serv_as):
     server = getattr(world, serv_as)
-    node = Cloud().get_node(server)
+    node = world.cloud.get_node(server)
     LOG.info('Upload database test script')
     node.put(path='/root/check_db.py',
                     content=resources('scripts/check_db.py').get())
@@ -25,7 +25,7 @@ def assert_check_connect(step, db_type, from_serv, to_serv):
     time.sleep(120)
     from_server = getattr(world, from_serv)
     to_server = getattr(world, to_serv)
-    node = Cloud().get_node(from_server)
+    node = world.cloud.get_node(from_server)
     password = world.farm.db_info('postgresql')['password']
     LOG.info('Run database test script with parameters: db=%s password=%s dest=%s' % (db_type, password, to_server.private_ip))
     out = node.run('python /root/check_db.py --db=%s --user=scalr --password=%s --to=%s' % (db_type, password, to_server.private_ip))

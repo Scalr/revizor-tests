@@ -6,9 +6,7 @@ import random
 import pymongo
 from lettuce import world, step
 
-from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
-from revizor2.fixtures import resources
 
 LOG = logging.getLogger('mongoshards')
 

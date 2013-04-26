@@ -89,7 +89,6 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
     LOG.debug('Update servers')
     world.farm.servers.reload()
     servers = world.farm.servers
-    cloud = Cloud()
     serv = getattr(world, '_temp_serv', None)
     if serv:
         LOG.info('Server get: %s' % serv.id)
@@ -104,7 +103,7 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
         for server in servers:
             if server.id == serv.id and server.cloud_server_id:
                 LOG.debug("Create node from server: %s, cloud id: %s" % (serv.id, server.cloud_server_id))
-                node = world._temp_serv_node = cloud.get_node(server)
+                node = world._temp_serv_node = world.cloud.get_node(server)
     for server in servers:
         LOG.debug('Iterate server %s in farm, state: %s' % (server.id, server.status))
         if server.role_id == role_id and not server.status == ServerStatus.TERMINATED and not server.status == ServerStatus.PENDING_TERMINATE:
@@ -328,8 +327,7 @@ def check_open_port(server, port):
 
 @world.absorb
 def get_hostname(server):
-    c = Cloud()
-    serv = c.get_node(server)
+    serv = world.cloud.get_node(server)
     out = serv.run('/bin/hostname')
     return out[0]
 

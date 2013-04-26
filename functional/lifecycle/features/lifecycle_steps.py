@@ -130,8 +130,7 @@ def having_server(step, state, serv_as):
 @step("I save (\w+) configuration in '([\w]+)' message in ([\w\d]+)$")
 def save_config_from_message(step, config_group, message, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     LOG.info('Get messages from server %s' % server.id)
     messages = world.get_szr_messages(node)
     msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
@@ -145,8 +144,7 @@ def save_config_from_message(step, config_group, message, serv_as):
 @step("(\w+) configuration in '([\w]+)' message in ([\w\d]+) is old")
 def check_message_config(step, config_group, message, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     LOG.info('Get messages from server %s' % server.id)
     messages = world.get_szr_messages(node)
     msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
@@ -161,8 +159,7 @@ def check_message_config(step, config_group, message, serv_as):
 
 @step("directory '(.+)' exist in (.+)$")
 def check_path(step, path, serv_as):
-    c = Cloud()
-    node = c.get_node(getattr(world, serv_as))
+    node = world.cloud.get_node(getattr(world, serv_as))
     out = node.run('/bin/ls %s' % path)
     LOG.info('Check directory %s' % path)
     if 'No such file or directory' in out[0] or 'No such file or directory' in out[1]:
@@ -173,8 +170,7 @@ def check_path(step, path, serv_as):
 @step("I create (\d+) files in '(.+)' in ([\w\d]+)")
 def create_files(step, file_count, directory, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     LOG.info('Create %s files in directory %s' % (file_count, directory))
     node.run('cd %s && for (( i=0;i<%s;i++ )) do touch "file$i"; done' % (directory, file_count))
 
@@ -182,8 +178,7 @@ def create_files(step, file_count, directory, serv_as):
 @step("count of files in directory '(.+)' is (\d+) in ([\w\d]+)")
 def check_file_count(step, directory, file_count, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     LOG.info('Check count of files in directory %s' % directory)
     out = node.run('cd %s && ls' % directory)[0].split()
     for i in ['..', '.', '...', 'lost+found']:
@@ -267,16 +262,14 @@ def attach_script(step, script_name):
 
 @step('I execute \'(.+)\' in (.+)$')
 def execute_command(step, command, serv_as):
-    c = Cloud()
-    node = c.get_node(getattr(world, serv_as))
+    node = world.cloud.get_node(getattr(world, serv_as))
     LOG.info('Execute command on server: %s' % command)
     node.run(command)
 
 
 @step('server ([\w\d]+) contain \'(.+)\'')
 def check_file(step, serv_as, path):
-    c = Cloud()
-    node = c.get_node(getattr(world, serv_as))
+    node = world.cloud.get_node(getattr(world, serv_as))
     out = node.run('ls %s' % path)
     LOG.info('Check exist path: %s' % path)
     if not out[2] == 0:

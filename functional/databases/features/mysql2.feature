@@ -27,7 +27,7 @@ Feature: MySQL database server with behavior mysql2
         When I add to farm role created by last bundle task
         Then I expect server bootstrapping as M1
 
-    @ec2 @gce @cloudstack @rackspaceng @restart
+    @ec2 @gce @cloudstack @rackspaceng @rebundle @restart
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
        And see 'Scalarizr terminated' in M1 log
@@ -44,7 +44,9 @@ Feature: MySQL database server with behavior mysql2
 	@ec2 @gce @cloudstack @rackspaceng @oneserv
     Scenario: Modifying data
         Given I have small-sized database D1 on M1
-        When I create a databundle
+        When I trigger databundle creation
+        Then Scalr sends DbMsr_CreateDataBundle to M1
+        And Scalr receives DbMsr_CreateDataBundleResult from M1
         And I terminate server M1
         Then I expect server bootstrapping as M1
         And M1 contains database D1

@@ -18,8 +18,7 @@ def assert_proxy_record(step, client_as, client_type, server_as):
     time.sleep(60)
     client = getattr(world, client_as)
     server = getattr(world, server_as)
-    cloud = Cloud()
-    cloud_serv = cloud.get_node(server)
+    cloud_serv = world.cloud.get_node(server)
     out = cloud_serv.run('cat /etc/mysql_proxy.conf')
     t = 'proxy-backend-addresses' if client_type == 'writer' else 'proxy-read-only-backend-addresses'
     clients = re.findall('%s\t= (.+)' % t, out[0])
@@ -79,8 +78,7 @@ def not_in_config(step, serv_as, serv_config):
     time.sleep(180)
     server = getattr(world, serv_as)
     server_config = getattr(world, serv_config)
-    cloud = Cloud()
-    cloud_serv = cloud.get_node(server_config)
+    cloud_serv = world.cloud.get_node(server_config)
     wait_until(check_not_in_config, args=(cloud_serv, server), timeout=1200, error_text='%s with IP %s in config' %
                                                                                        (serv_as, server.private_ip))
 

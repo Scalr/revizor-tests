@@ -47,7 +47,6 @@ def assert_check_upstream(step, www_serv, app_serv1, app_serv2):
     nginx = getattr(world, www_serv)
     server1 = getattr(world, app_serv1)
     server2 = getattr(world, app_serv2)
-    world.cloud = Cloud()
     world.node = world.cloud.get_node(nginx)
     LOG.info('Check upstream list')
     out = world.node.run('cat /etc/nginx/app-servers.include')[0]
@@ -101,8 +100,7 @@ def having_vhost(step, ssl, vhost_name):
 def check_rpaf(step, serv_as, vhost_name, ssl=None):
     LOG.debug('Check mod_rpaf')
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     domain = getattr(world, vhost_name)
     path = '/var/log/http-%s-access.log' % domain
     LOG.info('Check my IP in %s log' % path)

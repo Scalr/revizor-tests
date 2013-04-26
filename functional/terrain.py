@@ -118,8 +118,7 @@ def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
 @step('not ERROR in ([\w]+) scalarizr log$')
 def check_scalarizr_log(step, serv_as):
     """Check scalarizr log for errors"""
-    c = Cloud()
-    node = c.get_node(getattr(world, serv_as))
+    node = world.cloud.get_node(getattr(world, serv_as))
     out = node.run('cat /var/log/scalarizr_debug.log | grep ERROR')[0]
     LOG.info('Check scalarizr error')
     errors = []
@@ -157,8 +156,7 @@ def check_processes(step, count, serv_as):
 @step('scalarizr version is last in (.+)$')
 def assert_scalarizr_version(step, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     installed_version = None
     candidate_version = None
     if 'ubuntu' in server.role.os.lower():
@@ -304,8 +302,7 @@ def wait_all_terminated(step):
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     node.run('/etc/init.d/scalarizr restart')
     LOG.info('Scalarizr restart complete')
 
@@ -313,16 +310,18 @@ def reboot_scalarizr(step, serv_as):
 @step("see 'Scalarizr terminated' in ([\w]+) log")
 def check_log(step, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     LOG.info('Check scalarizr log for  termination')
     out = node.run('cat /var/log/scalarizr_debug.log | grep "Scalarizr terminated"')[0]
     world.assert_not_in('Scalarizr terminated', out, 'Scalarizr was not restarting')
 
 
 @before.all
-def set_test_time():
+def initialize_world():
     setattr(world, 'test_start_time', datetime.now())
+    c = Cloud()
+    setattr(world, 'cloud', c)
+
 
 @after.each_scenario
 def get_all_logs(scenario):
@@ -333,7 +332,6 @@ def get_all_logs(scenario):
         return
     farm.servers.reload()
     servers = farm.servers
-    c = Cloud()
     test_name = scenario.described_at.file.split('/')[-1].split('.')[0]
     LOG.debug('Test name: %s' % test_name)
     start_time = world.test_start_time
@@ -345,12 +343,12 @@ def get_all_logs(scenario):
     for serv in servers:
         if serv.status == ServerStatus.RUNNING or serv.status == ServerStatus.INIT or serv.status == ServerStatus.PENDING:
             try:
-                node = c.get_node(serv)
+                node = world.cloud.get_node(serv)
                 if node:
                     node.sftp_get_file('/var/log/scalarizr_debug.log', os.path.join(path, serv.id + '_scalarizr_debug.log'))
                     LOG.info('Save scalarizr log from server %s' % serv.id)
-                    node.run('echo -n > /var/log/scalarizr_debug.log')
-                    LOG.info('Scalarizr log was cleaned')
+                    #node.run('echo -n > /var/log/scalarizr_debug.log')
+                    #LOG.info('Scalarizr log was cleaned')
                     LOG.info('Compressing /etc/scalr directory')
                     node.run('tar -czf /tmp/scalr.tar.gz /etc/scalr')
                     LOG.info('Download archive with scalr directory')
@@ -384,7 +382,7 @@ def cleanup_all(total):
         if new_role_id:
             LOG.info('Delete bundled role: %s' % new_role_id)
             try:
-                IMPL.role.delete(new_role_id)
+                IMPL.role.delete(new_role_id, delete_image=True)
             except:
                 pass
         cloud_node = getattr(world, 'cloud_server', None)

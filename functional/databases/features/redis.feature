@@ -27,7 +27,7 @@ Feature: Redis database server functional test
         When I add to farm role created by last bundle task
         Then I expect server bootstrapping as M1
 
-    @ec2 @gce @cloudstack @rackspaceng @restart
+    @ec2 @gce @cloudstack @rackspaceng @rebundle @restart
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
        And see 'Scalarizr terminated' in M1 log

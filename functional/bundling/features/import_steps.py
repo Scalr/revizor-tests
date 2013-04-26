@@ -19,14 +19,14 @@ LOG = logging.getLogger('import')
 @step('I have a server running in cloud$')
 def given_server_in_cloud(step):
     #TODO: Add install behaviors
-    cloud = Cloud()
     LOG.info('Create node in cloud')
-    node = cloud.create_node()
+    node = world.cloud.create_node()
     LOG.info('Install scalarizr in node')
     node.install_scalarizr(branch=CONF.main.branch)
     setattr(world, 'cloud_server', node)
+    #FIXME: delete this
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        new_port = cloud.open_port(node, 8013)
+        new_port = world.cloud.open_port(node, 8013)
         if not new_port == 8013:
             raise AssertionError('Import will failed, because opened port is not 8013')
 

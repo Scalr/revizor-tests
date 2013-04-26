@@ -42,8 +42,7 @@ def add_vhost(step, ssl, vhost_name, serv_as):
 
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
 def assert_check_vhost(step, serv_as, vhost_name):
-    cloud = Cloud()
-    world.node = cloud.get_node(getattr(world, serv_as))
+    world.node = world.cloud.get_node(getattr(world, serv_as))
     domain = getattr(world, vhost_name)
     out = world.node.run('ls /etc/scalr/private.d/vhosts/')[0]
     if domain in out:
@@ -84,8 +83,7 @@ def remove_vhost(step, vhost_name):
 @step(r'([\w]+) has no (.+) in virtual host configuration')
 def check_deleted_vhost(step, serv_as, vhost_name):
     domain = getattr(world, vhost_name)
-    cloud = Cloud()
-    world.node = cloud.get_node(getattr(world, serv_as))
+    world.node = world.cloud.get_node(getattr(world, serv_as))
     out = world.node.run('ls -la /etc/scalr/private.d/vhosts/%s' % domain)
     for line in out[0].splitlines()+out[1].splitlines():
         if 'No such file or directory' in line:

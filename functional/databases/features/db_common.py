@@ -134,15 +134,14 @@ def assert_check_service(step, service, serv_as):
     LOG.info("Check service %s" % service)
     server = getattr(world, serv_as)
     port = PORTS_MAP[service]
-    cloud = Cloud()
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        node = cloud.get_node(server)
-        new_port = cloud.open_port(node, port, ip=server.public_ip)
+        node = world.cloud.get_node(server)
+        new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
     if world.role_type == 'redis':
         LOG.info('Role is redis, add iptables rule for me')
-        node = cloud.get_node(server)
+        node = world.cloud.get_node(server)
         my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
         LOG.info('My IP address: %s' % my_ip)
         node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
@@ -253,35 +252,17 @@ def check_database_in_new_server(step, serv_as, db_name):
     else:
         servers = [getattr(world, serv_as),]
     for server in servers:
-#               port = PORTS_MAP[world.db.db_name]
-#               if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-#                       cloud = Cloud()
-#                       node = cloud.get_node(server)
-#                       new_port = cloud.open_port(node, port, server.public_ip)
-#               else:
-#                       new_port = port
         world.assert_not_equal(world.db.database_exist(db_name, server), True, 'Database %s not exist in server %s, all db: %s' %
                                                                                (db_name, server.id, world.db.database_list(server)))
-#               if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-#                       cloud.close_port(node, new_port, server.public_ip)
 
 
 @step('I create database (.+) on (.+)')
 def create_new_database(step, db_name, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Create database %s in %s' % (db_name, server.id))
-#       port = PORTS_MAP[world.db.db_name]
-#       cloud = Cloud()
-#       if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-#               node = cloud.get_node(server)
-#               new_port = cloud.open_port(node, port, server.public_ip)
-#       else:
-#               new_port = port
     world.db.database_create(db_name, server)
     LOG.info('Database was success create')
     time.sleep(60)
-#       if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-#               cloud.close_port(node, new_port, server.public_ip)
 
 
 @step('And databundle type in ([\w\d]+) is ([\w]+)')
@@ -289,8 +270,7 @@ def check_bundle_type(step, serv_as, bundle_type):
     LOG.info('Check databundle type')
     time.sleep(10)
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     out = node.run("cat /var/log/scalarizr_debug.log | grep 'name=\"DbMsr_CreateDataBundle\"'")
     bundle = out[0].split('<backup_type>')[1].split('</backup_type>')[0]
     LOG.info('Databundle type in server messages: %s' % bundle)

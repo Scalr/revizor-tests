@@ -28,8 +28,7 @@ def having_role_in_farm(step):
 @step('I change repo in ([\w\d]+)$')
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     repo = os.environ.get('RV_TO_BRANCH', 'master')
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Change repo in Ubuntu')
@@ -50,8 +49,7 @@ def change_repo(step, serv_as):
 @step('pin new repo in ([\w\d]+)$')
 def pin_repo(step, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     repo = os.environ.get('RV_NEW_REPO', 'master')
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Pin repo %s in Ubuntu' % repo)
@@ -68,8 +66,7 @@ def pin_repo(step, serv_as):
 @step('update scalarizr in ([\w\d]+)$')
 def update_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
+    node = world.cloud.get_node(server)
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')

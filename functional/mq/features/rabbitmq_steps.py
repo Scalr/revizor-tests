@@ -22,8 +22,7 @@ def add_role_to_given_farm(step, role_type):
 @step('([\w]+) is (.+) node$')
 def assert_check_node_type(step, serv_as, node_type):
     serv = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(serv)
+    node = world.cloud.get_node(serv)
     out = node.run('rabbitmqctl cluster_status')
     LOG.info('Rabbitmq server %s status: %s' % (serv.id, out))
     disks = re.findall(r'disc,\[(.+)\]},', out[0])[0]
@@ -53,8 +52,7 @@ def increase_instances(step, action_type, count, role_type):
 @step('I check (.+) nodes in cluster on ([\w]+)$')
 def assert_node_count(step, node_count, serv_as):
     serv = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(serv)
+    node = world.cloud.get_node(serv)
     out = node.run('rabbitmqctl cluster_status')
     co = len(re.findall(r'running_nodes,\[(.+)\]}', out[0])[0].split(','))
     LOG.info('Nodes in rabbitmq cluster: %s' % co)
@@ -64,8 +62,7 @@ def assert_node_count(step, node_count, serv_as):
 @step('([\w]+) nodes are hdd and (.+) node is ram on ([\w]+)$')
 def assert_server_ratio(step, hdd_count, ram_count, serv_as):
     serv = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(serv)
+    node = world.cloud.get_node(serv)
     out = node.run('rabbitmqctl cluster_status')
     disks = re.findall(r'disc,\[(.+)\]},', out[0])[0]
     disks = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", disks)
@@ -88,8 +85,7 @@ def assert_server_ratio(step, hdd_count, ram_count, serv_as):
 @step('I add ([\w]+) to (.+)$')
 def add_objects(step, obj, serv_as):
     serv = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(serv)
+    node = world.cloud.get_node(serv)
     password = wait_until(world.wait_rabbitmq_cp, timeout=360, error_text="Not see detail to rabbitmq panel")['password']
     setattr(world, 'rabbitmq_password', password)
     LOG.info('Rabbitmq password: %s' % password)
@@ -138,8 +134,7 @@ def check_cp(step):
 @step('([\w]+) exists in (.+)$')
 def assert_check_objects(step, obj, serv_as):
     serv = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(serv)
+    node = world.cloud.get_node(serv)
     password = getattr(world, 'rabbitmq_password')
     if obj == 'user':
         LOG.info('Check user in rabbitmq')

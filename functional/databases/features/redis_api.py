@@ -47,6 +47,7 @@ def check_redis_instances(step, instances_count, serv_as):
     instances = getattr(world, 'redis_instances', {})
     count = 0
     LOG.info('Check working redis ports')
+    #TODO: Rewrite this
     for instance in instances:
         if CONF.main.platform in ['cloudstack', 'idcf']:
             cloud = Cloud()
