@@ -1,14 +1,11 @@
 import re
 import time
-
+import logging
 import MySQLdb as mysql
 
 from lettuce import world, step
 
 from revizor2.utils import wait_until
-from revizor2.cloud import Cloud
-import logging
-
 
 LOG = logging.getLogger('mysqlproxy')
 
@@ -30,11 +27,7 @@ def assert_proxy_record(step, client_as, client_type, server_as):
 def write_data_to_db(step, serv_as):
     server = getattr(world, serv_as)
     passw = world.db._password
-    m_db = mysql.connect(host=server.public_ip,
-                            port=4040,
-                            user='scalr',
-                            passwd=passw,
-                            db='D1')
+    m_db = mysql.connect(host=server.public_ip, port=4040, user='scalr', passwd=passw, db='D1')
     m_cursor = m_db.cursor()
     m_cursor.execute("""CREATE TABLE table1 (
                                             test VARCHAR( 255 ) NOT NULL
@@ -47,11 +40,7 @@ def write_data_to_db(step, serv_as):
 def read_data_from_db(step, serv_as):
     server = getattr(world, serv_as)
     passw = world.db._password
-    m_db = mysql.connect(host=server.public_ip,
-                            port=4040,
-                            user='scalr',
-                            passwd=passw,
-                            db='D1')
+    m_db = mysql.connect(host=server.public_ip, port=4040, user='scalr', passwd=passw, db='D1')
     m_cursor = m_db.cursor()
     l = m_cursor.execute("""SELECT * FROM table1""")
     if l > 0:
@@ -62,11 +51,7 @@ def read_data_from_db(step, serv_as):
 def check_data(step, serv_as):
     server = getattr(world, serv_as)
     passw = world.db._password
-    m_db = mysql.connect(host=server.public_ip,
-                            port=3306,
-                            user='scalr',
-                            passwd=passw,
-                            db='D1')
+    m_db = mysql.connect(host=server.public_ip, port=3306, user='scalr', passwd=passw, db='D1')
     m_cursor = m_db.cursor()
     l = m_cursor.execute("""SELECT * FROM table1""")
     if l > 0:
@@ -80,7 +65,7 @@ def not_in_config(step, serv_as, serv_config):
     server_config = getattr(world, serv_config)
     cloud_serv = world.cloud.get_node(server_config)
     wait_until(check_not_in_config, args=(cloud_serv, server), timeout=1200, error_text='%s with IP %s in config' %
-                                                                                       (serv_as, server.private_ip))
+                                                                                        (serv_as, server.private_ip))
 
 
 def check_not_in_config(node, server):

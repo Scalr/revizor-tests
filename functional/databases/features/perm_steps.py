@@ -30,5 +30,5 @@ def assert_check_connect(step, db_type, from_serv, to_serv):
     LOG.info('Run database test script with parameters: db=%s password=%s dest=%s' % (db_type, password, to_server.private_ip))
     out = node.run('python /root/check_db.py --db=%s --user=scalr --password=%s --to=%s' % (db_type, password, to_server.private_ip))
     if out[2]:
-        raise AssertionError("Can't connect from %s to %s, stdout:%s stderr:%s exitcode:%s" % (from_server.private_ip,
-                                                                                                                                        to_server.private_ip, out[0], out[1], out[2]))
+        raise AssertionError("Can't connect from %s to %s, stdout:%s stderr:%s exitcode:%s" %
+                             (from_server.private_ip, to_server.private_ip, out[0], out[1], out[2]))

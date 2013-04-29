@@ -6,7 +6,6 @@ import logging
 
 from lettuce import world, step, after
 
-from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
 
 LOG = logging.getLogger('RabbitMQ')

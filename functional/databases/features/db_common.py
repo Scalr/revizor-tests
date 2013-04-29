@@ -106,15 +106,10 @@ STORAGES = {
 
 
 
-@step(r'I add (.+) role to this farm(?: on (.+))?$')
-def add_role_to_given_farm(step, role_type, storage=None):
+@step(r'I add (.+) role to this farm$')
+def add_role_to_given_farm(step, role_type):
     #TODO: Move all actions with set role attribute here
     LOG.info("Add %s role to farm" % role_type)
-    if storage:
-        engine = storage
-    else:
-        engine = CONF.main.storage
-    LOG.info('Use storage engine: %s' % engine)
     world.role_type = role_type
     scripting = []
     options = {}
@@ -124,6 +119,7 @@ def add_role_to_given_farm(step, role_type, storage=None):
     if role_type == 'redis':
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
     options.update({'db.msr.data_bundle.use_slave': True})
+    LOG.info('Additional options for role: %s' % options)
     world.role_options = options
     world.role_scripting = scripting
     role = world.add_role_to_farm(world.role_type, options=options, scripting=scripting)

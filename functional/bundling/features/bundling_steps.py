@@ -29,7 +29,7 @@ def having_a_running_server(step):
 
 @step('I create server snapshot')
 def rebundle(step):
-    name = 'tmp-'+ world.server.role.name + datetime.now().strftime('-%m%d-%H%M')
+    name = 'tmp-' + world.server.role.name + datetime.now().strftime('-%m%d-%H%M')
     bundle_id = world.server.create_snapshot('no_replace', name)
     if bundle_id:
         world.bundle_id = bundle_id
