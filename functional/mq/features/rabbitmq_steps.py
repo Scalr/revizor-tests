@@ -66,7 +66,8 @@ def assert_server_ratio(step, hdd_count, ram_count, serv_as):
     disks = re.findall(r'disc,\[(.+)\]},', out[0])[0]
     disks = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", disks)
     LOG.info('Disks nodes in rabbitmq cluster: %s' % disks)
-    rams = re.findall(r'{ram,\[(.+)\]}]},', out[0])[0]
+    #TODO: Check reg exp
+    rams = re.findall(r"{ram,\[(.+)\]}]},", out[0])[0]
     rams = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams)
     LOG.info('RAMs nodes in rabbitmq cluster: %s' % rams)
     runnings = re.findall(r'running_nodes,\[(.+)\]}', out[0])[0]

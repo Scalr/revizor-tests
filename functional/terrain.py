@@ -375,7 +375,7 @@ def cleanup_all(total):
             return
         role = getattr(world, world.role_type + '_role', None)
         if not role:
-            IMPL.farm_clear_roles(world.farm.id)
+            IMPL.farm.clear_roles(world.farm.id)
             return
         IMPL.farm.clear_roles(world.farm.id)
         new_role_id = getattr(world, 'new_role_id', None)
@@ -404,9 +404,8 @@ def cleanup_all(total):
             return
         world.farm.roles.reload()
         for r in world.farm.roles:
-            IMPL.farm.edit_role(world.farm.id, r.role_id,
-                                            options={"system.timeouts.reboot": 9999,
-                                                             "system.timeouts.launch": 9999, })
+            IMPL.farm.edit_role(world.farm.id, r.role_id, options={"system.timeouts.reboot": 9999,
+                                                                   "system.timeouts.launch": 9999})
     for v in dir(world):
         if isinstance(getattr(world, v), ExtendedNode):
             world.__delattr__(v)

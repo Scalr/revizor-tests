@@ -44,7 +44,9 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@ec2 @gce @cloudstack @rackspaceng @oneserv
     Scenario: Modifying data
         Given I have small-sized database D1 on M1
-        When I create a databundle
+        When I trigger databundle creation
+        Then Scalr sends DbMsr_CreateDataBundle to M1
+        And Scalr receives DbMsr_CreateDataBundleResult from M1
         And I terminate server M1
         Then I expect server bootstrapping as M1
         And M1 contains database D1
