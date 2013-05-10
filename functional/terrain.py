@@ -197,6 +197,8 @@ def get_ebs_for_instance(step, serv_as):
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
     elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
         storages = filter(lambda x: x.extra['type'] == 'DATADISK', volumes)
+    else:
+        return
     LOG.info('Storages for server %s is: %s' % (server.id, storages))
     if not storages:
         raise AssertionError('Server %s not have storages (%s)' % (server.id, storages))
@@ -206,6 +208,8 @@ def get_ebs_for_instance(step, serv_as):
 @step('([\w]+) storage is (.+)$')
 def check_ebs_status(step, serv_as, status):
     """Check EBS storage status"""
+    if CONF.main.driver == Platform.GCE:
+        return
     time.sleep(30)
     server = getattr(world, serv_as)
     wait_until(world.check_server_storage, args=(serv_as, status), timeout=300, error_text='Volume from server %s is not %s' % (server.id, status))
