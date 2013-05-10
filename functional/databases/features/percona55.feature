@@ -72,6 +72,17 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 		And Last backup date updated to current
 		And not ERROR in M1 scalarizr log
 
+    @ec2 @backup
+    Scenario: Restore from backup
+        Given I know last backup url
+        And I know timestamp from D1 in M1
+        When I download backup in M1
+        And I delete databases D1,MDB1,MDB10 in M1
+        Then I restore databases D1,MDB1,MDB10 in M1
+        And database D1 in M1 contains 'table1' with 80 lines
+        And database D1 in M1 has relevant timestamp
+        And M1 contains database D1,MDB1,MDB10
+
 	@ec2 @gce @cloudstack @rackspaceng @replication
     Scenario: Setup replication
         When I increase minimum servers to 2 for percona2 role
