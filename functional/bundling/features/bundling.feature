@@ -2,7 +2,7 @@ Feature: Bundling server test
     
     Scenario: Add first role
         Given I have a an empty running farm
-        When I add role to farm
+        When I add role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
     

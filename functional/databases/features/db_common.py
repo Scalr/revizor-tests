@@ -10,9 +10,9 @@ from lettuce import world, step
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
-from revizor2.cloud import Cloud
 from revizor2.dbmsr import Database
 from revizor2.utils import wait_until
+from revizor2.fixtures import resources
 from revizor2.consts import Platform, ServerStatus
 
 LOG = logging.getLogger('databases')
@@ -165,12 +165,8 @@ def trigger_creation(step, action, use_slave=None):
     #TODO: if databundle in progress, wait 10 minutes
     action = action.strip()
     use_slave = True if use_slave else False
-    if action == 'databundle':
-        t = 'Bundle'
-    elif action == 'backup':
-        t = 'Backup'
     info = world.farm.db_info(world.db.db_name)
-    setattr(world, 'last_%s' % action, info['dtLast%s' % t])
+    setattr(world, 'last_%s' % action, info['last_%s' % action])
     if action == 'databundle':
         getattr(world.farm, 'db_create_%s' % action)(world.db.db_name, use_slave=use_slave)
     else:
@@ -186,22 +182,17 @@ def assert_check_databundle_date(step, back_type):
         LOG.info('Platform is cloudstack-family, backup not doing')
         return True
     info = world.farm.db_info(world.db.db_name)
-    t = 'Backup'
-    if back_type == 'databundle':
-        t = 'Bundle'
-    elif back_type == 'backup':
-        t = 'Backup'
-    if not info['dtLast%s' % t] == getattr(world, 'last_%s' % back_type, 'Never'):
+    if not info['last_%s' % back_type] == getattr(world, 'last_%s' % back_type, 'Never'):
         return
     else:
-        raise AssertionError('Previous data%s was: %s and last: %s' % (t, getattr(world, 'last_%s' % back_type, 'Never'), info['dtLast%s' % t]))
+        raise AssertionError('Previous data%s was: %s and last: %s' % (back_type, getattr(world, 'last_%s' % back_type, 'Never'), info['last_%s' % back_type]))
 
 
 @step(r'I have small-sized database (.+) on ([\w]+)')
 def having_small_database(step, db_name, serv_as):
     server = getattr(world, serv_as)
     LOG.info("Create database %s in %s" % (db_name, server.id))
-    world.db.database_create(db_name, server)
+    world.db.insert_data_to_database(db_name, server)
 
 
 @step(r'I create (\d+) databases on ([\w]+)$')
@@ -219,11 +210,12 @@ def assert_check_slave(step, slave_serv, master_serv):
     master = getattr(world, master_serv)
     info = world.farm.db_info(world.db.db_name)
     try:
-        if not info['master']['serverId'] == master.id:
+        if not info['servers']['master']['serverId'] == master.id:
             raise AssertionError('Master is not %s' % master_serv)
-        for sl in info['slaves']:
-            if sl['serverId'] == slave.id:
-                return True
+        for sl in info['servers']:
+            if sl.startswith('slave'):
+                if info['servers'][sl]['serverId'] == slave.id:
+                    return True
     except IndexError:
         raise AssertionError("I'm not see replication status")
     raise AssertionError('%s is not slave, all slaves: %s' % (slave_serv, info['slaves']))
@@ -249,14 +241,17 @@ def create_databundle(step, bundle_type, when):
 
 @step('([\w]+) contains database (.+)$')
 def check_database_in_new_server(step, serv_as, db_name):
+    dbs = db_name.split(',')
     if serv_as == 'all':
         world.farm.servers.reload()
         servers = filter(lambda s: s.status == ServerStatus.RUNNING, world.farm.servers)
     else:
         servers = [getattr(world, serv_as),]
     for server in servers:
-        world.assert_not_equal(world.db.database_exist(db_name, server), True, 'Database %s not exist in server %s, all db: %s' %
-                                                                               (db_name, server.id, world.db.database_list(server)))
+        databases = world.db.database_list(server)
+        for db in dbs:
+            world.assert_not_equal(db in databases, True, 'Database %s not exist in server %s, all db: %s' %
+                                                          (db_name, server.id, world.db.database_list(server)))
 
 
 @step('I create database (.+) on (.+)')
@@ -320,3 +315,72 @@ def check_new_storage_size(step, size, role_type):
     LOG.info('New size is %s, must be: %s (old size: %s)' % (new_size, size, world.grow_old_size))
     if not new_size == size:
         raise AssertionError('New size is %s, but must be %s (old %s)' % (new_size, size, world.grow_old_size))
+
+#TODO: Add this to all platforms
+#TODO: Add check timestamp in this backup
+@step('I know last backup url$')
+def get_last_backup_url(step):
+    LOG.info('Get last backup date')
+    last_backup = world.farm.db_info()['last_backup']
+    LOG.info('Last backup date is: %s' % last_backup)
+    all_backups = IMPL.services.list_backups(world.farm.id)
+    last_backup_url = IMPL.services.backup_details(
+        all_backups[last_backup.strftime('%d %b %Y %H:%M').lstrip('0')]['backup_id']
+    )['links']['1']['path']['dirname']
+    last_backup_url = 's3://%s/manifest.json' % last_backup_url
+    LOG.info('Last backup URL: %s' % last_backup_url)
+    setattr(world, 'last_backup_url', last_backup_url)
+
+
+@step('I download backup in ([\w\d]+)')
+def download_dump(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
+    node.run('python /tmp/download_backup.py --key=%s --secret=%s --url=%s' % (world.cloud.config.libcloud.key,
+        world.cloud.config.libcloud.secret, world.last_backup_url
+    ))
+
+
+@step('I delete databases ([\w\d,]+) in ([\w\d]+)$')
+def delete_databases(step, databases, serv_as):
+    databases = databases.split(',')
+    server = getattr(world, serv_as)
+    LOG.info('Delete databases  %s in server %s' % (databases, server.id))
+    for db in databases:
+        LOG.info('Delete database: %s' % db)
+        world.db.database_delete(db, server)
+
+
+@step('I restore databases ([\w\d,]+) in ([\w\d]+)$')
+def restore_databases(step, databases, serv_as):
+    databases = databases.split(',')
+    server = getattr(world, serv_as)
+    LOG.info('Restore databases  %s in server %s' % (databases, server.id))
+    node = world.cloud.get_node(server)
+    backups_in_server = node.run('ls /tmp/dbrestore/*')[0].split()
+    LOG.info('Available backups in server: %s' % backups_in_server)
+    for db in databases:
+        LOG.info('Restore database %s' % db)
+        path = '/tmp/dbrestore/%s' % db
+        if not path in backups_in_server:
+            raise AssertionError('Database %s backup not exist in path %s' % (db, path))
+        world.db.database_create(db, server)
+        out = node.run('mysql -u scalr -p%s %s < %s' % (world.db.password, db, path))
+        if out[1]:
+            raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
+
+
+@step("database ([\w\d]+) in ([\w\d]+) contains '([\w\d]+)' with (\d+) lines$")
+def check_database_table(step, db, serv_as, table_name, line_count):
+    server = getattr(world, serv_as)
+    assert world.db.database_exist(db, server) == True, 'Database %s not exist in server %s' % (db, server.id)
+    cursor = world.db.get_cursor(server)
+    cursor.execute('USE %s;' % db)
+    cursor.execute('SHOW TABLES;')
+    tables = [t[0] for t in cursor.fetchall()]
+    if not table_name in tables:
+        raise AssertionError('Table %s not exist in database: %s' % (table_name, db))
+    count = cursor.execute('SELECT * FROM %s;' % table_name)
+    if not int(count) == int(line_count):
+        raise AssertionError('In table %s lines, but must be: %s' % (count ,line_count))

@@ -19,7 +19,7 @@ def having_role_in_farm(step):
                                            "chef.environment": "_default",
                                            "chef.role_name": None,
                                            "chef.node_name_tpl": "",
-                                            })
+                                           })
     LOG.info('Add role to farm %s' % role)
     world.role_type = role_type
     if not role:

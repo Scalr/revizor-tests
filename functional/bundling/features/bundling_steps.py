@@ -9,7 +9,7 @@ from revizor2.consts import ServerStatus
 from revizor2.utils import wait_until
 
 
-@step('I add role to farm')
+@step('I add role to this farm$')
 def add_role_to_given_farm(step):
     world.role_type = os.environ.get('RV_BEHAVIOR', 'base')
     role = world.add_role_to_farm(world.role_type)
@@ -51,3 +51,4 @@ def add_new_role_to_farm(step):
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, world.role_type + '_role', role)
+

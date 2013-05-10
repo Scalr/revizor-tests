@@ -64,13 +64,6 @@ Feature: PostgreSQL database server functional test
         And Scalr receives RebootFinish from M1
 
 	@ec2 @gce @rackspaceng @backup
-    Scenario: Backuping data on Master
-        When I trigger backup creation
-        Then Scalr sends DbMsr_CreateBackup to M1
-        And Scalr receives DbMsr_CreateBackupResult from M1
-        And Last backup date updated to current
-
-	@ec2 @gce @rackspaceng @backup
 	Scenario: Backuping 11 databases
 		When I create 11 databases on M1
 		Then I trigger backup creation
