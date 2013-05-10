@@ -75,10 +75,12 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @backup
     Scenario: Restore from backup
         Given I know last backup url
+        And I know timestamp from D1 in M1
         When I download backup in M1
         And I delete databases D1,MDB1,MDB10 in M1
         Then I restore databases D1,MDB1,MDB10 in M1
         And database D1 in M1 contains 'table1' with 80 lines
+        And database D1 in M1 has relevant timestamp
         And M1 contains database D1,MDB1,MDB10
 
     @ec2 @gce @cloudstack @rackspaceng @replication

@@ -316,8 +316,7 @@ def check_new_storage_size(step, size, role_type):
     if not new_size == size:
         raise AssertionError('New size is %s, but must be %s (old %s)' % (new_size, size, world.grow_old_size))
 
-#TODO: Add this to all platforms
-#TODO: Add check timestamp in this backup
+#TODO: Add this to all databases
 @step('I know last backup url$')
 def get_last_backup_url(step):
     LOG.info('Get last backup date')
@@ -330,6 +329,17 @@ def get_last_backup_url(step):
     last_backup_url = 's3://%s/manifest.json' % last_backup_url
     LOG.info('Last backup URL: %s' % last_backup_url)
     setattr(world, 'last_backup_url', last_backup_url)
+
+
+@step('I know timestamp from ([\w\d]+) in ([\w\d]+)$')
+def save_timestamp(step, db, serv_as):
+    server = getattr(world, serv_as)
+    cursor = world.db.get_cursor(server)
+    cursor.execute('USE %s;' % db)
+    cursor.execute('SELECT * FROM timestamp;')
+    timestamp = cursor.fetchone()[0]
+    setattr(world, 'backup_timestamp', timestamp)
+
 
 
 @step('I download backup in ([\w\d]+)')
@@ -373,6 +383,7 @@ def restore_databases(step, databases, serv_as):
 
 @step("database ([\w\d]+) in ([\w\d]+) contains '([\w\d]+)' with (\d+) lines$")
 def check_database_table(step, db, serv_as, table_name, line_count):
+    #TODO: Support to all databases
     server = getattr(world, serv_as)
     assert world.db.database_exist(db, server) == True, 'Database %s not exist in server %s' % (db, server.id)
     cursor = world.db.get_cursor(server)
@@ -384,3 +395,14 @@ def check_database_table(step, db, serv_as, table_name, line_count):
     count = cursor.execute('SELECT * FROM %s;' % table_name)
     if not int(count) == int(line_count):
         raise AssertionError('In table %s lines, but must be: %s' % (count ,line_count))
+
+
+@step('database ([\w\d]+) in ([\w\d]+) has relevant timestamp$')
+def check_timestamp(step, db, serv_as):
+    server = getattr(world, serv_as)
+    cursor = world.db.get_cursor(server)
+    cursor.execute('USE %s;' % db)
+    cursor.execute('SELECT * FROM timestamp;')
+    timestamp = cursor.fetchone()[0]
+    if not timestamp == getattr(world, 'backup_timestamp', timestamp):
+        raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, getattr(world, 'backup_timestamp', timestamp)))
