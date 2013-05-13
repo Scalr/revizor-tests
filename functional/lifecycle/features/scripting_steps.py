@@ -81,7 +81,7 @@ def assert_check_script_in_log(step, message, serv_as):
 
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
-    time.sleep(15)
+    time.sleep(60)
     serv = getattr(world, serv_as)
     serv.scriptlogs.reload()
     last_count = getattr(world, '%s_script_count' % serv_as)
