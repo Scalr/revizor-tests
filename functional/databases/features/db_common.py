@@ -23,113 +23,113 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'percona':3306, 'postgresql': 5432, 
              'mysqlproxy': 4040}
 
 
-STORAGES = {
-    'ec2': {
-        'persistent': {
-            'db.msr.data_storage.engine': 'ebs',
-            'db.msr.data_storage.ebs.size': '1'
-        },
-        'lvm': {
-            'db.msr.data_storage.engine': 'lvm',
-            'aws.instance_type': 'm1.small',
-            'db.msr.data_storage.fstype': 'ext3',
-            'db.msr.storage.lvm.volumes': '{"ephemeral0":"150"}',
-            'db.msr.data_storage.eph.disk': '/dev/sda2'
-        },
-        'eph': {
-            'db.msr.data_storage.engine': 'eph',
-            'db.msr.data_storage.eph.disk': '/dev/sda2',
-            'aws.instance_type': 'm1.small',
-            'aws.use_ebs': '0'
-        },
-        'raid10': {
-            'db.msr.data_storage.engine': 'raid.ebs',
-            'db.msr.data_storage.raid.level': '10',
-            'db.msr.data_storage.raid.volume_size': '1',
-            'db.msr.data_storage.raid.volumes_count': '4'
-        },
-        'raid5': {
-            'db.msr.data_storage.engine': 'raid.ebs',
-            'db.msr.data_storage.raid.level': '5',
-            'db.msr.data_storage.raid.volume_size': '1',
-            'db.msr.data_storage.raid.volumes_count': '3'
-        },
-        'raid0': {
-            'db.msr.data_storage.engine': 'raid.ebs',
-            'db.msr.data_storage.raid.level': '0',
-            'db.msr.data_storage.raid.volume_size': '1',
-            'db.msr.data_storage.raid.volumes_count': '2'
-        },
-        'raid1': {
-            'db.msr.data_storage.engine': 'raid.ebs',
-            'db.msr.data_storage.raid.level': '1',
-            'db.msr.data_storage.raid.volume_size': '1',
-            'db.msr.data_storage.raid.volumes_count': '2'
-        },
-    },
-    'rackspaceng': {
-        'persistent': {
-            'db.msr.data_storage.engine': 'cinder',
-            'db.msr.data_storage.cinder.size': '100',
-            'db.msr.data_storage.fstype': 'ext3',
-        },
-        'lvm': {
-            'db.msr.data_storage.engine': 'lvm',
-            'db.msr.data_storage.fstype': 'ext3',
-            'db.msr.data_storage.cinder.size': '1',
-        },
-        'eph': {
-            'db.msr.data_storage.engine': 'eph',
-            'db.msr.data_storage.fstype': 'ext3',
-            'db.msr.data_storage.eph.disk': '/dev/loop0',
-        }
-    },
-    'gce': {
-        'persistent': {
-            'db.msr.data_storage.engine': 'gce_persistent',
-            'db.msr.data_storage.gced.size': '1',
-            'db.msr.data_storage.fstype': 'ext3'
-        },
-        'lvm': {
-            'db.msr.data_storage.engine': 'lvm',
-            'db.msr.data_storage.fstype': 'ext3',
-            'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
-            'db.msr.storage.lvm.volumes': '{\'google-ephemeral-disk-0\':420}'
-        },
-        'eph': {
-            'db.msr.data_storage.engine': 'eph',
-            'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
-            'db.msr.data_storage.fstype': 'ext3',
-        }
-    }
-}
+# STORAGES = {
+#     'ec2': {
+#         'persistent': {
+#             'db.msr.data_storage.engine': 'ebs',
+#             'db.msr.data_storage.ebs.size': '1'
+#         },
+#         'lvm': {
+#             'db.msr.data_storage.engine': 'lvm',
+#             'aws.instance_type': 'm1.small',
+#             'db.msr.data_storage.fstype': 'ext3',
+#             'db.msr.storage.lvm.volumes': '{"ephemeral0":"150"}',
+#             'db.msr.data_storage.eph.disk': '/dev/sda2'
+#         },
+#         'eph': {
+#             'db.msr.data_storage.engine': 'eph',
+#             'db.msr.data_storage.eph.disk': '/dev/sda2',
+#             'aws.instance_type': 'm1.small',
+#             'aws.use_ebs': '0'
+#         },
+#         'raid10': {
+#             'db.msr.data_storage.engine': 'raid.ebs',
+#             'db.msr.data_storage.raid.level': '10',
+#             'db.msr.data_storage.raid.volume_size': '1',
+#             'db.msr.data_storage.raid.volumes_count': '4'
+#         },
+#         'raid5': {
+#             'db.msr.data_storage.engine': 'raid.ebs',
+#             'db.msr.data_storage.raid.level': '5',
+#             'db.msr.data_storage.raid.volume_size': '1',
+#             'db.msr.data_storage.raid.volumes_count': '3'
+#         },
+#         'raid0': {
+#             'db.msr.data_storage.engine': 'raid.ebs',
+#             'db.msr.data_storage.raid.level': '0',
+#             'db.msr.data_storage.raid.volume_size': '1',
+#             'db.msr.data_storage.raid.volumes_count': '2'
+#         },
+#         'raid1': {
+#             'db.msr.data_storage.engine': 'raid.ebs',
+#             'db.msr.data_storage.raid.level': '1',
+#             'db.msr.data_storage.raid.volume_size': '1',
+#             'db.msr.data_storage.raid.volumes_count': '2'
+#         },
+#     },
+#     'rackspaceng': {
+#         'persistent': {
+#             'db.msr.data_storage.engine': 'cinder',
+#             'db.msr.data_storage.cinder.size': '100',
+#             'db.msr.data_storage.fstype': 'ext3',
+#         },
+#         'lvm': {
+#             'db.msr.data_storage.engine': 'lvm',
+#             'db.msr.data_storage.fstype': 'ext3',
+#             'db.msr.data_storage.cinder.size': '1',
+#         },
+#         'eph': {
+#             'db.msr.data_storage.engine': 'eph',
+#             'db.msr.data_storage.fstype': 'ext3',
+#             'db.msr.data_storage.eph.disk': '/dev/loop0',
+#         }
+#     },
+#     'gce': {
+#         'persistent': {
+#             'db.msr.data_storage.engine': 'gce_persistent',
+#             'db.msr.data_storage.gced.size': '1',
+#             'db.msr.data_storage.fstype': 'ext3'
+#         },
+#         'lvm': {
+#             'db.msr.data_storage.engine': 'lvm',
+#             'db.msr.data_storage.fstype': 'ext3',
+#             'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
+#             'db.msr.storage.lvm.volumes': '{\'google-ephemeral-disk-0\':420}'
+#         },
+#         'eph': {
+#             'db.msr.data_storage.engine': 'eph',
+#             'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
+#             'db.msr.data_storage.fstype': 'ext3',
+#         }
+#     }
+# }
 
 
 
-@step(r'I add (.+) role to this farm$')
-def add_role_to_given_farm(step, role_type):
-    #TODO: Move all actions with set role attribute here
-    LOG.info("Add %s role to farm" % role_type)
-    world.role_type = role_type
-    scripting = []
-    options = {}
-    storages = STORAGES.get(CONF.main.driver, '')
-    if storages:
-        options.update(storages.get(CONF.main.storage, {}))
-    if role_type == 'redis':
-        options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
-    options.update({'db.msr.data_bundle.use_slave': True})
-    LOG.info('Additional options for role: %s' % options)
-    world.role_options = options
-    world.role_scripting = scripting
-    role = world.add_role_to_farm(world.role_type, options=options, scripting=scripting)
-    setattr(world, world.role_type + '_role', role)
-    LOG.info("Set DB object to world")
-    if role_type in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
-        db = Database.create(role)
-        if not db:
-            raise AssertionError('Database for role %s not found!' % role)
-        setattr(world, 'db', db)
+# @step(r'I add (.+) role to this farm$')
+# def add_role_to_given_farm(step, role_type):
+#     #TODO: Move all actions with set role attribute here
+#     LOG.info("Add %s role to farm" % role_type)
+#     world.role_type = role_type
+#     scripting = []
+#     options = {}
+#     storages = STORAGES.get(CONF.main.driver, '')
+#     if storages:
+#         options.update(storages.get(CONF.main.storage, {}))
+#     if role_type == 'redis':
+#         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
+#     options.update({'db.msr.data_bundle.use_slave': True})
+#     LOG.info('Additional options for role: %s' % options)
+#     world.role_options = options
+#     world.role_scripting = scripting
+#     role = world.add_role_to_farm(world.role_type, options=options, scripting=scripting)
+#     setattr(world, world.role_type + '_role', role)
+#     LOG.info("Set DB object to world")
+#     if role_type in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
+#         db = Database.create(role)
+#         if not db:
+#             raise AssertionError('Database for role %s not found!' % role)
+#         setattr(world, 'db', db)
 
 
 @step(r'And ([\w]+) is running on (.+)')

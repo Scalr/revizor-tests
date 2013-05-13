@@ -2,7 +2,7 @@ Feature: Scalarizr scripting test
 
 	Scenario: Background
 		Given I have a clean and stopped farm
-		When I add role to this farm with scripts attached
+		When I add role to this farm with scripts
 		When I start farm
 		Then I expect server bootstrapping as M1
 		And scalarizr version is last in M1

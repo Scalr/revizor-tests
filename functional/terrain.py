@@ -121,24 +121,18 @@ def having_empty_running_farm(step):
     """Clear and run farm and set to world.farm"""
     world.give_empty_running_farm()
 
-# @step(r'I add (.+) role to this farm')
-# def add_role_to_given_farm(step, role_type):
-#     """Add role to farm and set role_type in world"""
-#     world.role_type = role_type
-#     role = world.add_role_to_farm(world.role_type)
-#     if not role:
-#         raise AssertionError('Error in add role to farm')
-#     setattr(world, world.role_type + '_role', role)
 
 @step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, ]+))?")
-def add_role_to_farm(step, behavior='', options=None):
-    behavior = behavior.strip()
+def add_role_to_farm(step, behavior=None, options=None):
     additional_storages = None
     scripting = None
     farm_options = {}
     if not behavior:
         behavior = os.environ.get('RV_BEHAVIOR', 'base')
-    if options.strip():
+    else:
+        behavior = behavior.strip()
+    options = options.strip() if options else None
+    if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
             if 'redis processes' in opt:
@@ -249,10 +243,11 @@ def add_role_to_farm(step, behavior='', options=None):
     if behavior == 'redis':
         LOG.info('Add redis settings')
         farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
-    storage = STORAGES.get(CONF.main.driver, '')
-    if storage:
-        LOG.info('Add main settings for %s storage' % CONF.main.storage)
-        farm_options.update(storage.get(CONF.main.storage, {}))
+    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
+        storage = STORAGES.get(Platform.to_scalr(CONF.main.driver), None)
+        if storage:
+            LOG.info('Add main settings for %s storage' % CONF.main.storage)
+            farm_options.update(storage.get(CONF.main.storage, {}))
     world.role_type = behavior
     world.role_options = farm_options
     world.role_scripting = scripting
