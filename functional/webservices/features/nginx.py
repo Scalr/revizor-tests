@@ -77,10 +77,10 @@ def having_vhost(step, ssl, vhost_name):
     app_serv = getattr(world, 'A1')
     if ssl:
         LOG.info('Add ssl vhost with domain: %s' % domain)
-        app_serv.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl='on')
+        app_serv.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=True)
     else:
         LOG.info('Add vhost with domain %s' % domain)
-        app_serv.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl='off')
+        app_serv.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=False)
     setattr(world, vhost_name, domain)
     LOG.debug('Update vhosts list for farm %s' % world.farm.id)
     world.farm.vhosts.reload()
