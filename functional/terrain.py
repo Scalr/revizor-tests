@@ -13,9 +13,107 @@ from revizor2.utils import wait_until
 from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus
-from revizor2.exceptions import ScalarizrLogError, TimeoutError
 from revizor2.dbmsr import Database
 from revizor2.consts import Platform
+
+
+FARM_OPTIONS = {
+    'chef': {
+        "chef.bootstrap": 1,
+        "chef.runlist_id": "143",
+        "chef.attributes": '{"memcached":{"memory":"1024"}}',
+        "chef.server_id": "3",
+        "chef.environment": "_default",
+        "chef.role_name": None,
+        "chef.node_name_tpl": "",
+    },
+    'deploy': {
+        "dm.application_id": "217",
+        "dm.remote_path": "/var/www",
+    },
+}
+
+
+STORAGES = {
+    'ec2': {
+        'persistent': {
+            'db.msr.data_storage.engine': 'ebs',
+            'db.msr.data_storage.ebs.size': '1'
+        },
+        'lvm': {
+            'db.msr.data_storage.engine': 'lvm',
+            'aws.instance_type': 'm1.small',
+            'db.msr.data_storage.fstype': 'ext3',
+            'db.msr.storage.lvm.volumes': '{"ephemeral0":"150"}',
+            'db.msr.data_storage.eph.disk': '/dev/sda2'
+        },
+        'eph': {
+            'db.msr.data_storage.engine': 'eph',
+            'db.msr.data_storage.eph.disk': '/dev/sda2',
+            'aws.instance_type': 'm1.small',
+            'aws.use_ebs': '0'
+        },
+        'raid10': {
+            'db.msr.data_storage.engine': 'raid.ebs',
+            'db.msr.data_storage.raid.level': '10',
+            'db.msr.data_storage.raid.volume_size': '1',
+            'db.msr.data_storage.raid.volumes_count': '4'
+        },
+        'raid5': {
+            'db.msr.data_storage.engine': 'raid.ebs',
+            'db.msr.data_storage.raid.level': '5',
+            'db.msr.data_storage.raid.volume_size': '1',
+            'db.msr.data_storage.raid.volumes_count': '3'
+        },
+        'raid0': {
+            'db.msr.data_storage.engine': 'raid.ebs',
+            'db.msr.data_storage.raid.level': '0',
+            'db.msr.data_storage.raid.volume_size': '1',
+            'db.msr.data_storage.raid.volumes_count': '2'
+        },
+        'raid1': {
+            'db.msr.data_storage.engine': 'raid.ebs',
+            'db.msr.data_storage.raid.level': '1',
+            'db.msr.data_storage.raid.volume_size': '1',
+            'db.msr.data_storage.raid.volumes_count': '2'
+        },
+    },
+    'rackspaceng': {
+        'persistent': {
+            'db.msr.data_storage.engine': 'cinder',
+            'db.msr.data_storage.cinder.size': '100',
+            'db.msr.data_storage.fstype': 'ext3',
+        },
+        'lvm': {
+            'db.msr.data_storage.engine': 'lvm',
+            'db.msr.data_storage.fstype': 'ext3',
+            'db.msr.data_storage.cinder.size': '1',
+        },
+        'eph': {
+            'db.msr.data_storage.engine': 'eph',
+            'db.msr.data_storage.fstype': 'ext3',
+            'db.msr.data_storage.eph.disk': '/dev/loop0',
+        }
+    },
+    'gce': {
+        'persistent': {
+            'db.msr.data_storage.engine': 'gce_persistent',
+            'db.msr.data_storage.gced.size': '1',
+            'db.msr.data_storage.fstype': 'ext3'
+        },
+        'lvm': {
+            'db.msr.data_storage.engine': 'lvm',
+            'db.msr.data_storage.fstype': 'ext3',
+            'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
+            'db.msr.storage.lvm.volumes': '{\'google-ephemeral-disk-0\':420}'
+        },
+        'eph': {
+            'db.msr.data_storage.engine': 'eph',
+            'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
+            'db.msr.data_storage.fstype': 'ext3',
+        }
+    }
+}
 
 
 @step('I have a an empty running farm')
@@ -23,15 +121,150 @@ def having_empty_running_farm(step):
     """Clear and run farm and set to world.farm"""
     world.give_empty_running_farm()
 
+# @step(r'I add (.+) role to this farm')
+# def add_role_to_given_farm(step, role_type):
+#     """Add role to farm and set role_type in world"""
+#     world.role_type = role_type
+#     role = world.add_role_to_farm(world.role_type)
+#     if not role:
+#         raise AssertionError('Error in add role to farm')
+#     setattr(world, world.role_type + '_role', role)
 
-@step(r'I add (.+) role to this farm')
-def add_role_to_given_farm(step, role_type):
-    """Add role to farm and set role_type in world"""
-    world.role_type = role_type
-    role = world.add_role_to_farm(world.role_type)
-    if not role:
-        raise AssertionError('Error in add role to farm')
+@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, ]+))?")
+def add_role_to_farm(step, behavior='', options=None):
+    behavior = behavior.strip()
+    additional_storages = None
+    scripting = None
+    farm_options = {}
+    if not behavior:
+        behavior = os.environ.get('RV_BEHAVIOR', 'base')
+    if options.strip():
+        for opt in [o.strip() for o in options.strip().split(',')]:
+            LOG.info('Inspect option: %s' % opt)
+            if 'redis processes' in opt:
+                LOG.info('Add redis processes')
+                redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
+                farm_options.update({'db.msr.redis.num_processes': int(redis_count)})
+            elif opt == 'scripts':
+                LOG.info('Add scripting')
+                script_id = Script.get_id('Linux ping-pong')['id']
+                scripting = [{
+                                "script_id": script_id,
+                                "script": "Linux ping-pong",
+                                "params": [],
+                                "target": "instance",
+                                "version": "-1",
+                                "timeout": "1200",
+                                "issync": "1",
+                                "order_index": "1",
+                                "event": "HostInit"
+                            },
+                            {
+                                "script_id": script_id,
+                                "script": "Linux ping-pong",
+                                "params": [],
+                                "target": "instance",
+                                "version": "-1",
+                                "timeout": "1200",
+                                "issync": "1",
+                                "order_index": "10",
+                                "event": "BeforeHostUp"
+                            },
+                            {
+                                "script_id": script_id,
+                                "script": "Linux ping-pong",
+                                "params": [],
+                                "target": "instance",
+                                "version": "-1",
+                                "timeout": "1200",
+                                "issync": "1",
+                                "order_index": "20",
+                                "event": "HostUp"
+                            }]
+            elif opt == 'storages':
+                LOG.info('Add additional storages')
+                if CONF.main.driver in [Platform.EC2]:
+                    additional_storages = {
+                            "configs": [{
+                                    "id": None,
+                                    "type": "ebs",
+                                    "fs": "ext3",
+                                    "settings": {
+                                            "ebs.size": "1",
+                                            "ebs.type": "standard",
+                                            "ebs.snapshot": None,
+                                    },
+                                    "mount": True,
+                                    "mountPoint": "/media/ebsmount",
+                                    "reUse": True,
+                                    "status": "",
+                            }, {
+                                    "id": None,
+                                    "type": "raid.ebs",
+                                    "fs": "ext3",
+                                    "settings": {
+                                            "raid.level": "10",
+                                            "raid.volumes_count": 4,
+                                            "ebs.size": "1",
+                                            "ebs.type": "standard",
+                                            "ebs.snapshot": None,
+                                    },
+                                    "mount": True,
+                                    "mountPoint": "/media/raidmount",
+                                    "reUse": True,
+                                    "status": "",
+                            }]
+                    }
+                elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+                    additional_storages = {
+                            "configs": [{
+                                    "id": None,
+                                    "type": "csvol",
+                                    "fs": "ext3",
+                                    "settings": {
+                                            "csvol.size": "1",
+                                    },
+                                    "mount": True,
+                                    "mountPoint": "/media/ebsmount",
+                                    "reUse": True,
+                                    "status": "",
+                            }, {
+                                    "id": None,
+                                    "type": "raid.csvol",
+                                    "fs": "ext3",
+                                    "settings": {
+                                            "raid.level": "10",
+                                            "raid.volumes_count": 4,
+                                            "csvol.size": "1",
+                                    },
+                                    "mount": True,
+                                    "mountPoint": "/media/raidmount",
+                                    "reUse": True,
+                                    "status": "",
+                            }]
+                    }
+            else:
+                LOG.info('Add %s' % opt)
+                farm_options.update(FARM_OPTIONS.get(opt, {}))
+    if behavior == 'redis':
+        LOG.info('Add redis settings')
+        farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
+    storage = STORAGES.get(CONF.main.driver, '')
+    if storage:
+        LOG.info('Add main settings for %s storage' % CONF.main.storage)
+        farm_options.update(storage.get(CONF.main.storage, {}))
+    world.role_type = behavior
+    world.role_options = farm_options
+    world.role_scripting = scripting
+    LOG.debug('All farm settings: %s' % farm_options)
+    role = world.add_role_to_farm(world.role_type, options=farm_options, scripting=scripting, storages=additional_storages)
     setattr(world, world.role_type + '_role', role)
+    world.role = role
+    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
+        db = Database.create(role)
+        if not db:
+            raise AssertionError('Database for role %s not found!' % role)
+        setattr(world, 'db', db)
 
 
 @step('I expect server bootstrapping as ([\w\d]+)$')
