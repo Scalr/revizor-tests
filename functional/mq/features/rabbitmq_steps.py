@@ -11,11 +11,11 @@ from revizor2.utils import wait_until
 LOG = logging.getLogger('RabbitMQ')
 
 
-@step(r'I add (.+) role to this farm')
-def add_role_to_given_farm(step, role_type):
-    world.role_type = role_type
-    role = world.add_role_to_farm(world.role_type, options={"rabbitmq.nodes_ratio": "66%", })
-    setattr(world, world.role_type + '_role', role)
+# @step(r'I add (.+) role to this farm')
+# def add_role_to_given_farm(step, role_type):
+#     world.role_type = role_type
+#     role = world.add_role_to_farm(world.role_type, options={"rabbitmq.nodes_ratio": "66%", })
+#     setattr(world, world.role_type + '_role', role)
 
 
 @step('([\w]+) is (.+) node$')
