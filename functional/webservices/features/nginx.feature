@@ -30,3 +30,21 @@ Feature: Nginx load balancer role test with apache backends
         Then https get H2 matches H2 index page
         And response contains valid Cert and CACert
         And my IP in A1 H2 ssl access logs
+
+    @ec2 @gce @cloudstack @rackspaceng @rebundle
+    Scenario: Rebundle nginx server
+        When I create server snapshot for W1
+        Then Bundle task created for W1
+        And Bundle task becomes completed for W1
+
+    @ec2 @gce @cloudstack @rackspaceng @rebundle
+    Scenario: Use new nginx role
+        Given I have a an empty running farm
+        Then I add to farm role created by last bundle task
+        And I expect server bootstrapping as W2
+        And W2 upstream list should not contain A1
+
+    Scenario: Adding app to upstream after rebundle
+        When I add app role to this farm
+        And I expect server bootstrapping as A3
+        Then W2 upstream list should contain A3

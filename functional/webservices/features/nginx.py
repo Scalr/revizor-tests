@@ -47,9 +47,9 @@ def assert_check_upstream(step, www_serv, app_serv1, app_serv2):
     nginx = getattr(world, www_serv)
     server1 = getattr(world, app_serv1)
     server2 = getattr(world, app_serv2)
-    world.node = world.cloud.get_node(nginx)
+    node = world.cloud.get_node(nginx)
     LOG.info('Check upstream list')
-    out = world.node.run('cat /etc/nginx/app-servers.include')[0]
+    out = node.run('cat /etc/nginx/app-servers.include')[0]
     if server1.private_ip in out and server2.private_ip in out:
         LOG.info('Both app server in upstream')
         return True
@@ -62,12 +62,13 @@ def assert_check_upstream(step, www_serv, app_serv1, app_serv2):
 @step(r'([\w]+) upstream list should(?: (not))? contain (.+)')
 def assert_check_upstream_after_delete(step, www_serv, have, app_serv):
     server = getattr(world, app_serv)
+    www_serv = getattr(world, www_serv)
     if have:
         LOG.info('Check if upstream not have %s in list' % server.id)
-        wait_until(world.wait_upstream_in_config, args=(world.node, server.private_ip, False), timeout=180, error_text="Upstream %s in list" % server.private_ip)
+        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip, False), timeout=180, error_text="Upstream %s in list" % server.private_ip)
     else:
         LOG.info('Check if upstream have %s in list' % server.id)
-        wait_until(world.wait_upstream_in_config, args=(world.node, server.private_ip), timeout=180, error_text="Upstream %s not in list" % server.private_ip)
+        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip), timeout=180, error_text="Upstream %s not in list" % server.private_ip)
 
 
 @step(r'When I add(?: (ssl))? virtual host ([\w]+) assigned to app role')
