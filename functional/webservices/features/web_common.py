@@ -1,11 +1,9 @@
 import ssl
-import urllib2
 import socket
 
 from lettuce import world, step, after
 
 from revizor2.conf import CONF
-from revizor2.cloud import Cloud
 from revizor2.consts import Platform
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources

@@ -1,10 +1,7 @@
-import ssl
 import urllib2
 import logging
 
 from lettuce import world, step
-
-from revizor2.cloud import Cloud
 
 LOG = logging.getLogger('apache')
 

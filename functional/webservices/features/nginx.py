@@ -5,7 +5,6 @@ import time
 
 from lettuce import world, step
 
-from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
 
 
