@@ -1,0 +1,8 @@
+{
+    "RV_PLATFORM": {
+        "ec2": ["ec2"],
+        "gce": ["gce", "-storages"],
+        "cloudstack": ["cloudstack"],
+        "rackspaceng": ["rackspaceng", "-storages"]
+    }
+}

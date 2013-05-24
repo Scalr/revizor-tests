@@ -25,14 +25,14 @@ def start_rolebuild(step):
         images = IMPL.rolebuilder.images2()[CONF.main.platform]['images']
         for image in images:
             if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
-                image['architecture'] == CONF.main.arch and image['cloud_location'] == location and not 'hvm' in image:
+                image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image:
                 os_version = image['os_version']
                 break
     else:
         os_version = os_version[:2] + '.' + os_version[2:]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
-                                        arch=CONF.main.arch,
+                                        arch='x86_64',
                                         behaviors=CONF.main.behaviors,
                                         os_family=os_family,
                                         os_version=os_version,
@@ -57,7 +57,7 @@ def start_rolebuild(step, behaviors):
         images = IMPL.rolebuilder.images2()[CONF.main.platform]['images']
         for image in images:
             if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
-                image['architecture'] == CONF.main.arch and image['cloud_location'] == location and not 'hvm' in image \
+                image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image \
                 and image['root_device_type']=='ebs':
                 os_version = image['os_version']
                 break

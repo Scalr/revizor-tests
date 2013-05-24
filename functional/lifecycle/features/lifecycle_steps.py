@@ -219,7 +219,7 @@ def deploy_app(step, app_name):
 
 @step('And deploy task deployed')
 def check_deploy_status(step):
-    time.sleep(5)
+    time.sleep(30)
     LOG.info('Check task status')
     LOG.debug('All tasks %s' % IMPL.deploy.tasks_list())
     task = filter(lambda x: x['id'] == world.task_id, IMPL.deploy.tasks_list())[0]

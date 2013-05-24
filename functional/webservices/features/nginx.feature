@@ -17,6 +17,7 @@ Feature: Nginx load balancer role test with apache backends
         When I terminate server A2 with decrease
         Then W1 upstream list should not contain A2
         But W1 upstream list should contain A1
+        And Scalr sends HostDown to W1
 
     Scenario: HTTP proxying
         When I add virtual host H1 assigned to app role

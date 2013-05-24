@@ -242,7 +242,8 @@ def add_role_to_farm(step, behavior=None, options=None):
                 farm_options.update(FARM_OPTIONS.get(opt, {}))
     if behavior == 'redis':
         LOG.info('Add redis settings')
-        farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
+        farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
+                             'db.msr.redis.use_password': True})
     if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
         storage = STORAGES.get(Platform.to_scalr(CONF.main.driver), None)
         if storage:

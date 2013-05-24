@@ -23,115 +23,6 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'percona':3306, 'postgresql': 5432, 
              'mysqlproxy': 4040}
 
 
-# STORAGES = {
-#     'ec2': {
-#         'persistent': {
-#             'db.msr.data_storage.engine': 'ebs',
-#             'db.msr.data_storage.ebs.size': '1'
-#         },
-#         'lvm': {
-#             'db.msr.data_storage.engine': 'lvm',
-#             'aws.instance_type': 'm1.small',
-#             'db.msr.data_storage.fstype': 'ext3',
-#             'db.msr.storage.lvm.volumes': '{"ephemeral0":"150"}',
-#             'db.msr.data_storage.eph.disk': '/dev/sda2'
-#         },
-#         'eph': {
-#             'db.msr.data_storage.engine': 'eph',
-#             'db.msr.data_storage.eph.disk': '/dev/sda2',
-#             'aws.instance_type': 'm1.small',
-#             'aws.use_ebs': '0'
-#         },
-#         'raid10': {
-#             'db.msr.data_storage.engine': 'raid.ebs',
-#             'db.msr.data_storage.raid.level': '10',
-#             'db.msr.data_storage.raid.volume_size': '1',
-#             'db.msr.data_storage.raid.volumes_count': '4'
-#         },
-#         'raid5': {
-#             'db.msr.data_storage.engine': 'raid.ebs',
-#             'db.msr.data_storage.raid.level': '5',
-#             'db.msr.data_storage.raid.volume_size': '1',
-#             'db.msr.data_storage.raid.volumes_count': '3'
-#         },
-#         'raid0': {
-#             'db.msr.data_storage.engine': 'raid.ebs',
-#             'db.msr.data_storage.raid.level': '0',
-#             'db.msr.data_storage.raid.volume_size': '1',
-#             'db.msr.data_storage.raid.volumes_count': '2'
-#         },
-#         'raid1': {
-#             'db.msr.data_storage.engine': 'raid.ebs',
-#             'db.msr.data_storage.raid.level': '1',
-#             'db.msr.data_storage.raid.volume_size': '1',
-#             'db.msr.data_storage.raid.volumes_count': '2'
-#         },
-#     },
-#     'rackspaceng': {
-#         'persistent': {
-#             'db.msr.data_storage.engine': 'cinder',
-#             'db.msr.data_storage.cinder.size': '100',
-#             'db.msr.data_storage.fstype': 'ext3',
-#         },
-#         'lvm': {
-#             'db.msr.data_storage.engine': 'lvm',
-#             'db.msr.data_storage.fstype': 'ext3',
-#             'db.msr.data_storage.cinder.size': '1',
-#         },
-#         'eph': {
-#             'db.msr.data_storage.engine': 'eph',
-#             'db.msr.data_storage.fstype': 'ext3',
-#             'db.msr.data_storage.eph.disk': '/dev/loop0',
-#         }
-#     },
-#     'gce': {
-#         'persistent': {
-#             'db.msr.data_storage.engine': 'gce_persistent',
-#             'db.msr.data_storage.gced.size': '1',
-#             'db.msr.data_storage.fstype': 'ext3'
-#         },
-#         'lvm': {
-#             'db.msr.data_storage.engine': 'lvm',
-#             'db.msr.data_storage.fstype': 'ext3',
-#             'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
-#             'db.msr.storage.lvm.volumes': '{\'google-ephemeral-disk-0\':420}'
-#         },
-#         'eph': {
-#             'db.msr.data_storage.engine': 'eph',
-#             'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
-#             'db.msr.data_storage.fstype': 'ext3',
-#         }
-#     }
-# }
-
-
-
-# @step(r'I add (.+) role to this farm$')
-# def add_role_to_given_farm(step, role_type):
-#     #TODO: Move all actions with set role attribute here
-#     LOG.info("Add %s role to farm" % role_type)
-#     world.role_type = role_type
-#     scripting = []
-#     options = {}
-#     storages = STORAGES.get(CONF.main.driver, '')
-#     if storages:
-#         options.update(storages.get(CONF.main.storage, {}))
-#     if role_type == 'redis':
-#         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')})
-#     options.update({'db.msr.data_bundle.use_slave': True})
-#     LOG.info('Additional options for role: %s' % options)
-#     world.role_options = options
-#     world.role_scripting = scripting
-#     role = world.add_role_to_farm(world.role_type, options=options, scripting=scripting)
-#     setattr(world, world.role_type + '_role', role)
-#     LOG.info("Set DB object to world")
-#     if role_type in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
-#         db = Database.create(role)
-#         if not db:
-#             raise AssertionError('Database for role %s not found!' % role)
-#         setattr(world, 'db', db)
-
-
 @step(r'And ([\w]+) is running on (.+)')
 def assert_check_service(step, service, serv_as):
     LOG.info("Check service %s" % service)
@@ -156,7 +47,7 @@ def assert_check_service(step, service, serv_as):
         raise AssertionError(e)
     if service == 'redis':
         LOG.info('Set main redis instances to %s' % serv_as)
-        setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['password']})
+        setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
     LOG.info("Service work")
 
 
@@ -318,6 +209,9 @@ def check_new_storage_size(step, size, role_type):
 #TODO: Add this to all databases
 @step('I know last backup url$')
 def get_last_backup_url(step):
+    #TODO: Delete this
+    if not CONF.main.driver == Platform.EC2:
+        return True
     LOG.info('Get last backup date')
     last_backup = world.farm.db_info()['last_backup']
     LOG.info('Last backup date is: %s' % last_backup)
@@ -340,19 +234,32 @@ def save_timestamp(step, db, serv_as):
     setattr(world, 'backup_timestamp', timestamp)
 
 
-
 @step('I download backup in ([\w\d]+)')
 def download_dump(step, serv_as):
+
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
-    node.run('python /tmp/download_backup.py --key=%s --secret=%s --url=%s' % (world.cloud.config.libcloud.key,
-        world.cloud.config.libcloud.secret, world.last_backup_url
-    ))
+    if CONF.main.driver == Platform.EC2:
+        node.run('python /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
+            world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
+        ))
+    # elif CONF.main.driver == Platform.GCE:
+    #     with open(world.cloud.config.libcloud.key, 'r+') as key:
+    #         node.put_file('/tmp/gcs_pk.p12', key.readall())
+    #     node.run('python /tmp/download_backup.py --platform=gce --key=%s --url=%s' % (world.cloud.config.libcloud.username,
+    #                                                                                   world.last_backup_url))
+    # elif CONF.main.driver == Platform.RACKSPACE_US:
+    #     node.run('python /tmp/download_backup.py --platform=rackspaceng --key=%s --secret=%s --url=%s' % (
+    #         world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
+    #     ))
 
 
 @step('I delete databases ([\w\d,]+) in ([\w\d]+)$')
 def delete_databases(step, databases, serv_as):
+    #TODO: Delete this
+    if not CONF.main.driver == Platform.EC2:
+        return True
     databases = databases.split(',')
     server = getattr(world, serv_as)
     LOG.info('Delete databases  %s in server %s' % (databases, server.id))
@@ -363,6 +270,9 @@ def delete_databases(step, databases, serv_as):
 
 @step('I restore databases ([\w\d,]+) in ([\w\d]+)$')
 def restore_databases(step, databases, serv_as):
+    #TODO: Delete this
+    if not CONF.main.driver == Platform.EC2:
+        return True
     databases = databases.split(',')
     server = getattr(world, serv_as)
     LOG.info('Restore databases  %s in server %s' % (databases, server.id))
