@@ -1,4 +1,5 @@
 {
+    "BEHAVIORS": ["mysql2"],
     "RV_PLATFORM": {
         "ec2": ["ec2"],
         "gce": ["gce", "-volumes", "-reboot", "-grow"],

@@ -61,10 +61,13 @@ def assert_check_resolv(step, vhost_name, serv_as, timeout=1800):
 
 @step(r'([\w]+) get (.+) matches (.+) index page$')
 def check_index(step, proto, vhost_name, vhost2_name):
-    #TODO: add support idcf and other, when must open port
     domain = getattr(world, vhost_name)
+    LOG.info('Get node %s for delete index.html' % getattr(world, 'A1').id)
     node = world.cloud.get_node(getattr(world, 'A1'))
-    node.run('rm /var/www/%s/index.html' % vhost_name)
+    try:
+        node.run('rm /var/www/%s/index.html' % vhost_name)
+    except AttributeError, e:
+        LOG.error('Failed in delete index.html: %s' % e)
     world.check_index_page(node, proto, domain, vhost2_name)
     world._domain = domain
 

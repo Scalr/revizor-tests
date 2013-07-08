@@ -22,7 +22,7 @@ def start_rolebuild(step):
         platform = CONF.main.platform
     os_family, os_version = re.findall(r'([a-zA-Z]+)(\d+)', CONF.main.dist)[0]
     if os_family == 'centos':
-        images = IMPL.rolebuilder.images2()[CONF.main.platform]['images']
+        images = IMPL.rolebuilder.images()[CONF.main.platform]['images']
         for image in images:
             if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
                 image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image:
@@ -54,7 +54,7 @@ def start_rolebuild(step, behaviors):
     platform = CONF.main.platform
     os_family, os_version = re.findall(r'([a-zA-Z]+)(\d+)', CONF.main.dist)[0]
     if os_family in ['centos', 'oel', 'rhel']:
-        images = IMPL.rolebuilder.images2()[CONF.main.platform]['images']
+        images = IMPL.rolebuilder.images()[CONF.main.platform]['images']
         for image in images:
             if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
                 image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image \

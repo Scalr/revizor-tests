@@ -19,8 +19,8 @@ LOG = logging.getLogger('databases')
 
 #TODO: add to all methods which call dbmsr 3 retries
 
-PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379, 'mongodb': 27018,
-             'mysqlproxy': 4040}
+PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
+             'mongodb': 27018, 'mysqlproxy': 4040}
 
 
 @step(r'And ([\w]+) is running on (.+)')
@@ -213,11 +213,11 @@ def get_last_backup_url(step):
     if not CONF.main.driver == Platform.EC2:
         return True
     LOG.info('Get last backup date')
-    last_backup = world.farm.db_info()['last_backup']
+    last_backup = world.farm.db_info(world.role_type)['last_backup']
     LOG.info('Last backup date is: %s' % last_backup)
     all_backups = IMPL.services.list_backups(world.farm.id)
     last_backup_url = IMPL.services.backup_details(
-        all_backups[last_backup.strftime('%d %b %Y %H:%M').lstrip('0')]['backup_id']
+        all_backups[last_backup.strftime('%d %B %Y %H:%M').lstrip('0')]['backup_id']
     )['links']['1']['path']['dirname']
     last_backup_url = 's3://%s/manifest.json' % last_backup_url
     LOG.info('Last backup URL: %s' % last_backup_url)
@@ -236,14 +236,18 @@ def save_timestamp(step, db, serv_as):
 
 @step('I download backup in ([\w\d]+)')
 def download_dump(step, serv_as):
-
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
     if CONF.main.driver == Platform.EC2:
-        node.run('python /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
-            world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
-        ))
+        if node.os[0] == 'redhat' and node.os[1].startswith('5'):
+            node.run('python26 /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
+                world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
+            ))
+        else:
+            node.run('python /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
+                world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
+            ))
     # elif CONF.main.driver == Platform.GCE:
     #     with open(world.cloud.config.libcloud.key, 'r+') as key:
     #         node.put_file('/tmp/gcs_pk.p12', key.readall())

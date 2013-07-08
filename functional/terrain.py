@@ -105,7 +105,7 @@ STORAGES = {
             'db.msr.data_storage.engine': 'lvm',
             'db.msr.data_storage.fstype': 'ext3',
             'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
-            'db.msr.storage.lvm.volumes': '{\'google-ephemeral-disk-0\':420}'
+            'db.msr.storage.lvm.volumes': '{"google-ephemeral-disk-0":420}'
         },
         'eph': {
             'db.msr.data_storage.engine': 'eph',
@@ -244,7 +244,7 @@ def add_role_to_farm(step, behavior=None, options=None):
         LOG.info('Add redis settings')
         farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                              'db.msr.redis.use_password': True})
-    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
+    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2', 'mariadb']:
         storage = STORAGES.get(Platform.to_scalr(CONF.main.driver), None)
         if storage:
             LOG.info('Add main settings for %s storage' % CONF.main.storage)
@@ -256,7 +256,7 @@ def add_role_to_farm(step, behavior=None, options=None):
     role = world.add_role_to_farm(world.role_type, options=farm_options, scripting=scripting, storages=additional_storages)
     setattr(world, world.role_type + '_role', role)
     world.role = role
-    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
+    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2', 'mariadb']:
         db = Database.create(role)
         if not db:
             raise AssertionError('Database for role %s not found!' % role)
