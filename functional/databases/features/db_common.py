@@ -140,7 +140,8 @@ def check_database_in_new_server(step, serv_as, db_name):
         servers = [getattr(world, serv_as),]
     for server in servers:
         for db in dbs:
-            world.assert_not_equal(world.db.database_exist(db), True, 'Database %s not exist in server %s, all db: %s' %
+            LOG.info('Check database %s in server %s' % (db, server.id))
+            world.assert_not_equal(world.db.database_exist(db, server), True, 'Database %s not exist in server %s, all db: %s' %
                                                           (db_name, server.id, world.db.database_list(server)))
 
 

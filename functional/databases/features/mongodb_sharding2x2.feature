@@ -26,9 +26,11 @@ Feature: MongoDB shard 2x2 test
 
 	@restart_farm
     Scenario: Check start/stop farm
-        When I start terminate cluster
+        When I create file in master
+        Then I start terminate cluster
         And wait cluster status terminated
         And I stop farm
         When I start farm
         And wait 4 servers is running
         And shard status have 2 replicaset
+        And master have file

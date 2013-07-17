@@ -178,6 +178,7 @@ def add_role_to_farm(step, behavior=None, options=None):
             elif opt == 'storages':
                 LOG.info('Add additional storages')
                 if CONF.main.driver in [Platform.EC2]:
+                    LOG.info('Add storages from EC2')
                     additional_storages = {
                             "configs": [{
                                     "id": None,
@@ -210,6 +211,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                             }]
                     }
                 elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+                    LOG.info('Add storages from IDCF/CloudStack')
                     additional_storages = {
                             "configs": [{
                                     "id": None,
@@ -236,6 +238,37 @@ def add_role_to_farm(step, behavior=None, options=None):
                                     "reUse": True,
                                     "status": "",
                             }]
+                    }
+                elif CONF.main.driver in [Platform.OPENSTACK, Platform.ENTERIT]:
+                    LOG.info('Add storages from OpenStack')
+                    additional_storages = {
+                        "configs": [{
+                                        "id": None,
+                                        "type": "cinder",
+                                        "fs": "ext3",
+                                        "settings": {
+                                            "cinder.size": "100"
+                                        },
+                                        "mount": True,
+                                        "mountPoint": "/media/ebsmount",
+                                        "reUse": True,
+                                        "status": "",
+                                        "rebuild": False
+                                    }, {
+                                        "id": None,
+                                        "type": "raid.cinder",
+                                        "fs": "ext3",
+                                        "settings": {
+                                            "raid.level": "10",
+                                            "raid.volumes_count": 4,
+                                            "cinder.size": "100"
+                                        },
+                                        "mount": True,
+                                        "mountPoint": "/media/raidmount",
+                                        "reUse": True,
+                                        "status": "",
+                                        "rebuild": False
+                                    }]
                     }
             else:
                 LOG.info('Add %s' % opt)

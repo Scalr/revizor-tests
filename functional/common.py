@@ -9,7 +9,6 @@ from datetime import datetime
 import requests
 from lettuce import world
 
-from revizor2.cloud import Cloud
 from revizor2.api import Farm, IMPL
 from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
