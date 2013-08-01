@@ -112,6 +112,13 @@ STORAGES = {
             'db.msr.data_storage.eph.disk': 'ephemeral-disk-0',
             'db.msr.data_storage.fstype': 'ext3',
         }
+    },
+    'openstack': {
+        'persistent': {
+            "db.msr.data_storage.engine": "cinder",
+            "db.msr.data_storage.fstype": "ext3",
+            "db.msr.data_storage.cinder.size": "100",
+        }
     }
 }
 
@@ -332,12 +339,20 @@ def terminate_server_decrease(step, serv):
     server.terminate(decrease=True)
 
 
-@step('I force terminate (.+)$')
+@step('I force terminate ([\w\d]+)$')
 def terminate_server_force(step, serv_as):
     """Terminate server force"""
     server = getattr(world, serv_as)
     LOG.info('Terminate server %s force' % server.id)
     server.terminate(force=True)
+
+
+@step('I force terminate server ([\w\d]+) with decrease$')
+def terminate_server_force(step, serv_as):
+    """Terminate server force"""
+    server = getattr(world, serv_as)
+    LOG.info('Terminate server %s force' % server.id)
+    server.terminate(force=True, decrease=True)
 
 
 @step('I reboot server (.+)$')
@@ -578,8 +593,8 @@ def check_log(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Check scalarizr log for  termination')
-    out = node.run('cat /var/log/scalarizr_debug.log | grep "Scalarizr terminated"')[0]
-    world.assert_not_in('Scalarizr terminated', out, 'Scalarizr was not restarting')
+    wait_until(world.check_text_in_scalarizr_log, timeout=300, args=(node, "Scalarizr terminated"),
+               error_text='Not see "Scalarizr terminated" in debug log')
 
 
 @before.all
@@ -634,6 +649,8 @@ def get_all_logs(scenario):
 def cleanup_all(total):
     """If not have problem - stop farm and delete roles, vhosts, domains"""
     LOG.info('Failed steps: %s' % total.steps_failed)
+    LOG.debug('Results %s' % total.scenario_results)
+    LOG.debug('Passed %s' % total.scenarios_passed)
     if not total.steps_failed and CONF.main.stop_farm:
         LOG.info('Clear and stop farm...')
         farm = getattr(world, 'farm', None)

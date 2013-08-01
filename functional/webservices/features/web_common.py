@@ -59,17 +59,17 @@ def assert_check_resolv(step, vhost_name, serv_as, timeout=1800):
     world.assert_not_equal(domain_ip, serv.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, serv.public_ip))
 
 
-@step(r'([\w]+) get (.+) matches (.+) index page$')
-def check_index(step, proto, vhost_name, vhost2_name):
-    domain = getattr(world, vhost_name)
-    LOG.info('Get node %s for delete index.html' % getattr(world, 'A1').id)
-    node = world.cloud.get_node(getattr(world, 'A1'))
-    try:
-        node.run('rm /var/www/%s/index.html' % vhost_name)
-    except AttributeError, e:
-        LOG.error('Failed in delete index.html: %s' % e)
-    world.check_index_page(node, proto, domain, vhost2_name)
-    world._domain = domain
+# @step(r'([\w]+) get (.+) matches (.+) index page$')
+# def check_index(step, proto, vhost_name, vhost2_name):
+#     domain = getattr(world, vhost_name)
+#     LOG.info('Get node %s for delete index.html' % getattr(world, 'A1').id)
+#     node = world.cloud.get_node(getattr(world, 'A1'))
+#     try:
+#         node.run('rm /var/www/%s/index.html' % vhost_name)
+#     except AttributeError, e:
+#         LOG.error('Failed in delete index.html: %s' % e)
+#     world.check_index_page(node, proto, domain, vhost2_name)
+#     world._domain = domain
 
 
 @step('response contains valid Cert and CACert')

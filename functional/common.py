@@ -194,17 +194,21 @@ def wait_farm_terminated(*args, **kwargs):
 
 @world.absorb
 def check_message_status(status, server, msgtype='sends', **kwargs):
+    old_messages = getattr(world, '%s_old_messages' % server.id, [])
     message_type = 'out' if msgtype.strip() == 'sends' else 'in'
     msg_id = getattr(world, 'msg_temp_id', None)
     server.messages.reload()
     for message in server.messages:
         LOG.debug('Work with message: %s %s %s %s %s %s' % (message.id, message.msgtype, message.messageid,
                                                          message.message, message.msgname, message.delivered))
+        if message.id in old_messages:
+            continue
         if message.id == msg_id:
             LOG.debug('Find message')
             if message.delivered:
                 LOG.debug('Message is delivered, return server')
                 del world.msg_temp_id
+                setattr(world, '%s_old_messages' % server.id, [m.id for m in server.messages])
                 return server
         else:
             LOG.debug('Check message: %s %s' % (status, message.msgname))
@@ -219,6 +223,7 @@ def check_message_status(status, server, msgtype='sends', **kwargs):
                     setattr(world, 'msg_temp_id', message.id)
                     if message.delivered:
                         del world.msg_temp_id
+                        setattr(world, '%s_old_messages' % server.id, [m.id for m in server.messages])
                         return server
     return False
 
@@ -474,6 +479,14 @@ def get_szr_messages(node):
     messages = [dict(zip(head, line)) for line in lines]
     LOG.info('Server messages: %s' % messages)
     return messages
+
+
+@world.absorb
+def check_text_in_scalarizr_log(node, text):
+    out = node.run('cat /var/log/scalarizr_debug.log | grep %s' % text)[0]
+    if text in out:
+        return True
+    return False
 
 
 @world.absorb

@@ -10,7 +10,7 @@ Feature: Nginx load balancer role test with apache backends
 
     Scenario: Adding app to upstream
         When I add app role to this farm
-        And bootstrap 1+1 as (A1, A2)
+        And bootstrap 2 servers as (A1, A2)
         Then W1 upstream list should contains A1, A2
 
     Scenario: Removing app server

@@ -24,8 +24,9 @@ def assert_check_http_get_answer(step, serv_as, mes):
         raise AssertionError('Not standart answer, code: %s' % req.code)
 
 
-@step(r'bootstrap 1\+1 as \((.+), (.+)\)')
+@step(r'bootstrap 2 servers as \((.+), (.+)\)')
 def bootstrap_two_backend(step, serv_as1, serv_as2, timeout=1400):
+    #TODO: Fix pre-defined 2 servers
     spec = 'running'
     role = getattr(world, world.role_type + '_role')
     LOG.info('Bootstrap first server')
@@ -40,22 +41,19 @@ def bootstrap_two_backend(step, serv_as1, serv_as2, timeout=1400):
     LOG.info('Second server is %s' % server.id)
 
 
-@step(r'([\w]+) upstream list should contains (.+), (.+)')
-def assert_check_upstream(step, www_serv, app_serv1, app_serv2):
+@step(r'([\w]+) upstream list should contains (.+)$')
+def assert_check_upstream(step, www_serv, app_servers):
     time.sleep(180)
     nginx = getattr(world, www_serv)
-    server1 = getattr(world, app_serv1)
-    server2 = getattr(world, app_serv2)
     node = world.cloud.get_node(nginx)
-    LOG.info('Check upstream list')
     out = node.run('cat /etc/nginx/app-servers.include')[0]
-    if server1.private_ip in out and server2.private_ip in out:
-        LOG.info('Both app server in upstream')
-        return True
-    LOG.error('One of the servers is not in upstream, config is: %s' % out)
-    LOG.error('%s (%s) in list - %s' % (app_serv1, server1.private_ip, server1.private_ip in out))
-    LOG.error('%s (%s) in list - %s' % (app_serv2, server2.private_ip, server2.private_ip in out))
-    raise AssertionError('Upstreams %s or %s not in config' % (server1.private_ip, server2.private_ip))
+    app_servers = [s.strip() for s in app_servers.split(',')]
+    LOG.info('Check upstream list')
+    for serv in app_servers:
+        server = getattr(world, serv)
+        LOG.info('Validate server %s in upstream list' % server.id)
+        if not server.private_ip in out:
+            raise AssertionError('Private IP from server %s not found in upstream' % server.id)
 
 
 @step(r'([\w]+) upstream list should(?: (not))? contain (.+)')
@@ -70,30 +68,32 @@ def assert_check_upstream_after_delete(step, www_serv, have, app_serv):
         wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip), timeout=180, error_text="Upstream %s not in list" % server.private_ip)
 
 
-@step(r'When I add(?: (ssl))? virtual host ([\w]+) assigned to app role')
-def having_vhost(step, ssl, vhost_name):
+@step(r'I add(?: (ssl))? virtual host ([\w]+) assigned to ([\w\d]+) role')
+def having_vhost(step, ssl, vhost_name, role_name):
     www_serv = getattr(world, 'W1')
     domain = www_serv.create_domain(www_serv.public_ip)
-    app_serv = getattr(world, 'A1')
+    role = getattr(world, '%s_role' % role_name)
     if ssl:
         LOG.info('Add ssl vhost with domain: %s' % domain)
-        app_serv.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=True)
+        role.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=True)
     else:
         LOG.info('Add vhost with domain %s' % domain)
-        app_serv.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=False)
+        role.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=False)
     setattr(world, vhost_name, domain)
     LOG.debug('Update vhosts list for farm %s' % world.farm.id)
     world.farm.vhosts.reload()
-    vh = None
-    for vhost in world.farm.vhosts:
-        LOG.debug('Vhost: %s  Domains: %s' % (vhost.name, domain))
-        if vhost.name == domain:
-            vh = vhost
-    for role in world.farm.roles:
-        if role.id == vh.farm_roleid:
-            if 'app' in role.role.behaviors:
-                return True
-    raise AssertionError('Not have vhost to app role')
+    time.sleep(10)
+    #TODO: Check this
+    # vh = None
+    # for vhost in world.farm.vhosts:
+    #     LOG.debug('Vhost: %s  Domains: %s' % (vhost.name, domain))
+    #     if vhost.name == domain:
+    #         vh = vhost
+    # for role in world.farm.roles:
+    #     if role.id == vh.farm_roleid:
+    #         if 'app' in role.role.behaviors:
+    #             return True
+    # raise AssertionError('Not have vhost to app role')
 
 
 @step(r'my IP in ([\w]+) ([\w]+)([ \w]+)? access logs$')

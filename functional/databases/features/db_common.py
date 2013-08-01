@@ -4,7 +4,7 @@ import socket
 import urllib2
 import logging
 from datetime import datetime
-
+import httplib
 
 from lettuce import world, step
 
@@ -36,7 +36,11 @@ def assert_check_service(step, service, serv_as):
     if world.role_type == 'redis':
         LOG.info('Role is redis, add iptables rule for me')
         node = world.cloud.get_node(server)
-        my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+        try:
+            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+        except httplib.BadStatusLine:
+            time.sleep(5)
+            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
         LOG.info('My IP address: %s' % my_ip)
         node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
