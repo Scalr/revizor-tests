@@ -194,21 +194,22 @@ def wait_farm_terminated(*args, **kwargs):
 
 @world.absorb
 def check_message_status(status, server, msgtype='sends', **kwargs):
-    old_messages = getattr(world, '%s_old_messages' % server.id, [])
+    old_message_id = getattr(world, '%s_old_message_id' % server.id, 0)
+    LOG.debug("Old message id: %s" % old_message_id)
     message_type = 'out' if msgtype.strip() == 'sends' else 'in'
     msg_id = getattr(world, 'msg_temp_id', None)
     server.messages.reload()
     for message in server.messages:
         LOG.debug('Work with message: %s %s %s %s %s %s' % (message.id, message.msgtype, message.messageid,
                                                          message.message, message.msgname, message.delivered))
-        if message.id in old_messages:
+        if int(message.id) < int(old_message_id):
             continue
         if message.id == msg_id:
             LOG.debug('Find message')
             if message.delivered:
                 LOG.debug('Message is delivered, return server')
                 del world.msg_temp_id
-                setattr(world, '%s_old_messages' % server.id, [m.id for m in server.messages])
+                setattr(world, '%s_old_message_id' % server.id, message.id)
                 return server
         else:
             LOG.debug('Check message: %s %s' % (status, message.msgname))
@@ -223,7 +224,7 @@ def check_message_status(status, server, msgtype='sends', **kwargs):
                     setattr(world, 'msg_temp_id', message.id)
                     if message.delivered:
                         del world.msg_temp_id
-                        setattr(world, '%s_old_messages' % server.id, [m.id for m in server.messages])
+                        setattr(world, '%s_old_message_id' % server.id, message.id)
                         return server
     return False
 
@@ -231,6 +232,7 @@ def check_message_status(status, server, msgtype='sends', **kwargs):
 @world.absorb
 def check_message_in_server_list(status, servers, msgtype=None):
     mt = 'out' if msgtype == 'sends' else 'in'
+    LOG.debug("Find message: %s %s" % (status, msgtype))
     for server in servers:
         LOG.info('Find message in server %s' % server.id)
         server.messages.reload()
@@ -483,7 +485,7 @@ def get_szr_messages(node):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
-    out = node.run('cat /var/log/scalarizr_debug.log | grep %s' % text)[0]
+    out = node.run("cat /var/log/scalarizr_debug.log | grep '%s'" % text)[0]
     if text in out:
         return True
     return False

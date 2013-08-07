@@ -1,5 +1,6 @@
 import os
 from datetime import datetime
+import httplib
 
 from lettuce import world, step, after, before
 from common import *
@@ -17,6 +18,10 @@ from revizor2.dbmsr import Database
 from revizor2.consts import Platform
 
 
+PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
+             'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008}
+
+
 FARM_OPTIONS = {
     'chef': {
         "chef.bootstrap": 1,
@@ -31,6 +36,15 @@ FARM_OPTIONS = {
         "dm.application_id": "217",
         "dm.remote_path": "/var/www",
     },
+    'winchef': {
+        "chef.bootstrap": "1",
+        "chef.daemonize": "0",
+        "chef.environment": "_default",
+        "chef.runlist_id": "189",
+        "chef.server_id": "3",
+        "chef.role_name": None,
+        "chef.node_name_tpl": "",
+    }
 }
 
 
@@ -217,35 +231,35 @@ def add_role_to_farm(step, behavior=None, options=None):
                                     "status": "",
                             }]
                     }
-                elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
-                    LOG.info('Add storages from IDCF/CloudStack')
-                    additional_storages = {
-                            "configs": [{
-                                    "id": None,
-                                    "type": "csvol",
-                                    "fs": "ext3",
-                                    "settings": {
-                                            "csvol.size": "1",
-                                    },
-                                    "mount": True,
-                                    "mountPoint": "/media/ebsmount",
-                                    "reUse": True,
-                                    "status": "",
-                            }, {
-                                    "id": None,
-                                    "type": "raid.csvol",
-                                    "fs": "ext3",
-                                    "settings": {
-                                            "raid.level": "10",
-                                            "raid.volumes_count": 4,
-                                            "csvol.size": "1",
-                                    },
-                                    "mount": True,
-                                    "mountPoint": "/media/raidmount",
-                                    "reUse": True,
-                                    "status": "",
-                            }]
-                    }
+                # elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+                #     LOG.info('Add storages from IDCF/CloudStack')
+                #     additional_storages = {
+                #             "configs": [{
+                #                     "id": None,
+                #                     "type": "csvol",
+                #                     "fs": "ext3",
+                #                     "settings": {
+                #                             "csvol.size": "1",
+                #                     },
+                #                     "mount": True,
+                #                     "mountPoint": "/media/ebsmount",
+                #                     "reUse": True,
+                #                     "status": "",
+                #             }, {
+                #                     "id": None,
+                #                     "type": "raid.csvol",
+                #                     "fs": "ext3",
+                #                     "settings": {
+                #                             "raid.level": "10",
+                #                             "raid.volumes_count": 4,
+                #                             "csvol.size": "1",
+                #                     },
+                #                     "mount": True,
+                #                     "mountPoint": "/media/raidmount",
+                #                     "reUse": True,
+                #                     "status": "",
+                #             }]
+                #     }
                 elif CONF.main.driver in [Platform.OPENSTACK, Platform.ENTERIT]:
                     LOG.info('Add storages from OpenStack')
                     additional_storages = {
@@ -390,6 +404,38 @@ def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
         LOG.debug('Check message in servers %s' % server)
         s = wait_until(world.check_message_in_server_list, args=(msg.strip(), server, msgtype), timeout=timeout, error_text="I'm not see this %s state in server" % msg)
         setattr(world, serv_as, s)
+
+
+@step(r'([\w]+) is running on (.+)')
+def assert_check_service(step, service, serv_as):
+    LOG.info("Check service %s" % service)
+    server = getattr(world, serv_as)
+    port = PORTS_MAP[service]
+    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+        node = world.cloud.get_node(server)
+        new_port = world.cloud.open_port(node, port, ip=server.public_ip)
+    else:
+        new_port = port
+    if world.role_type == 'redis':
+        LOG.info('Role is redis, add iptables rule for me')
+        node = world.cloud.get_node(server)
+        try:
+            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+        except httplib.BadStatusLine:
+            time.sleep(5)
+            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+        LOG.info('My IP address: %s' % my_ip)
+        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(15)
+    try:
+        s.connect((server.public_ip, new_port))
+    except (socket.error, socket.timeout), e:
+        raise AssertionError(e)
+    if service == 'redis':
+        LOG.info('Set main redis instances to %s' % serv_as)
+        setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
+    LOG.info("Service work")
 
 
 @step('not ERROR in ([\w]+) scalarizr log$')

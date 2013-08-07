@@ -23,7 +23,7 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'po
              'mongodb': 27018, 'mysqlproxy': 4040}
 
 
-@step(r'And ([\w]+) is running on (.+)')
+@step(r'([\w]+) is running on (.+)')
 def assert_check_service(step, service, serv_as):
     LOG.info("Check service %s" % service)
     server = getattr(world, serv_as)

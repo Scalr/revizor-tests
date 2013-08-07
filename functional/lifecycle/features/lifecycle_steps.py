@@ -193,6 +193,7 @@ def check_result_script_log(step):
 
 @step("script output contains '(.+)' in (.+)$")
 def assert_check_message_in_log(step, message, serv_as):
+    #TODO: Rewrite this, because 2 identically script not work
     time.sleep(60)
     server = getattr(world, serv_as)
     server.scriptlogs.reload()
