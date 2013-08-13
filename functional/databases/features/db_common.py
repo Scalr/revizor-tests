@@ -41,8 +41,8 @@ def assert_check_service(step, service, serv_as):
         except httplib.BadStatusLine:
             time.sleep(5)
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        LOG.info('My IP address: %s' % my_ip)
-        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
+        LOG.info('My IP address: %s, add rules' % my_ip)
+        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6394 -j ACCEPT' % my_ip)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
     try:

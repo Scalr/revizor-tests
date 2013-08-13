@@ -5,7 +5,6 @@ Feature: HAProxy load balancer role
         When I add haproxy role to this farm
         Then I expect server bootstrapping as W1
         And scalarizr version is last in W1
-        And haproxy process is running on W1
 
     Scenario: Adding app to upstream
         When I add app role to this farm
@@ -13,7 +12,7 @@ Feature: HAProxy load balancer role
 
     Scenario: Check proxy for role
         When I add virtual host H1 assigned to app role
-        And I add proxy P1 to haproxy role for 80 port to app role
+        And I add proxy P1 to haproxy role for 80 port with app role backend
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         And W1 backend list for 80 port should contains A1, A2

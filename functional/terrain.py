@@ -19,7 +19,7 @@ from revizor2.consts import Platform
 
 
 PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
-             'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008}
+             'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80}
 
 
 FARM_OPTIONS = {
@@ -406,7 +406,19 @@ def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
         setattr(world, serv_as, s)
 
 
-@step(r'([\w]+) is running on (.+)')
+@step('process ([\w-]+) is running in ([\w\d]+)$')
+def check_process(step, process, serv_as):
+    LOG.info("Check running process %s on server" % process)
+    serv = getattr(world, serv_as)
+    node = world.cloud.get_node(serv)
+    list_proc = node.run('ps aux | grep %s' % process)[0]
+    for p in list_proc.splitlines():
+        if not 'grep' in p and process in p:
+            return True
+    raise AssertionError("Process %s is not running in server %s" % (process, serv.id))
+
+
+@step(r'([\w-]+) is running on (.+)')
 def assert_check_service(step, service, serv_as):
     LOG.info("Check service %s" % service)
     server = getattr(world, serv_as)
@@ -653,6 +665,8 @@ def initialize_world():
 @after.each_scenario
 def get_all_logs(scenario):
     """Give scalarizr_debug.log logs from servers"""
+    if CONF.main.dist.startswith('win'):
+        return
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
     farm = getattr(world, 'farm', None)
     if not farm:

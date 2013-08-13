@@ -15,7 +15,7 @@ from revizor2.consts import ServerStatus, Platform
 LOG = logging.getLogger('lifecycle-windows')
 
 
-@step(r"file '([\w\d\:\\/])+' exist in ([\w\d]+)")
+@step(r"file '([\w\d\:\\/_]+)' exist in ([\w\d]+)")
 def check_windows_file(step, path, serv_as):
     server = getattr(world, serv_as)
     console = winrm_service.WinRMWebService(endpoint='http://%s:5985/wsman' % server.public_ip, username="Administrator",
@@ -31,7 +31,8 @@ def check_windows_file(step, path, serv_as):
     LOG.info('Run command: %s' % 'ls %s' % path)
     com_id = console.run_command(shell_id, 'ls %s' % path)
     out = console.get_command_output(shell_id, com_id)
-    LOG.debug('Out in console: %s' % out)
+    LOG.debug('Result of command:')
+    LOG.debug(out)
     if path in out[0]:
         return
     raise AssertionError("Not found: %s, out: %s" % (path, out))
@@ -49,7 +50,8 @@ def reboot_windows(step, serv_as):
     out = console.get_command_output(shell_id, com_id)
     com_id = console.run_command(shell_id, 'net start Scalarizr')
     out = console.get_command_output(shell_id, com_id)
-    LOG.debug('Out in console: %s' % out)
+    LOG.debug('Result of command:')
+    LOG.debug(out)
     time.sleep(15)
 
 
@@ -64,7 +66,8 @@ def check_terminated_in_log(step, serv_as):
     LOG.info("Run command: cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
     com_id = console.run_command(shell_id, "cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
     out = console.get_command_output(shell_id, com_id)
-    LOG.debug('Out in console: %s' % out)
+    LOG.debug('Result of command:')
+    LOG.debug(out)
     if 'Scalarizr terminated' in out[0]:
         return True
     raise AssertionError("Not see 'Scalarizr terminated' in debug log")
@@ -81,7 +84,8 @@ def check_errors_in_log(step, serv_as):
     LOG.info("Run command cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
     com_id = console.run_command(shell_id, "cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
     out = console.get_command_output(shell_id, com_id)
-    LOG.debug('Out in console: %s' % out)
+    LOG.debug('Result of command:')
+    LOG.debug(out)
     errors = []
     out = out[0]
     if 'ERROR' in out:
@@ -109,7 +113,7 @@ def assert_check_message_in_log(step, message, serv_as):
     LOG.debug("Last count of scripts: %s" % last_count)
     scriptlogs = sorted(server.scriptlogs, key=lambda x: x.id)
     LOG.debug("Check content in logs")
-    if message in scriptlogs[last_count].contents:
+    if message in scriptlogs[last_count].message:
         return True
-    LOG.error("Not find content in message: %s" % scriptlogs[last_count].contents)
+    LOG.error("Not find content in message: %s" % scriptlogs[last_count].message)
     raise AssertionError("Not see message %s in scripts logs" % message)

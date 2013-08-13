@@ -1,6 +1,7 @@
 import time
 import urllib2
 import logging
+import json
 
 from lettuce import world, step
 
@@ -21,8 +22,17 @@ def add_role_to_given_farm(step, role_type, proto, port, to_role):
     r = getattr(world, to_role+'_role')
     LOG.info('Add haproxy role')
     role = world.add_role_to_farm(role_type,
-            options={"haproxy.listener.0": "%(proto)s#%(port)s#%(port)s#%(roleid)s" %
-                                           {'proto': proto.upper(), 'port':port, 'roleid': r.id}})
+            options={
+                "haproxy.configured": "1",
+                "haproxy.healthcheck.healthyth": "3",
+                "haproxy.healthcheck.interval": "30",
+                "haproxy.healthcheck.timeout": "5",
+                "haproxy.healthcheck.unhealthyth": "5",
+                "haproxy.listener.0": "%(proto)s#%(port)s#%(port)s#%(roleid)s" %
+                                           {'proto': proto.upper(), 'port': port, 'roleid': r.id},
+                "haproxy.proxies": json.dumps([{'port': port, 'description': '', 'backends': [{'farm_role_id': r.id, 'port': port, 'backup': 0, 'down': 0}],
+                    "healthcheck.interval": "30", "healthcheck.fallthreshold": "5", "healthcheck.risethreshold": "3"}])
+            })
     LOG.info('HAProxy role %s id %s' % (role, role.id))
     setattr(world, role_type + '_role', role)
 

@@ -149,6 +149,7 @@ def validate_clean_upstream(step, serv_as):
     #TODO: Rewrite this when nginx will work via API
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
+    LOG.info("Check upstream in ngin server")
     upstream = node.run('cat /etc/nginx/app-servers.include')[0]
     LOG.info('Upstream list: %s' % upstream)
     if upstream.strip():

@@ -202,17 +202,17 @@ def check_message_status(status, server, msgtype='sends', **kwargs):
     for message in server.messages:
         LOG.debug('Work with message: %s %s %s %s %s %s' % (message.id, message.msgtype, message.messageid,
                                                          message.message, message.msgname, message.delivered))
-        if int(message.id) < int(old_message_id):
+        if int(message.id) <= int(old_message_id):
             continue
         if message.id == msg_id:
-            LOG.debug('Find message')
+            LOG.debug('Message is founded: %s' % message.id)
             if message.delivered:
                 LOG.debug('Message is delivered, return server')
                 del world.msg_temp_id
                 setattr(world, '%s_old_message_id' % server.id, message.id)
                 return server
         else:
-            LOG.debug('Check message: %s %s' % (status, message.msgname))
+            LOG.debug('Find message \'%s\', but processing \'%s\'' % (status, message.msgname))
             if message.msgname == status:
                 LOG.debug('Check to/from: %s %s' % (message_type, message.msgtype))
                 if msgtype:

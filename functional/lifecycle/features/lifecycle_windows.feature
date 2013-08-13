@@ -20,7 +20,6 @@ Feature: Windows server lifecycle
         And not ERROR in M1 scalarizr windows log
 
     Scenario: Windows reboot
-        Given I have running server M1
         When I reboot server M1
         Then Scalr receives Win_HostDown from M1
         And Scalr receives RebootFinish from M1
@@ -29,25 +28,21 @@ Feature: Windows server lifecycle
         And scalr-upd-client is running on M1
 
     Scenario: Execute sync cmd script on Windows
-        Given I have running windows server
         When I execute script 'Windows ping-pong. CMD' synchronous on M1
         Then I see script result in M1
         And last script output contains 'pong' in M1
 
     Scenario: Execute async cmd script on Windows
-        Given I have running windows server
         When I execute script 'Windows ping-pong. CMD' asynchronous on M1
         Then I see script result in M1
         And last script output contains 'pong' in M1
 
     Scenario: Execute sync ps script on Windows
-        Given I have running windows server
         When I execute script 'Windows ping-pong. PS' synchronous on M1
         Then I see script result in M1
         And last script output contains 'pong' in M1
 
     Scenario: Execute async ps script on Windows
-        Given I have running windows server
         When I execute script 'Windows ping-pong. PS' asynchronous on M1
         Then I see script result in M1
         And last script output contains 'pong' in M1

@@ -47,7 +47,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         Then W1 upstream list should be clean
-        And nginx is running on W1
+        And process nginx is running in W1
 
     Scenario: Add two SSL domains
         When I add virtual host H2 assigned to app role

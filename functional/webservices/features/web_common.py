@@ -14,22 +14,22 @@ import logging
 LOG = logging.getLogger()
 
 
-@step('([\w]+) is running on (.+)')
-def assert_check_service(step, app_name, serv_as):
-    server = (getattr(world, serv_as))
-    http_port = 80
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        node = world.cloud.get_node(server)
-        http_port = world.cloud.open_port(node, 80, server.public_ip)
-        https_port = world.cloud.open_port(node, 443, server.public_ip)
-        world._https_port = https_port
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(15)
-    try:
-        s.connect((server.public_ip, http_port))
-    except (socket.error, socket.timeout), e:
-        LOG.error('Service %s not work')
-        raise AssertionError(e)
+# @step('([\w]+) is running on (.+)')
+# def assert_check_service(step, app_name, serv_as):
+#     server = (getattr(world, serv_as))
+#     http_port = 80
+#     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+#         node = world.cloud.get_node(server)
+#         http_port = world.cloud.open_port(node, 80, server.public_ip)
+#         https_port = world.cloud.open_port(node, 443, server.public_ip)
+#         world._https_port = https_port
+#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     s.settimeout(15)
+#     try:
+#         s.connect((server.public_ip, http_port))
+#     except (socket.error, socket.timeout), e:
+#         LOG.error('Service %s not work')
+#         raise AssertionError(e)
 
 
 @step(r'([\w]+) resolves into (.+) new ip address')
