@@ -31,13 +31,14 @@ def check_index(step, proto, vhost_name, vhost2_name):
         raise AssertionError('Can\'t find role for vhost %s' % vhost.id)
 
     nodes = []
+    app_role.servers.reload()
     for s in app_role.servers: # delete pre-defined index.html file and upload vhost file
         if not s.status == 'Running':
             continue
         node = world.cloud.get_node(s)
         nodes.append(node)
         try:
-            LOG.info('Delete index.html in server %s' % s.id)
+            LOG.info('Delete %s/index.html in server %s' % (vhost_name, s.id))
             node.run('rm /var/www/%s/index.html' % vhost_name)
         except AttributeError, e:
             LOG.error('Failed in delete index.html: %s' % e)
@@ -164,18 +165,18 @@ def validate_clean_upstream(step, serv_as):
 def check_redirect(step, source_vhost, has_not, dest_vhost):
     LOG.debug("Check redirecting")
     LOG.debug("Source: %s; redirect: %s; dest host: %s" % (source_vhost, has_not, dest_vhost))
-    if has_not.strip():
+    if has_not:
         has_not = True
     else:
         has_not = False
     source_vhost = getattr(world, source_vhost)
     dest_vhost = getattr(world, dest_vhost)
-    r = requests.get(source_vhost)
+    r = requests.get('http://%s' % source_vhost, verify=False)
     if has_not:
         if not r.history:
             return True
         raise AssertionError("http://%s redirect to %s" % (source_vhost, r.history[0].url))
     if r.history:
-        if r.history[0].status_code == 301 and r.history[0].url == 'https://%s' % dest_vhost:
+        if r.history[0].status_code == 301 and r.url.startswith('https://%s' % dest_vhost):
             return True
         raise AssertionError("http://%s not redirect to https://%s" % (source_vhost, dest_vhost))

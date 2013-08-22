@@ -357,15 +357,11 @@ def wait_upstream_in_config(node, ip, contain=True):
 def check_index_page(node, proto, domain, name):
     index = resources('html/index_test.php')
     index = index.get() % {'id': name}
-    if isinstance(node, list):
-        for n in node:
-            LOG.debug('Upload index page to server %s' % n.public_ip)
-            n.run('mkdir /var/www/%s' % name)
-            n.put_file(path='/var/www/%s/index.php' % name, content=index)
-    else:
-        LOG.debug('Upload index page to server %s' % node.public_ip)
-        node.run('mkdir /var/www/%s' % name)
-        node.put_file(path='/var/www/%s/index.php' % name, content=index)
+    nodes = node if isinstance(node, (list, tuple)) else [node]
+    for n in nodes:
+        LOG.debug('Upload index page %s to server %s' % (name, n.public_ip))
+        n.run('mkdir /var/www/%s' % name)
+        n.put_file(path='/var/www/%s/index.php' % name, content=index)
     try:
         LOG.info('Try get index from domain: %s://%s' % (proto, domain))
         resp = requests.get('%s://%s/' % (proto, domain), timeout=15, verify=False).text
@@ -431,6 +427,17 @@ def mongodb_wait_data2(node, data):
 @world.absorb
 def wait_database(db_name, server):
     return world.db.database_exist(db_name, server)
+
+
+@world.absorb
+def wait_replication_status(behavior, status):
+    db_status = world.farm.db_info(behavior)
+    for server in db_status['servers']:
+        LOG.info("Check replication in server %s it is: %s" % (db_status['servers'][server]['serverId'], db_status['servers'][server]['replication']['status']))
+        if not db_status['servers'][server]['replication']['status'].strip() == status.strip():
+            LOG.debug("Replication on server %s is %s" % (db_status['servers'][server]['serverId'], db_status['servers'][server]['replication']['status']))
+            return False
+    return True
 
 
 @world.absorb

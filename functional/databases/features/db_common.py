@@ -80,7 +80,7 @@ def assert_check_databundle_date(step, back_type):
     if not info['last_%s' % back_type] == getattr(world, 'last_%s' % back_type, 'Never'):
         return
     else:
-        raise AssertionError('Previous data%s was: %s and last: %s' % (back_type, getattr(world, 'last_%s' % back_type, 'Never'), info['last_%s' % back_type]))
+        raise AssertionError('Previous %s was: %s and last: %s' % (back_type, getattr(world, 'last_%s' % back_type, 'Never'), info['last_%s' % back_type]))
 
 
 @step(r'I have small-sized database (.+) on ([\w]+)')
@@ -136,12 +136,13 @@ def create_databundle(step, bundle_type, when):
 
 @step('([\w]+) contains database (.+)$')
 def check_database_in_new_server(step, serv_as, db_name):
+    time.sleep(5)
     dbs = db_name.split(',')
     if serv_as == 'all':
         world.farm.servers.reload()
         servers = filter(lambda s: s.status == ServerStatus.RUNNING, world.farm.servers)
     else:
-        servers = [getattr(world, serv_as),]
+        servers = [getattr(world, serv_as)]
     for server in servers:
         for db in dbs:
             LOG.info('Check database %s in server %s' % (db, server.id))
@@ -324,3 +325,8 @@ def check_timestamp(step, db, serv_as):
     timestamp = cursor.fetchone()[0]
     if not timestamp == getattr(world, 'backup_timestamp', timestamp):
         raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, getattr(world, 'backup_timestamp', timestamp)))
+
+
+@step(r'([\w\d]+) replication status is ([\w\d]+)')
+def verify_replication_status(step, behavior, status):
+    wait_until(world.wait_replication_status, args=(behavior, status), error_text="Replication in broken", timeout=300)

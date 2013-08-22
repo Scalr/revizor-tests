@@ -14,7 +14,34 @@ from revizor2.fixtures import resources
 LOG = logging.getLogger('haproxy-full')
 
 
-@step("I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend")
+def parse_haproxy_config(node):
+    config = [l for l in node.run('cat /etc/haproxy/haproxy.cfg')[0].splitlines() if l.strip()]
+    parameters = {'listens': {},
+                  'backends': {}}
+
+    tmp_section = None
+    tmp_opts = []
+    for line in config:
+        if line.strip().startswith('listen') or line.strip().startswith('backend') and 'scalr' in line:
+            if tmp_section:
+                parameters[tmp_section.split()[0]+'s'][int(tmp_section.split()[1].split(':')[-1])] = tmp_opts
+                tmp_section = None
+                tmp_opts = []
+            tmp_section = line.strip()
+        elif tmp_section and line.startswith('\t'):
+            tmp_opts.append(line.strip().replace('\t', ' '))
+        else:
+            if tmp_section:
+                parameters[tmp_section.split()[0]+'s'][int(tmp_section.split()[1].split(':')[-1])] = tmp_opts
+                tmp_section = None
+                tmp_opts = []
+    else:
+        if tmp_section:
+            parameters[tmp_section.split()[0]+'s'][int(tmp_section.split()[1].split(':')[-1])] = tmp_opts
+    return parameters
+
+
+@step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend")
 def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
     LOG.info("Add haproxy proxy %s with role backend" % proxy_name)
     proxy_role = getattr(world, '%s_role' % proxy_role)
@@ -26,12 +53,117 @@ def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
         'down': '0'
     }]
     proxy_role.add_haproxy_proxy(port, backends)
+    LOG.info("Save proxy %s with backends: %s" % (proxy_name, backends))
+    setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
 
+@step(r"I add proxy ([\w\d]+) to haproxy role for ([\d]+) port with backends: ([\w\d\' ,\.]+) and healthcheck: ([\w\d, ]+)")
+def add_proxy_with_healtcheck(step, proxy_name, port, options, healthchecks):
+    LOG.info("Add proxy %s with many backends (%s) and healthcheck (%s)" % (proxy_name, options, healthchecks))
+    proxy_role = getattr(world, 'haproxy_role')
+    options = options.strip().replace('\'', '').split()
+    options = zip(*[options[i::2] for i in range(2)])
+    healthchecks = [int(x.strip()) for x in healthchecks.replace(',', '').split()]
+    LOG.info("Healthchecks for proxy: %s" % healthchecks)
+    backends = []
+    for o in options:
+        serv = getattr(world, o[0], None)
+        backends.append({
+            "host": serv.public_ip if serv else o[0],
+            "port": "80",
+            "backup": "1" if o[1] == 'backup' else "0",
+            "down": "1" if o[1] == 'down' else "0",
+            })
+    LOG.info("Save proxy %s with backends: %s" % (proxy_name,backends))
+    proxy_role.add_haproxy_proxy(port, backends, interval=healthchecks[0],
+                                  fall=healthchecks[1], rise=healthchecks[2])
+    setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
-def parse_haproxy_config(node):
-    config = node.run('cat /etc/haproxy/haproxy.cfg')[0].splitlines()
-    listens = {}
-    backends = {}
 
-    return listens, backends
+@step(r"I modify proxy ([\w\d]+) in haproxy role with backends: ([\w\d\' ,\.]+) and healthcheck: ([\w\d, ]+)")
+def modify_haproxy_role(step, proxy_name, options, healthchecks):
+    LOG.info("Modify proxy %s" % proxy_name)
+    proxy_role = getattr(world, 'haproxy_role')
+    proxy = getattr(world, '%s_proxy' % proxy_name)
+    options = options.strip().replace('\'', '').split()
+    options = zip(*[options[i::2] for i in range(2)])
+    healthchecks = [int(x.strip()) for x in healthchecks.replace(',', '').split()]
+    LOG.info("Healthchecks for proxy: %s" % healthchecks)
+    backends = []
+    for o in options:
+        serv = getattr(world, o[0], None)
+        backends.append({
+            "host": serv.public_ip if serv else o[0],
+            "port": "80",
+            "backup": "1" if o[1] == 'backup' else "0",
+            "down": "1" if o[1] == 'down' else "0",
+        })
+    LOG.info("Save proxy changes with backends: %s" % backends)
+    proxy_role.edit_haproxy_proxy(proxy['port'], backends, interval=healthchecks[0],
+                                  fall=healthchecks[1], rise=healthchecks[2])
+
+
+@step(r'([\w\d]+) backend list for (\d+) port should( not)? contains ([\w\d, \']+)')
+def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
+    LOG.info("Verify backends servers in config")
+    haproxy_server = getattr(world, serv_as)
+    port = int(port)
+    LOG.info("Backend port: %s" % port)
+    backends = []
+    for back in backends_servers.split(','):
+        if back.strip().startswith("'"):
+            new_back = back.strip().replace("'", '').split()
+            hostname = getattr(world, new_back[0], new_back[0])
+            if not isinstance(hostname, (unicode, str)):
+                hostname = hostname.private_ip
+            backends.append('%s:%s %s' % (hostname, port, new_back[1]))
+        else:
+            hostname = getattr(world, back.strip(), back.strip())
+            if not isinstance(hostname, (unicode, str)):
+                hostname = hostname.private_ip
+            backends.append('%s:%s' % (hostname, port))
+    LOG.info("Will search backends: %s" % backends)
+    config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+    LOG.debug("HAProxy config : %s" % config)
+
+    for backend in backends:
+        for server in config['backends'][port]:
+            if not server.startswith('server'):
+                continue
+            if has_not and backend in server:
+                raise AssertionError("Backend %s in backends file (%s) for port %s" % (backend, server, port))
+            elif not has_not:
+                if backend in server:
+                    break
+        else:
+            if not has_not:
+                raise AssertionError("Backend %s not found in backends (%s) file for port %s" % (backend, config['backends'][port], port))
+
+
+@step(r'([\w\d]+) listen list should contains backend for (\d+) port')
+def verify_listen_for_port(step, serv_as, port):
+    LOG.info("Verify backends servers in config")
+    haproxy_server = getattr(world, serv_as)
+    port = int(port)
+    LOG.info("Backend port: %s" % port)
+    config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+    LOG.debug("HAProxy config : %s" % config)
+    if not 'default_backend scalr:backend:tcp:%s' % port in config['listens'][port]:
+        raise AssertionError("Listens sections not contain backend for %s port" % port)
+
+
+@step(r'healthcheck parameters is (\d+), (\d+), (\d+) in ([\w\d]+) backends for (\d+) port')
+def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
+    server = getattr(world, serv_as)
+    LOG.info("Verify healthcheck parameters for %s %s" % (server.id, port))
+    port = int(port)
+    healthcheck = [int(interval), int(fall), int(rise)]
+    LOG.info("Parameters must be: %s" % healthcheck)
+    node = world.cloud.get_node(server)
+    config = parse_haproxy_config(node)
+    config_healthcheck = [l for l in config['backends'][port] if l.startswith('default-server')]
+    if config_healthcheck:
+        config_healthcheck = [int(p) for p in re.findall('(\d+)+', config_healthcheck[0])]
+        if not healthcheck == config_healthcheck:
+            raise AssertionError("Healtcheck parameters invalid, must be: %s but %s" % (healthcheck, config_healthcheck))
+    raise AssertionError("Healthcheck parameters not found in backends for port: %s" % port)

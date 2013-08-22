@@ -15,9 +15,9 @@ Feature: HAProxy load balancer role
         And I add proxy P1 to haproxy role for 80 port with app role backend
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        And W1 backend list for 80 port should contains A1, A2
         And W1 listen list should contains backend for 80 port
-        And haproxy process is running on W1
+        And W1 backend list for 80 port should contains A1, A2
+        And process haproxy is running in W1
         And 80 port is listen on W1
         Then H1 resolves into W1 ip address
         And http get H1 matches H1 index page
@@ -28,27 +28,25 @@ Feature: HAProxy load balancer role
         And W1 backend list for 80 port should contains A1, A2, A3
         Then I force terminate server A3 with decrease
         And Scalr sends HostDown to W1
-        And W1 backend list for 80 port should not contain A3
+        And W1 backend list for 80 port should not contains A3
 
     Scenario: Modify first proxy and check options
-        When I modify proxy P1 in haproxy role with proxies: 'A1 default' 'A2 backup' 'example.com down' and healthcheck: 16, 21, 10
+        When I modify proxy P1 in haproxy role with backends: 'A1 default' 'A2 backup' 'example.com disabled' and healthcheck: 16, 21, 10
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        And W1 backend list for 80 port should contain 'A1 default'
-        And W1 backend list for 80 port should contain 'A2 backup'
-        And W1 backend list for 80 port should contain 'example.com down'
-        And healthcheck parameters is 16, 21, 10 in W1 backend file for 80 port
-        And haproxy process is running on W1
+        And W1 backend list for 80 port should contains 'A1 default', 'A2 backup', 'example.com disabled'
+        And healthcheck parameters is 16, 21, 10 in W1 backends for 80 port
+        And process haproxy is running in W1
         And 80 port is listen on W1
 
     Scenario: Add second proxy
-        When I add proxy P2 to haproxy role for 8000 port with proxies: 'example2.com default' 'example3.com backup' and healthcheck: 12, 20, 8
+        When I add proxy P2 to haproxy role for 8000 port with backends: 'example2.com default' 'example3.com backup' and healthcheck: 12, 20, 8
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        And W1 backend list for 8000 port should contain 'example2.com default'
-        And W1 backend list for 8000 port should contain 'example3.com backup'
+        And W1 backend list for 8000 port should contains 'example2.com default'
+        And W1 backend list for 8000 port should contains 'example3.com backup'
         And healthcheck parameters is 12, 20, 8 in W1 backend file for 8000 port
-        And haproxy process is running on W1
+        And process haproxy is running in W1
         And 80 port is listen on W1
         And 8000 port is listen on W1
 
@@ -57,5 +55,5 @@ Feature: HAProxy load balancer role
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         Then W1 config should be clean
-        And haproxy process is running on W1
+        And process haproxy is running in W1
         And 80 port is not listen on W1

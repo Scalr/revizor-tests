@@ -23,81 +23,6 @@ def having_a_stopped_farm(step):
         farm.terminate()
 
 
-# @step('I add role to this farm with deploy')
-# def having_role_in_farm(step):
-#     role_type = os.environ.get('RV_BEHAVIOR', 'base')
-#     storages = None
-#     if CONF.main.driver in [Platform.EC2]:
-#         storages = {
-#                 "configs": [{
-#                         "id": None,
-#                         "type": "ebs",
-#                         "fs": "ext3",
-#                         "settings": {
-#                                 "ebs.size": "1",
-#                                 "ebs.type": "standard",
-#                                 "ebs.snapshot": None,
-#                         },
-#                         "mount": True,
-#                         "mountPoint": "/media/ebsmount",
-#                         "reUse": True,
-#                         "status": "",
-#                 }, {
-#                         "id": None,
-#                         "type": "raid.ebs",
-#                         "fs": "ext3",
-#                         "settings": {
-#                                 "raid.level": "10",
-#                                 "raid.volumes_count": 4,
-#                                 "ebs.size": "1",
-#                                 "ebs.type": "standard",
-#                                 "ebs.snapshot": None,
-#                         },
-#                         "mount": True,
-#                         "mountPoint": "/media/raidmount",
-#                         "reUse": True,
-#                         "status": "",
-#                 }]
-#         }
-#     elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
-#         storages = {
-#                 "configs": [{
-#                         "id": None,
-#                         "type": "csvol",
-#                         "fs": "ext3",
-#                         "settings": {
-#                                 "csvol.size": "1",
-#                         },
-#                         "mount": True,
-#                         "mountPoint": "/media/ebsmount",
-#                         "reUse": True,
-#                         "status": "",
-#                 }, {
-#                         "id": None,
-#                         "type": "raid.csvol",
-#                         "fs": "ext3",
-#                         "settings": {
-#                                 "raid.level": "10",
-#                                 "raid.volumes_count": 4,
-#                                 "csvol.size": "1",
-#                         },
-#                         "mount": True,
-#                         "mountPoint": "/media/raidmount",
-#                         "reUse": True,
-#                         "status": "",
-#                 }]
-#         }
-#     role = world.add_role_to_farm(role_type=role_type,
-#                                   options={"dm.application_id": "217", "dm.remote_path": "/var/www", },
-#                                   storages=storages)
-#     LOG.info('Add role to farm %s' % role)
-#     world.role_type = role_type
-#     if not role:
-#         raise AssertionError('Error in add role to farm')
-#     setattr(world, world.role_type + '_role', role)
-#     world.role = role
-
-
 @step('I see (.+) server (.+)$')
 def waiting_for_assertion(step, spec, serv_as, timeout=1400):
     if CONF.main.platform == 'ucloud':
@@ -109,8 +34,8 @@ def waiting_for_assertion(step, spec, serv_as, timeout=1400):
 
 @step('I wait and see (.+) server (.+)$')
 def waiting_server(step, spec, serv_as, timeout=1400):
-    if CONF.main.platform == 'ucloud':
-        timeout = 2000
+    if CONF.main.dist.startswith('win'):
+        timeout = 2400
     server = wait_until(world.check_server_status, args=(spec, world.role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
     LOG.info('Server succesfull %s' % spec)
     setattr(world, serv_as, server)

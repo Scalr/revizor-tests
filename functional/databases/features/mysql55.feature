@@ -88,6 +88,7 @@ Feature: MySQL database server with behavior mysql2
         When I increase minimum servers to 2 for mysql2 role
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
+        And mysql2 replication status is up
         And scalarizr version is last in M2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restart
@@ -149,11 +150,13 @@ Feature: MySQL database server with behavior mysql2
         And I expect server bootstrapping as M3
         And M3 contains database D2
         When I create database D3 on M1
+        And mysql2 replication status is up
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And Scalr sends DbMsr_NewMasterUp to all
         And M2 contains database D3
+        And mysql2 replication status is up
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
 	Scenario: Check new master replication

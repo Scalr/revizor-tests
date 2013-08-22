@@ -19,7 +19,8 @@ from revizor2.consts import Platform
 
 
 PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
-             'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80}
+             'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80,
+             'apache': 80}
 
 
 FARM_OPTIONS = {
@@ -409,13 +410,31 @@ def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
 @step('process ([\w-]+) is running in ([\w\d]+)$')
 def check_process(step, process, serv_as):
     LOG.info("Check running process %s on server" % process)
-    serv = getattr(world, serv_as)
-    node = world.cloud.get_node(serv)
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
     list_proc = node.run('ps aux | grep %s' % process)[0]
     for p in list_proc.splitlines():
         if not 'grep' in p and process in p:
             return True
     raise AssertionError("Process %s is not running in server %s" % (process, serv.id))
+
+
+@step(r'(\d+) port is listen on ([\w\d]+)')
+def verify_open_port(step, port, serv_as):
+    server = getattr(world, serv_as)
+    port = int(port)
+    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+        node = world.cloud.get_node(server)
+        new_port = world.cloud.open_port(node, port, ip=server.public_ip)
+    else:
+        new_port = port
+    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    s.settimeout(15)
+    try:
+        s.connect((server.public_ip, new_port))
+    except (socket.error, socket.timeout), e:
+        raise AssertionError(e)
+    LOG.info("Post %s is open" % new_port)
 
 
 @step(r'([\w-]+) is running on (.+)')
