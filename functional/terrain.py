@@ -419,8 +419,8 @@ def check_process(step, process, serv_as):
     raise AssertionError("Process %s is not running in server %s" % (process, serv.id))
 
 
-@step(r'(\d+) port is listen on ([\w\d]+)')
-def verify_open_port(step, port, serv_as):
+@step(r'(\d+) port is( not)? listen on ([\w\d]+)')
+def verify_open_port(step, port, has_not, serv_as):
     server = getattr(world, serv_as)
     port = int(port)
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
@@ -433,7 +433,12 @@ def verify_open_port(step, port, serv_as):
     try:
         s.connect((server.public_ip, new_port))
     except (socket.error, socket.timeout), e:
+        if has_not:
+            LOG.info("Post %s is closed" % new_port)
+            return
         raise AssertionError(e)
+    if has_not:
+        raise AssertionError("Port %s is open but must be closed" % new_port)
     LOG.info("Post %s is open" % new_port)
 
 
@@ -476,6 +481,8 @@ def check_scalarizr_log(step, serv_as):
     out = node.run('cat /var/log/scalarizr_debug.log | grep ERROR')[0]
     LOG.info('Check scalarizr error')
     errors = []
+    if 'Caught exception reading instance data' in out:
+        return
     if 'ERROR' in out:
         log = out.splitlines()
         for l in log:

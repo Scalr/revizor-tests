@@ -25,6 +25,7 @@ Feature: HAProxy load balancer role
     Scenario: Verify new apache server append and deletes to/from backend
         When I increase minimum servers to 3 for app role
         Then I expect server bootstrapping as A3
+        And Scalr sends HostUp to W1
         And W1 backend list for 80 port should contains A1, A2, A3
         Then I force terminate server A3 with decrease
         And Scalr sends HostDown to W1
@@ -35,7 +36,7 @@ Feature: HAProxy load balancer role
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         And W1 backend list for 80 port should contains 'A1 default', 'A2 backup', 'example.com disabled'
-        And healthcheck parameters is 16, 21, 10 in W1 backends for 80 port
+        And healthcheck parameters is 16, 21, 10 in W1 backend file for 80 port
         And process haproxy is running in W1
         And 80 port is listen on W1
 
@@ -51,9 +52,9 @@ Feature: HAProxy load balancer role
         And 8000 port is listen on W1
 
     Scenario: Testing proxy delete
-        When I delete proxy P1 in www role
+        When I delete proxy P1 in haproxy role
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        Then W1 config should be clean
+        Then W1 config should not contains P1
         And process haproxy is running in W1
-        And 80 port is not listen on W1
+        And 80 port is listen on W1

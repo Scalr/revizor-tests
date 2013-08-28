@@ -88,6 +88,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
         When I increase minimum servers to 2 for percona2 role
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
+        And percona replication status is up
         And scalarizr version is last in M2
 
 	@ec2 @gce @cloudstack @rackspaceng @restart
@@ -149,10 +150,12 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
         And I expect server bootstrapping as M3
         And M3 contains database D2
         When I create database D3 on M1
+        And percona replication status is up
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And Scalr sends DbMsr_NewMasterUp to all
+        And percona replication status is up
         And M2 contains database D3
 
 	@ec2 @gce @cloudstack @rackspaceng @promotion
@@ -179,5 +182,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 		And scalarizr version is last in M1
 		Then I expect server bootstrapping as M2
 		And M2 is slave of M1
+		And percona replication status is up
 		And M2 contains database D3
 		And M2 contains database D4

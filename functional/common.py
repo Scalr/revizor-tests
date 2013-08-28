@@ -137,6 +137,8 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
                                         continue
                                 elif 'boto' in line or 'p2p_message' in line:
                                     continue
+                                elif 'Caught exception reading instance data' in out:
+                                    break
                                 if log_level == 'ERROR':
                                     LOG.error('Find error in scalarizr log')
                                     LOG.error('Errors: %s' % out)

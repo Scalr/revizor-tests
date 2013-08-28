@@ -155,8 +155,8 @@ Feature: MySQL database server with behavior mysql2
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And Scalr sends DbMsr_NewMasterUp to all
-        And M2 contains database D3
         And mysql2 replication status is up
+        And M2 contains database D3
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
 	Scenario: Check new master replication
@@ -181,6 +181,7 @@ Feature: MySQL database server with behavior mysql2
 		And M1 contains database D3
 		And scalarizr version is last in M1
 		Then I expect server bootstrapping as M2
+		And mysql2 replication status is up
 		And M2 is slave of M1
 		And M2 contains database D3
 		And M2 contains database D4

@@ -52,8 +52,8 @@ def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
         'backup': '0',
         'down': '0'
     }]
-    proxy_role.add_haproxy_proxy(port, backends)
     LOG.info("Save proxy %s with backends: %s" % (proxy_name, backends))
+    proxy_role.add_haproxy_proxy(port, backends, description=proxy_name)
     setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
 
@@ -69,13 +69,13 @@ def add_proxy_with_healtcheck(step, proxy_name, port, options, healthchecks):
     for o in options:
         serv = getattr(world, o[0], None)
         backends.append({
-            "host": serv.public_ip if serv else o[0],
-            "port": "80",
-            "backup": "1" if o[1] == 'backup' else "0",
-            "down": "1" if o[1] == 'down' else "0",
-            })
-    LOG.info("Save proxy %s with backends: %s" % (proxy_name,backends))
-    proxy_role.add_haproxy_proxy(port, backends, interval=healthchecks[0],
+            'host': serv.private_ip if serv else str(o[0]),
+            'port': str(port),
+            'backup': "1" if o[1] == 'backup' else "0",
+            'down': "1" if o[1] in ['down', 'disabled'] else "0",
+        })
+    LOG.info("Save proxy %s with backends: %s" % (proxy_name, backends))
+    proxy_role.add_haproxy_proxy(port, backends, description=proxy_name, interval=healthchecks[0],
                                   fall=healthchecks[1], rise=healthchecks[2])
     setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
@@ -93,18 +93,19 @@ def modify_haproxy_role(step, proxy_name, options, healthchecks):
     for o in options:
         serv = getattr(world, o[0], None)
         backends.append({
-            "host": serv.public_ip if serv else o[0],
+            "host": serv.private_ip if serv else o[0],
             "port": "80",
             "backup": "1" if o[1] == 'backup' else "0",
-            "down": "1" if o[1] == 'down' else "0",
+            "down": "1" if o[1] in ['down', 'disabled'] else "0",
         })
     LOG.info("Save proxy changes with backends: %s" % backends)
     proxy_role.edit_haproxy_proxy(proxy['port'], backends, interval=healthchecks[0],
                                   fall=healthchecks[1], rise=healthchecks[2])
 
 
-@step(r'([\w\d]+) backend list for (\d+) port should( not)? contains ([\w\d, \']+)')
+@step(r'([\w\d]+) backend list for (\d+) port should( not)? contains ([\w\d, \'\.]+)')
 def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
+    time.sleep(10)
     LOG.info("Verify backends servers in config")
     haproxy_server = getattr(world, serv_as)
     port = int(port)
@@ -116,7 +117,10 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
             hostname = getattr(world, new_back[0], new_back[0])
             if not isinstance(hostname, (unicode, str)):
                 hostname = hostname.private_ip
-            backends.append('%s:%s %s' % (hostname, port, new_back[1]))
+            if not new_back[1] == 'default':
+                backends.append('%s:%s %s' % (hostname, port, new_back[1]))
+            else:
+                backends.append('%s:%s' % (hostname, port))
         else:
             hostname = getattr(world, back.strip(), back.strip())
             if not isinstance(hostname, (unicode, str)):
@@ -152,7 +156,7 @@ def verify_listen_for_port(step, serv_as, port):
         raise AssertionError("Listens sections not contain backend for %s port" % port)
 
 
-@step(r'healthcheck parameters is (\d+), (\d+), (\d+) in ([\w\d]+) backends for (\d+) port')
+@step(r'healthcheck parameters is (\d+), (\d+), (\d+) in ([\w\d]+) backend file for (\d+) port')
 def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
     server = getattr(world, serv_as)
     LOG.info("Verify healthcheck parameters for %s %s" % (server.id, port))
@@ -161,9 +165,41 @@ def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
     LOG.info("Parameters must be: %s" % healthcheck)
     node = world.cloud.get_node(server)
     config = parse_haproxy_config(node)
+    LOG.debug("HAProxy config: %s" % config)
     config_healthcheck = [l for l in config['backends'][port] if l.startswith('default-server')]
+    LOG.debug("Healthcheck in config: %s" % config_healthcheck)
     if config_healthcheck:
         config_healthcheck = [int(p) for p in re.findall('(\d+)+', config_healthcheck[0])]
         if not healthcheck == config_healthcheck:
             raise AssertionError("Healtcheck parameters invalid, must be: %s but %s" % (healthcheck, config_healthcheck))
+        return True
     raise AssertionError("Healthcheck parameters not found in backends for port: %s" % port)
+
+
+@step(r'([\w\d]+) backend list should be clean')
+def verify_backend_list_clean(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    config = parse_haproxy_config(node)
+    if config['backends'] or config['listens']:
+        raise AssertionError("HAProxy config contains backends/listeners section: %s" % config)
+
+
+@step(r'I delete proxy ([\w\d]+) in haproxy role')
+def delete_haproxy_proxy(step, proxy_name):
+    LOG.info("Delete haproxy proxy %s" % proxy_name)
+    proxy_role = getattr(world, 'haproxy_role')
+    proxy = getattr(world, '%s_proxy' % proxy_name)
+    LOG.info("Delete haproxy proxy for port %s" % proxy['port'])
+    proxy_role.delete_haproxy_proxy(proxy['port'])
+
+@step(r'([\w\d]+) config should not contains ([\w\d]+)')
+def verify_proxy_in_config(step, serv_as, proxy_name):
+    proxy_role = getattr(world, 'haproxy_role')
+    proxy = getattr(world, '%s_proxy' % proxy_name)
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    config = parse_haproxy_config(node)
+    if proxy['port'] in config['backends'] or proxy['port'] in config['listens']:
+        raise AssertionError("HAProxy config contains parameters for %s proxy (port %s): %s" % (proxy_name,
+                                                                                                proxy['port'], config))

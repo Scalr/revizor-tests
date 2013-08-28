@@ -114,10 +114,10 @@ def modify_proxy(step, proxy, role, ip_hash, options):
     role.edit_nginx_proxy(proxy['hostname'], proxy['port'], backends, ip_hash=ip_hash)
 
 
-@step(r"I delete proxy ([\w\d]+) in ([\w\d]+) role")
-def delete_nginx_proxy(step, proxy, role):
+@step(r"I delete proxy ([\w\d]+) in www role")
+def delete_nginx_proxy(step, proxy):
     proxy = getattr(world, '%s_proxy' % proxy)
-    role = getattr(world, '%s_role' % role)
+    role = getattr(world, 'www_role')
     role.delete_nginx_proxy(proxy['hostname'])
 
 
