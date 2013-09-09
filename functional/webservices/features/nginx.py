@@ -83,17 +83,6 @@ def having_vhost(step, ssl, vhost_name, role_name):
     LOG.debug('Update vhosts list for farm %s' % world.farm.id)
     world.farm.vhosts.reload()
     time.sleep(10)
-    #TODO: Check this
-    # vh = None
-    # for vhost in world.farm.vhosts:
-    #     LOG.debug('Vhost: %s  Domains: %s' % (vhost.name, domain))
-    #     if vhost.name == domain:
-    #         vh = vhost
-    # for role in world.farm.roles:
-    #     if role.id == vh.farm_roleid:
-    #         if 'app' in role.role.behaviors:
-    #             return True
-    # raise AssertionError('Not have vhost to app role')
 
 
 @step(r'my IP in ([\w]+) ([\w]+)([ \w]+)? access logs$')

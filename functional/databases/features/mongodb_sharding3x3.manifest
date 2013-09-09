@@ -1,0 +1,17 @@
+{
+    "BEHAVIORS": ["mongodb"],
+    "RV_PLATFORM": {
+        "ec2": ["ec2"],
+        "gce": ["gce", "-reboot"],
+        "cloudstack": ["cloudstack", "-backup"],
+        "rackspaceng": ["rackspaceng"],
+        "openstack": ["openstack"]
+    },
+    "RV_STORAGE": {
+        "persistent": [],
+        "raid5": [],
+        "raid10": [],
+        "raid1": [],
+        "raid0": []
+    }
+}

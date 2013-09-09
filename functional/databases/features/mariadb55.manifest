@@ -1,0 +1,19 @@
+{
+    "BEHAVIORS": ["mysql2"],
+    "RV_PLATFORM": {
+        "ec2": ["ec2"],
+        "gce": ["gce", "-volumes", "-reboot", "-grow"],
+        "cloudstack": ["cloudstack", "-grow", "-backup"],
+        "rackspaceng": ["rackspaceng", "-volumes", "-grow"],
+        "openstack": ["openstack", "-volumes", "-grow"]
+    },
+    "RV_STORAGE": {
+        "persistent": ["-lvm"],
+        "lvm": ["-volumes", "-grow"],
+        "eph": ["-volumes", "-grow"],
+        "raid5": ["-volumes", "-lvm"],
+        "raid10": ["-volumes", "-lvm"],
+        "raid1": ["-volumes", "-lvm"],
+        "raid0": ["-volumes", "-lvm"]
+    }
+}

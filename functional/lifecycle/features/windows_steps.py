@@ -4,8 +4,10 @@ import logging
 from datetime import datetime
 
 from lettuce import world, step
-
-from winrm import winrm_service, exceptions as winrm_exceptions
+try:
+    from winrm import winrm_service, exceptions as winrm_exceptions
+except ImportError:
+    print "Please install WinRM"
 
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
