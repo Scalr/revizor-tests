@@ -1,15 +1,18 @@
 Feature: HAProxy load balancer role
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Bootstraping haproxy role
         Given I have a an empty running farm
         When I add haproxy role to this farm
         Then I expect server bootstrapping as W1
         And scalarizr version is last in W1
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Adding app to upstream
         When I add app role to this farm
         And bootstrap 2 servers as (A1, A2)
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Check proxy for role
         When I add virtual host H1 assigned to app role
         And I add proxy P1 to haproxy role for 80 port with app role backend
@@ -22,6 +25,7 @@ Feature: HAProxy load balancer role
         Then H1 resolves into W1 ip address
         And http get H1 matches H1 index page
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Verify new apache server append and deletes to/from backend
         When I increase minimum servers to 3 for app role
         Then I expect server bootstrapping as A3
@@ -31,6 +35,7 @@ Feature: HAProxy load balancer role
         And Scalr sends HostDown to W1
         And W1 backend list for 80 port should not contains A3
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Modify first proxy and check options
         When I modify proxy P1 in haproxy role with backends: 'A1 default' 'A2 backup' 'example.com disabled' and healthcheck: 16, 21, 10
         Then I reboot server W1
@@ -40,6 +45,7 @@ Feature: HAProxy load balancer role
         And process haproxy is running in W1
         And 80 port is listen on W1
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Add second proxy
         When I add proxy P2 to haproxy role for 8000 port with backends: 'example2.com default' 'example3.com backup' and healthcheck: 12, 20, 8
         Then I reboot server W1
@@ -51,6 +57,7 @@ Feature: HAProxy load balancer role
         And 80 port is listen on W1
         And 8000 port is listen on W1
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Testing proxy delete
         When I delete proxy P1 in haproxy role
         Then I reboot server W1
