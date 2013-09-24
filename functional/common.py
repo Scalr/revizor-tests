@@ -549,6 +549,13 @@ def set_iptables_rule(role_type,server,port):
     except httplib.BadStatusLine:
         time.sleep(5)
         my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        LOG.info('My IP address: %s' % my_ip)
-        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
+    LOG.info('My IP address: %s' % my_ip)
+    if isinstance(port,tuple):
+        if len(port) == 2:
+            port = ':'.join(str(x) for x in port)
+        else:
+            port = ','.join(str(x) for x in port)
+
+
+    node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip,port))
 

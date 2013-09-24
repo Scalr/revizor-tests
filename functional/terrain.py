@@ -452,27 +452,15 @@ def assert_check_service(step, service, serv_as):
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
-__________
+
     if world.role_type in ['redis','memcached']:
         world.set_iptables_rule(world.role_type,server,port)
-__________
-
-
-        LOG.info('Role is redis, add iptables rule for me')
-        node = world.cloud.get_node(server)
-        try:
-            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        except httplib.BadStatusLine:
-            time.sleep(5)
-            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        LOG.info('My IP address: %s' % my_ip)
-        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
 
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
 
 
-___________
+
     try:
         s.connect((server.public_ip, new_port))
     except (socket.error, socket.timeout), e:
