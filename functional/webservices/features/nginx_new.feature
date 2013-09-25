@@ -14,7 +14,6 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         When I add app role to this farm
         And bootstrap 2 servers as (A1, A2)
         Then W1 upstream list should contains A1, A2
-        And http get W1 contains 'If you can see this page, it means that your Scalr farm configured succesfully'
 
     @ec2 @gce @cloudstack @rackspaceng
     Scenario: Check proxy for role
