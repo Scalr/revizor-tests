@@ -541,7 +541,7 @@ def assert_not_in(first, second, message=''):
     assert first in second, message
 
 @world.absorb
-def set_iptables_rule(role_type,server,port):
+def set_iptables_rule(role_type, server, port):
     LOG.info('Role is %s, add iptables rule for me' % role_type)
     node = world.cloud.get_node(server)
     try:
@@ -550,12 +550,10 @@ def set_iptables_rule(role_type,server,port):
         time.sleep(5)
         my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
     LOG.info('My IP address: %s' % my_ip)
-    if isinstance(port,tuple):
+    if isinstance(port, (tuple, list)):
         if len(port) == 2:
             port = ':'.join(str(x) for x in port)
         else:
             port = ','.join(str(x) for x in port)
-
-
     node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip,port))
 

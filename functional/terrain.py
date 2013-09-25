@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-import httplib
+
 
 from lettuce import world, step, after, before
 from common import *
@@ -453,14 +453,10 @@ def assert_check_service(step, service, serv_as):
     else:
         new_port = port
 
-    if world.role_type in ['redis','memcached']:
-        world.set_iptables_rule(world.role_type,server,port)
-
+    if world.role_type in ['redis', 'memcached']:
+        world.set_iptables_rule(world.role_type, server, port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
-
-
-
     try:
         s.connect((server.public_ip, new_port))
     except (socket.error, socket.timeout), e:

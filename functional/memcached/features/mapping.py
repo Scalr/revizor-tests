@@ -6,29 +6,19 @@ Created on 09.24.2013
 
 """ Clients of memcached communicate with server through TCP connections protcol """
 
-memcached_mapping = {
-    "port" : "11211",
-    "memcached_command" : {
-        "get" : "get key",
-        "set" : "set key",
-        "add" : "add newkey",
-        "replace" : "replace key",
-        "prepend" : "prepend key",
-        "incr" : "incr key",
-        "decr" : "decr key",
-        "delete" : "delete key",
-        "stats" : {
-            "stats" :"Prints general statistics",
-            "stats slabs" :"Prints memory statistics",
-            "stats malloc" : "Prints memory statistics",
-            "stats items" : "Print higher level allocation statistics",
-            "stats detail" : "",
-            "stats sizes" : "",
-            "stats reset" : ""
-
-        },
-        "version" : "Prints server version",
-        "quit" : "quit"
+memcached = {
+    "port": "11211",
+    "memcached_comand": {
+        "get key": "get",
+        "set key": "cas",
+        "add newkey": "add",
+        "replace key": "replace",
+        "prepend key": "prepend",
+        "incr key": "incr",
+        "decr key": "decr",
+        "delete key": "delete",
+        "Server version": "version",
+        "quit": "quit"
 
     }
 }
