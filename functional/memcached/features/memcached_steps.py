@@ -22,7 +22,7 @@ def i_initialize_instance(step, serv_as):
 def i_add_new_item(step, commands, command, serv_as):
     """Add new item to memcache server (dict,str)"""
     result = getattr(world.memcache_client, world.memcache_maps[commands][command])('1000','test_value')
-    LOG.debug('Result of command %s is %s' % (command, result))
+    LOG.debug('Result of command %s from memcache client is %s' % (command, result))
     if not result:
         raise AssertionError('Suggested command is not added an element to memcache: world.memcache_client.%s' % str(world.memcache_maps[commands][command])+"('1000','test_value')")
 
@@ -31,6 +31,6 @@ def i_add_new_item(step, commands, command, serv_as):
 def i_get_new_item(step, commands, command, serv_as):
     """Get item from memcache server  for the key (dict,str)"""
     result = getattr(world.memcache_client, world.memcache_maps[commands][command])('1000')
-    LOG.debug('Result of command %s is %s' % (command, result))
+    LOG.debug('Result of command %s from memcache client is %s' % (command, result))
     if result != "test_value":
         raise AssertionError('Suggested command is not get element from memcache: world.memcache_client.%s' % str(world.memcache_maps[commands][command])+"('1000')")

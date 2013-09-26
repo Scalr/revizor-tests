@@ -8,7 +8,7 @@ Created on 09.24.2013
 
 memcached = {
     "port": "11211",
-    "memcached_comand": {
+    "memcached_command": {
         "get key": "get",
         "set key": "set",
         "add newkey": "add",
