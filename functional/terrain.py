@@ -153,6 +153,8 @@ def add_role_to_farm(step, behavior=None, options=None):
         behavior = os.environ.get('RV_BEHAVIOR', 'base')
     else:
         behavior = behavior.strip()
+    if behavior == 'tomcat6' and CONF.main.dist.startswith('ubuntu'):
+        behavior = 'tomcat7'
     options = options.strip() if options else None
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
@@ -309,13 +311,20 @@ def add_role_to_farm(step, behavior=None, options=None):
     world.role_scripting = scripting
     LOG.debug('All farm settings: %s' % farm_options)
     role = world.add_role_to_farm(world.role_type, options=farm_options, scripting=scripting, storages=additional_storages)
-    setattr(world, world.role_type + '_role', role)
+    setattr(world, '%s_role' % world.role_type, role)
     world.role = role
     if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2', 'mariadb']:
         db = Database.create(role)
         if not db:
             raise AssertionError('Database for role %s not found!' % role)
         setattr(world, 'db', db)
+
+
+@step('I delete (\w+) role from this farm')
+def delete_role_from_farm(step, role_type):
+    LOG.info('Delete role %s from farm' % role_type)
+    role = getattr(world, '%s_role' % role_type)
+    world.farm.delete_role(role.role_id)
 
 
 @step('I expect server bootstrapping as ([\w\d]+)$')
@@ -423,8 +432,17 @@ def check_process(step, process, serv_as):
 def verify_open_port(step, port, has_not, serv_as):
     server = getattr(world, serv_as)
     port = int(port)
+    node = world.cloud.get_node(server)
+    if not CONF.main.dist.startswith('win'):
+        LOG.info('Add iptables rule for my IP')
+        try:
+            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+        except httplib.BadStatusLine:
+            time.sleep(5)
+            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+        LOG.info('My IP address: %s' % my_ip)
+        node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (port, my_ip))
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        node = world.cloud.get_node(server)
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
@@ -472,6 +490,14 @@ def assert_check_service(step, service, serv_as):
         LOG.info('Set main redis instances to %s' % serv_as)
         setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
     LOG.info("Service work")
+
+
+@step(r'I (\w+) service ([\w\d]+) in ([\w\d]+)')
+def service_control(step, action, service, serv_as):
+    LOG.info("%s service %s" % (action.title(), service))
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    node.run('/etc/init.d/%s %s' % (service, action))
 
 
 @step('not ERROR in ([\w]+) scalarizr log$')

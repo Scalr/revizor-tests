@@ -10,6 +10,25 @@ Feature: Nginx load balancer role test with apache backends
         And http get W1 contains 'No running app instances found'
 
     @ec2 @gce @cloudstack @rackspaceng
+    Scenario: Adding custom role to upstream
+        When I add base role to this farm
+        Then I expect server bootstrapping as B1
+        And I add base role as app role in W1 scalarizr config
+        Then I restart service scalarizr in W1
+        And I wait 1 minutes
+        And W1 upstream list should contain B1
+        And http get W1 contains 'Backend server did not respond in time'
+
+    @ec2 @gce @cloudstack @rackspaceng
+    Scenario: Clean up custom role
+        When I delete base role from this farm
+        And I remove base role from W1 scalarizr config
+        Then I restart service scalarizr in W1
+        And I wait 1 minutes
+        And W1 upstream list should not contain B1
+        And W1 upstream list should be default
+
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Adding app to upstream
         When I add app role to this farm
         And bootstrap 2 servers as (A1, A2)
@@ -18,6 +37,7 @@ Feature: Nginx load balancer role test with apache backends
     @ec2 @gce @cloudstack @rackspaceng
     Scenario: Removing app server
         When I terminate server A2 with decrease
+        And I wait 1 minutes
         Then W1 upstream list should not contain A2
         But W1 upstream list should contain A1
         And Scalr sends HostDown to W1
@@ -35,10 +55,10 @@ Feature: Nginx load balancer role test with apache backends
         Then H2 resolves into W1 ip address
         Then https get H2 matches H2 index page
         And response contains valid Cert and CACert
+        And http get H2 matches H2 index page
         And my IP in A1 H2 ssl access logs
 
     @ec2 @gce @cloudstack @rackspaceng
-    @ec2 @gce @cloudstack @rackspaceng @rebundle
     Scenario: Rebundle nginx server
         When I create server snapshot for W1
         Then Bundle task created for W1
