@@ -10,7 +10,7 @@ memcached = {
     "port": "11211",
     "memcached_comand": {
         "get key": "get",
-        "set key": "cas",
+        "set key": "set",
         "add newkey": "add",
         "replace key": "replace",
         "prepend key": "prepend",
@@ -19,6 +19,5 @@ memcached = {
         "delete key": "delete",
         "Server version": "version",
         "quit": "quit"
-
     }
 }

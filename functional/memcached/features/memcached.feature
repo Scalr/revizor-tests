@@ -10,6 +10,7 @@ Feature: Memcached service standart port 11211 with behavior memcached
 
     @init_client @set_item
     Scenario: Set new items are at the top of the LRU.
-        I have connected memcache client to M1
+        I initialize instance memcache Client on M1
         I run a "memcached_comand" to "set key" for new item on M1
+        I run a "memcached_comand" to "get key" from item on M1
 

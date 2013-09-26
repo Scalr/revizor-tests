@@ -542,6 +542,7 @@ def assert_not_in(first, second, message=''):
 
 @world.absorb
 def set_iptables_rule(role_type, server, port):
+    """Set iptables rule in the top of the list (str, str, list||tuple)->"""
     LOG.info('Role is %s, add iptables rule for me' % role_type)
     node = world.cloud.get_node(server)
     try:
