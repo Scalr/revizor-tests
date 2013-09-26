@@ -1,5 +1,4 @@
 {
-    "BEHAVIORS": ["tomcat6", "tomcat7"],
     "RV_PLATFORM": {
         "ec2": ["ec2"],
         "gce": ["gce"],
