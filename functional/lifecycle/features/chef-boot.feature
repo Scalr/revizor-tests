@@ -1,5 +1,6 @@
 Feature: Check chef attributes set
 
+    @ec2 @gce @cloudstack @rackspaceng
     Scenario: Bootstrapping
     	Given I have a clean and stopped farm
     	When I add role to this farm with chef
