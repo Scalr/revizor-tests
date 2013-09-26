@@ -1,6 +1,6 @@
 import os
 from datetime import datetime
-import httplib
+
 
 from lettuce import world, step, after, before
 from common import *
@@ -18,9 +18,9 @@ from revizor2.dbmsr import Database
 from revizor2.consts import Platform
 
 
-PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
+PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': (6379,6395),
              'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80,
-             'apache': 80}
+             'apache': 80, 'memcached' : 11211}
 
 
 FARM_OPTIONS = {
@@ -452,16 +452,9 @@ def assert_check_service(step, service, serv_as):
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
-    if world.role_type == 'redis':
-        LOG.info('Role is redis, add iptables rule for me')
-        node = world.cloud.get_node(server)
-        try:
-            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        except httplib.BadStatusLine:
-            time.sleep(5)
-            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        LOG.info('My IP address: %s' % my_ip)
-        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6395 -j ACCEPT' % my_ip)
+
+    if world.role_type in ['redis', 'memcached']:
+        world.set_iptables_rule(world.role_type, server, port)
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
     try:
