@@ -100,3 +100,33 @@ def check_rpaf(step, serv_as, vhost_name, ssl=None):
     LOG.info('My public IP is %s' % ip)
     if not ip in out[0]:
         raise AssertionError('Not see my IP in access log')
+
+
+@step(r'I add (\w+) role as app role in ([\w\d]+) scalarizr config')
+def add_custom_role_to_backend(step, role, serv_as):
+    LOG.info("Add %s role to %s scalarizr config" % (role, serv_as))
+    server = getattr(world, serv_as)
+    role = getattr(world, '%s_role' % role)
+    node = world.cloud.get_node(server)
+    node.run("sed -i 's/upstream_app_role =/upstream_app_role = %s/g' /etc/scalr/public.d/www.ini" % role.name)
+
+
+@step(r'I remove (\w+) role from ([\w\d]+) scalarizr config')
+def delete_custom_role_from_backend(step, role, serv_as):
+    LOG.info("Delete %s role to %s scalarizr config" % (role, serv_as))
+    server = getattr(world, serv_as)
+    role = getattr(world, '%s_role' % role)
+    node = world.cloud.get_node(server)
+    node.run("sed -i 's/upstream_app_role = %s/upstream_app_role =/g' /etc/scalr/public.d/www.ini" % role.name)
+
+
+@step(r'([\w\d]+) upstream list should be default')
+def app_server_should_be_clean(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    out = node.run('cat /etc/nginx/app-servers.include')[0]
+    ips = re.findall(r"((?:\d+\.?){4}:\d+)", out)
+    if not len(ips) == 1:
+        raise AssertionError('In default app-servers.include must be only one host, but it: %s (%s)' % (len(ips), ips))
+    if not ips[0] == '127.0.0.1:80':
+        raise AssertionError('First host in default app-server.include is not localhost, it: %s' % ips)
