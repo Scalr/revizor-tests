@@ -425,7 +425,7 @@ def check_process(step, process, serv_as):
     for p in list_proc.splitlines():
         if not 'grep' in p and process in p:
             return True
-    raise AssertionError("Process %s is not running in server %s" % (process, serv.id))
+    raise AssertionError("Process %s is not running in server %s" % (process, server.id))
 
 
 @step(r'(\d+) port is( not)? listen on ([\w\d]+)')
@@ -441,7 +441,7 @@ def verify_open_port(step, port, has_not, serv_as):
             time.sleep(5)
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
         LOG.info('My IP address: %s' % my_ip)
-        node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (port, my_ip))
+        node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip, port))
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
