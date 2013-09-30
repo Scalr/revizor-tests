@@ -72,7 +72,7 @@ Feature: MySQL database server with behavior mysql2
         And Last backup date updated to current
         And not ERROR in M1 scalarizr log
 
-    @ec2 @backup
+    @ec2 @backup @restore
     Scenario: Restore from backup
         Given I know last backup url
         And I know timestamp from D1 in M1

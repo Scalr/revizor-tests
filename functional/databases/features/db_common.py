@@ -329,4 +329,4 @@ def check_timestamp(step, db, serv_as):
 
 @step(r'([\w\d]+) replication status is ([\w\d]+)')
 def verify_replication_status(step, behavior, status):
-    wait_until(world.wait_replication_status, args=(behavior, status), error_text="Replication in broken", timeout=300)
+    wait_until(world.wait_replication_status, args=(behavior, status), error_text="Replication in broken", timeout=600)

@@ -1,0 +1,6 @@
+{
+    "DISTS": ["win2008", "win2012"],
+    "RV_PLATFORM": {
+        "ec2": ["ec2"]
+    }
+}

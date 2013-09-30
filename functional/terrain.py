@@ -18,9 +18,9 @@ from revizor2.dbmsr import Database
 from revizor2.consts import Platform
 
 
-PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': (6379,6395),
+PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona': 3306, 'postgresql': 5432, 'redis': (6379,6395),
              'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80,
-             'apache': 80, 'memcached' : 11211}
+             'apache': 80, 'memcached': 11211}
 
 
 FARM_OPTIONS = {
@@ -301,7 +301,7 @@ def add_role_to_farm(step, behavior=None, options=None):
         LOG.info('Add redis settings')
         farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                              'db.msr.redis.use_password': True})
-    if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2', 'mariadb']:
+    if behavior in ['mysql', 'mysql2', 'percona2', 'mariadb', 'postgresql', 'redis', 'mongodb', 'percona']:
         storage = STORAGES.get(Platform.to_scalr(CONF.main.driver), None)
         if storage:
             LOG.info('Add main settings for %s storage' % CONF.main.storage)
@@ -434,7 +434,7 @@ def verify_open_port(step, port, has_not, serv_as):
     port = int(port)
     node = world.cloud.get_node(server)
     if not CONF.main.dist.startswith('win'):
-        LOG.info('Add iptables rule for my IP')
+        LOG.info('Add iptables rule for my IP and port %s' % port)
         try:
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
         except httplib.BadStatusLine:
@@ -452,7 +452,7 @@ def verify_open_port(step, port, has_not, serv_as):
         s.connect((server.public_ip, new_port))
     except (socket.error, socket.timeout), e:
         if has_not:
-            LOG.info("Post %s is closed" % new_port)
+            LOG.info("Post %s closed" % new_port)
             return
         raise AssertionError(e)
     if has_not:
