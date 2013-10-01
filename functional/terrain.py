@@ -381,9 +381,6 @@ def terminate_server_force(step, serv_as):
 
 @step('I reboot server (.+)$')
 def reboot_server(step, serv_as):
-    #TODO: Delete this
-    if CONF.main.driver == Platform.GCE:
-        return
     server = getattr(world, serv_as)
     server.reboot()
     LOG.info('Server %s was rebooted' % serv_as)

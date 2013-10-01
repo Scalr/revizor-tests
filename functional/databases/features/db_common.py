@@ -215,9 +215,6 @@ def check_new_storage_size(step, size, role_type):
 #TODO: Add this to all databases
 @step('I know last backup url$')
 def get_last_backup_url(step):
-    #TODO: Delete this
-    if not CONF.main.driver == Platform.EC2:
-        return True
     LOG.info('Get last backup date')
     last_backup = world.farm.db_info(world.role_type)['last_backup']
     LOG.info('Last backup date is: %s' % last_backup)
@@ -267,9 +264,6 @@ def download_dump(step, serv_as):
 
 @step('I delete databases ([\w\d,]+) in ([\w\d]+)$')
 def delete_databases(step, databases, serv_as):
-    #TODO: Delete this
-    if not CONF.main.driver == Platform.EC2:
-        return True
     databases = databases.split(',')
     server = getattr(world, serv_as)
     LOG.info('Delete databases  %s in server %s' % (databases, server.id))
@@ -280,9 +274,6 @@ def delete_databases(step, databases, serv_as):
 
 @step('I restore databases ([\w\d,]+) in ([\w\d]+)$')
 def restore_databases(step, databases, serv_as):
-    #TODO: Delete this
-    if not CONF.main.driver == Platform.EC2:
-        return True
     databases = databases.split(',')
     server = getattr(world, serv_as)
     LOG.info('Restore databases  %s in server %s' % (databases, server.id))
