@@ -7,6 +7,7 @@ from datetime import datetime
 import httplib
 
 from lettuce import world, step
+from lxml import html
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
@@ -61,13 +62,34 @@ def trigger_creation(step, action, use_slave=None):
     action = action.strip()
     use_slave = True if use_slave else False
     info = world.farm.db_info(world.db.db_name)
-    setattr(world, 'last_%s' % action, info['last_%s' % action])
+    if action != 'pmaaccess':
+        setattr(world, 'last_%s' % action, info['last_%s' % action])
     if action == 'databundle':
         getattr(world.farm, 'db_create_%s' % action)(world.db.db_name, use_slave=use_slave)
     else:
         getattr(world.farm, 'db_create_%s' % action)(world.db.db_name)
     LOG.info("I'm trigger %s" % action)
     time.sleep(180)
+
+@step(r'I launch ([\w]+) session')
+def launch_session(step, service):
+    """Step calling the appropriate service method to run it"""
+    service = service.strip()
+    LOG.info("I'm launch %s session" % service)
+    world.launch_request = getattr(world.farm, 'db_launch_%s_session' % service)()
+
+
+@step(r'([\w]+) is available, I see the ([\w]+) in the ([\w]+)')
+def session_is_available(step, service, search_string, element):
+    """Step checks for a running service by searching on the corresponding page of the relevant elements.
+       Takes a variable as argument world.launch_request out of step launch_session"""
+    if not world.launch_request:
+        raise Exception('The %s service page is not found') % service
+    tree = html.fromstring(world.launch_request.text)
+    if search_string in tree.xpath('//%s' % element)[0].text:
+        LOG.info("The %s service is launched." % service)
+    else:
+        raise AssertionError("The %s service is not launched." % service)
 
 
 @step(r'Last (.+) date updated to current')
