@@ -148,7 +148,9 @@ def having_empty_running_farm(step):
 def add_role_to_farm(step, behavior=None, options=None):
     additional_storages = None
     scripting = None
-    farm_options = {}
+    farm_options = {
+        "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
+    }
     if not behavior:
         behavior = os.environ.get('RV_BEHAVIOR', 'base')
     else:
@@ -347,10 +349,20 @@ def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=2000):
     setattr(world, serv_as, server)
 
 
+@step('hostname in ([\w\d]+) is valid')
+def verify_hostname_is_valid(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    hostname = node.run('hostname')[0].strip()
+    valid_hostname = '%s-%s-%s'.lower() % (world.farm.name, server.role.name, server.index)
+    if not hostname == valid_hostname:
+        raise AssertionError('Hostname in server %s is not valid: %s' % (server.id, valid_hostname))
+
+
 @step(r'I terminate server ([\w]+)$')
-def terminate_server(step, serv):
+def terminate_server(step, serv_as):
     """Terminate server (no force)"""
-    server = getattr(world, serv)
+    server = getattr(world, serv_as)
     LOG.info('Terminate server %s' % server.id)
     server.terminate()
 

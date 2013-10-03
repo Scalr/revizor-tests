@@ -15,5 +15,10 @@
         "raid10": ["-volumes", "-lvm"],
         "raid1": ["-volumes", "-lvm"],
         "raid0": ["-volumes", "-lvm"]
+    },
+    "RV_REDIS_SNAPSHOTTING": {
+        "aof": ["-nopersistence"],
+        "snapshotting": ["-nopersistence"],
+        "nopersistence": ["-restartfarm"]
     }
 }

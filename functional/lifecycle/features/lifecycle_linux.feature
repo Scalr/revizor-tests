@@ -12,6 +12,7 @@ Feature: Linux server lifecycle
         And I wait and see initializing server M1
         And I wait and see running server M1
         And scalarizr version is last in M1
+        And hostname in M1 is valid
         Then Scalr receives DeployResult from M1
         And directory '/var/www/src' exist in M1
 
