@@ -28,7 +28,7 @@ def check_process_options(step, process, options, serv_as):
 def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split(1)[1:-1]
+    node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split()[1][1:-1]
     hostname = node.run('hostname')[0].strip()
     if not node_name == hostname:
         raise AssertionError('Chef node_name isn\'t installed by global hostname: %s != %s' % (node_name, hostname))

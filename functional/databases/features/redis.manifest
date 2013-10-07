@@ -19,6 +19,6 @@
     "RV_REDIS_SNAPSHOTTING": {
         "aof": ["-nopersistence"],
         "snapshotting": ["-nopersistence"],
-        "nopersistence": ["-restartfarm"]
+        "nopersistence": []
     }
 }
