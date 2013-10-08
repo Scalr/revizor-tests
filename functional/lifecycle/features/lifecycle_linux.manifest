@@ -3,6 +3,7 @@
         "ec2": ["ec2"],
         "gce": ["gce", "-storages"],
         "idcf": ["cloudstack"],
-        "rackspaceng": ["rackspaceng", "-storages"]
+        "rackspaceng": ["rackspaceng", "-storages"],
+        "enter": ["openstack"]
     }
 }

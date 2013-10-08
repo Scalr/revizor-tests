@@ -1,6 +1,6 @@
 Feature: Nginx load balancer role test with apache backends and new proxy settings
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping nginx role
         Given I have a an empty running farm
         When I add www role to this farm
@@ -9,13 +9,13 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And nginx is running on W1
         And http get W1 contains 'No running app instances found'
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream
         When I add app role to this farm
         And bootstrap 2 servers as (A1, A2)
         Then W1 upstream list should contains A1, A2
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Check proxy for role
         When I add virtual host H1 assigned to app role
         And I add http proxy P1 to www role with H1 host to app role with ip_hash
@@ -28,7 +28,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then H1 resolves into W1 ip address
         And http get H1 matches H1 index page
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify new apache server append and deletes to/from backend
         When I increase minimum servers to 3 for app role
         Then I expect server bootstrapping as A3
@@ -37,7 +37,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And Scalr sends HostDown to W1
         And W1 upstream list should not contain A3
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Modify first proxy and check options
         When I modify proxy P1 in www role without ip_hash and proxies: 'A1 default' 'A2 backup' 'example.com down'
         Then I reboot server W1
@@ -47,7 +47,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And 'example.com down' in W1 upstream file
         And nginx is running on W1
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Testing proxy delete
         When I delete proxy P1 in www role
         Then I reboot server W1
@@ -55,7 +55,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then W1 upstream list should be clean
         And process nginx is running in W1
 
-    @ec2 @gce @cloudstack @rackspaceng
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Add two SSL domains
         When I add virtual host H2 assigned to app role
         And I add http/https proxy P2 to www role with H2 host to app role
