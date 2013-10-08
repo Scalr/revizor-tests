@@ -3,7 +3,7 @@
     "RV_PLATFORM": {
         "ec2": ["ec2"],
         "gce": ["gce", "-reboot"],
-        "cloudstack": ["cloudstack", "-backup"],
+        "idcf": ["cloudstack", "-backup"],
         "rackspaceng": ["rackspaceng"],
         "openstack": ["openstack"]
     },
