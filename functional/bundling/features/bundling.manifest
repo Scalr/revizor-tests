@@ -2,7 +2,7 @@
     "RV_PLATFORM": {
         "ec2": [],
         "gce": [],
-        "cloudstack": [],
+        "idcf": [],
         "rackspaceng": []
     }
 }
