@@ -132,8 +132,15 @@ STORAGES = {
         'persistent': {
             "db.msr.data_storage.engine": "cinder",
             "db.msr.data_storage.fstype": "ext3",
-            "db.msr.data_storage.cinder.size": "100",
+            "db.msr.data_storage.cinder.size": "1",
         }
+    },
+    'ecs': {
+        'persistent': {
+            "db.msr.data_storage.engine": "cinder",
+            "db.msr.data_storage.fstype": "ext3",
+            "db.msr.data_storage.cinder.size": "1",
+            }
     }
 }
 
@@ -273,7 +280,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                                         "type": "cinder",
                                         "fs": "ext3",
                                         "settings": {
-                                            "cinder.size": "100"
+                                            "cinder.size": "1"
                                         },
                                         "mount": True,
                                         "mountPoint": "/media/ebsmount",
@@ -287,7 +294,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                                         "settings": {
                                             "raid.level": "10",
                                             "raid.volumes_count": 4,
-                                            "cinder.size": "100"
+                                            "cinder.size": "1"
                                         },
                                         "mount": True,
                                         "mountPoint": "/media/raidmount",
