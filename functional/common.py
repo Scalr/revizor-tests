@@ -59,13 +59,14 @@ def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None
     if not role:
         raise AssertionError('Not find role in roles table')
     old_roles_ids = [r.id for r in world.farm.roles]
+    LOG.info('Add role %s to farm' % role)
     world.farm.add_role(role.keys()[0], options=options, scripting=scripting, storages=storages)
     LOG.info('Add role %s to farm %s\n options: %s\n scripting: %s' % (role.keys()[0], world.farm.id, options, scripting))
     time.sleep(5)
     world.farm.roles.reload()
-    for role in world.farm.roles:
-        if not role.id in old_roles_ids:
-            return role
+    for r in world.farm.roles:
+        if not r.id in old_roles_ids:
+            return r
     return None
 
 

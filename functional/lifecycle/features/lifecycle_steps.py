@@ -29,7 +29,7 @@ def waiting_for_assertion(step, spec, serv_as, timeout=1400):
         timeout = 2000
     server = wait_until(world.check_server_status, args=(spec, world.role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
     setattr(world, serv_as, server)
-    LOG.info('Server succesfull %s' % spec)
+    LOG.info('Server succesfully %s' % spec)
 
 
 @step('I wait and see (.+) server (.+)$')

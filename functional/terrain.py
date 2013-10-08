@@ -356,7 +356,7 @@ def verify_hostname_is_valid(step, serv_as):
     hostname = node.run('hostname')[0].strip()
     valid_hostname = '%s-%s-%s'.lower() % (world.farm.name, server.role.name, server.index)
     if not hostname == valid_hostname:
-        raise AssertionError('Hostname in server %s is not valid: %s' % (server.id, valid_hostname))
+        raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
 
 @step(r'I terminate server ([\w]+)$')
