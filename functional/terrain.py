@@ -18,7 +18,7 @@ from revizor2.dbmsr import Database
 from revizor2.consts import Platform
 
 
-PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona': 3306, 'postgresql': 5432, 'redis': (6379,6395),
+PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona': 3306, 'postgresql': 5432, 'redis': (6379, 6395),
              'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80,
              'apache': 80, 'memcached': 11211}
 
@@ -481,14 +481,15 @@ def assert_check_service(step, service, serv_as):
     LOG.info("Check service %s" % service)
     server = getattr(world, serv_as)
     port = PORTS_MAP[service]
+    if isinstance(port, (list, tuple)):
+        port = port[0]
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         node = world.cloud.get_node(server)
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
-
     if world.role_type in ['redis', 'memcached']:
-        world.set_iptables_rule(world.role_type, server, port)
+        world.set_iptables_rule(world.role_type, server, PORTS_MAP[service])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
     try:

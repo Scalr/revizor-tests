@@ -557,5 +557,5 @@ def set_iptables_rule(role_type, server, port):
             port = ':'.join(str(x) for x in port)
         else:
             port = ','.join(str(x) for x in port)
-    node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip,port))
+    node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip, port))
 
