@@ -559,3 +559,11 @@ def set_iptables_rule(role_type, server, port):
             port = ','.join(str(x) for x in port)
     node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip, port))
 
+
+@world.absorb
+def kill_process_by_name(server, process):
+    """Kill process on remote host by his name (server(obj),str)->None if success"""
+    LOG.info('Kill %s process on remote host %s' % (process, server.public_ip))
+    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % vars())[0]
+
+
