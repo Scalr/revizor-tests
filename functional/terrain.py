@@ -645,14 +645,14 @@ def add_new_role_to_farm(step):
     options = getattr(world, 'role_options', {})
     scripting = getattr(world, 'role_scripting', [])
     if world.role_type == 'redis':
-        repl_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
-        options.update({'db.msr.redis.persistence_type': repl_type,})
+        options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
+                        'db.msr.redis.use_password': True})
     world.farm.add_role(world.new_role_id, options=options, scripting=scripting)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, world.role_type + '_role', role)
     LOG.info("Set DB object to world")
-    if world.role_type in ['mysql', 'percona', 'postgresql', 'redis', 'mongodb', 'mysql2', 'percona2']:
+    if world.role_type in ['mysql', 'mariadb', 'percona', 'postgresql', 'redis', 'mongodb', 'mysql2', 'percona2']:
         db = Database.create(role)
         if db:
             setattr(world, 'db', db)
