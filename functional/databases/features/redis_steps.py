@@ -46,11 +46,11 @@ def kill_process(step, process, serv_as):
 def start_redis_process(step, process, serv_as):
     """Start redis-server  process"""
     server = getattr(world, serv_as)
-    LOG.info('Start %(process)s on remote host: %s' % (server.public_ip, vars()))
+    LOG.info('Start %s on remote host: %s' % (process, server.public_ip))
     node_result = world.cloud.get_node(server).run("/bin/su redis -s /bin/bash -c \"/usr/bin/%(process)s /etc/redis/redis.6379.conf\" && sleep 5 &&  pgrep -l %(process)s | awk {print'$1'}" % vars())
     if not node_result[0]:
-        raise AssertionError("%(process)s was not properly started on remote host %s. Error is: %s "
-                             % (vars(), server.public_ip, node_result[1]))
+        raise AssertionError("%s was not properly started on remote host %s. Error is: %s "
+                             % (process, server.public_ip, node_result[1]))
 
 
 
