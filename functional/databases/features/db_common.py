@@ -3,7 +3,7 @@ import time
 import socket
 import urllib2
 import logging
-from datetime import datetime
+from datetime import datetime, timedelta
 import httplib
 
 from lettuce import world, step
@@ -234,15 +234,15 @@ def check_new_storage_size(step, size, role_type):
     if not new_size == size:
         raise AssertionError('New size is %s, but must be %s (old %s)' % (new_size, size, world.grow_old_size))
 
-#TODO: Add this to all databases
 @step('I know last backup url$')
 def get_last_backup_url(step):
     LOG.info('Get last backup date')
     last_backup = world.farm.db_info(world.role_type)['last_backup']
+    last_backup = last_backup - timedelta(seconds=last_backup.second)
     LOG.info('Last backup date is: %s' % last_backup)
     all_backups = IMPL.services.list_backups(world.farm.id)
     last_backup_url = IMPL.services.backup_details(
-        all_backups[last_backup.strftime('%d %B %Y %H:%M').lstrip('0')]['backup_id']
+        all_backups[last_backup]['backup_id']
     )['links']['1']['path']['dirname']
     last_backup_url = 's3://%s/manifest.json' % last_backup_url
     LOG.info('Last backup URL: %s' % last_backup_url)
