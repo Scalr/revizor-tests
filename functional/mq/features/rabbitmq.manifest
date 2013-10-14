@@ -1,0 +1,18 @@
+{
+    "BEHAVIORS": ["rabbitmq"],
+    "RV_PLATFORM": {
+        "ec2": {"tags": [], "default": true},
+        "gce": [],
+        "idcf": [],
+        "rackspaceng": [],
+        "enter": []
+    },
+    "RV_STORAGE": {
+        "persistent": {"tags": [], "default": true},
+        "eph": [],
+        "raid5": [],
+        "raid10": [],
+        "raid1": [],
+        "raid0": []
+    }
+}

@@ -1,15 +1,14 @@
 {
     "BEHAVIORS": ["redis"],
     "RV_PLATFORM": {
-        "ec2": ["ec2"],
+        "ec2": {"tags": ["ec2"], "default": true},
         "gce": ["gce", "-volumes", "-reboot", "-grow"],
         "idcf": ["cloudstack", "-grow", "-backup"],
         "rackspaceng": ["rackspaceng", "-volumes", "-grow"],
         "enter": ["openstack", "-volumes", "-grow"]
     },
     "RV_STORAGE": {
-        "persistent": ["-lvm"],
-        "lvm": ["-volumes", "-grow"],
+        "persistent": {"tags": ["-lvm"], "default": true},
         "eph": ["-volumes", "-grow"],
         "raid5": ["-volumes", "-lvm"],
         "raid10": ["-volumes", "-lvm"],
@@ -17,8 +16,8 @@
         "raid0": ["-volumes", "-lvm"]
     },
     "RV_REDIS_SNAPSHOTTING": {
-        "aof": ["-nopersistence"],
-        "snapshotting": ["-nopersistence"],
-        "nopersistence": []
+        "aof": {"tags": ["-nopersistence"], "default": true},
+        "snapshotting": {"tags": ["-nopersistence"]},
+        "nopersistence": {"tags": []}
     }
 }

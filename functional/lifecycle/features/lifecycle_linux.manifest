@@ -1,6 +1,6 @@
 {
     "RV_PLATFORM": {
-        "ec2": ["ec2"],
+        "ec2": {"tags": ["ec2"], "default": true},
         "gce": ["gce", "-storages"],
         "idcf": ["cloudstack"],
         "rackspaceng": ["rackspaceng", "-storages"],
