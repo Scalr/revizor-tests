@@ -26,7 +26,7 @@ def assert_check_dumps(step, search, serv_as):
     """Search redis-server  dump file dump.*.rdb in the /mnt/redisstorage/dump.*.rdb"""
     server = getattr(world, serv_as)
     LOG.info('Search redis-server dump file dump.*.rdb in the /mnt/redisstorage/')
-    node_result = world.cloud.get_node(server).run("find /mnt/redisstorage/ -name '%(search)s*'" % vars())
+    node_result = world.cloud.get_node(server).run("find /mnt/redisstorage/ -name '%(search)s*'" % {'search': search})
     if search in node_result[0]:
         raise AssertionError("Database dump file: %s, exists. Node run status is: %s. Search mask: %s" %
                              (node_result[0], node_result[2], search))
@@ -47,12 +47,9 @@ def start_redis_process(step, process, serv_as):
     """Start redis-server  process"""
     server = getattr(world, serv_as)
     LOG.info('Start %s on remote host: %s' % (process, server.public_ip))
-    node_result = world.cloud.get_node(server).run("/bin/su redis -s /bin/bash -c \"/usr/bin/%(process)s /etc/redis/redis.6379.conf\" && sleep 5 &&  pgrep -l %(process)s | awk {print'$1'}" % vars())
+    node_result = world.cloud.get_node(server).run(
+        "/bin/su redis -s /bin/bash -c \"/usr/bin/%(process)s /etc/redis/redis.6379.conf\" && sleep 5 &&  pgrep -l %(process)s | awk {print'$1'}" % {'process': process}
+    )
     if not node_result[0]:
         raise AssertionError("%s was not properly started on remote host %s. Error is: %s "
                              % (process, server.public_ip, node_result[1]))
-
-
-
-
-

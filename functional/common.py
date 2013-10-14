@@ -566,6 +566,6 @@ def set_iptables_rule(role_type, server, port):
 def kill_process_by_name(server, process):
     """Kill process on remote host by his name (server(obj),str)->None if success"""
     LOG.info('Kill %s process on remote host %s' % (process, server.public_ip))
-    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % vars())[0]
+    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % {'process': process})[0]
 
 
