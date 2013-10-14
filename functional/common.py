@@ -13,7 +13,7 @@ from revizor2.api import Farm, IMPL
 from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import ScalarizrLogError, ServerTerminated
+from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed
 
 import httplib
 
@@ -107,7 +107,8 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
                 node = world._temp_serv_node = world.cloud.get_node(server)
     for server in servers:
         LOG.debug('Iterate server %s in farm, state: %s' % (server.id, server.status))
-        if server.role_id == role_id and not server.status == ServerStatus.TERMINATED and not server.status == ServerStatus.PENDING_TERMINATE:
+        if server.role_id == role_id and not server.status == ServerStatus.TERMINATED and\
+                not server.status == ServerStatus.PENDING_TERMINATE:
             if serv:
                 LOG.info('Check server %s' % serv.id)
                 if serv.id == server.id:
@@ -158,9 +159,10 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
                         return server
                     elif ServerStatus.from_code(server.status) == ServerStatus.TERMINATED:
                         raise ServerTerminated('Scalr killed this "%s" server, because it have status: %s' % (server.id, server.status))
-            elif server.status == ServerStatus.PENDING or\
-                                                                    server.status == ServerStatus.PENDING_LAUNCH or\
-                                                                    server.status == ServerStatus.INIT:
+                    elif ServerStatus.from_code(server.status) == ServerStatus.INIT and server.is_init_failed:
+                        raise ServerFailed('Server "%s", is failed.' % server.id)
+            elif server.status == ServerStatus.PENDING or server.status == ServerStatus.PENDING_LAUNCH or\
+                    server.status == ServerStatus.INIT:
                 LOG.info('Found server %s in farm %s' % (server.id, world.farm.id))
                 world._temp_serv = server
             elif one_serv_in_farm and server.status == ServerStatus.RUNNING:
@@ -558,4 +560,12 @@ def set_iptables_rule(role_type, server, port):
         else:
             port = ','.join(str(x) for x in port)
     node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip, port))
+
+
+@world.absorb
+def kill_process_by_name(server, process):
+    """Kill process on remote host by his name (server(obj),str)->None if success"""
+    LOG.info('Kill %s process on remote host %s' % (process, server.public_ip))
+    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % vars())[0]
+
 

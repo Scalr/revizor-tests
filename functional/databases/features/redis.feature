@@ -8,6 +8,18 @@ Feature: Redis database server functional test
         And redis is running on M1
         And scalarizr version is last in M1
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @nopersistence
+    Scenario: Redis persistence type: No persistence
+        When I create database 1 on M1
+        And I create database 2 on M1
+        Then M1 contains database 1,2
+        And I can't see databases dump on M1
+        Then I kill redis-server on M1
+        And redis is not running on M1
+        Then I start redis-server on M1
+        And redis is running on M1
+        And M1 not contains database 1,2
+
 	@ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr
        When I reboot scalarizr in M1

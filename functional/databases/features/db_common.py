@@ -24,36 +24,37 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'po
              'mongodb': 27018, 'mysqlproxy': 4040}
 
 
-@step(r'([\w]+) is running on (.+)')
-def assert_check_service(step, service, serv_as):
-    LOG.info("Check service %s" % service)
-    server = getattr(world, serv_as)
-    port = PORTS_MAP[service]
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        node = world.cloud.get_node(server)
-        new_port = world.cloud.open_port(node, port, ip=server.public_ip)
-    else:
-        new_port = port
-    if world.role_type == 'redis':
-        LOG.info('Role is redis, add iptables rule for me')
-        node = world.cloud.get_node(server)
-        try:
-            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        except httplib.BadStatusLine:
-            time.sleep(5)
-            my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        LOG.info('My IP address: %s, add rules' % my_ip)
-        node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6394 -j ACCEPT' % my_ip)
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(15)
-    try:
-        s.connect((server.public_ip, new_port))
-    except (socket.error, socket.timeout), e:
-        raise AssertionError(e)
-    if service == 'redis':
-        LOG.info('Set main redis instances to %s' % serv_as)
-        setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
-    LOG.info("Service work")
+# @step(r'([\w]+) is( not)? running on (.+)')
+# def assert_check_service(step, service, has_not, serv_as):
+#     LOG.info("Check service %s" % service)
+#     server = getattr(world, serv_as)
+#     has_not = has_not and True or False
+#     port = PORTS_MAP[service]
+#     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+#         node = world.cloud.get_node(server)
+#         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
+#     else:
+#         new_port = port
+#     if world.role_type == 'redis':
+#         LOG.info('Role is redis, add iptables rule for me')
+#         node = world.cloud.get_node(server)
+#         try:
+#             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+#         except httplib.BadStatusLine:
+#             time.sleep(5)
+#             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
+#         LOG.info('My IP address: %s, add rules' % my_ip)
+#         node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6394 -j ACCEPT' % my_ip)
+#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     s.settimeout(15)
+#     try:
+#         s.connect((server.public_ip, new_port))
+#     except (socket.error, socket.timeout), e:
+#         raise AssertionError(e)
+#     if service == 'redis':
+#         LOG.info('Set main redis instances to %s' % serv_as)
+#         setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
+#     LOG.info("Service work")
 
 
 @step(r'I trigger ([\w]+) creation( on slave)?')
@@ -156,8 +157,9 @@ def create_databundle(step, bundle_type, when):
     world.farm.db_create_databundle(world.db.db_name, bundle_type, use_slave=use_slave)
 
 
-@step('([\w]+) contains database (.+)$')
-def check_database_in_new_server(step, serv_as, db_name):
+@step('([\w]+)( not)? contains database (.+)$')
+def check_database_in_new_server(step, serv_as, has_not, db_name):
+    has_not = has_not and True or False
     time.sleep(5)
     dbs = db_name.split(',')
     if serv_as == 'all':
@@ -168,8 +170,10 @@ def check_database_in_new_server(step, serv_as, db_name):
     for server in servers:
         for db in dbs:
             LOG.info('Check database %s in server %s' % (db, server.id))
-            world.assert_not_equal(world.db.database_exist(db, server), True, 'Database %s not exist in server %s, all db: %s' %
-                                                          (db_name, server.id, world.db.database_list(server)))
+            world.assert_not_equal(world.db.database_exist(db, server), not has_not,
+                                   (has_not and 'Database %s exist in server %s, but must be erased.  All db: %s'
+                                   or 'Database %s not exist in server %s, all db: %s')
+                                   % (db_name, server.id, world.db.database_list(server)))
 
 
 @step('I create database (.+) on (.+)')

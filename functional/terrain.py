@@ -476,9 +476,10 @@ def verify_open_port(step, port, has_not, serv_as):
     LOG.info("Post %s is open" % new_port)
 
 
-@step(r'([\w-]+) is running on (.+)')
-def assert_check_service(step, service, serv_as):
+@step(r'([\w-]+) is( not)? running on (.+)')
+def assert_check_service(step, service, has_not, serv_as):
     LOG.info("Check service %s" % service)
+    has_not = has_not and True or False
     server = getattr(world, serv_as)
     port = PORTS_MAP[service]
     if isinstance(port, (list, tuple)):
@@ -495,11 +496,15 @@ def assert_check_service(step, service, serv_as):
     try:
         s.connect((server.public_ip, new_port))
     except (socket.error, socket.timeout), e:
-        raise AssertionError(e)
-    if service == 'redis':
+        if not has_not:
+            raise AssertionError(e)
+        else:
+            LOG.info("Service stoped")
+    if service == 'redis' and not has_not:
         LOG.info('Set main redis instances to %s' % serv_as)
         setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
-    LOG.info("Service work")
+    if not has_not:
+        LOG.info("Service work")
 
 
 @step(r'I (\w+) service ([\w\d]+) in ([\w\d]+)')
