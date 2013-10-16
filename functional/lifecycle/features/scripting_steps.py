@@ -1,12 +1,9 @@
-import os
 import time
-from datetime import datetime
 import logging
 
 from lettuce import world, step
 
 from revizor2.utils import wait_until
-from revizor2.api import Script
 
 
 LOG = logging.getLogger('scripting')

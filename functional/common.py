@@ -157,7 +157,8 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
                     elif status == ServerStatus.INIT and ServerStatus.from_code(server.status) == ServerStatus.RUNNING:
                         LOG.info('Server wait Initializing, but actually has status - Running')
                         return server
-                    elif ServerStatus.from_code(server.status) == ServerStatus.TERMINATED:
+                    elif ServerStatus.from_code(server.status) == ServerStatus.TERMINATED\
+                        or ServerStatus.from_code(server.status) == ServerStatus.PENDING_TERMINATE:
                         raise ServerTerminated('Scalr killed this "%s" server, because it have status: %s' % (server.id, server.status))
                     elif ServerStatus.from_code(server.status) == ServerStatus.INIT and server.is_init_failed:
                         raise ServerFailed('Server "%s", is failed.' % server.id)
@@ -200,6 +201,7 @@ def wait_farm_terminated(*args, **kwargs):
 
 @world.absorb
 def check_message_status(status, server, msgtype='sends', **kwargs):
+    #TODO: Rewrite this ugly code!
     old_message_id = getattr(world, '%s_old_message_id' % server.id, 0)
     LOG.debug("Old message id: %s" % old_message_id)
     message_type = 'out' if msgtype.strip() == 'sends' else 'in'

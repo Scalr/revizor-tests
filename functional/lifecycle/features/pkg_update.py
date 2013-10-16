@@ -1,13 +1,10 @@
 import os
-import time
-from datetime import datetime
 import logging
 
 from lettuce import world, step
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform
-from revizor2.cloud import Cloud
 
 
 LOG = logging.getLogger('pkg-update')
@@ -50,7 +47,7 @@ def change_repo(step, serv_as):
 def pin_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    repo = os.environ.get('RV_NEW_REPO', 'master')
+    repo = os.environ.get('RV_TO_BRANCH', 'master')
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Pin repo %s in Ubuntu' % repo)
         node.put_file('/etc/apt/preferences',

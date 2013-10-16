@@ -1,6 +1,6 @@
 import os
+import json
 from datetime import datetime
-
 
 from lettuce import world, step, after, before
 from common import *
@@ -26,25 +26,23 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona': 3306, 'p
 FARM_OPTIONS = {
     'chef': {
         "chef.bootstrap": 1,
-        "chef.runlist_id": "143",
-        "chef.attributes": '{"memcached":{"memory":"1024"}}',
+        "chef.runlist": json.dumps(["recipe[memcached::default]"]),
+        "chef.attributes": json.dumps({"memcached": {"memory": "1024"}}),
         "chef.server_id": "3",
         "chef.environment": "_default",
-        "chef.role_name": None,
-        "chef.node_name_tpl": "",
+        "chef.daemonize": "0",
+        "chef.node_name_tpl": "%farm_name%-%role_name%-%instance_index%"
     },
     'deploy': {
         "dm.application_id": "217",
         "dm.remote_path": "/var/www",
     },
     'winchef': {
-        "chef.bootstrap": "1",
+        "chef.bootstrap": 1,
         "chef.daemonize": "0",
         "chef.environment": "_default",
-        "chef.runlist_id": "189",
+        "chef.runlist": json.dumps(["recipe[windows_file_create::default]"]),
         "chef.server_id": "3",
-        "chef.role_name": None,
-        "chef.node_name_tpl": "",
     }
 }
 

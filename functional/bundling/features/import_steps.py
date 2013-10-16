@@ -24,7 +24,6 @@ def given_server_in_cloud(step):
     LOG.info('Install scalarizr in node')
     node.install_scalarizr(branch=CONF.main.branch)
     setattr(world, 'cloud_server', node)
-    #FIXME: delete this
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         new_port = world.cloud.open_port(node, 8013)
         if not new_port == 8013:
