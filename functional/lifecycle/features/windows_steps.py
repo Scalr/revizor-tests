@@ -5,7 +5,7 @@ from datetime import datetime
 
 from lettuce import world, step
 try:
-    from winrm import winrm_service, exceptions as winrm_exceptions
+    import winrm
 except ImportError:
     print "Please install WinRM"
 
@@ -20,19 +20,10 @@ LOG = logging.getLogger('lifecycle-windows')
 @step(r"file '([\w\d\:\\/_]+)' exist in ([\w\d]+)")
 def check_windows_file(step, path, serv_as):
     server = getattr(world, serv_as)
-    console = winrm_service.WinRMWebService(endpoint='http://%s:5985/wsman' % server.public_ip, username="Administrator",
-                                            password=server.ec2_windows_password, transport="plaintext")
-    LOG.debug('Open windows shell')
-    for i in range(10):
-        try:
-            LOG.debug("Try open shell")
-            shell_id = console.open_shell()
-            break
-        except winrm_exceptions.WinRMTransportError:
-            time.sleep(30)
+    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                            auth=("Administrator", server.ec2_windows_password))
     LOG.info('Run command: %s' % 'ls %s' % path)
-    com_id = console.run_command(shell_id, 'ls %s' % path)
-    out = console.get_command_output(shell_id, com_id)
+    out = console.run_cmd('ls %s' % path).std_out
     LOG.debug('Result of command:')
     LOG.debug(out)
     if path in out[0]:
@@ -43,16 +34,13 @@ def check_windows_file(step, path, serv_as):
 @step(r"I reboot windows scalarizr in ([\w\d]+)")
 def reboot_windows(step, serv_as):
     server = getattr(world, serv_as)
-    console = winrm_service.WinRMWebService(endpoint='http://%s:5985/wsman' % server.public_ip, username="Administrator",
-                                            password=server.ec2_windows_password, transport="plaintext")
-    LOG.debug('Open windows shell')
-    shell_id = console.open_shell()
+    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                            auth=("Administrator", server.ec2_windows_password))
     LOG.info('Restart scalarizr via winrm')
-    com_id = console.run_command(shell_id, 'net stop Scalarizr')
-    out = console.get_command_output(shell_id, com_id)
-    com_id = console.run_command(shell_id, 'net start Scalarizr')
-    out = console.get_command_output(shell_id, com_id)
-    LOG.debug('Result of command:')
+    LOG.debug('Stop scalarizr')
+    out = console.run_cmd('net stop Scalarizr')
+    LOG.debug(out)
+    out = console.run_cmd('net start Scalarizr')
     LOG.debug(out)
     time.sleep(15)
 
@@ -60,14 +48,11 @@ def reboot_windows(step, serv_as):
 @step(r"see 'Scalarizr terminated' in ([\w\d]+) windows log")
 def check_terminated_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    console = winrm_service.WinRMWebService(endpoint='http://%s:5985/wsman' % server.public_ip, username="Administrator",
-                                            password=server.ec2_windows_password, transport="plaintext")
-    LOG.debug('Open windows shell')
-    shell_id = console.open_shell()
+    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                            auth=("Administrator", server.ec2_windows_password))
     #TODO: Add path
     LOG.info("Run command: cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
-    com_id = console.run_command(shell_id, "cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
-    out = console.get_command_output(shell_id, com_id)
+    out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
     LOG.debug('Result of command:')
     LOG.debug(out)
     if 'Scalarizr terminated' in out[0]:
@@ -78,14 +63,11 @@ def check_terminated_in_log(step, serv_as):
 @step(r"not ERROR in ([\w\d]+) scalarizr windows log")
 def check_errors_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    console = winrm_service.WinRMWebService(endpoint='http://%s:5985/wsman' % server.public_ip, username="Administrator",
-                                            password=server.ec2_windows_password, transport="plaintext")
-    LOG.debug('Open windows shell')
-    shell_id = console.open_shell()
+    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                            auth=("Administrator", server.ec2_windows_password))
     #TODO: Add path
     LOG.info("Run command cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
-    com_id = console.run_command(shell_id, "cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
-    out = console.get_command_output(shell_id, com_id)
+    out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
     LOG.debug('Result of command:')
     LOG.debug(out)
     errors = []
