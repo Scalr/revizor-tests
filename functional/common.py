@@ -13,11 +13,14 @@ from revizor2.api import Farm, IMPL
 from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed
+from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError
 
 import httplib
 
-LOG = logging.getLogger()
+LOG = logging.getLogger('common')
+
+SCALARIZR_LOG_IGNORE_ERRORS = ['boto', 'p2p_message', 'Caught exception reading instance data']
+
 
 @world.absorb
 def give_empty_running_farm():
@@ -173,10 +176,111 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
     return False
 
 
+def verify_scalarizr_log(node):
+    LOG.info('Verify scalarizr log in server: %s' % node.id)
+    try:
+        log_out = node.run('grep "ERROR\|Traceback" /var/log/scalarizr_debug.log ')
+        LOG.debug('Grep result: %s' % log_out)
+    except BaseException, e:
+        LOG.error('Can\'t connect to server: %s' % e)
+        return
+    for line in log_out[0].splitlines():
+        LOG.debug('Verify line "%s" for errors' % line)
+        log_date = None
+        log_level = None
+        now = datetime.now()
+        try:
+            log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
+            log_level = line.strip().split()[3]
+        except (ValueError, IndexError):
+            pass
+
+        if log_date:
+            if not log_date.year == now.year \
+            or not log_date.month == now.month \
+            or not log_date.day == now.day:
+                continue
+
+        for error in SCALARIZR_LOG_IGNORE_ERRORS:
+            if error in line:
+                continue
+
+        if log_level == 'ERROR':
+            LOG.error('Found ERROR in scalarizr_debug.log: %s' % log_out[0])
+            raise ScalarizrLogError('Error in scalarizr_debug.log on server %s' % node.id)
+
+
 @world.absorb
-def wait_server_bootstrapping(role, status, one_server=False, timeout=2100):
+def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
+    status = ServerStatus.from_code(status)
+
+    LOG.info('Launch process looking for new server in farm %s for role %s, wait status %s' %
+             (world.farm.id, role.role.name, status))
+
     previous_servers = getattr(world, '_previous_servers', [])
-    
+    if not previous_servers:
+        world._previous_servers = previous_servers
+
+    LOG.debug('Previous servers: %s' % previous_servers)
+
+    lookup_server = None
+    lookup_node = None
+
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        if not lookup_server:
+            LOG.debug('Reload servers in role')
+            role.servers.reload()
+            for server in role.servers:
+                LOG.debug('Work with server: %s - %s' % (server.id, server.status))
+                if not server in previous_servers and server.status in [ServerStatus.PENDING_LAUNCH,
+                                                                        ServerStatus.PENDING,
+                                                                        ServerStatus.INIT,
+                                                                        ServerStatus.RUNNING]:
+                    LOG.debug('I found a server: %s' % server.id)
+                    lookup_server = server
+        if lookup_server:
+            LOG.debug('Reload lookup_server')
+            lookup_server.reload()
+
+            LOG.debug('Check lookup server terminated?')
+            if lookup_server.status in [ServerStatus.TERMINATED, ServerStatus.PENDING_TERMINATE]\
+                and not status in [ServerStatus.TERMINATED, ServerStatus.PENDING_TERMINATE]:
+                raise ServerTerminated('Server %s change status to %s' % (lookup_server.id, lookup_server.status))
+
+            LOG.debug('Check lookup server launch failed')
+            if lookup_server.is_launch_failed:
+                raise ServerFailed('Server %s failed in %s' % (lookup_server.id, ServerStatus.PENDING_LAUNCH))
+
+            LOG.debug('Check lookup server init failed')
+            if lookup_server.is_init_failed:
+                raise ServerFailed('Server %s failed in %s' % (lookup_server.id, ServerStatus.INIT))
+
+            LOG.debug('Try get node')
+            if not lookup_node and not lookup_server.status in [ServerStatus.PENDING_LAUNCH,
+                                                                ServerStatus.PENDING_TERMINATE,
+                                                                ServerStatus.TERMINATED]:
+                LOG.debug('Try to get node object for lookup server')
+                lookup_node = world.cloud.get_node(lookup_server)
+
+            LOG.debug('Verify debug log')
+            if lookup_node:
+                LOG.debug('Check scalarizr log in lookup server')
+                verify_scalarizr_log(lookup_node)
+
+            LOG.debug('Compare server status')
+            if lookup_server.status == status:
+                LOG.info('Lookup server in right status now: %s' % lookup_server.status)
+                if status == ServerStatus.RUNNING:
+                    LOG.debug('Insert server to previous servers')
+                    previous_servers.append(lookup_server)
+                LOG.debug('Return server %s' % lookup_server)
+                return lookup_server
+        LOG.debug('Sleep 10 seconds')
+        time.sleep(10)
+    else:
+        raise TimeoutError('New server in role %s was not founding' % role)
 
 
 
