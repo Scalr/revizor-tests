@@ -174,6 +174,13 @@ def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
 
 
 @world.absorb
+def wait_server_bootstrapping(role, status, one_server=False, timeout=2100):
+    previous_servers = getattr(world, '_previous_servers', [])
+    
+
+
+
+@world.absorb
 def wait_servers_running(role_id, count):
     world.farm.servers.reload()
     run_count = 0

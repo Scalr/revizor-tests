@@ -31,7 +31,6 @@ FARM_OPTIONS = {
         "chef.server_id": "3",
         "chef.environment": "_default",
         "chef.daemonize": "0",
-        "chef.node_name_tpl": "%farm_name%-%role_name%-%instance_index%"
     },
     'deploy': {
         "dm.application_id": "217",
