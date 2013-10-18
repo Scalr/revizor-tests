@@ -9,6 +9,7 @@ Feature: MongoDB replica set
         And port 27018 is listen in M1
         And port 27017 is listen in M1
         And port 27019 is listen in M1
+        And mongodb log rotated on M1 and new created with the 644 rights
 
     Scenario: Upscale replica-set
         When I add replicaset
