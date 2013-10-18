@@ -26,7 +26,7 @@ def check_windows_file(step, path, serv_as):
     out = console.run_cmd('ls %s' % path).std_out
     LOG.debug('Result of command:')
     LOG.debug(out)
-    if path in out[0]:
+    if path in out:
         return
     raise AssertionError("Not found: %s, out: %s" % (path, out))
 
@@ -52,10 +52,10 @@ def check_terminated_in_log(step, serv_as):
                             auth=("Administrator", server.ec2_windows_password))
     #TODO: Add path
     LOG.info("Run command: cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
-    out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
+    out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'").std_out
     LOG.debug('Result of command:')
     LOG.debug(out)
-    if 'Scalarizr terminated' in out[0]:
+    if 'Scalarizr terminated' in out:
         return True
     raise AssertionError("Not see 'Scalarizr terminated' in debug log")
 
@@ -67,11 +67,10 @@ def check_errors_in_log(step, serv_as):
                             auth=("Administrator", server.ec2_windows_password))
     #TODO: Add path
     LOG.info("Run command cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
-    out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
+    out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR").std_out
     LOG.debug('Result of command:')
     LOG.debug(out)
     errors = []
-    out = out[0]
     if 'ERROR' in out:
         log = out.splitlines()
         for l in log:
