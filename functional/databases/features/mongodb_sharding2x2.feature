@@ -9,7 +9,7 @@ Feature: MongoDB shard 2x2 test
         And port 27018 is listen in M1
         And port 27017 is listen in M1
         And port 27019 is listen in M1
-        And mongodb log rotated on M1 and new created with the 644 rights
+        And mongodb log rotated on M1 and new created with 644 rights
 
     Scenario: Upscale to 1x2
         When I add replicaset

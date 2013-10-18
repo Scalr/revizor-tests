@@ -685,7 +685,6 @@ def kill_process_by_name(server, process):
 @world.absorb
 def is_log_rotate(server, process, rights, group='nogroup'):
     """Checks for logrotate config file and rotates the log. Returns the status of the operation."""
-
     LOG.info('Loking for config file:  %s-logrotate on remote host %s' % (process, server.public_ip))
     node = world.cloud.get_node(server)
     logrotate_conf = node.run('cat /etc/logrotate.d/%s-logrotate' % process)
@@ -696,27 +695,32 @@ def is_log_rotate(server, process, rights, group='nogroup'):
         #Check the archive log files
         logrotate_param['compress'] = 'compress' in logrotate_conf[0]
         #Get the log file mask from the first line config
-        logrotate_param['log_mask'] = logrotate_conf[0].split('\n')[0].split('/')[-1].rstrip(' {')
+        logrotate_param['log_mask'] = logrotate_conf[0].split('\n')[0].split('/')[-1].rstrip('.log {')
         #Performing rotation and receive a list of log files
         LOG.info('Performing rotation and receive a list of log files for % remote host %s' % (process, server.public_ip))
-        rotated_logs = node.run('logrotate -f /etc/logrotate.d/%s-logrotate && stat --format="%%n %%U %%G %%a"  %s/*' %
-                                (process, logrotate_param['dir']))
+        rotated_logs = node.run('logrotate -f /etc/logrotate.d/%s-logrotate && stat --format="%%n %%U %%G %%a"  %s/%s' %
+                                (process, logrotate_param['dir'], logrotate_param['log_mask']))
         if not rotated_logs[2]:
-            log_files = []
-            for str in rotated_logs[0].split('\n'):
-               tmp_str = str.split()
-               log_files.append(dict([['rights', tmp_str[3]], ['user', tmp_str[1]], ['group', tmp_str[2]],  ['file', tmp_str[0]]]))
-            has_gz = False
-            for log_file_atr in log_files:
-                if log_file_atr['file'].split('.')[-1] == 'gz' and not has_gz:
-                    has_gz = True
-                if not (log_file_atr['rights'] == rights and
-                        log_file_atr['user'] == process and
-                        log_file_atr['group'] == group):
-                    raise AssertionError("%(files)s file attributes are not correct. Wrong attributes %(atr)s: " %
-                                         {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'], log_file_atr['user'], log_file_atr['group'])})
-            if logrotate_param['compress'] and not has_gz:
-                raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
+            try:
+                log_files = []
+                for str in rotated_logs[0].rstrip('\n').split('\n'):
+                    tmp_str = str.split()
+                    log_files.append(dict([['rights', tmp_str[3]], ['user', tmp_str[1]], ['group', tmp_str[2]],  ['file', tmp_str[0]]]))
+                    has_gz = False
+                for log_file_atr in log_files:
+                    if log_file_atr['file'].split('.')[-1] == 'gz' and not has_gz:
+                        has_gz = True
+                    if not (log_file_atr['rights'] == rights and
+                            log_file_atr['user'] == process and
+                            log_file_atr['group'] == group):
+                        raise AssertionError("%(files)s file attributes are not correct. Wrong attributes %(atr)s: " %
+                                             {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'],
+                                                                                    log_file_atr['user'],
+                                                                                    log_file_atr['group'])})
+                if logrotate_param['compress'] and not has_gz:
+                    raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
+            except IndexError, e:
+                raise Exception('Error occurred at get list of log files: %s' % e)
         else:
             raise AssertionError("Can't logrotate to force the rotation. Error message:%s" % logrotate_conf[1])
     else:

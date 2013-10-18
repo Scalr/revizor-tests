@@ -82,7 +82,7 @@ def check_data(step, serv_as):
                                                                                     serv_as)
 
 
-@step('And (.+) log rotated on ([\w]+) and new created with ([\d]+) rights')
+@step('(\w+) log rotated on ([\w\d]+) and new created with ([\d]+) rights')
 def is_log_ratated(step, service, serv_as, rights):
     server = getattr(world, serv_as)
     if world.is_log_rotate(server, service, rights):
