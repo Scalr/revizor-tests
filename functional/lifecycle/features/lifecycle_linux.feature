@@ -12,9 +12,9 @@ Feature: Linux server lifecycle
         And I wait and see initializing server M1
         And I wait and see running server M1
         And scalarizr version is last in M1
-        And hostname in M1 is valid
         Then Scalr receives DeployResult from M1
         And directory '/var/www/src' exist in M1
+        And hostname in M1 is valid
 
     @ec2 @openstack @storages
     Scenario: Check attached storages
@@ -25,7 +25,7 @@ Feature: Linux server lifecycle
         And I create 100 files in '/media/ebsmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
-    @ec2 @cloudstack @rackspaceng @openstack @reboot
+    @ec2 @cloudstack @rackspaceng @reboot
     Scenario: Linux reboot
         Given I have running server M1
         When I reboot server M1
