@@ -4,6 +4,7 @@ import time
 import socket
 import urllib2
 import logging
+import traceback
 from datetime import datetime
 
 import requests
@@ -183,6 +184,7 @@ def verify_scalarizr_log(node):
         LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
+        LOG.error(traceback.format_exc())
         return
     for line in log_out[0].splitlines():
         LOG.debug('Verify line "%s" for errors' % line)

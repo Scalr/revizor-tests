@@ -109,14 +109,6 @@ Feature: MySQL (old behavior) database server
 		And not ERROR in M2 scalarizr log
 		And mysql is running on M1
 
-	@ec2 @grow
-	Scenario: Grow storage
-		When I increase storage to 5 Gb in mysql role
-		Then grow status is ok
-		And new storage size is 5 Gb in mysql role
-		And not ERROR in M1 scalarizr log
-        And not ERROR in M2 scalarizr log
-
 	@ec2 @cloudstack @volumes
     Scenario: Slave delete volumes
     	When I know M2 storages
@@ -160,13 +152,6 @@ Feature: MySQL (old behavior) database server
 		Given I wait 1 minutes
 		When I create database D4 on N1
 		Then all contains database D4
-
-	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @lvm
-	Scenario: Bundling data before terminate
-        When I trigger databundle creation
-        Then Scalr sends Mysql_CreateDataBundle to N1
-        And Scalr receives Mysql_CreateDataBundleResult from N1
-		And Last databundle date updated to current
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
 	Scenario: Restart farm
