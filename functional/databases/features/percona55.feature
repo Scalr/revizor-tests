@@ -72,7 +72,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 		And Last backup date updated to current
 		And not ERROR in M1 scalarizr log
 
-    @ec2 @backup
+    @ec2 @backup @restore
     Scenario: Restore from backup
         Given I know last backup url
         And I know timestamp from D1 in M1

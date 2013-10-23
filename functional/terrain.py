@@ -336,21 +336,18 @@ def delete_role_from_farm(step, role_type):
 @step('I expect server bootstrapping as ([\w\d]+)$')
 def expect_server_bootstraping(step, serv_as, timeout=2000):
     """Bootstrap server and add it to world"""
-    spec = 'running'
     role = getattr(world, world.role_type + '_role', None)
     if role is None:
         role = world.farm.roles()[0]
-    server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
-    #server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING)
+    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
     setattr(world, serv_as, server)
 
 
 @step('I expect server bootstrapping as (.+) in (.+) role$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=2000):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
-    spec = 'running'
     role = getattr(world, '%s_role' % role_type)
-    server = wait_until(check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
+    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
     setattr(world, serv_as, server)
 
 
@@ -416,17 +413,20 @@ def increase_instances(step, count, role_type):
 def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
     """Check scalr in/out message delivering"""
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
-    if CONF.main.driver == Platform.GCE and msg in ['RebootStart', 'RebootFinish']:
-        return
-    try:
-        LOG.info('Check message in server %s' % serv_as)
-        server = getattr(world, serv_as)
-        wait_until(world.check_message_status, args=(msg.strip(), server, msgtype), timeout=timeout, error_text="I'm not see this %s state in server" % msg)
-    except AttributeError:
-        LOG.info('Find messages in all servers')
-        server = world.db.get_servers()
-        LOG.debug('Check message in servers %s' % server)
-        s = wait_until(world.check_message_in_server_list, args=(msg.strip(), server, msgtype), timeout=timeout, error_text="I'm not see this %s state in server" % msg)
+    if serv_as == 'all':
+        world.farm.servers.reload()
+        server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
+        world.wait_server_message(server, msg.strip(), msgtype, find_in_all=True, timeout=timeout)
+    else:
+        try:
+            LOG.info('Try get server %s in world' % serv_as)
+            server = getattr(world, serv_as)
+        except AttributeError, e:
+            LOG.debug('Error in server found message: %s' % e)
+            world.farm.servers.reload()
+            server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
+        LOG.info('Wait message %s / %s in servers: %s' % (server, msgtype, msg.strip()))
+        s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
         setattr(world, serv_as, s)
 
 

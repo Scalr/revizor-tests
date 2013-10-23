@@ -6,7 +6,7 @@ import time
 from lettuce import world, step
 
 from revizor2.utils import wait_until
-
+from revizor2.consts import ServerStatus
 
 LOG = logging.getLogger('nginx')
 
@@ -30,13 +30,15 @@ def bootstrap_two_backend(step, serv_as1, serv_as2, timeout=1400):
     spec = 'running'
     role = getattr(world, world.role_type + '_role')
     LOG.info('Bootstrap first server')
-    server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
+    #server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
+    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
     setattr(world, serv_as1, server)
     LOG.info('First server is %s' % server.id)
     LOG.info('Launch second server')
     role.launch_instance()
     LOG.info('Bootstrap second server')
-    server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
+    #server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
+    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
     setattr(world, serv_as2, server)
     LOG.info('Second server is %s' % server.id)
 

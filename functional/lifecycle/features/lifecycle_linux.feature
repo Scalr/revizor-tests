@@ -54,13 +54,13 @@ Feature: Linux server lifecycle
         And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @event
-	Scenario: Custom event
-		Given I define event 'TestEvent'
-		And I attach a script 'TestingEventScript' on this event
-		When I execute 'szradm --fire-event TestEvent file1=/tmp/f1 file2=/tmp/f2' in M1
-		Then Scalr sends TestEvent to M1
-		And server M1 contain '/tmp/f1'
-		And server M1 contain '/tmp/f2'
+    Scenario: Custom event
+        Given I define event 'TestEvent'
+        And I attach a script 'TestingEventScript' on this event
+        When I execute 'szradm --fire-event TestEvent file1=/tmp/f1 file2=/tmp/f2' in M1
+        Then Scalr sends TestEvent to M1
+        And server M1 contain '/tmp/f1'
+        And server M1 contain '/tmp/f2'
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @deploy
     Scenario: Check deploy action

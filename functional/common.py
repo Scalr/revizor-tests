@@ -13,7 +13,7 @@ from revizor2.api import Farm, IMPL
 from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError
+from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded
 
 import httplib
 
@@ -83,97 +83,97 @@ def add_roles_to_farm(roles_type=None, options=None):
         roles.append(role.keys()[0])
     world.farm.add_role(roles, options=options)
 
-
-@world.absorb
-def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
-    #TODO: rewrite this because it's UGLY
-    time.sleep(5)
-    LOG.debug('Check server in farm %s and role_id %s' % (world.farm.id, role_id))
-    status = ServerStatus.from_code(status)
-    LOG.debug('Update servers')
-    world.farm.servers.reload()
-    servers = world.farm.servers
-    serv = getattr(world, '_temp_serv', None)
-    if serv:
-        LOG.info('Server get: %s' % serv.id)
-    else:
-        LOG.debug('No server')
-    node = getattr(world, '_temp_serv_node', None)
-    LOG.debug('Node get: %s' % node)
-    if node:
-        if not node.public_ip:
-            node = None
-    if node is None and serv:
-        for server in servers:
-            if server.id == serv.id and server.cloud_server_id:
-                LOG.debug("Create node from server: %s, cloud id: %s" % (serv.id, server.cloud_server_id))
-                node = world._temp_serv_node = world.cloud.get_node(server)
-    for server in servers:
-        LOG.debug('Iterate server %s in farm, state: %s' % (server.id, server.status))
-        if server.role_id == role_id and not server.status == ServerStatus.TERMINATED and\
-                not server.status == ServerStatus.PENDING_TERMINATE:
-            if serv:
-                LOG.info('Check server %s' % serv.id)
-                if serv.id == server.id:
-                    LOG.info('Founded server %s have status: %s' % (server.id, server.status))
-                    if node:
-                        try:
-                            out = ''
-                            LOG.info('Check scalarizr log in server %s' % serv.id)
-                            out = node.run('grep "ERROR\|Traceback" /var/log/scalarizr_debug.log ')
-                            LOG.debug('Grep result: %s' % out)
-                            out = out[0]
-                        except BaseException, e:
-                            LOG.warning('Can\'t connect to server %s' % serv.id)
-                            LOG.warning('Exception: %s' % e)
-                        else:
-                            for line in out.splitlines():
-                                log_date = None
-                                log_level = None
-                                now = datetime.now()
-                                try:
-                                    log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
-                                    log_level = line.strip().split()[3]
-                                except (ValueError, IndexError):
-                                    pass
-                                if log_date:
-                                    if not log_date.year == now.year \
-                                    or not log_date.month == now.month \
-                                    or not log_date.day == now.day:
-                                        continue
-                                elif 'boto' in line or 'p2p_message' in line:
-                                    continue
-                                elif 'Caught exception reading instance data' in out:
-                                    break
-                                if log_level == 'ERROR':
-                                    LOG.error('Find error in scalarizr log')
-                                    LOG.error('Errors: %s' % out)
-                                    raise ScalarizrLogError("Error in scalarizr log for server %s" % serv.id)
-                            LOG.info('Not found any problem in scalarizr_debug.log')
-                    LOG.info('Server %s in state: %s' % (server.id, server.status))
-                    if ServerStatus.from_code(server.status) == status:
-                        if status == ServerStatus.RUNNING:
-                            world._temp_serv = None
-                            world._temp_serv_node = None
-                        LOG.info('Server is in state %s complete' % status)
-                        return server
-                    elif status == ServerStatus.INIT and ServerStatus.from_code(server.status) == ServerStatus.RUNNING:
-                        LOG.info('Server wait Initializing, but actually has status - Running')
-                        return server
-                    elif ServerStatus.from_code(server.status) == ServerStatus.TERMINATED\
-                        or ServerStatus.from_code(server.status) == ServerStatus.PENDING_TERMINATE:
-                        raise ServerTerminated('Scalr killed this "%s" server, because it have status: %s' % (server.id, server.status))
-                    elif ServerStatus.from_code(server.status) == ServerStatus.INIT and server.is_init_failed:
-                        raise ServerFailed('Server "%s", is failed.' % server.id)
-            elif server.status == ServerStatus.PENDING or server.status == ServerStatus.PENDING_LAUNCH or\
-                    server.status == ServerStatus.INIT:
-                LOG.info('Found server %s in farm %s' % (server.id, world.farm.id))
-                world._temp_serv = server
-            elif one_serv_in_farm and server.status == ServerStatus.RUNNING:
-                world._temp_serv = None
-                world._temp_serv_node = None
-                return server
-    return False
+#
+#@world.absorb
+#def check_server_status(status, role_id, one_serv_in_farm=False, **kwargs):
+#    #TODO: rewrite this because it's UGLY
+#    time.sleep(5)
+#    LOG.debug('Check server in farm %s and role_id %s' % (world.farm.id, role_id))
+#    status = ServerStatus.from_code(status)
+#    LOG.debug('Update servers')
+#    world.farm.servers.reload()
+#    servers = world.farm.servers
+#    serv = getattr(world, '_temp_serv', None)
+#    if serv:
+#        LOG.info('Server get: %s' % serv.id)
+#    else:
+#        LOG.debug('No server')
+#    node = getattr(world, '_temp_serv_node', None)
+#    LOG.debug('Node get: %s' % node)
+#    if node:
+#        if not node.public_ip:
+#            node = None
+#    if node is None and serv:
+#        for server in servers:
+#            if server.id == serv.id and server.cloud_server_id:
+#                LOG.debug("Create node from server: %s, cloud id: %s" % (serv.id, server.cloud_server_id))
+#                node = world._temp_serv_node = world.cloud.get_node(server)
+#    for server in servers:
+#        LOG.debug('Iterate server %s in farm, state: %s' % (server.id, server.status))
+#        if server.role_id == role_id and not server.status == ServerStatus.TERMINATED and\
+#                not server.status == ServerStatus.PENDING_TERMINATE:
+#            if serv:
+#                LOG.info('Check server %s' % serv.id)
+#                if serv.id == server.id:
+#                    LOG.info('Founded server %s have status: %s' % (server.id, server.status))
+#                    if node:
+#                        try:
+#                            out = ''
+#                            LOG.info('Check scalarizr log in server %s' % serv.id)
+#                            out = node.run('grep "ERROR\|Traceback" /var/log/scalarizr_debug.log ')
+#                            LOG.debug('Grep result: %s' % out)
+#                            out = out[0]
+#                        except BaseException, e:
+#                            LOG.warning('Can\'t connect to server %s' % serv.id)
+#                            LOG.warning('Exception: %s' % e)
+#                        else:
+#                            for line in out.splitlines():
+#                                log_date = None
+#                                log_level = None
+#                                now = datetime.now()
+#                                try:
+#                                    log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
+#                                    log_level = line.strip().split()[3]
+#                                except (ValueError, IndexError):
+#                                    pass
+#                                if log_date:
+#                                    if not log_date.year == now.year \
+#                                    or not log_date.month == now.month \
+#                                    or not log_date.day == now.day:
+#                                        continue
+#                                elif 'boto' in line or 'p2p_message' in line:
+#                                    continue
+#                                elif 'Caught exception reading instance data' in out:
+#                                    break
+#                                if log_level == 'ERROR':
+#                                    LOG.error('Find error in scalarizr log')
+#                                    LOG.error('Errors: %s' % out)
+#                                    raise ScalarizrLogError("Error in scalarizr log for server %s" % serv.id)
+#                            LOG.info('Not found any problem in scalarizr_debug.log')
+#                    LOG.info('Server %s in state: %s' % (server.id, server.status))
+#                    if ServerStatus.from_code(server.status) == status:
+#                        if status == ServerStatus.RUNNING:
+#                            world._temp_serv = None
+#                            world._temp_serv_node = None
+#                        LOG.info('Server is in state %s complete' % status)
+#                        return server
+#                    elif status == ServerStatus.INIT and ServerStatus.from_code(server.status) == ServerStatus.RUNNING:
+#                        LOG.info('Server wait Initializing, but actually has status - Running')
+#                        return server
+#                    elif ServerStatus.from_code(server.status) == ServerStatus.TERMINATED\
+#                        or ServerStatus.from_code(server.status) == ServerStatus.PENDING_TERMINATE:
+#                        raise ServerTerminated('Scalr killed this "%s" server, because it have status: %s' % (server.id, server.status))
+#                    elif ServerStatus.from_code(server.status) == ServerStatus.INIT and server.is_init_failed:
+#                        raise ServerFailed('Server "%s", is failed.' % server.id)
+#            elif server.status == ServerStatus.PENDING or server.status == ServerStatus.PENDING_LAUNCH or\
+#                    server.status == ServerStatus.INIT:
+#                LOG.info('Found server %s in farm %s' % (server.id, world.farm.id))
+#                world._temp_serv = server
+#            elif one_serv_in_farm and server.status == ServerStatus.RUNNING:
+#                world._temp_serv = None
+#                world._temp_serv_node = None
+#                return server
+#    return False
 
 
 def verify_scalarizr_log(node):
@@ -212,6 +212,9 @@ def verify_scalarizr_log(node):
 
 @world.absorb
 def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
+    """
+    Wait new server in role and remember which servers was bootstrapping, return Server
+    """
     status = ServerStatus.from_code(status)
 
     LOG.info('Launch process looking for new server in farm %s for role %s, wait status %s' %
@@ -280,6 +283,8 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
         LOG.debug('Sleep 10 seconds')
         time.sleep(10)
     else:
+        if lookup_server:
+            raise TimeoutError('Server %s not state in %s status it has: %s' % (lookup_server.id, status, lookup_server.status))
         raise TimeoutError('New server in role %s was not founding' % role)
 
 
@@ -310,65 +315,107 @@ def wait_farm_terminated(*args, **kwargs):
     return True
 
 
-@world.absorb
-def check_message_status(status, server, msgtype='sends', **kwargs):
-    #TODO: Rewrite this ugly code!
-    old_message_id = getattr(world, '%s_old_message_id' % server.id, 0)
-    LOG.debug("Old message id: %s" % old_message_id)
-    message_type = 'out' if msgtype.strip() == 'sends' else 'in'
-    msg_id = getattr(world, 'msg_temp_id', None)
-    server.messages.reload()
-    for message in server.messages:
-        LOG.debug('Work with message: %s %s %s %s %s %s' % (message.id, message.msgtype, message.messageid,
-                                                         message.message, message.msgname, message.delivered))
-        if int(message.id) <= int(old_message_id):
-            continue
-        if message.id == msg_id:
-            LOG.debug('Message is founded: %s' % message.id)
-            if message.delivered:
-                LOG.debug('Message is delivered, return server')
-                del world.msg_temp_id
-                setattr(world, '%s_old_message_id' % server.id, message.id)
-                return server
-        else:
-            LOG.debug('Find message \'%s\', but processing \'%s\'' % (status, message.msgname))
-            if message.msgname == status:
-                LOG.debug('Check to/from: %s %s' % (message_type, message.msgtype))
-                if msgtype:
-                    if message.msgtype == message_type:
-                        setattr(world, 'msg_temp_id', message.id)
-                    else:
-                        continue
-                else:
-                    setattr(world, 'msg_temp_id', message.id)
-                    if message.delivered:
-                        del world.msg_temp_id
-                        setattr(world, '%s_old_message_id' % server.id, message.id)
-                        return server
-    return False
+#@world.absorb
+#def check_message_status(status, server, msgtype='sends', **kwargs):
+#    #TODO: Rewrite this ugly code!
+#    old_message_id = getattr(world, '%s_old_message_id' % server.id, 0)
+#    LOG.debug("Old message id: %s" % old_message_id)
+#    message_type = 'out' if msgtype.strip() == 'sends' else 'in'
+#    msg_id = getattr(world, 'msg_temp_id', None)
+#    server.messages.reload()
+#    for message in server.messages:
+#        LOG.debug('Work with message: %s %s %s %s %s %s' % (message.id, message.msgtype, message.messageid,
+#                                                         message.message, message.msgname, message.delivered))
+#        if int(message.id) <= int(old_message_id):
+#            continue
+#        if message.id == msg_id:
+#            LOG.debug('Message is founded: %s' % message.id)
+#            if message.delivered:
+#                LOG.debug('Message is delivered, return server')
+#                del world.msg_temp_id
+#                setattr(world, '%s_old_message_id' % server.id, message.id)
+#                return server
+#        else:
+#            LOG.debug('Find message \'%s\', but processing \'%s\'' % (status, message.msgname))
+#            if message.msgname == status:
+#                LOG.debug('Check to/from: %s %s' % (message_type, message.msgtype))
+#                if msgtype:
+#                    if message.msgtype == message_type:
+#                        setattr(world, 'msg_temp_id', message.id)
+#                    else:
+#                        continue
+#                else:
+#                    setattr(world, 'msg_temp_id', message.id)
+#                    if message.delivered:
+#                        del world.msg_temp_id
+#                        setattr(world, '%s_old_message_id' % server.id, message.id)
+#                        return server
+#    return False
 
 
 @world.absorb
-def check_message_in_server_list(status, servers, msgtype=None):
-    mt = 'out' if msgtype == 'sends' else 'in'
-    LOG.debug("Find message: %s %s" % (status, msgtype))
-    for server in servers:
-        LOG.info('Find message in server %s' % server.id)
+def wait_server_message(server, message_name, message_type='out', find_in_all=False, timeout=600):
+    """
+    Wait message in server list (or one server). If find_in_all is True, wait this message in all
+    servers.
+    """
+    def check_message_in_server(server, message_name, message_type):
         server.messages.reload()
-        for mes in server.messages:
-            LOG.debug('Work with message: %s %s %s %s %s %s' % (mes.id, mes.msgtype, mes.messageid,
-                                                                mes.message, mes.msgname, mes.delivered))
-            LOG.debug('Check message: %s %s' % (status, mes.msgname))
-            if mes.msgname == status:
-                LOG.debug('Check to/from: %s %s' % (mt, mes.msgtype))
-                if msgtype:
-                    if mt == mes.msgtype:
-                        return server
-                    else:
-                        continue
-                else:
-                    return server
-    return False
+        for message in server.messages:
+            LOG.debug('Work with message: %s / %s - %s on server %s' % (message.type, message.name, message.delivered, server.id))
+            if server._last_internal_message and int(message.id) <= int(server._last_internal_message.id):
+                continue
+            if message.name == message_name and message.type == message_type:
+                LOG.info('This message matching the our pattern')
+                if message.delivered:
+                    LOG.info('Lookup message delivered')
+                    server._last_internal_message = message
+                    return True
+        return False
+
+    message_type = 'out' if message_type.strip() == 'sends' else 'in'
+
+    if not isinstance(server, (list, tuple)):
+        server = [server]
+
+    LOG.info('Try found message %s / %s in servers %s' % (message_type, message_name, server))
+
+    start_time = time.time()
+
+    while time.time() - start_time < timeout:
+        if not find_in_all:
+            for serv in server:
+                if check_message_in_server(serv, message_name, message_type):
+                    return serv
+        else:
+            if all([check_message_in_server(serv, message_name, message_type) for serv in server]):
+                LOG.info('All servers has delivered message: %s / %s' % (message_type, message_name))
+                return True
+    else:
+        raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type, message_name, server))
+
+#
+#@world.absorb
+#def check_message_in_server_list(servers, message_name, message_type='out'):
+#    message_type = 'out' if message_type == 'sends' else 'in'
+#    LOG.debug("Find message: %s %s" % (message_name, message_type))
+#    for server in servers:
+#        LOG.info('Find message in server %s' % server.id)
+#        server.messages.reload()
+#        for message in server.messages:
+#            LOG.debug('Work with message: %s %s %s %s %s' % (message.id, message.type, message.messageid,
+#                                                                message.name, message.delivered))
+#            LOG.debug('Check message: %s %s' % (message_name, message.name))
+#            if message.name == message_name:
+#                LOG.debug('Check to/from: %s %s' % (message_type, message.type))
+#                if message_type:
+#                    if message_type == message.type:
+#                        return server
+#                    else:
+#                        continue
+#                else:
+#                    return server
+#    return False
 
 
 @world.absorb
@@ -552,6 +599,9 @@ def wait_database(db_name, server):
 def wait_replication_status(behavior, status):
     db_status = world.farm.db_info(behavior)
     for server in db_status['servers']:
+        if not db_status['servers'][server]['status'] == ServerStatus.RUNNING:
+            LOG.warning('Server %s is not running it %s' % (db_status['servers'][server]['serverId'], db_status['servers'][server]['status']))
+            continue
         LOG.info("Check replication in server %s it is: %s" % (db_status['servers'][server]['serverId'], db_status['servers'][server]['replication']['status']))
         if not db_status['servers'][server]['replication']['status'].strip() == status.strip():
             LOG.debug("Replication on server %s is %s" % (db_status['servers'][server]['serverId'], db_status['servers'][server]['replication']['status']))
