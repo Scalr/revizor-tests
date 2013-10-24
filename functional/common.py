@@ -364,8 +364,10 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     def check_message_in_server(server, message_name, message_type):
         server.messages.reload()
         for message in server.messages:
-            LOG.debug('Work with message: %s / %s - %s on server %s' % (message.type, message.name, message.delivered, server.id))
+            LOG.debug('Work with message: %s / %s - %s (%s) on server %s ' %
+                      (message.type, message.name, message.delivered, int(message.id), server.id))
             if server._last_internal_message and int(message.id) <= int(server._last_internal_message.id):
+                LOG.debug('This message < when last internal message: %s < %s' % (int(message.id), int(server._last_internal_message.id)))
                 continue
             if message.name == message_name and message.type == message_type:
                 LOG.info('This message matching the our pattern')

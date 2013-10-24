@@ -241,7 +241,7 @@ def check_new_storage_size(step, size, role_type):
 @step('I know last backup url$')
 def get_last_backup_url(step):
     LOG.info('Get last backup date')
-    last_backup = world.farm.db_info(world.role_type)['last_backup']
+    last_backup = world.farm.db_info(world.db.db_name)['last_backup']
     last_backup = last_backup - timedelta(seconds=last_backup.second)
     LOG.info('Last backup date is: %s' % last_backup)
     all_backups = IMPL.services.list_backups(world.farm.id)

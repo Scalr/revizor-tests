@@ -72,17 +72,6 @@ Feature: MySQL (old behavior) database server
         And Last backup date updated to current
         And not ERROR in M1 scalarizr log
 
-    @ec2 @backup
-    Scenario: Restore from backup
-        Given I know last backup url
-        And I know timestamp from D1 in M1
-        When I download backup in M1
-        And I delete databases D1,MDB1,MDB10 in M1
-        Then I restore databases D1,MDB1,MDB10 in M1
-        And database D1 in M1 contains 'table1' with 80 lines
-        And database D1 in M1 has relevant timestamp
-        And M1 contains database D1,MDB1,MDB10
-
     @ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Setup replication
         When I increase minimum servers to 2 for mysql role
@@ -92,50 +81,43 @@ Feature: MySQL (old behavior) database server
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr in slave
-       When I reboot scalarizr in M2
-       And see 'Scalarizr terminated' in M2 log
-       Then scalarizr process is 2 in M2
-       And not ERROR in M2 scalarizr log
+        When I reboot scalarizr in M2
+        And see 'Scalarizr terminated' in M2 log
+        Then scalarizr process is 2 in M2
+        And not ERROR in M2 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
-	Scenario: Slave force termination
-		When I force terminate M2
-		Then Scalr sends HostDown to M1
-		And not ERROR in M1 scalarizr log
-		And mysql is running on M1
-		And scalarizr process is 2 in M1
-		Then I expect server bootstrapping as M2
-		And not ERROR in M1 scalarizr log
-		And not ERROR in M2 scalarizr log
-		And mysql is running on M1
+    Scenario: Slave force termination
+        When I force terminate M2
+        Then Scalr sends HostDown to M1
+        And not ERROR in M1 scalarizr log
+        And mysql is running on M1
+        And scalarizr process is 2 in M1
+        Then I expect server bootstrapping as M2
+        And not ERROR in M1 scalarizr log
+        And not ERROR in M2 scalarizr log
+        And mysql is running on M1
 
-	@ec2 @cloudstack @volumes
+    @ec2 @cloudstack @volumes
     Scenario: Slave delete volumes
-    	When I know M2 storages
-    	And M2 storage is use
-    	Then I terminate server M2 with decrease
-   		And M2 storage is deleted
-   		And not ERROR in M1 scalarizr log
+        When I know M2 storages
+        And M2 storage is use
+        Then I terminate server M2 with decrease
+        And M2 storage is deleted
+        And not ERROR in M1 scalarizr log
 
-	@ec2 @cloudstack @volumes
-	Scenario: Setup replication for volume delete test
+    @ec2 @cloudstack @volumes
+    Scenario: Setup replication for volume delete test
         When I increase minimum servers to 2 for mysql role
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @replication
+    @ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Writing on Master, reading on Slave
         When I create database D2 on M1
         Then M2 contains database D2
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle
-	Scenario: Check databundle in slave
-		When I trigger databundle creation on slave
-		Then Scalr sends Mysql_CreateDataBundle to M2
-        And Scalr receives Mysql_CreateDataBundleResult from M2
-        And Last databundle date updated to current
-
-	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
+    @ec2 @gce @cloudstack @rackspaceng @openstack @promotion
     Scenario: Slave -> Master promotion
         Given I increase minimum servers to 3 for mysql role
         And I expect server bootstrapping as M3
@@ -147,22 +129,22 @@ Feature: MySQL (old behavior) database server
         And Scalr sends Mysql_NewMasterUp to all
         And M2 contains database D3
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
-	Scenario: Check new master replication
-		Given I wait 1 minutes
-		When I create database D4 on N1
-		Then all contains database D4
+    @ec2 @gce @cloudstack @rackspaceng @openstack @promotion
+    Scenario: Check new master replication
+        Given I wait 1 minutes
+        When I create database D4 on N1
+        Then all contains database D4
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
-	Scenario: Restart farm
-		When I stop farm
-		And wait all servers are terminated
-		Then I start farm with delay
-		And I expect server bootstrapping as M1
-		And mysql is running on M1
-		And M1 contains database D3
-		And scalarizr version is last in M1
-		Then I expect server bootstrapping as M2
-		And M2 is slave of M1
-		And M2 contains database D3
-		And M2 contains database D4
+    @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
+    Scenario: Restart farm
+        When I stop farm
+        And wait all servers are terminated
+        Then I start farm with delay
+        And I expect server bootstrapping as M1
+        And mysql is running on M1
+        And M1 contains database D3
+        And scalarizr version is last in M1
+        Then I expect server bootstrapping as M2
+        And M2 is slave of M1
+        And M2 contains database D3
+        And M2 contains database D4
