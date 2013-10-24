@@ -35,10 +35,10 @@ Feature: Apache application server role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
     Scenario: Restart farm
-	    When I stop farm
-	    And wait all servers are terminated
-	    Then I start farm
-	    And I expect server bootstrapping as A1
-	    And scalarizr version is last in A1
-		Then H2 resolves into A1 new ip address
-		And https get H2 matches H2 index page
+        When I stop farm
+        And wait all servers are terminated
+        Then I start farm
+        And I expect server bootstrapping as A1
+        And scalarizr version is last in A1
+        Then H2 resolves into A1 new ip address
+        And https get H2 matches H2 index page
