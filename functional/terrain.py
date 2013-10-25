@@ -151,6 +151,16 @@ def having_empty_running_farm(step):
     world.give_empty_running_farm()
 
 
+@step('I have a clean and stopped farm')
+def having_a_stopped_farm(step):
+    world.farm = farm = Farm.get(CONF.main.farm_id)
+    IMPL.farm.clear_roles(world.farm.id)
+    LOG.info('Clear farm')
+    if farm.running:
+        LOG.info('Terminate farm')
+        farm.terminate()
+
+
 @step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, ]+))?")
 def add_role_to_farm(step, behavior=None, options=None):
     additional_storages = None
@@ -858,7 +868,7 @@ def cleanup_all(total):
             LOG.info('Delete vhost: %s' % vhost.name)
             vhost.delete()
         for domain in world.farm.domains:
-            LOG.info('Delete domain: %s' % domain.zone_name)
+            LOG.info('Delete domain: %s' % domain.name)
             domain.delete()
     else:
         farm = getattr(world, 'farm', None)

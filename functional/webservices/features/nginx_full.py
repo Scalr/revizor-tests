@@ -12,40 +12,6 @@ from revizor2.fixtures import resources
 LOG = logging.getLogger('nginx-full')
 
 
-@step(r'([\w]+) get (.+) matches (.+) index page$')
-def check_index(step, proto, vhost_name, vhost2_name):
-    domain = getattr(world, vhost_name)
-    for vh in world.farm.vhosts: # Find vhost by domain
-        if vh.name == domain:
-            vhost = vh
-            LOG.info('VHost for domain %s is %s' % (domain, vhost.id))
-            break
-    else:
-        raise AssertionError('Can\'t find vhost for domain %s' % domain)
-
-    for role in world.farm.roles: # Find role by vhost
-        if role.id == vhost.farm_roleid:
-            app_role = role
-            break
-    else:
-        raise AssertionError('Can\'t find role for vhost %s' % vhost.id)
-
-    nodes = []
-    app_role.servers.reload()
-    for s in app_role.servers: # delete pre-defined index.html file and upload vhost file
-        if not s.status == 'Running':
-            continue
-        node = world.cloud.get_node(s)
-        nodes.append(node)
-        try:
-            LOG.info('Delete %s/index.html in server %s' % (vhost_name, s.id))
-            node.run('rm /var/www/%s/index.html' % vhost_name)
-        except AttributeError, e:
-            LOG.error('Failed in delete index.html: %s' % e)
-
-    world.check_index_page(nodes, proto, domain, vhost2_name)
-    world._domain = domain
-
 @step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?")
 def add_proxy_with_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash):
     """

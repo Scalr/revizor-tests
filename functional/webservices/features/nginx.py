@@ -21,7 +21,7 @@ def assert_check_http_get_answer(step, serv_as, mes):
             raise AssertionError('Not see message: %s, see: %s' % (mes, msg))
         LOG.info('Server %s http response contain %s' % (serv.id, mes))
     else:
-        raise AssertionError('Not standart answer, code: %s' % req.code)
+        raise AssertionError('Not standard answer, code: %s' % req.code)
 
 
 @step(r'bootstrap 2 servers as \((.+), (.+)\)')
@@ -70,30 +70,13 @@ def assert_check_upstream_after_delete(step, www_serv, have, app_serv):
         wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip), timeout=180, error_text="Upstream %s not in list" % server.private_ip)
 
 
-@step(r'I add(?: (ssl))? virtual host ([\w]+) assigned to ([\w\d]+) role')
-def having_vhost(step, ssl, vhost_name, role_name):
-    www_serv = getattr(world, 'W1')
-    domain = www_serv.create_domain(www_serv.public_ip)
-    role = getattr(world, '%s_role' % role_name)
-    if ssl:
-        LOG.info('Add ssl vhost with domain: %s' % domain)
-        role.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=True)
-    else:
-        LOG.info('Add vhost with domain %s' % domain)
-        role.vhost_add(domain, document_root='/var/www/%s' % vhost_name, ssl=False)
-    setattr(world, vhost_name, domain)
-    LOG.debug('Update vhosts list for farm %s' % world.farm.id)
-    world.farm.vhosts.reload()
-    time.sleep(10)
-
-
 @step(r'my IP in ([\w]+) ([\w]+)([ \w]+)? access logs$')
-def check_rpaf(step, serv_as, vhost_name, ssl=None):
+def check_rpaf(step, serv_as, domain_as, ssl=None):
     LOG.debug('Check mod_rpaf')
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    domain = getattr(world, vhost_name)
-    path = '/var/log/http-%s-access.log' % domain
+    domain = getattr(world, domain_as)
+    path = '/var/log/http-%s-access.log' % domain.name
     LOG.info('Check my IP in %s log' % path)
     out = node.run('cat %s' % path)
     LOG.debug('Access log (%s) contains: %s' % (path, out[0]))

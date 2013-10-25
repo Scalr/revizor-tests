@@ -19,9 +19,11 @@ Feature: Apache application server migration test
         When D1 resolves into A1 ip address
         And A1 has H1 in virtual hosts configuration
         Then http get domain D1 matches H1 index page
+        And my IP in A1 D1 access logs
         When D2 resolves into A1 ip address
-        And A1 has H2 in virtual hosts configuration
-        Then https get domain D2 matches H1 index page
+        Then A1 has H2 in virtual hosts configuration
+        And https get domain D2 matches H2 index page
+        And my IP in A1 D2 ssl access logs
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update scalarizr in server
@@ -30,3 +32,9 @@ Feature: Apache application server migration test
         And update scalarizr in A1
         And scalarizr version is last in A1
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Verify apache work after update
+        Then A1 has H1 in virtual hosts configuration
+        And http get domain D1 matches H1 index page
+        Then A1 has H2 in virtual hosts configuration
+        And https get domain D2 matches H2 index page
