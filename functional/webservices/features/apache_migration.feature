@@ -34,7 +34,26 @@ Feature: Apache application server migration test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify apache work after update
+        When D1 resolves into A1 new ip address
         Then A1 has H1 in virtual hosts configuration
         And http get domain D1 matches H1 index page
+        When D2 resolves into A1 new ip address
+        Then A1 has H2 in virtual hosts configuration
+        And https get domain D2 matches H2 index page
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Verify new apache server work
+        When I change branch to system for app role
+        Then I terminate server A1
+        And I expect server bootstrapping as A1
+        And scalarizr version is last in A1
+        And apache is running on A1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Verify old vhosts work
+        When D1 resolves into A1 new ip address
+        Then A1 has H1 in virtual hosts configuration
+        And http get domain D1 matches H1 index page
+        When D2 resolves into A1 new ip address
         Then A1 has H2 in virtual hosts configuration
         And https get domain D2 matches H2 index page

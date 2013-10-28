@@ -24,23 +24,16 @@ def assert_check_http_get_answer(step, serv_as, mes):
         raise AssertionError('Not standard answer, code: %s' % req.code)
 
 
-@step(r'bootstrap 2 servers as \((.+), (.+)\)')
-def bootstrap_two_backend(step, serv_as1, serv_as2, timeout=1400):
-    #TODO: Fix pre-defined 2 servers
-    spec = 'running'
+@step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)')
+def bootstrap_many_servers(step, serv_count, serv_names, timeout=1400):
+    serv_names = [s.strip() for s in serv_names.split(',')]
     role = getattr(world, world.role_type + '_role')
-    LOG.info('Bootstrap first server')
-    #server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
-    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
-    setattr(world, serv_as1, server)
-    LOG.info('First server is %s' % server.id)
-    LOG.info('Launch second server')
-    role.launch_instance()
-    LOG.info('Bootstrap second server')
-    #server = wait_until(world.check_server_status, args=(spec, role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
-    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
-    setattr(world, serv_as2, server)
-    LOG.info('Second server is %s' % server.id)
+    for i in range(int(serv_count)):
+        LOG.info('Launch %s server' % (i+1))
+        role.launch_instance()
+        server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
+        LOG.info('Server %s bootstrapping as %s' % (server.id, serv_names[i]))
+        setattr(world, serv_names[i], server)
 
 
 @step(r'([\w]+) upstream list should contains (.+)$')
@@ -64,10 +57,12 @@ def assert_check_upstream_after_delete(step, www_serv, have, app_serv):
     www_serv = getattr(world, www_serv)
     if have:
         LOG.info('Check if upstream not have %s in list' % server.id)
-        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip, False), timeout=180, error_text="Upstream %s in list" % server.private_ip)
+        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip, False),
+                   timeout=180, error_text="Upstream %s in list" % server.private_ip)
     else:
         LOG.info('Check if upstream have %s in list' % server.id)
-        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip), timeout=180, error_text="Upstream %s not in list" % server.private_ip)
+        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip),
+                   timeout=180, error_text="Upstream %s not in list" % server.private_ip)
 
 
 @step(r'my IP in ([\w]+) ([\w]+)([ \w]+)? access logs$')

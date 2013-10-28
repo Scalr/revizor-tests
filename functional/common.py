@@ -370,14 +370,18 @@ def wait_upstream_in_config(node, ip, contain=True):
 def check_index_page(node, proto, domain_name, name):
     index = resources('html/index_test.php')
     index = index.get() % {'id': name}
+    if proto.isdigit():
+        url = 'http://%s:%s/' % (domain_name, proto)
+    else:
+        url = '%s://%s/' % (proto, domain_name)
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.public_ip))
         n.run('mkdir /var/www/%s' % name)
         n.put_file(path='/var/www/%s/index.php' % name, content=index)
     try:
-        LOG.info('Try get index from domain: %s://%s' % (proto, domain_name))
-        resp = requests.get('%s://%s/' % (proto, domain_name), timeout=15, verify=False).text
+        LOG.info('Try get index from URL: %s' % url)
+        resp = requests.get(url, timeout=15, verify=False).text
     except Exception, e:
         raise AssertionError('Exception in opened page: %s %s' % (domain_name, e))
     if 'VHost %s added' % name in resp:

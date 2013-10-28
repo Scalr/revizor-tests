@@ -53,15 +53,7 @@ def assert_check_vhost(step, serv_as, vhost_as):
     raise AssertionError('VHost not in apache config, in out: %s' % out)
 
 
-@step(r'I remove virtual host (.+)')
-def remove_vhost(step, vhost_as):
-    LOG.info('Remove vhost %s' % vhost_as)
-    vhost = getattr(world, vhost_as)
-    LOG.info('Delete vhost: %s' % vhost.name)
-    vhost.delete()
-
-
-@step(r'([\w]+) has no (.+) in virtual host configuration')
+@step(r'([\w]+) has not (.+) in virtual host configuration')
 def check_deleted_vhost(step, serv_as, vhost_as):
     vhost = getattr(world, vhost_as)
     node = world.cloud.get_node(getattr(world, serv_as))
@@ -70,3 +62,12 @@ def check_deleted_vhost(step, serv_as, vhost_as):
         if 'No such file or directory' in line:
             return True
     raise AssertionError('VHost %s in apache config' % vhost.name)
+
+
+@step(r'I remove virtual host (.+)')
+def remove_vhost(step, vhost_as):
+    LOG.info('Remove vhost %s' % vhost_as)
+    vhost = getattr(world, vhost_as)
+    LOG.info('Delete vhost: %s' % vhost.name)
+    vhost.delete()
+

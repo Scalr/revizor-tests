@@ -339,12 +339,19 @@ def add_role_to_farm(step, behavior=None, options=None):
         setattr(world, 'db', db)
 
 
+@step('I change branch to system for (\w+) role')
+def change_branch_in_role_for_system(step, role):
+    LOG.info('Change branch to system for %s role' % role)
+    role = getattr(world, '%s_role' % role)
+    role.edit(options={"user-data.scm_branch": CONF.main.branch})
+
+
 @step('I change repo in ([\w\d]+)$')
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     repo = os.environ.get('RV_TO_BRANCH', 'master')
-    if 'ubuntu' in node.os[0].lower():
+    if 'ubuntu' in node.os[0].lower() or 'debian' in node.os[0].lower():
         LOG.info('Change repo in Ubuntu')
         node.put_file('/etc/apt/sources.list.d/scalr-branch.list',
                       'deb http://buildbot.scalr-labs.com/apt/debian %s/\n' % repo)

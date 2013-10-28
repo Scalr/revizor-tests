@@ -17,7 +17,8 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Check proxy for role
-        When I add virtual host H1 assigned to app role
+        When I create domain D1 to www role
+        And I add virtual host H1 to app role and domain D1
         And I add http proxy P1 to www role with H1 host to app role with ip_hash
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
@@ -25,8 +26,8 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And W1 proxies list should contains H1
         And 'ip_hash' in W1 upstream file
         And nginx is running on W1
-        Then H1 resolves into W1 ip address
-        And http get H1 matches H1 index page
+        Then D1 resolves into W1 ip address
+        And http get domain D1 matches H1 index page
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify new apache server append and deletes to/from backend
@@ -57,15 +58,17 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Add two SSL domains
-        When I add virtual host H2 assigned to app role
+        When I create domain D2 to www role
+        And I add virtual host H2 to app role and domain D2
         And I add http/https proxy P2 to www role with H2 host to app role
-        When I add virtual host H3 assigned to app role
+        When I create domain D3 to www role
+        And I add virtual host H3 to app role and domain D3
         And I add https proxy P3 to www role with H3 host to app role
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        Then H2 resolves into W1 ip address
-        And https get H2 matches H2 index page
-        And H2 http redirect to H2 https
-        Then H3 resolves into W1 ip address
-        And https get H3 matches H3 index page
-        And H3 http not redirect to H3 https
+        Then D2 resolves into W1 ip address
+        And https get domain D2 matches H2 index page
+        And D2 http redirect to D2 https
+        Then D3 resolves into W1 ip address
+        And https get domain D3 matches H3 index page
+        And D3 http not redirect to D3 https

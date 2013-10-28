@@ -46,7 +46,7 @@ Feature: Nginx load balancer role test with apache backends
     Scenario: HTTP proxying
         When I create domain D1 to www role
         And I add virtual host H1 to app role and domain D1
-        Then H1 resolves into W1 ip address
+        Then D1 resolves into W1 ip address
         And http get domain D1 matches H1 index page
         And my IP in A1 D1 access logs
 
@@ -54,10 +54,10 @@ Feature: Nginx load balancer role test with apache backends
     Scenario: HTTPS proxying
         When I create domain D2 to www role
         And I add ssl virtual host H2 to app role and domain D2
-        Then H2 resolves into W1 ip address
-        And https get domain D2 matches H1 index page
+        Then D2 resolves into W1 ip address
+        And http get domain D2 matches H2 index page
+        And https get domain D2 matches H2 index page
         And domain D2 contains valid Cert and CACert
-        And http get H2 matches H2 index page
         And my IP in A1 D2 ssl access logs
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

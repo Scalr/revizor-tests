@@ -14,7 +14,7 @@ Feature: Apache application server role
         When I create domain D1 to app role
         And I add virtual host H1 to app role and domain D1
         Then Scalr sends VhostReconfigure to A1
-        And H1 resolves into A1 ip address
+        And D1 resolves into A1 ip address
         And A1 has H1 in virtual hosts configuration
         And http get domain D1 matches H1 index page
 
@@ -23,13 +23,12 @@ Feature: Apache application server role
         When I create domain D2 to app role
         And I add ssl virtual host H2 to app role and domain D2
         Then Scalr sends VhostReconfigure to A1
-        And H2 resolves into A1 ip address
+        And D2 resolves into A1 ip address
         And https get domain D2 matches H2 index page
         And domain D2 contains valid Cert and CACert
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Removing virtual host
-        Given I have virtual host H1 assigned to app role
         When I remove virtual host H1
         Then Scalr sends VhostReconfigure to A1
         And A1 has not H1 in virtual host configuration
@@ -42,5 +41,5 @@ Feature: Apache application server role
         Then I start farm
         And I expect server bootstrapping as A1
         And scalarizr version is last in A1
-        Then H2 resolves into A1 new ip address
+        Then D2 resolves into A1 new ip address
         And https get domain D2 matches H2 index page
