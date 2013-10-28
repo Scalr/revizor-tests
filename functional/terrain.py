@@ -175,7 +175,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                 scripting = [{
                                 "script_id": script_id,
                                 "script": "Linux ping-pong",
-                                "params": [],
+                                "params": {},
                                 "target": "instance",
                                 "version": "-1",
                                 "timeout": "1200",
@@ -186,7 +186,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                             {
                                 "script_id": script_id,
                                 "script": "Linux ping-pong",
-                                "params": [],
+                                "params": {},
                                 "target": "instance",
                                 "version": "-1",
                                 "timeout": "1200",
@@ -197,7 +197,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                             {
                                 "script_id": script_id,
                                 "script": "Linux ping-pong",
-                                "params": [],
+                                "params": {},
                                 "target": "instance",
                                 "version": "-1",
                                 "timeout": "1200",
