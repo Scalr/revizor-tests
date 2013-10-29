@@ -13,16 +13,6 @@ from revizor2.consts import ServerStatus, Platform
 LOG = logging.getLogger('lifecycle')
 
 
-@step('I have a clean and stopped farm')
-def having_a_stopped_farm(step):
-    world.farm = farm = Farm.get(CONF.main.farm_id)
-    IMPL.farm.clear_roles(world.farm.id)
-    LOG.info('Clear farm')
-    if farm.running:
-        LOG.info('Terminate farm')
-        farm.terminate()
-
-
 @step('I see (.+) server (.+)$')
 def waiting_for_assertion(step, spec, serv_as, timeout=1400):
     if CONF.main.platform == 'ucloud':

@@ -36,15 +36,7 @@ def give_empty_running_farm():
         LOG.info('Delete vhost: %s' % vhost.name)
         vhost.delete()
     for domain in world.farm.domains:
-        LOG.info('Delete domain: %s' % domain.zone_name)
-        domain.delete()
-    world.farm.vhosts.reload()
-    world.farm.domains.reload()
-    for vhost in world.farm.vhosts:
-        LOG.info('Delete vhost: %s' % vhost.name)
-        vhost.delete()
-    for domain in world.farm.domains:
-        LOG.info('Delete domain: %s' % domain.zone_name)
+        LOG.info('Delete domain: %s' % domain.name)
         domain.delete()
     if world.farm.terminated:
         world.farm.launch()
@@ -375,19 +367,23 @@ def wait_upstream_in_config(node, ip, contain=True):
 
 
 @world.absorb
-def check_index_page(node, proto, domain, name):
+def check_index_page(node, proto, domain_name, name):
     index = resources('html/index_test.php')
     index = index.get() % {'id': name}
+    if proto.isdigit():
+        url = 'http://%s:%s/' % (domain_name, proto)
+    else:
+        url = '%s://%s/' % (proto, domain_name)
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.public_ip))
         n.run('mkdir /var/www/%s' % name)
         n.put_file(path='/var/www/%s/index.php' % name, content=index)
     try:
-        LOG.info('Try get index from domain: %s://%s' % (proto, domain))
-        resp = requests.get('%s://%s/' % (proto, domain), timeout=15, verify=False).text
+        LOG.info('Try get index from URL: %s' % url)
+        resp = requests.get(url, timeout=15, verify=False).text
     except Exception, e:
-        raise AssertionError('Exception in opened page: %s %s' % (domain, e))
+        raise AssertionError('Exception in opened page: %s %s' % (domain_name, e))
     if 'VHost %s added' % name in resp:
         return True
     raise AssertionError('Index page not valid: %s' % resp)

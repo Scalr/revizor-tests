@@ -12,40 +12,6 @@ from revizor2.fixtures import resources
 LOG = logging.getLogger('nginx-full')
 
 
-@step(r'([\w]+) get (.+) matches (.+) index page$')
-def check_index(step, proto, vhost_name, vhost2_name):
-    domain = getattr(world, vhost_name)
-    for vh in world.farm.vhosts: # Find vhost by domain
-        if vh.name == domain:
-            vhost = vh
-            LOG.info('VHost for domain %s is %s' % (domain, vhost.id))
-            break
-    else:
-        raise AssertionError('Can\'t find vhost for domain %s' % domain)
-
-    for role in world.farm.roles: # Find role by vhost
-        if role.id == vhost.farm_roleid:
-            app_role = role
-            break
-    else:
-        raise AssertionError('Can\'t find role for vhost %s' % vhost.id)
-
-    nodes = []
-    app_role.servers.reload()
-    for s in app_role.servers: # delete pre-defined index.html file and upload vhost file
-        if not s.status == 'Running':
-            continue
-        node = world.cloud.get_node(s)
-        nodes.append(node)
-        try:
-            LOG.info('Delete %s/index.html in server %s' % (vhost_name, s.id))
-            node.run('rm /var/www/%s/index.html' % vhost_name)
-        except AttributeError, e:
-            LOG.error('Failed in delete index.html: %s' % e)
-
-    world.check_index_page(nodes, proto, domain, vhost2_name)
-    world._domain = domain
-
 @step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?")
 def add_proxy_with_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash):
     """
@@ -74,10 +40,10 @@ def add_proxy_with_role(step, proto, proxy_name, proxy_role, vhost_name, backend
         opts['cert_id'] = 801
     if ip_hash:
         opts['ip_hash'] = True
-    LOG.info('Add proxy to app role for domain %s' % vhost)
+    LOG.info('Add proxy to app role for domain %s' % vhost.name)
     backends = [{"farm_role_id": backend_role.id, "port": "80", "backup": "0", "down": "0", "location": "/"}]
-    proxy_role.add_nginx_proxy(vhost, port, backends=backends, **opts)
-    setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost, "port": port, "backends": backends})
+    proxy_role.add_nginx_proxy(vhost.name, port, backends=backends, **opts)
+    setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 
 
 @step(r'([\w]+) proxies list should contains (.+)')
@@ -88,7 +54,7 @@ def check_proxy_in_config(step, www_serv, vhost_name):
     config = node.run('cat /etc/nginx/proxies.include')[0]
     LOG.info('Proxies config for server %s' % serv.public_ip)
     LOG.info(config)
-    if not domain in config:
+    if not domain.name in config:
         raise AssertionError('Not see domain %s in proxies.include' % domain)
 
 
@@ -162,21 +128,21 @@ def validate_clean_upstream(step, serv_as):
 
 
 @step(r"([\w\d]+) http( not)? redirect to ([\w\d]+) https")
-def check_redirect(step, source_vhost, has_not, dest_vhost):
+def check_redirect(step, src_domain_as, has_not, dst_domain_as):
     LOG.debug("Check redirecting")
-    LOG.debug("Source: %s; redirect: %s; dest host: %s" % (source_vhost, has_not, dest_vhost))
+    source_domain = getattr(world, src_domain_as)
+    dst_domain = getattr(world, dst_domain_as)
+    LOG.debug("Source: %s; redirect: %s; dest host: %s" % (source_domain.name, has_not, dst_domain.name))
     if has_not:
         has_not = True
     else:
         has_not = False
-    source_vhost = getattr(world, source_vhost)
-    dest_vhost = getattr(world, dest_vhost)
-    r = requests.get('http://%s' % source_vhost, verify=False)
+    r = requests.get('http://%s' % source_domain.name, verify=False)
     if has_not:
         if not r.history:
             return True
-        raise AssertionError("http://%s redirect to %s" % (source_vhost, r.history[0].url))
+        raise AssertionError("http://%s redirect to %s" % (source_domain.name, r.history[0].url))
     if r.history:
-        if r.history[0].status_code == 301 and r.url.startswith('https://%s' % dest_vhost):
+        if r.history[0].status_code == 301 and r.url.startswith('https://%s' % dst_domain.name):
             return True
-        raise AssertionError("http://%s not redirect to https://%s" % (source_vhost, dest_vhost))
+        raise AssertionError("http://%s not redirect to https://%s" % (source_domain.name, dst_domain.name))

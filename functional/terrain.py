@@ -42,6 +42,9 @@ FARM_OPTIONS = {
         "chef.environment": "_default",
         "chef.runlist": json.dumps(["recipe[windows_file_create::default]"]),
         "chef.server_id": "3",
+    },
+    'branch_stable': {
+        "user-data.scm_branch": "release/stable"
     }
 }
 
@@ -146,6 +149,16 @@ STORAGES = {
 def having_empty_running_farm(step):
     """Clear and run farm and set to world.farm"""
     world.give_empty_running_farm()
+
+
+@step('I have a clean and stopped farm')
+def having_a_stopped_farm(step):
+    world.farm = farm = Farm.get(CONF.main.farm_id)
+    IMPL.farm.clear_roles(world.farm.id)
+    LOG.info('Clear farm')
+    if farm.running:
+        LOG.info('Terminate farm')
+        farm.terminate()
 
 
 @step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, ]+))?")
@@ -324,6 +337,64 @@ def add_role_to_farm(step, behavior=None, options=None):
         if not db:
             raise AssertionError('Database for role %s not found!' % role)
         setattr(world, 'db', db)
+
+
+@step('I change branch to system for (\w+) role')
+def change_branch_in_role_for_system(step, role):
+    LOG.info('Change branch to system for %s role' % role)
+    role = getattr(world, '%s_role' % role)
+    role.edit(options={"user-data.scm_branch": CONF.main.branch})
+
+
+@step('I change repo in ([\w\d]+)$')
+def change_repo(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    repo = os.environ.get('RV_TO_BRANCH', 'master')
+    if 'ubuntu' in node.os[0].lower() or 'debian' in node.os[0].lower():
+        LOG.info('Change repo in Ubuntu')
+        node.put_file('/etc/apt/sources.list.d/scalr-branch.list',
+                      'deb http://buildbot.scalr-labs.com/apt/debian %s/\n' % repo)
+    elif 'centos' in node.os[0].lower():
+        LOG.info('Change repo in CentOS')
+        node.put_file('/etc/yum.repos.d/scalr-stable.repo',
+                      '[scalr-branch]\n' +
+                      'name=scalr-branch\n' +
+                      'baseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/$releasever/$basearch\n' % repo +
+                      'enabled=1\n' +
+                      'gpgcheck=0\n' +
+                      'protect=1\n'
+        )
+
+
+@step('pin new repo in ([\w\d]+)$')
+def pin_repo(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    repo = os.environ.get('RV_TO_BRANCH', 'master')
+    if 'ubuntu' in node.os[0].lower():
+        LOG.info('Pin repo %s in Ubuntu' % repo)
+        node.put_file('/etc/apt/preferences',
+                      'Package: *\n' +
+                      'Pin: release a=%s\n' % repo +
+                      'Pin-Priority: 990\n'
+        )
+    elif 'centos' in node.os[0].lower():
+        LOG.info('Pin repo %s in CentOS' % repo)
+        node.run('yum install yum-protectbase -y')
+
+
+@step('update scalarizr in ([\w\d]+)$')
+def update_scalarizr(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    if 'ubuntu' in node.os[0].lower():
+        LOG.info('Update scalarizr in Ubuntu')
+        node.run('apt-get update')
+        node.run('apt-get install scalarizr-base scalarizr-%s -y' % Platform.to_scalr(CONF.main.driver))
+    elif 'centos' in node.os[0].lower():
+        LOG.info('Update scalarizr in CentOS')
+        node.run('yum install scalarizr-base scalarizr-%s -y' % Platform.to_scalr(CONF.main.driver))
 
 
 @step('I delete (\w+) role from this farm')
@@ -804,7 +875,7 @@ def cleanup_all(total):
             LOG.info('Delete vhost: %s' % vhost.name)
             vhost.delete()
         for domain in world.farm.domains:
-            LOG.info('Delete domain: %s' % domain.zone_name)
+            LOG.info('Delete domain: %s' % domain.name)
             domain.delete()
     else:
         farm = getattr(world, 'farm', None)
