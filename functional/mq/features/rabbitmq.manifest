@@ -5,7 +5,7 @@
         "gce": [],
         "idcf": [],
         "rackspaceng": [],
-        "enter": []
+        "ecs": []
     },
     "RV_STORAGE": {
         "persistent": {"tags": [], "default": true},

@@ -6,7 +6,7 @@ from lettuce import world, step
 LOG = logging.getLogger('chef')
 
 
-@step("process '([\w]+)' has options '(.+)' in (.+)")
+@step("process '([\w-]+)' has options '(.+)' in (.+)")
 def check_process_options(step, process, options, serv_as):
     server = getattr(world, serv_as)
     LOG.debug('Want check process %s and options %s' % (process, options))

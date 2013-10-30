@@ -30,7 +30,7 @@ FARM_OPTIONS = {
         "chef.attributes": json.dumps({"memcached": {"memory": "1024"}}),
         "chef.server_id": "3",
         "chef.environment": "_default",
-        "chef.daemonize": "0",
+        "chef.daemonize": 1,
     },
     'deploy': {
         "dm.application_id": "217",
@@ -282,7 +282,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                 #                     "status": "",
                 #             }]
                 #     }
-                elif CONF.main.driver in [Platform.OPENSTACK, Platform.ENTERIT]:
+                elif CONF.main.driver in [Platform.OPENSTACK, Platform.ECS]:
                     LOG.info('Add storages from OpenStack')
                     additional_storages = {
                         "configs": [{

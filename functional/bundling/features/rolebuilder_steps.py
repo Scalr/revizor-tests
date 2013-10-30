@@ -51,14 +51,15 @@ def start_rolebuild(step, behaviors):
     location = CONF.platforms[CONF.main.platform]['location']
     if CONF.main.driver == Platform.GCE:
         location = 'all'
-    platform = CONF.main.platform
+    platform = Platform.to_scalr(Platform.from_driver_name(CONF.main.platform))
     os_family, os_version = re.findall(r'([a-zA-Z]+)(\d+)', CONF.main.dist)[0]
     if os_family in ['centos', 'oel', 'rhel']:
-        images = IMPL.rolebuilder.images()[CONF.main.platform]['images']
+        images = IMPL.rolebuilder.images()[platform]['images']
         for image in images:
             if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
-                image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image \
-                and image['root_device_type']=='ebs':
+                image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image:
+                if CONF.main.driver == Platform.EC2 and not image['root_device_type'] == 'ebs':
+                    continue
                 os_version = image['os_version']
                 break
     else:
