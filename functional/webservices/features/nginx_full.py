@@ -58,7 +58,7 @@ def check_proxy_in_config(step, www_serv, vhost_name):
         raise AssertionError('Not see domain %s in proxies.include' % domain)
 
 
-@step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies: '(['\w\d \.]*)'")
+@step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies: '(['\w\d :\.]*)'")
 def modify_proxy(step, proxy, role, ip_hash, options):
     LOG.info('Modify proxy %s with backends: %s' % (proxy, options))
     proxy = getattr(world, '%s_proxy' % proxy)
@@ -68,10 +68,15 @@ def modify_proxy(step, proxy, role, ip_hash, options):
     options = zip(*[options[i::2] for i in range(2)])
     backends = []
     for o in options:
-        serv = getattr(world, o[0], None)
+        if ':' in o[0]:
+            host, backend_port = o[0].split(':')
+        else:
+            host = o[0]
+            backend_port = 80
+        serv = getattr(world, host, None)
         backends.append({
-            "host": serv.public_ip if serv else o[0],
-            "port": "80",
+            "host": serv.public_ip if serv else host,
+            "port": str(backend_port),
             "backup": "1" if o[1] == 'backup' else "0",
             "down": "1" if o[1] == 'down' else "0",
             "location": "/"
@@ -87,7 +92,7 @@ def delete_nginx_proxy(step, proxy):
     role.delete_nginx_proxy(proxy['hostname'])
 
 
-@step(r"'([\w\d_ \.]+)' in ([\w\d]+) upstream file")
+@step(r"'([\w\d_ :\.]+)' in ([\w\d]+) upstream file")
 def check_options_in_upstream(step, option, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
@@ -100,12 +105,17 @@ def check_options_in_upstream(step, option, serv_as):
         else:
             raise AssertionError("Options '%s' not in upstream config: %s" % (option, options))
     elif len(option) == 2:
-        serv = getattr(world, option[0], None)
-        hostname = serv.public_ip if serv else option[0]
-        if option[1] == 'default':
-            c = "%s:80;" % hostname
+        if ':' in option[0]:
+            host, backend_port = option[0].split(':')
         else:
-            c = "%s:80 %s;" % (hostname, option[1])
+            host = option[0]
+            backend_port = 80
+        serv = getattr(world, host, None)
+        hostname = serv.public_ip if serv else host
+        if option[1] == 'default':
+            c = "%s:%s;" % (hostname, backend_port)
+        else:
+            c = "%s:%s %s;" % (hostname, backend_port, option[1])
         LOG.info('Verify \'%s\' in upstream' % c)
         if not c in options:
             return AssertionError('Upstream config not contains "%s"' % c)

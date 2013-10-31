@@ -40,13 +40,15 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Modify first proxy and check options
-        When I modify proxy P1 in www role without ip_hash and proxies: 'A1 default' 'A2 backup' 'example.com down'
+        When I modify proxy P1 in www role without ip_hash and proxies: 'A1:8002 default' 'A2 backup' 'example.com down'
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        And 'A1 default' in W1 upstream file
+        And 'A1:8002 default' in W1 upstream file
         And 'A2 backup' in W1 upstream file
         And 'example.com down' in W1 upstream file
         And nginx is running on W1
+        When I start BaseHttpServer on 8002 port in A1
+        Then http get domain D1 matches 'It works!'
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Testing proxy delete

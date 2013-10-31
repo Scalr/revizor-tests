@@ -57,7 +57,7 @@ def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
     setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
 
-@step(r"I add proxy ([\w\d]+) to haproxy role for ([\d]+) port with backends: ([\w\d\' ,\.]+) and healthcheck: ([\w\d, ]+)")
+@step(r"I add proxy ([\w\d]+) to haproxy role for ([\d]+) port with backends: ([\w\d\' ,:\.]+) and healthcheck: ([\w\d, ]+)")
 def add_proxy_with_healtcheck(step, proxy_name, port, options, healthchecks):
     LOG.info("Add proxy %s with many backends (%s) and healthcheck (%s)" % (proxy_name, options, healthchecks))
     proxy_role = getattr(world, 'haproxy_role')
@@ -67,10 +67,15 @@ def add_proxy_with_healtcheck(step, proxy_name, port, options, healthchecks):
     LOG.info("Healthchecks for proxy: %s" % healthchecks)
     backends = []
     for o in options:
-        serv = getattr(world, o[0], None)
+        if ':' in o[0]:
+            host, backend_port = o[0].split(':')
+        else:
+            host = o[0]
+            backend_port = port
+        serv = getattr(world, host, None)
         backends.append({
             'host': serv.private_ip if serv else str(o[0]),
-            'port': str(port),
+            'port': str(backend_port),
             'backup': "1" if o[1] == 'backup' else "0",
             'down': "1" if o[1] in ['down', 'disabled'] else "0",
         })
@@ -103,7 +108,7 @@ def modify_haproxy_role(step, proxy_name, options, healthchecks):
                                   fall=healthchecks[1], rise=healthchecks[2])
 
 
-@step(r'([\w\d]+) backend list for (\d+) port should( not)? contains ([\w\d, \'\.]+)')
+@step(r'([\w\d]+) backend list for (\d+) port should( not)? contains ([\w\d, :\'\.]+)')
 def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
     time.sleep(10)
     LOG.info("Verify backends servers in config")
@@ -114,13 +119,18 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
     for back in backends_servers.split(','):
         if back.strip().startswith("'"):
             new_back = back.strip().replace("'", '').split()
-            hostname = getattr(world, new_back[0], new_back[0])
+            if ':' in new_back[0]:
+                host, backend_port = new_back[0].split(':')
+            else:
+                host = new_back[0]
+                backend_port = port
+            hostname = getattr(world, host, host)
             if not isinstance(hostname, (unicode, str)):
                 hostname = hostname.private_ip
-            if not new_back[1] == 'default':
-                backends.append('%s:%s %s' % (hostname, port, new_back[1]))
+            if new_back[1] == 'default':
+                backends.append('%s:%s' % (hostname, backend_port))
             else:
-                backends.append('%s:%s' % (hostname, port))
+                backends.append('%s:%s %s' % (hostname, backend_port, new_back[1]))
         else:
             hostname = getattr(world, back.strip(), back.strip())
             if not isinstance(hostname, (unicode, str)):

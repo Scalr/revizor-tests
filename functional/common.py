@@ -186,8 +186,8 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
         time.sleep(10)
     else:
         if lookup_server:
-            raise TimeoutError('Server %s not state in %s status it has: %s' % (lookup_server.id, status, lookup_server.status))
-        raise TimeoutError('New server in role %s was not founding' % role)
+            raise TimeoutError('Server %s not in state "%s" it has status: "%s"' % (lookup_server.id, status, lookup_server.status))
+        raise TimeoutError('New server in role "%s" was not founding' % role)
 
 
 

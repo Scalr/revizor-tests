@@ -522,7 +522,7 @@ def verify_open_port(step, port, has_not, serv_as):
         LOG.info('Add iptables rule for my IP and port %s' % port)
         try:
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-        except httplib.BadStatusLine:
+        except (httplib.BadStatusLine, socket.error):
             time.sleep(5)
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
         LOG.info('My IP address: %s' % my_ip)

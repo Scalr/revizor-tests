@@ -2,6 +2,8 @@ import ssl
 
 from lettuce import world, step, after
 
+import requests
+
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
@@ -58,6 +60,38 @@ def check_index(step, proto, domain_as, vhost_as):
             LOG.error('Failed in delete index.html: %s' % e)
 
     world.check_index_page(nodes, proto, domain.name, vhost_as)
+
+
+@step(r'([\w]+) get domain ([\w\d]+) matches \'(.+)\'$')
+def check_matches_in_domain(step, proto, domain_as, matched_text):
+    domain = getattr(world, domain_as)
+    LOG.info('Match text %s in domain %s' % (matched_text, domain.name))
+
+    if proto.isdigit():
+        url = 'http://%s:%s/' % (domain.name, proto)
+    else:
+        url = '%s://%s/' % (proto, domain.name)
+    LOG.info('Try open url: %s' % url)
+    resp = requests.get(url).text
+    if not resp == matched_text:
+        raise AssertionError('Text "%s" not matched with "%s"' % (resp, matched_text))
+
+
+@step('I start BaseHttpServer on (\d+) port in ([\w\d]+)$')
+def start_basehttpserver(step, port, serv_as):
+    server = getattr(world, serv_as)
+    LOG.info('Run BaseHttpServer in server %s' % server.id)
+
+    node = world.cloud.get_node(server)
+    LOG.debug('Put base_server.py script')
+    node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
+    LOG.debug('Run BaseHttpServer script')
+    if node.os[0] in ['ubuntu', 'debian']:
+        node.run('apt-get install screen -y')
+    elif node.os[0] in ['centos', 'redhat', 'oel']:
+        node.run('yum install screen -y')
+    node.run('iptables -A INPUT -p tcp --dport %s -j ACCEPT' % port)
+    node.run('screen -d -m python /tmp/base_server.py %s' % port)
 
 
 @step(r'([\w]+) resolves into (.+) ip address')
