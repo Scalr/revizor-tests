@@ -379,6 +379,7 @@ def check_index_page(node, proto, domain_name, name):
         LOG.debug('Upload index page %s to server %s' % (name, n.public_ip))
         n.run('mkdir /var/www/%s' % name)
         n.put_file(path='/var/www/%s/index.php' % name, content=index)
+    #TODO: Add 3 tries
     try:
         LOG.info('Try get index from URL: %s' % url)
         resp = requests.get(url, timeout=15, verify=False).text

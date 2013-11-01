@@ -62,15 +62,18 @@ def check_index(step, proto, domain_as, vhost_as):
     world.check_index_page(nodes, proto, domain.name, vhost_as)
 
 
-@step(r'([\w]+) get domain ([\w\d]+) matches \'(.+)\'$')
+@step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')
 def check_matches_in_domain(step, proto, domain_as, matched_text):
+    uri = ''
+    if '/' in domain_as:
+        domain_as, uri = domain_as.split('/')
     domain = getattr(world, domain_as)
     LOG.info('Match text %s in domain %s' % (matched_text, domain.name))
 
     if proto.isdigit():
-        url = 'http://%s:%s/' % (domain.name, proto)
+        url = 'http://%s:%s/%s' % (domain.name, proto, uri)
     else:
-        url = '%s://%s/' % (proto, domain.name)
+        url = '%s://%s/%s' % (proto, domain.name, uri)
     LOG.info('Try open url: %s' % url)
     resp = requests.get(url).text
     if not resp == matched_text:

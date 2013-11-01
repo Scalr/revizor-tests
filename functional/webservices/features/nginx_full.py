@@ -5,6 +5,7 @@ import requests
 
 from lettuce import world, step
 
+from revizor2.api import Certificate
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 
@@ -30,19 +31,19 @@ def add_proxy_with_role(step, proto, proxy_name, proxy_role, vhost_name, backend
         port = 80
         opts['ssl'] = True
         opts['ssl_port'] = 443
-        opts['cert_id'] = 801
+        opts['cert_id'] = Certificate.get_by_name('revizor').id
         opts['http'] = True
     elif proto == 'http/https':
         LOG.info('Add http/https proxy')
         port = 80
         opts['ssl'] = True
         opts['ssl_port'] = 443
-        opts['cert_id'] = 801
+        opts['cert_id'] = Certificate.get_by_name('revizor').id
     if ip_hash:
         opts['ip_hash'] = True
     LOG.info('Add proxy to app role for domain %s' % vhost.name)
     backends = [{"farm_role_id": backend_role.id, "port": "80", "backup": "0", "down": "0", "location": "/"}]
-    proxy_role.add_nginx_proxy(vhost.name, port, backends=backends, **opts)
+    proxy_role.add_nginx_proxy(vhost.name, port, templates=[], backends=backends, **opts)
     setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 
 
@@ -58,31 +59,68 @@ def check_proxy_in_config(step, www_serv, vhost_name):
         raise AssertionError('Not see domain %s in proxies.include' % domain)
 
 
-@step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies: '(['\w\d :\.]*)'")
-def modify_proxy(step, proxy, role, ip_hash, options):
-    LOG.info('Modify proxy %s with backends: %s' % (proxy, options))
-    proxy = getattr(world, '%s_proxy' % proxy)
-    role = getattr(world, '%s_role' % role)
+@step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies:")
+def modify_proxy(step, proxy, role, ip_hash):
+    """
+    Modify nginx proxy settings via farm builder, use lettuce multiline for get proxy settings.
+    If string in multiline startswith '/', this line will parsing as backend:
+    first - location
+    second - server with port
+    third - settings (default, backup, disabled)
+    after third and to end of line - template for location
+    """
+    LOG.info('Modify proxy %s with backends:\n %s' % (proxy, step.multiline))
+    #proxy = getattr(world, '%s_proxy' % proxy)
+    #role = getattr(world, '%s_role' % role)
     ip_hash = True if ip_hash == 'with' else False
-    options = options.strip().replace('\'', '').split()
-    options = zip(*[options[i::2] for i in range(2)])
     backends = []
-    for o in options:
-        if ':' in o[0]:
-            host, backend_port = o[0].split(':')
+    templates = {'server': []}
+    for line in step.multiline.splitlines():
+        line = line.strip()
+        if not line.startswith('/'):
+            templates['server'].append(line.strip())
+            continue
+        backend = {
+            'down': '0',
+            'backup': '0'
+        }
+        splitted_line = line.split()
+        LOG.info('Splitted line: %s' % splitted_line)
+        backend['location'] = splitted_line[0]
+
+        if ':' in splitted_line[1]:
+            host, backend['port'] = splitted_line[1].split(':')
         else:
-            host = o[0]
-            backend_port = 80
-        serv = getattr(world, host, None)
-        backends.append({
-            "host": serv.public_ip if serv else host,
-            "port": str(backend_port),
-            "backup": "1" if o[1] == 'backup' else "0",
-            "down": "1" if o[1] == 'down' else "0",
-            "location": "/"
-        })
-    LOG.info("Save proxy changes with backends: %s" % backends)
-    role.edit_nginx_proxy(proxy['hostname'], proxy['port'], backends, ip_hash=ip_hash)
+            host = splitted_line[1]
+            backend['port'] = 80
+        host = getattr(world, host, host)
+        if not isinstance(host, (str, unicode)):
+            host = host.private_ip
+        backend['host'] = host
+        # Check disabled/backup otions
+        if not splitted_line[2] == 'default':
+            backend[splitted_line[2]] = '1'
+
+        template = " ".join(splitted_line[3:])
+        if not backend['location'] in templates:
+            templates[backend['location']] = [template]
+        else:
+            templates[backend['location']].append(template)
+        backends.append(backend)
+    new_templates = []
+    for location in templates:
+        if location == 'server':
+            new_templates.append({
+                'content': '\n'.join(templates[location]),
+                'server': True
+            })
+        else:
+            new_templates.append({
+                'location': location,
+                'content': '\n'.join(templates[location]),
+            })
+    LOG.info("Save proxy changes with backends:\n%s\n templates:\n%s" % (backends, new_templates))
+    role.edit_nginx_proxy(proxy['hostname'], proxy['port'], backends, new_templates, ip_hash=ip_hash)
 
 
 @step(r"I delete proxy ([\w\d]+) in www role")
@@ -123,10 +161,9 @@ def check_options_in_upstream(step, option, serv_as):
 
 @step(r"([\w\d]+) upstream list should be clean")
 def validate_clean_upstream(step, serv_as):
-    #TODO: Rewrite this when nginx will work via API
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    LOG.info("Check upstream in ngin server")
+    LOG.info("Check upstream in nginx server")
     upstream = node.run('cat /etc/nginx/app-servers.include')[0]
     LOG.info('Upstream list: %s' % upstream)
     if upstream.strip():
