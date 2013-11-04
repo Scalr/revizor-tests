@@ -9,14 +9,14 @@ Feature: Scalarizr scripting test
         And scalarizr version is last in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Bootstrapping role
-        Then <message> event in script log for M1
+    Scenario: Verify script execution on bootstrapping
+        Then <message> event in script log for M1 from user <user> and exitcode <exitcode>
 
     Examples:
-      | message      | state         |
-      | HostInit     | bootstrapping |
-      | BeforeHostUp | initializing  |
-      | HostUp       | running       |
+      | message      | state         | user    | exitcode |
+      | HostInit     | bootstrapping | root    | 0        |
+      | BeforeHostUp | initializing  | revizor | 1        |
+      | HostUp       | running       | ubuntu  | 0        |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Execute 2 sync scripts

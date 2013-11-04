@@ -194,7 +194,8 @@ def add_role_to_farm(step, behavior=None, options=None):
                                 "timeout": "1200",
                                 "issync": "1",
                                 "order_index": "1",
-                                "event": "HostInit"
+                                "event": "HostInit",
+                                "run_as": "root"
                             },
                             {
                                 "script_id": script_id,
@@ -205,7 +206,8 @@ def add_role_to_farm(step, behavior=None, options=None):
                                 "timeout": "1200",
                                 "issync": "1",
                                 "order_index": "10",
-                                "event": "BeforeHostUp"
+                                "event": "BeforeHostUp",
+                                "run_as": "revizor"
                             },
                             {
                                 "script_id": script_id,
@@ -216,7 +218,8 @@ def add_role_to_farm(step, behavior=None, options=None):
                                 "timeout": "1200",
                                 "issync": "1",
                                 "order_index": "20",
-                                "event": "HostUp"
+                                "event": "HostUp",
+                                "run_as": "ubuntu"
                             }]
             elif opt == 'storages':
                 LOG.info('Add additional storages')
