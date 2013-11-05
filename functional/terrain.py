@@ -804,6 +804,7 @@ def initialize_world():
 @after.each_scenario
 def get_all_logs(scenario):
     """Give scalarizr_debug.log logs from servers"""
+    #Get path
     if CONF.main.dist.startswith('win'):
         return
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
@@ -820,25 +821,21 @@ def get_all_logs(scenario):
     LOG.debug('Path to save log: %s' % path)
     if not os.path.exists(path):
         os.makedirs(path, 0755)
-    for serv in servers:
-        if serv.status == ServerStatus.RUNNING or serv.status == ServerStatus.INIT or serv.status == ServerStatus.PENDING:
+
+    for server in servers:
+        if server.status == ServerStatus.RUNNING or \
+           server.status == ServerStatus.INIT or \
+           server.status == ServerStatus.PENDING:
             try:
-                node = world.cloud.get_node(serv)
-                if node:
-                    node.sftp_get_file('/var/log/scalarizr_debug.log', os.path.join(path, serv.id + '_scalarizr_debug.log'))
-                    LOG.info('Save scalarizr log from server %s' % serv.id)
-                    #node.run('echo -n > /var/log/scalarizr_debug.log')
-                    #LOG.info('Scalarizr log was cleaned')
-                    LOG.info('Compressing /etc/scalr directory')
-                    node.run('tar -czf /tmp/scalr.tar.gz /etc/scalr')
-                    LOG.info('Download archive with scalr directory')
-                    node.sftp_get_file('/tmp/scalr.tar.gz', os.path.join(path, serv.id + '_scalr.tar.gz'))
-                    LOG.info('Remove archive')
-                    node.run('rm -rf /tmp/scalr.tar.gz')
-            except paramiko.AuthenticationException:
-                LOG.error('Can\'t authenticated to server: %s for get log' % serv.id)
-            except IOError:
-                LOG.error('Server %s not have scalarizr_debug.log' % serv.id)
+                #Get log from remote host
+                server.get_logs('scalarizr_debug.log', os.path.join(path, server.id + '_scalarizr_debug.log'))
+                LOG.info('Save scalarizr log from server %s to %s'\
+                         % (server.id, os.path.join(path, server.id + '_scalarizr_debug.log')))
+                LOG.info('Compressing /etc/scalr directory')
+                #Get configs and role behavior from remote host
+                server.get_configs(os.path.join(path, server.id + '_scalr_configs.tar.gz'), compress=True)
+                LOG.info('Download archive with scalr directory and behavior to: %s'\
+                         % os.path.join(path, server.id + '_scalr_configs.tar.gz'))
             except BaseException, e:
                 LOG.error(e)
                 continue
