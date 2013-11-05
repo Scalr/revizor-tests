@@ -43,17 +43,19 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         When I modify proxy P1 in www role without ip_hash and proxies:
           """
           keepalive_timeout 10s;
-          / A1 default limit_rate 4096;
-          / A2 backup
+          / A1 default 1 'limit_rate 4096;'
+          / A2 backup 2
           / example.com down
-          /custom_port A1:8002 default limit_rate 8192;
+          /custom_port A1:8002 default 'limit_rate 8192;'
           """
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        And 'A1 default' in W1 upstream file
+        And 'A1 default weight=1' in W1 upstream file
         And 'A1:8002 default' in W1 upstream file
-        And 'A2 backup' in W1 upstream file
+        And 'A2 backup weight=2' in W1 upstream file
         And 'example.com down' in W1 upstream file
+        And 'limit_rate 4096;' in W1 proxies file
+        And 'limit_rate 8192;' in W1 proxies file
         And nginx is running on W1
         When I start BaseHttpServer on 8002 port in A1
         Then http get domain D1/custom_port matches 'It works!'

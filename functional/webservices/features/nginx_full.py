@@ -5,7 +5,7 @@ import requests
 
 from lettuce import world, step
 
-from revizor2.api import Certificate
+from revizor2.api import Certificate, IMPL
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 
@@ -13,11 +13,29 @@ from revizor2.fixtures import resources
 LOG = logging.getLogger('nginx-full')
 
 
+def get_nginx_default_server_template():
+    farm_settings = IMPL.farm.get_settings(world.farm.id)
+    template = {
+        "server": True,
+        "content": farm_settings['tabParams']['nginx']['server_section'] +
+                   farm_settings['tabParams']['nginx']['server_section_ssl']
+    }
+    return template
+
+
 @step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?")
-def add_proxy_with_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash):
-    """
-    If http/https then http -> https redirect enable
-    If https - redirect disable
+def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash):
+    """This step add to nginx new proxy to any role with http/https and ip_hash
+    :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
+    :type proto: str
+    :param proxy_name: Name for proxy in scalr interface
+    :type proxy_name: str
+    :param proxy_role: Nginx role name
+    :type proxy_role: str
+    :param backend_role: Role name for backend
+    :type backend_role: str
+    :param vhost_name: Virtual host name
+    :type vhost_name: str
     """
     proxy_role = getattr(world, '%s_role' % proxy_role)
     backend_role = getattr(world, '%s_role' % backend_role)
@@ -31,24 +49,25 @@ def add_proxy_with_role(step, proto, proxy_name, proxy_role, vhost_name, backend
         port = 80
         opts['ssl'] = True
         opts['ssl_port'] = 443
-        opts['cert_id'] = Certificate.get_by_name('revizor').id
+        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
         opts['http'] = True
     elif proto == 'http/https':
         LOG.info('Add http/https proxy')
         port = 80
         opts['ssl'] = True
         opts['ssl_port'] = 443
-        opts['cert_id'] = Certificate.get_by_name('revizor').id
+        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
     if ip_hash:
         opts['ip_hash'] = True
+    template = get_nginx_default_server_template()
     LOG.info('Add proxy to app role for domain %s' % vhost.name)
     backends = [{"farm_role_id": backend_role.id, "port": "80", "backup": "0", "down": "0", "location": "/"}]
-    proxy_role.add_nginx_proxy(vhost.name, port, templates=[], backends=backends, **opts)
+    proxy_role.add_nginx_proxy(vhost.name, port, templates=[template], backends=backends, **opts)
     setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 
 
 @step(r'([\w]+) proxies list should contains (.+)')
-def check_proxy_in_config(step, www_serv, vhost_name):
+def check_proxy_in_nginx_config(step, www_serv, vhost_name):
     serv = getattr(world, www_serv)
     domain = getattr(world, vhost_name)
     node = world.cloud.get_node(serv)
@@ -60,7 +79,7 @@ def check_proxy_in_config(step, www_serv, vhost_name):
 
 
 @step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies:")
-def modify_proxy(step, proxy, role, ip_hash):
+def modify_nginx_proxy(step, proxy, role, ip_hash):
     """
     Modify nginx proxy settings via farm builder, use lettuce multiline for get proxy settings.
     If string in multiline startswith '/', this line will parsing as backend:
@@ -70,8 +89,8 @@ def modify_proxy(step, proxy, role, ip_hash):
     after third and to end of line - template for location
     """
     LOG.info('Modify proxy %s with backends:\n %s' % (proxy, step.multiline))
-    #proxy = getattr(world, '%s_proxy' % proxy)
-    #role = getattr(world, '%s_role' % role)
+    proxy = getattr(world, '%s_proxy' % proxy)
+    role = getattr(world, '%s_role' % role)
     ip_hash = True if ip_hash == 'with' else False
     backends = []
     templates = {'server': []}
@@ -82,7 +101,8 @@ def modify_proxy(step, proxy, role, ip_hash):
             continue
         backend = {
             'down': '0',
-            'backup': '0'
+            'backup': '0',
+            'weight': '',
         }
         splitted_line = line.split()
         LOG.info('Splitted line: %s' % splitted_line)
@@ -101,17 +121,25 @@ def modify_proxy(step, proxy, role, ip_hash):
         if not splitted_line[2] == 'default':
             backend[splitted_line[2]] = '1'
 
-        template = " ".join(splitted_line[3:])
+        template = ''
+        if len(splitted_line) >= 3:
+            if splitted_line[3].isdigit():
+                backend['weight'] = splitted_line[3]
+                template = " ".join(splitted_line[4:])
+            else:
+                template = " ".join(splitted_line[3:])
+
         if not backend['location'] in templates:
             templates[backend['location']] = [template]
         else:
             templates[backend['location']].append(template)
         backends.append(backend)
+    default_server_template = get_nginx_default_server_template()
     new_templates = []
     for location in templates:
         if location == 'server':
             new_templates.append({
-                'content': '\n'.join(templates[location]),
+                'content': '\n'.join(templates[location]) + default_server_template['content'],
                 'server': True
             })
         else:
@@ -119,6 +147,7 @@ def modify_proxy(step, proxy, role, ip_hash):
                 'location': location,
                 'content': '\n'.join(templates[location]),
             })
+
     LOG.info("Save proxy changes with backends:\n%s\n templates:\n%s" % (backends, new_templates))
     role.edit_nginx_proxy(proxy['hostname'], proxy['port'], backends, new_templates, ip_hash=ip_hash)
 
@@ -131,7 +160,7 @@ def delete_nginx_proxy(step, proxy):
 
 
 @step(r"'([\w\d_ :\.]+)' in ([\w\d]+) upstream file")
-def check_options_in_upstream(step, option, serv_as):
+def check_options_in_nginx_upstream(step, option, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     options = node.run('cat /etc/nginx/app-servers.include')[0]
@@ -142,25 +171,33 @@ def check_options_in_upstream(step, option, serv_as):
             return True
         else:
             raise AssertionError("Options '%s' not in upstream config: %s" % (option, options))
-    elif len(option) == 2:
-        if ':' in option[0]:
-            host, backend_port = option[0].split(':')
-        else:
-            host = option[0]
-            backend_port = 80
+    elif len(option) > 1:
+        host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
         hostname = serv.public_ip if serv else host
         if option[1] == 'default':
-            c = "%s:%s;" % (hostname, backend_port)
+            upstream_url = "%s:%s;" % (hostname, backend_port)
         else:
-            c = "%s:%s %s;" % (hostname, backend_port, option[1])
-        LOG.info('Verify \'%s\' in upstream' % c)
-        if not c in options:
-            return AssertionError('Upstream config not contains "%s"' % c)
+            upstream_url = "%s:%s %s;" % (hostname, backend_port, option[1])
+        if option[-1].startswith('weight'):
+            upstream_url.replace(';', ' %s;' % option[-1])
+        LOG.info('Verify \'%s\' in upstream' % upstream_url)
+        if not upstream_url in options:
+            return AssertionError('Upstream config not contains "%s"' % upstream_url)
+
+
+@step(r"'([\w\d_ :;\.]+)' in ([\w\d]+) proxies file$")
+def check_options_in_nginx_upstream(step, option, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    options = node.run('cat /etc/nginx/proxies.include')[0]
+    LOG.info('Verify %s in proxies config' % option)
+    if not option in options:
+        raise AssertionError('Parameter \'%s\' not found in proxies.include' % option)
 
 
 @step(r"([\w\d]+) upstream list should be clean")
-def validate_clean_upstream(step, serv_as):
+def validate_clean_nginx_upstream(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info("Check upstream in nginx server")
