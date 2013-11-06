@@ -122,7 +122,7 @@ def modify_nginx_proxy(step, proxy, role, ip_hash):
             backend[splitted_line[2]] = '1'
 
         template = ''
-        if len(splitted_line) >= 3:
+        if len(splitted_line) > 3:
             if splitted_line[3].isdigit():
                 backend['weight'] = splitted_line[3]
                 template = " ".join(splitted_line[4:])
@@ -159,11 +159,12 @@ def delete_nginx_proxy(step, proxy):
     role.delete_nginx_proxy(proxy['hostname'])
 
 
-@step(r"'([\w\d_ :\.]+)' in ([\w\d]+) upstream file")
+@step(r"'([\w\d_ =:\.]+)' in ([\w\d]+) upstream file")
 def check_options_in_nginx_upstream(step, option, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     options = node.run('cat /etc/nginx/app-servers.include')[0]
+    LOG.debug('Upstream config files: %s' % options)
     LOG.info('Verify %s in upstream config' % option)
     option = option.split()
     if len(option) == 1:
@@ -174,16 +175,16 @@ def check_options_in_nginx_upstream(step, option, serv_as):
     elif len(option) > 1:
         host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
-        hostname = serv.public_ip if serv else host
+        hostname = serv.private_ip if serv else host
         if option[1] == 'default':
             upstream_url = "%s:%s;" % (hostname, backend_port)
         else:
             upstream_url = "%s:%s %s;" % (hostname, backend_port, option[1])
         if option[-1].startswith('weight'):
-            upstream_url.replace(';', ' %s;' % option[-1])
+            upstream_url = upstream_url.replace(';', ' %s;' % option[-1])
         LOG.info('Verify \'%s\' in upstream' % upstream_url)
         if not upstream_url in options:
-            return AssertionError('Upstream config not contains "%s"' % upstream_url)
+            raise AssertionError('Upstream config not contains "%s"' % upstream_url)
 
 
 @step(r"'([\w\d_ :;\.]+)' in ([\w\d]+) proxies file$")
