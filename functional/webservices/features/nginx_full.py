@@ -192,6 +192,7 @@ def check_options_in_nginx_upstream(step, option, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     options = node.run('cat /etc/nginx/proxies.include')[0]
+    options = ' '.join(options.split())
     LOG.info('Verify %s in proxies config' % option)
     if not option in options:
         raise AssertionError('Parameter \'%s\' not found in proxies.include' % option)
