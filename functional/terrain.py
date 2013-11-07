@@ -823,6 +823,7 @@ def get_all_logs(scenario):
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
     farm = getattr(world, 'farm', None)
     if not farm:
+        LOG.error("Farm does not exists. Can't get logs. Exit from step.")
         return
     farm.servers.reload()
     servers = farm.servers
