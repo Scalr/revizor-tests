@@ -38,6 +38,7 @@ def bootstrap_many_servers(step, serv_count, serv_names, timeout=1400):
 
 @step(r'([\w]+) upstream list should contains (.+)$')
 def assert_check_upstream(step, www_serv, app_servers):
+    LOG.info('Check app servers %s in app-servers.include')
     time.sleep(180)
     nginx = getattr(world, www_serv)
     node = world.cloud.get_node(nginx)
