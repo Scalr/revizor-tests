@@ -31,7 +31,7 @@ def assert_check_script_in_log(step, message, serv_as, user, exitcode):
             else:
                 raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
                                      % (message, user, log.exitcode, exitcode))
-    raise AssertionError('I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (message, user, serv.id))
+    raise AssertionError('I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (message, user, server.id))
 
 
 @step('I see script result in (.+)')
@@ -41,5 +41,5 @@ def assert_check_script_work(step, serv_as):
     serv.scriptlogs.reload()
     last_count = getattr(world, '%s_script_count' % serv_as)
     if not len(serv.scriptlogs) == last_count+1:
-        LOG.warning('Last count of script logs: %s, new: %s' % (last_count, len(serv.scriptlogs)))
+        LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (last_count, len(serv.scriptlogs), last_count+1))
         raise AssertionError('Not see script result in script logs')

@@ -174,6 +174,11 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
                 LOG.debug('Check scalarizr log in lookup server')
                 verify_scalarizr_log(lookup_node)
 
+            LOG.debug('If server Running and we wait Initializing, return server')
+            if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:
+                LOG.info('We wait Initializing but server already Running')
+                status == ServerStatus.RUNNING
+
             LOG.debug('Compare server status')
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
