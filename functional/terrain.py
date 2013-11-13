@@ -353,37 +353,50 @@ def change_branch_in_role_for_system(step, role):
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    repo = os.environ.get('RV_TO_BRANCH', 'master')
+    branch = os.environ.get('RV_TO_BRANCH', 'master').replace('/', '-').replace('.', '').strip()
+    change_repo_to_branch(node, branch)
+
+
+@step('I change repo in ([\w\d]+) to system$')
+def change_repo(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    change_repo_to_branch(node, CONF.main.branch)
+
+
+def change_repo_to_branch(node, branch):
     if 'ubuntu' in node.os[0].lower() or 'debian' in node.os[0].lower():
         LOG.info('Change repo in Ubuntu')
         node.put_file('/etc/apt/sources.list.d/scalr-branch.list',
-                      'deb http://buildbot.scalr-labs.com/apt/debian %s/\n' % repo)
+                      'deb http://buildbot.scalr-labs.com/apt/debian %s/\n' % branch)
     elif 'centos' in node.os[0].lower():
         LOG.info('Change repo in CentOS')
         node.put_file('/etc/yum.repos.d/scalr-stable.repo',
                       '[scalr-branch]\n' +
                       'name=scalr-branch\n' +
-                      'baseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/$releasever/$basearch\n' % repo +
+                      'baseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/$releasever/$basearch\n' % branch +
                       'enabled=1\n' +
                       'gpgcheck=0\n' +
                       'protect=1\n'
         )
 
-
-@step('pin new repo in ([\w\d]+)$')
-def pin_repo(step, serv_as):
+@step('pin (\w+) repo in ([\w\d]+)$')
+def pin_repo(step, repo, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    repo = os.environ.get('RV_TO_BRANCH', 'master')
+    if repo == 'system':
+        branch = CONF.main.branch
+    else:
+        branch = os.environ.get('RV_TO_BRANCH', 'master')
     if 'ubuntu' in node.os[0].lower():
-        LOG.info('Pin repo %s in Ubuntu' % repo)
+        LOG.info('Pin repository for branch %s in Ubuntu' % branch)
         node.put_file('/etc/apt/preferences',
                       'Package: *\n' +
-                      'Pin: release a=%s\n' % repo +
+                      'Pin: release a=%s\n' % branch +
                       'Pin-Priority: 990\n'
         )
     elif 'centos' in node.os[0].lower():
-        LOG.info('Pin repo %s in CentOS' % repo)
+        LOG.info('Pin repository for branch %s in CentOS' % repo)
         node.run('yum install yum-protectbase -y')
 
 

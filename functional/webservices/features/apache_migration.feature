@@ -27,8 +27,8 @@ Feature: Apache application server migration test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update scalarizr in server
-        When I change repo in A1
-        And pin new repo in A1
+        When I change repo in A1 to system
+        And pin system repo in A1
         And update scalarizr in A1
         And scalarizr version is last in A1
 
