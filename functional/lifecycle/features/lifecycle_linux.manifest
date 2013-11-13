@@ -4,6 +4,6 @@
         "gce": ["gce", "-storages"],
         "idcf": ["cloudstack"],
         "rackspaceng": ["rackspaceng", "-storages"],
-        "ecs": ["openstack"]
+        "enter": ["openstack"]
     }
 }
