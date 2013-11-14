@@ -391,6 +391,7 @@ def check_index_page(node, proto, domain_name, name):
             break
         except Exception, e:
             LOG.warning('Error in openning page \'%s\': %s' % (url, e))
+            time.sleep(5)
     else:
         raise AssertionError('Can\'t get index page: %s' % url)
     if 'VHost %s added' % name in resp:

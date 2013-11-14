@@ -20,21 +20,21 @@ LOG = logging.getLogger('RabbitMQ')
 
 @step('([\w]+) is (.+) node$')
 def assert_check_node_type(step, serv_as, node_type):
-    serv = getattr(world, serv_as)
-    node = world.cloud.get_node(serv)
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
     out = node.run('rabbitmqctl cluster_status')
-    LOG.info('Rabbitmq server %s status: %s' % (serv.id, out))
+    LOG.info('Rabbitmq serverer %s status: %s' % (server.id, out))
     disks = re.findall(r'disc,\[(.+)\]},', out[0])[0]
     disks = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", disks)
-    LOG.info('Rabbitmq server %s status disks: %s' % (serv.id, disks))
+    LOG.info('Rabbitmq serverer %s status disks: %s' % (server.id, disks))
     rams = re.findall(r"{ram,\[(.+)\]}]},", out[0])
     if rams:
         rams = re.findall(r"'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams[0])
-        LOG.info('Rabbitmq server %s status rams: %s' % (serv.id, rams))
+        LOG.info('Rabbitmq serverer %s status rams: %s' % (server.id, rams))
     if node_type == 'hdd':
-        world.assert_not_in('rabbit@rabbit-%s' % serv.index, disks, 'Server %s is not %s node' % (serv.id, node_type))
+        world.assert_not_in('rabbit@%s-%s-%s' % (world.farm.name, server.role.name, server.index), disks, 'server %s is not %s node' % (server.id, node_type))
     elif node_type == 'ram':
-        world.assert_not_in('rabbit@rabbit-%s' % serv.index, rams, 'Server %s is not %s node' % (serv.id, node_type))
+        world.assert_not_in('rabbit@%s-%s-%s' % (world.farm.name, server.role.name, server.index), rams, 'server %s is not %s node' % (server.id, node_type))
 
 
 

@@ -361,7 +361,7 @@ def change_repo(step, serv_as):
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    change_repo_to_branch(node, CONF.main.branch)
+    change_repo_to_branch(node, CONF.main.branch.replace('/', '-').replace('.', '').strip())
 
 
 def change_repo_to_branch(node, branch):
@@ -443,7 +443,7 @@ def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     hostname = node.run('hostname')[0].strip()
-    valid_hostname = '%s-%s-%s'.lower() % (world.farm.name, server.role.name, server.index)
+    valid_hostname = '%s-%s-%s'.lower() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
     if not hostname == valid_hostname:
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 

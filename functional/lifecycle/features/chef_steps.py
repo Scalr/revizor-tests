@@ -14,7 +14,7 @@ def check_process_options(step, process, options, serv_as):
     out = node.run('ps aux | grep %s' % process)
     LOG.debug('Grep for ps aux: %s' % out[0])
     for line in out[0].splitlines():
-        if not line.split()[10].startswith('/'):
+        if line.split()[10].startswith('grep'):
             continue
         LOG.info('Work with line: %s' % line)
         if not options in ' '.join(line.split()[10:]):
