@@ -1,7 +1,8 @@
 import re
-import urllib2
 import logging
 import time
+
+import requests
 
 from lettuce import world, step
 
@@ -14,14 +15,9 @@ LOG = logging.getLogger('nginx')
 @step(r"http get (.+) contains '(.+)'")
 def assert_check_http_get_answer(step, serv_as, mes):
     serv = getattr(world, serv_as)
-    req = urllib2.urlopen('http://%s' % serv.public_ip, timeout=15)
-    if req.code == 200:
-        msg = req.read()
-        if not mes.strip() in msg.strip():
-            raise AssertionError('Not see message: %s, see: %s' % (mes, msg))
-        LOG.info('Server %s http response contain %s' % (serv.id, mes))
-    else:
-        raise AssertionError('Not standard answer, code: %s' % req.code)
+    resp = requests.get('http://%s' % serv.public_ip, timeout=15).text
+    if not mes in resp:
+        raise AssertionError('http://%s response not contains: "%s", response: "%s"' % (serv.public_ip, mes, resp))
 
 
 @step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)')

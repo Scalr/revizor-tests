@@ -512,7 +512,7 @@ def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
             LOG.debug('Error in server found message: %s' % e)
             world.farm.servers.reload()
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
-        LOG.info('Wait message %s / %s in servers: %s' % (server, msgtype, msg.strip()))
+        LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
         s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
         setattr(world, serv_as, s)
 

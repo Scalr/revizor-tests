@@ -251,23 +251,23 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     message_type = 'out' if message_type.strip() == 'sends' else 'in'
 
     if not isinstance(server, (list, tuple)):
-        server = [server]
+        servers = [server]
 
-    LOG.info('Try found message %s / %s in servers %s' % (message_type, message_name, server))
+    LOG.info('Try found message %s / %s in servers %s' % (message_type, message_name, servers))
 
     start_time = time.time()
 
     while time.time() - start_time < timeout:
         if not find_in_all:
-            for serv in server:
+            for serv in servers:
                 if check_message_in_server(serv, message_name, message_type):
                     return serv
         else:
-            if all([check_message_in_server(serv, message_name, message_type) for serv in server]):
+            if all([check_message_in_server(serv, message_name, message_type) for serv in servers]):
                 LOG.info('All servers has delivered message: %s / %s' % (message_type, message_name))
                 return True
     else:
-        raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type, message_name, server))
+        raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type, message_name, servers))
 
 
 @world.absorb
