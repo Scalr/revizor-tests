@@ -81,7 +81,7 @@ def verify_scalarizr_log(node):
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
         log_out = node.run('grep "ERROR\|Traceback" /var/log/scalarizr_debug.log ')
-        LOG.debug('Grep result: %s' % log_out)
+        LOG.debug('Grep result: %s' % log_out[0])
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
         LOG.error(traceback.format_exc())
@@ -391,6 +391,8 @@ def check_index_page(node, proto, domain_name, name):
             break
         except Exception, e:
             LOG.warning('Error in openning page \'%s\': %s' % (url, e))
+    else:
+        raise AssertionError('Can\'t get index page: %s' % url)
     if 'VHost %s added' % name in resp:
         return True
     raise AssertionError('Index page not valid: %s' % resp)

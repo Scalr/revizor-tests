@@ -850,7 +850,7 @@ def get_all_logs(scenario):
                 LOG.info('Download archive with scalr directory and behavior to: %s'\
                          % os.path.join(path, server.id + '_scalr_configs.tar.gz'))
             except BaseException, e:
-                LOG.error(e)
+                LOG.error('Error in downloading configs: %s' % e)
                 continue
 
 
