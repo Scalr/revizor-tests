@@ -252,6 +252,8 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
 
     if not isinstance(server, (list, tuple)):
         servers = [server]
+    else:
+        servers = server
 
     LOG.info('Try found message %s / %s in servers %s' % (message_type, message_name, servers))
 
