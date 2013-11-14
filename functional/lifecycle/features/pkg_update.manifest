@@ -4,10 +4,5 @@
         "gce": [],
         "idcf": [],
         "rackspaceng": []
-    },
-
-    "RV_TO_BRANCH": {
-        "master": {"tags": [], "default": true},
-        "develop": {"tags": []}
     }
 }
