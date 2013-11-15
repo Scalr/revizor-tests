@@ -8,6 +8,7 @@ Feature: Apache application server role
         And scalarizr version is last in A1
         And apache is running on A1
         And http get A1 contains default welcome message
+        And https get A1 contains default welcome message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding virtual host

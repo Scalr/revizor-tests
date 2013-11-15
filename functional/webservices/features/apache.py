@@ -1,7 +1,8 @@
-import urllib2
+import requests
+from requests.exceptions import HTTPError, ConnectionError, SSLError
 import logging
-
 from lettuce import world, step
+
 
 LOG = logging.getLogger('apache')
 
@@ -25,21 +26,19 @@ def create_vhost_to_role(step, ssl, vhost_as, role, domain_as):
     setattr(world, vhost_as, vhost)
 
 
-@step(r'http get (.+) contains default welcome message')
-def assert_check_http_get_answer(step, serv_as):
-    serv = getattr(world, serv_as)
+@step(r'(https|http) get (.+) contains default welcome message')
+def assert_check_http_get_answer(step, proto, serv_as):
+    server = getattr(world, serv_as)
+    verify = False if proto == 'https' else None
     try:
-        req = urllib2.urlopen('http://%s' % serv.public_ip, timeout=15)
-        msg = req.read()
-        code = req.code
-    except urllib2.HTTPError, e:
-        msg = e.read()
-        code = e.code
+        resp = requests.get('%s://%s' % (proto, server.public_ip), timeout=15, verify=verify)
+        msg = resp.text
+    except (HTTPError, ConnectionError, SSLError), e:
+        LOG.error('Apache error: %s' % e.message)
+        raise AssertionError('Apache error: %s' % e.message)
     LOG.debug('Apache message: %s' % msg)
-    if 'It works!' in msg or 'Apache HTTP Server' in msg or 'Welcome to your Scalr application' in msg:
-        return True
-    else:
-        raise AssertionError('Not see default message, code: %s' % code)
+    if not ('It works!' in msg or 'Apache HTTP Server' in msg or 'Welcome to your Scalr application' in msg):
+        raise AssertionError('Not see default message, Received message: %s,  code: %s' % (msg, resp.status_code))
 
 
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
