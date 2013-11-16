@@ -234,7 +234,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
             LOG.debug('Work with message: %s / %s - %s (%s) on server %s ' %
                       (message.type, message.name, message.delivered, int(message.id), server.id))
             if server._last_internal_message and int(message.id) <= int(server._last_internal_message.id):
-                LOG.debug('This message < when last internal message: %s < %s' % (int(message.id), int(server._last_internal_message.id)))
+                LOG.debug('This message <= when last internal message: %s <= %s' % (int(message.id), int(server._last_internal_message.id)))
                 continue
             if message.name == message_name and message.type == message_type:
                 LOG.info('This message matching the our pattern')
@@ -259,17 +259,27 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
 
     start_time = time.time()
 
+    delivered_servers = []
+
     while time.time() - start_time < timeout:
         if not find_in_all:
             for serv in servers:
                 if check_message_in_server(serv, message_name, message_type):
                     return serv
         else:
-            if all([check_message_in_server(serv, message_name, message_type) for serv in servers]):
+            if delivered_servers == servers:
                 LOG.info('All servers has delivered message: %s / %s' % (message_type, message_name))
                 return True
+            for serv in servers:
+                if serv in delivered_servers:
+                    continue
+                result = check_message_in_server(serv, message_name, message_type)
+                if result:
+                    delivered_servers.append(serv)
     else:
-        raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type, message_name, servers))
+        raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type,
+                                                                            message_name,
+                                                                            [s.id for s in servers]))
 
 
 @world.absorb
