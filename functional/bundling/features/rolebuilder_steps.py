@@ -7,7 +7,8 @@ from lettuce import world, step
 from revizor2.conf import CONF
 from revizor2.consts import Platform
 from revizor2.api import IMPL
-from revizor2.utils import wait_until
+from revizor2.fixtures import images
+from revizor2.utils import wait_until, get_scalr_dist_info
 
 
 LOG = logging.getLogger('rolebuilder')
@@ -20,22 +21,15 @@ def start_rolebuild(step):
         platform = 'rackspacengus'
     else:
         platform = CONF.main.platform
-    os_family, os_version = re.findall(r'([a-zA-Z]+)(\d+)', CONF.main.dist)[0]
-    if os_family == 'centos':
-        images = IMPL.rolebuilder.images()[CONF.main.platform]['images']
-        for image in images:
-            if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
-                image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image:
-                os_version = image['os_version']
-                break
-    else:
-        os_version = os_version[:2] + '.' + os_version[2:]
+    os_dist, os_ver = get_scalr_dist_info(CONF.main.dist)
+    image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.main.platform]['location'] and
+                             x['os_family']==os_dist and x['os_version'].startswith(os_ver), images(CONF.main.platform).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
                                         behaviors=CONF.main.behaviors,
-                                        os_family=os_family,
-                                        os_version=os_version,
+                                        os_family=image['os_family'],
+                                        os_version=image['os_version'],
                                         name='tmp-%s-%s-%s' % (CONF.main.platform, CONF.main.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.main.branch,)
