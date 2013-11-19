@@ -7,7 +7,10 @@ from common import *
 
 import paramiko
 
+
+from revizor2 import consts
 from revizor2.conf import CONF
+from revizor2 import api
 from revizor2.api import Script
 from revizor2.backend import IMPL
 from revizor2.utils import wait_until
@@ -810,10 +813,28 @@ def check_log(step, serv_as):
 
 
 @step('I (start|stop|restart) ([\w\d]+) on ([\w\d]+)')
-def change_service_status(step, status, service, serv_as):
-    LOG.info("Change service status: {0} {1}".format(service, status))
+def change_service_status(step, status, behavior, serv_as):
+    """Change process status on remote host by his name. """
+    service = None
     server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    #Checking the behavior in the role
+    if not behavior in server.role.behaviors:
+        raise AssertionError("{0} can not be found in the tested role.".format(behavior))
+    #Get behavior configs
+    common_config = api.SERVICES_CONFIG_DIRS.get(behavior)
+    #Get service name
+    if common_config:
+        service = common_config.get('service_name')
+        if not service:
+            service = common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')
+    if not service:
+        raise AssertionError("Can't {0} service. "
+                             "The process name is not found by the bahavior name {1}".format(status, behavior))
+    LOG.info("Change service status: {0} {1}".format(service, status))
+    #Change service status, get pids before and after
     res = world.change_service_status(status, service, server)
+    #Verify change status
     if any(pid in res['pid_before'] for pid in res['pid_after']):
         LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'][0], res['info'][0]))
         raise AssertionError("Can't {0} service. No such process {1}".format(status, service))
