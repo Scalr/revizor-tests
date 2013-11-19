@@ -809,6 +809,18 @@ def check_log(step, serv_as):
                error_text='Not see "Scalarizr terminated" in debug log')
 
 
+@step('I (start|stop|restart) ([\w\d]+) on ([\w\d]+)')
+def change_service_status(step, status, service, serv_as):
+    LOG.info("Change service status: {0} {1}".format(service, status))
+    server = getattr(world, serv_as)
+    res = world.change_service_status(status, service, server)
+    if any(pid in res['pid_before'] for pid in res['pid_after']):
+        LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'][0], res['info'][0]))
+        raise AssertionError("Can't {0} service. No such process {1}".format(status, service))
+    LOG.info('Service change status info: {0}'.format(res['info'][0]))
+    LOG.info("Service status was successfully changed : {0} {1}".format(service, status))
+
+
 @before.all
 def initialize_world():
     setattr(world, 'test_start_time', datetime.now())

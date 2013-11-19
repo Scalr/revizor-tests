@@ -606,6 +606,39 @@ def kill_process_by_name(server, process):
 
 
 @world.absorb
+def change_service_status(status, service, server):
+    """change_service_status(status, service, server) Change process status on remote host by his name
+    Return pid before change status, pid after change status, exit code
+
+    @type   status: str
+    @param  status: Service status start, stop, restart
+
+    @type   service: str
+    @param  service: Service name - scalarizr, apache2, etc...
+
+    @type   server: obj
+    @param  server: Server object
+
+    """
+
+    node = world.cloud.get_node(server)
+    #Get process pid
+    _get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service})[0].rstrip('\n').split('\n')
+    #Change process status
+    _change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service, 'status': status})
+    #Action list
+    _statuses = {'start':   ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
+                 'stop':    ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
+                 'restart': ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid})
+                 }
+    try:
+        change_status_result = dict([key, value()] for item in _statuses[status] for key, value in item.iteritems())
+    except KeyError:
+        raise AssertionError("Can't {0} service. No such status {0}".format(status))
+    return change_status_result
+
+
+@world.absorb
 def is_log_rotate(server, process, rights, group='nogroup'):
     """Checks for logrotate config file and rotates the log. Returns the status of the operation."""
     LOG.info('Loking for config file:  %s-logrotate on remote host %s' % (process, server.public_ip))
