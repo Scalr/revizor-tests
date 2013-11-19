@@ -32,10 +32,9 @@ def assert_check_node_type(step, serv_as, node_type):
         rams = re.findall(r"'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams[0])
         LOG.info('Rabbitmq serverer %s status rams: %s' % (server.id, rams))
     if node_type == 'hdd':
-        world.assert_not_in('rabbit@%s-%s-%s' % (world.farm.name, server.role.name, server.index), disks, 'server %s is not %s node' % (server.id, node_type))
+        world.assert_not_in('rabbit@rabbit-%s' % server.index, disks, 'server %s is not %s node' % (server.id, node_type))
     elif node_type == 'ram':
-        world.assert_not_in('rabbit@%s-%s-%s' % (world.farm.name, server.role.name, server.index), rams, 'server %s is not %s node' % (server.id, node_type))
-
+        world.assert_not_in('rabbit@rabbit-%s' % server.index, rams, 'server %s is not %s node' % (server.id, node_type))
 
 
 @step('I (increase|decrease) minimum servers to (.+) for (.+) role$')

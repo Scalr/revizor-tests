@@ -172,8 +172,6 @@ def add_role_to_farm(step, behavior=None, options=None):
         behavior = os.environ.get('RV_BEHAVIOR', 'base')
     else:
         behavior = behavior.strip()
-    if behavior == 'tomcat6' and CONF.main.dist.startswith('ubuntu'):
-        behavior = 'tomcat7'
     options = options.strip() if options else None
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
@@ -319,6 +317,10 @@ def add_role_to_farm(step, behavior=None, options=None):
             else:
                 LOG.info('Add %s' % opt)
                 farm_options.update(FARM_OPTIONS.get(opt, {}))
+    if behavior == 'rabbitmq':
+        del(farm_options['base.hostname_format'])
+    if behavior == 'tomcat6' and CONF.main.dist.startswith('ubuntu'):
+        behavior = 'tomcat7'
     if behavior == 'redis':
         LOG.info('Add redis settings')
         farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
