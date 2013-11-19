@@ -58,7 +58,7 @@ Feature: mariadb database server with behavior mariadb
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
-    @ec2 @cloudstack @rackspaceng @openstack @reboot
+    @ec2 @cloudstack @rackspaceng @reboot
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1

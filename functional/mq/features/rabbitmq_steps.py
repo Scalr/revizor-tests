@@ -66,8 +66,10 @@ def assert_server_ratio(step, hdd_count, ram_count, serv_as):
     disks = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", disks)
     LOG.info('Disks nodes in rabbitmq cluster: %s' % disks)
     #TODO: Check reg exp
-    rams = re.findall(r"{ram,\[(.+)\]}]},", out[0])[0]
-    rams = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams)
+    rams = re.findall(r"{ram,\[(.+)\]}]},", out[0])
+    if not rams:
+        raise AssertionError('RAM nodes in rabbitmq is unavailable. All nodes: %s' % out[0])
+    rams = re.findall(r"'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams[0])
     LOG.info('RAMs nodes in rabbitmq cluster: %s' % rams)
     runnings = re.findall(r'running_nodes,\[(.+)\]}', out[0])[0]
     runnings = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", runnings)
