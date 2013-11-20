@@ -140,7 +140,7 @@ STORAGES = {
             "db.msr.data_storage.engine": "cinder",
             "db.msr.data_storage.fstype": "ext3",
             "db.msr.data_storage.cinder.size": "1",
-            }
+        }
     }
 }
 
