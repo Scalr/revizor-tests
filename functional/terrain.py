@@ -819,7 +819,7 @@ def change_service_status(step, status, behavior, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     #Checking the behavior in the role
-    if not behavior in server.role.behaviors:
+    if not behavior in server.role.behaviors and behavior != 'scalarizr':
         raise AssertionError("{0} can not be found in the tested role.".format(behavior))
     #Get behavior configs
     common_config = api.SERVICES_CONFIG_DIRS.get(behavior)

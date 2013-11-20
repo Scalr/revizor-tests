@@ -35,6 +35,22 @@ Feature: Apache application server role
         And A1 has not H1 in virtual host configuration
         But A1 has H2 in virtual hosts configuration
 
+    @ec2 @cloudstack @rackspaceng
+    Scenario: Virtual host auto update
+        Then I create domain D3 to app role
+        And I add virtual host H3 to app role and domain D3
+        Then I stop scalarizr on A1
+        And D3 resolves into A1 ip address
+        And A1 has H3 in virtual hosts configuration
+        Then I remove virtual host H3
+        And I start scalarizr on A1
+        And http get domain D3 matches H3 index page
+        Then I reboot server A1
+        And Scalr receives RebootFinish from A1
+        And A1 has not H3 in virtual host configuration
+        And http get domain D3 matches H3 index page
+
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
     Scenario: Restart farm
         When I stop farm
