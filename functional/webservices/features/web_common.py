@@ -34,12 +34,14 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
                            error_text="Domain resolve not new IP")
 
 
-@step(r'([\w]+) get domain ([\w\d]+) matches ([\w\d]+) index page$')
-def check_index(step, proto, domain_as, vhost_as):
+@step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
+def check_index(step, proto, revert, domain_as, vhost_as):
+    revert = False if not revert else True
     domain = getattr(world, domain_as)
     vhost = getattr(world, vhost_as)
 
-    for role in world.farm.roles: # Find role by vhost
+    # Find role by vhost
+    for role in world.farm.roles:
         if role.id == vhost.farm_roleid:
             app_role = role
             break
@@ -59,7 +61,7 @@ def check_index(step, proto, domain_as, vhost_as):
         except AttributeError, e:
             LOG.error('Failed in delete index.html: %s' % e)
 
-    world.check_index_page(nodes, proto, domain.name, vhost_as)
+    world.check_index_page(nodes, proto, revert, domain.name, vhost_as)
 
 
 @step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')

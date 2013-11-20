@@ -48,7 +48,7 @@ Feature: Apache application server role
         Then I reboot server A1
         And Scalr receives RebootFinish from A1
         And A1 has not H3 in virtual host configuration
-        And http get domain D3 matches H3 index page
+        And http not get domain D3 matches H3 index page
 
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm

@@ -384,7 +384,7 @@ def wait_upstream_in_config(node, ip, contain=True):
 
 
 @world.absorb
-def check_index_page(node, proto, domain_name, name):
+def check_index_page(node, proto, revert, domain_name, name):
     index = resources('html/index_test.php')
     index = index.get() % {'id': name}
     if proto.isdigit():
@@ -399,16 +399,16 @@ def check_index_page(node, proto, domain_name, name):
     for i in range(3):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
         try:
-            resp = requests.get(url, timeout=15, verify=False).text
+            resp = requests.get(url, timeout=15, verify=False)
             break
         except Exception, e:
             LOG.warning('Error in openning page \'%s\': %s' % (url, e))
             time.sleep(5)
     else:
         raise AssertionError('Can\'t get index page: %s' % url)
-    if 'VHost %s added' % name in resp:
+    if 'VHost %s added' % name in resp.text or revert and resp.status_code == 200:
         return True
-    raise AssertionError('Index page not valid: %s' % resp)
+    raise AssertionError('Index page not valid: %s. Status code: %s' % (resp.text, resp.status_code))
 
 
 @world.absorb
