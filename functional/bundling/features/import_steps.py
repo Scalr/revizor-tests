@@ -155,9 +155,13 @@ def start_building(step):
 
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
+    if CONF.main.driver == Platform.GCE:
+        server_id = world.cloud_server.name
+    else:
+        server_id = world.cloud_server.id
     res = IMPL.bundle.import_start(platform=CONF.main.platform,
                                    location=CONF.platforms[CONF.main.platform]['location'],
-                                   cloud_id=world.cloud_server.id,
+                                   cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
     if not res:
         raise AssertionError("The import process was not started. Scalarizr run command was not received.")

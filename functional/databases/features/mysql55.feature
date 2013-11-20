@@ -119,7 +119,7 @@ Feature: MySQL database server with behavior mysql2
 	@ec2 @grow
 	Scenario: Grow storage
 		When I increase storage to 5 Gb in mysql2 role
-		Then grow status is ok
+		Then grow status is completed
 		And new storage size is 5 Gb in mysql2 role
 		And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log

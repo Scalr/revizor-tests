@@ -113,7 +113,7 @@ Feature: mariadb database server with behavior mariadb
 	@ec2 @grow
 	Scenario: Grow storage
 		When I increase storage to 5 Gb in mariadb role
-		Then grow status is ok
+		Then grow status is completed
 		And new storage size is 5 Gb in mariadb role
 		And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log

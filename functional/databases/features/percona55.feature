@@ -113,7 +113,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@ec2 @grow
 	Scenario: Grow storage
 		When I increase storage to 5 Gb in percona2 role
-		Then grow status is ok
+		Then grow status is completed
 		And new storage size is 5 Gb in percona2 role
 		And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log
