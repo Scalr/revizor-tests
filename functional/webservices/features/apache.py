@@ -70,3 +70,27 @@ def remove_vhost(step, vhost_as):
     LOG.info('Delete vhost: %s' % vhost.name)
     vhost.delete()
 
+@step(r'I change the virtual host (.+) template(?: (invalid))? data')
+def change_vhost_template(step, vhost_as, invalid=None):
+    """This step is editing an existing virtual host, changing the contents of Server non-ssl template field,
+    replacing their valid or not data.
+    """
+    #Invalid vhost http template
+    http_invalid_template = """
+                <VirtualHost *:xx>
+                        xxServerAliasxx xxx
+                        xxServerAdminxx xxx
+                        xxDocumentRootxx xxx
+                        xxServerNamexx xxx
+                        xxCustomLogxx xxx
+                        xxScriptAliasxx xxx
+                </VirtualHost>"""
+
+    #Get VHOST
+    vhost = getattr(world, vhost_as)
+    LOG.info('Change vhost: %s, set new %s data.' % (vhost.name, 'invalid' if invalid else ''))
+    #Change VHOST http template invalid data
+    change_result = vhost.change(http_template=http_invalid_template if invalid else None)
+    if not (change_result and isinstance(change_result, bool)):
+        raise AssertionError("Can't change VHost %s in apache config" % vhost.name)
+    LOG.info("VHost %s in apache config was successfully changed" % vhost.name)

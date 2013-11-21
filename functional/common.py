@@ -406,7 +406,7 @@ def check_index_page(node, proto, revert, domain_name, name):
             time.sleep(5)
     else:
         raise AssertionError('Can\'t get index page: %s' % url)
-    if 'VHost %s added' % name in resp.text or revert and resp.status_code == 200:
+    if ('VHost %s added' % name in resp.text) or (revert and resp.status_code == 200):
         return True
     raise AssertionError('Index page not valid: %s. Status code: %s' % (resp.text, resp.status_code))
 

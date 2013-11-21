@@ -50,6 +50,17 @@ Feature: Apache application server role
         And A1 has not H3 in virtual host configuration
         And http not get domain D3 matches H3 index page
 
+    @ec2 @cloudstack @rackspaceng
+    Scenario: Virtual host fail-safe mechanism
+        Then I create domain D4 to app role
+        And I add virtual host H4 to app role and domain D4
+        And D4 resolves into A1 ip address
+        And A1 has H4 in virtual hosts configuration
+        And http get domain D4 matches H4 index page
+        Then I change the virtual host H4 template invalid data
+        Then Scalr sends VhostReconfigure to A1
+        And apache is running on A1
+        And http get domain D4 matches H4 index page
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
     Scenario: Restart farm
