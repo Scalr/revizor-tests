@@ -883,7 +883,10 @@ def cleanup_all(total):
         cloud_node = getattr(world, 'cloud_server', None)
         if cloud_node:
             LOG.info('Destroy node in cloud')
-            cloud_node.destroy()
+            try:
+                cloud_node.destroy()
+            except BaseException, e:
+                LOG.error('Node %s can\'t be destroyed: %s' % (cloud_node.id, e))
         world.farm.terminate()
         world.farm.vhosts.reload()
         world.farm.domains.reload()
