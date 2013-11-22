@@ -70,13 +70,14 @@ def remove_vhost(step, vhost_as):
     LOG.info('Delete vhost: %s' % vhost.name)
     vhost.delete()
 
-@step(r'I change the virtual host (.+) template(?: (invalid))? data')
-def change_vhost_template(step, vhost_as, invalid=None):
+@step(r'I change the(?: (http|https)) virtual host (.+) template(?: (invalid))? data')
+def change_vhost_template(step, proto, vhost_as, invalid=None):
     """This step is editing an existing virtual host, changing the contents of Server non-ssl template field,
     replacing their valid or not data.
     """
-    #Invalid vhost http template
-    http_invalid_template = """
+    #Invalid vhost templates
+    invalid_template = {
+        'http': """
                 <VirtualHost *:xx>
                         xxServerAliasxx xxx
                         xxServerAdminxx xxx
@@ -84,13 +85,31 @@ def change_vhost_template(step, vhost_as, invalid=None):
                         xxServerNamexx xxx
                         xxCustomLogxx xxx
                         xxScriptAliasxx xxx
-                </VirtualHost>"""
+                </VirtualHost>""",
 
-    #Get VHOST
+        'https': """
+                <IfModule mod_ssl.c>
+                        <VirtualHost *:443>
+                                xxServerNamexx xx
+                                xxServerAliasxx xx
+                                xxServerAdminxx xx
+                                xxDocumentRootxx xx
+                                xxCustomLogxx xx
+                                xxSSLEnginexx xx
+                                xxSSLCertificateFilexx xx
+                                xxSSLCertificateKeyFilexx xx
+                                xxErrorLogxx xx
+                                xxScriptAliasxx xx
+                                xxSetEnvIfxx xx
+                        </VirtualHost>
+                </IfModule>"""
+    }
+
+    #Get VHOSTs
     vhost = getattr(world, vhost_as)
     LOG.info('Change vhost: %s, set new %s data.' % (vhost.name, 'invalid' if invalid else ''))
     #Change VHOST http template invalid data
-    change_result = vhost.change(http_template=http_invalid_template if invalid else None)
-    if not (change_result and isinstance(change_result, bool)):
+    attribute = {'{0}_template'.format(proto): invalid_template[proto]}
+    if not vhost.edit(**attribute if invalid else None):
         raise AssertionError("Can't change VHost %s in apache config" % vhost.name)
     LOG.info("VHost %s in apache config was successfully changed" % vhost.name)
