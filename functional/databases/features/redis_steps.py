@@ -1,6 +1,8 @@
 from lettuce import world, step
 
+import os
 import logging
+from revizor2.consts import Dist
 
 
 LOG = logging.getLogger('redis')
@@ -45,11 +47,24 @@ def kill_process(step, process, serv_as):
 @step('Then I start (.+) on ([\w]+)')
 def start_redis_process(step, process, serv_as):
     """Start redis-server  process"""
+    redis_bin_path = {
+        'debian':  {'bin': '/usr/bin',
+                    'conf': '/etc/redis'},
+
+        'centos':  {'bin': '/usr/sbin',
+                    'conf': '/etc'}
+    }
     server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
     LOG.info('Start %s on remote host: %s' % (process, server.public_ip))
-    node_result = world.cloud.get_node(server).run(
-        "/bin/su redis -s /bin/bash -c \"/usr/bin/%(process)s /etc/redis/redis.6379.conf\" && sleep 5 &&  pgrep -l %(process)s | awk {print'$1'}" % {'process': process}
-    )
-    if not node_result[0]:
-        raise AssertionError("%s was not properly started on remote host %s. Error is: %s "
-                             % (process, server.public_ip, node_result[1]))
+
+    node_result = node.run("/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" && sleep 5 &&  pgrep -l %(process)s | awk {print'$1'}" %
+                           {
+                               'bin': os.path.join(redis_bin_path.get(Dist.get_os_family(node.os[0]))['bin'], process),
+                               'process': process,
+                               'conf': os.path.join(redis_bin_path.get(Dist.get_os_family(node.os[0]))['conf'], 'redis.6379.conf')
+                           })
+    if node_result[2]:
+        raise AssertionError("%s was not properly started on remote host %s. Error is: %s %s"
+                             % (process, server.public_ip, node_result[0], node_result[1]))
+    LOG.info('%s was successfully started on remote host: %s' % (process, server.public_ip))
