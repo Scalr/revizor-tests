@@ -32,11 +32,20 @@ Feature: Apache application server role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding ssl virtual host
         When I create domain D2 to app role
-        And I add ssl virtual host H2 to app role and domain D2
+        And I add ssl virtual host H2 with key revizor-key to app role and domain D2
         Then Scalr sends VhostReconfigure to A1
         And D2 resolves into A1 ip address
         And https get domain D2 matches H2 index page
         And domain D2 contains valid Cert and CACert
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Adding SNI ssl virtual host
+        When I create domain D3 to app role
+        And I add ssl virtual host H3 with key revizor2-key to app role and domain D3
+        Then Scalr sends VhostReconfigure to A1
+        And D3 resolves into A1 ip address
+        And https get domain D3 matches H3 index page
+        And domain D3 contains valid Cert and CACert(Todo select cert + sni)
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Removing virtual host
@@ -47,31 +56,32 @@ Feature: Apache application server role
 
     @ec2 @cloudstack @rackspaceng
     Scenario: Virtual host auto update
-        Then I create domain D3 to app role
-        And I add virtual host H3 to app role and domain D3
+        Then I create domain D4 to app role
+        And I add virtual host H4 to app role and domain D4
         Then I stop scalarizr on A1
-        And D3 resolves into A1 ip address
-        And A1 has H3 in virtual hosts configuration
-        Then I remove virtual host H3
+        And D4 resolves into A1 ip address
+        And A1 has H4 in virtual hosts configuration
+        Then I remove virtual host H4
         And I start scalarizr on A1
-        And http get domain D3 matches H3 index page
+        And http get domain D4 matches H4 index page
         Then I reboot server A1
         And Scalr receives RebootFinish from A1
-        And A1 has not H3 in virtual host configuration
-        And http not get domain D3 matches H3 index page
+        And A1 has not H4 in virtual host configuration
+        And http not get domain D4 matches H4 index page
 
     @ec2 @cloudstack @rackspaceng
     Scenario: Virtual host fail-safe mechanism
-        Then I create domain D4 to app role
-        And I add virtual host H4 to app role and domain D4
-        And D4 resolves into A1 ip address
-        And A1 has H4 in virtual hosts configuration
-        And http get domain D4 matches H4 index page
-        Then I change the http virtual host H4 template invalid data
+        Then I create domain D5 to app role
+        And I add virtual host H5 to app role and domain D5
+        Then Scalr sends VhostReconfigure to A1
+        And D5 resolves into A1 ip address
+        And A1 has H5 in virtual hosts configuration
+        And http get domain D5 matches H5 index page
+        Then I change the http virtual host H5 template invalid data
         Then Scalr sends VhostReconfigure to A1
         And I restart app on A1
         And apache is running on A1
-        And http get domain D4 matches H4 index page
+        And http get domain D5 matches H5 index page
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
     Scenario: Restart farm

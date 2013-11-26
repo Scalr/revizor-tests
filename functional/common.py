@@ -606,7 +606,7 @@ def kill_process_by_name(server, process):
 
 
 @world.absorb
-def change_service_status(status, service, server):
+def change_service_status(server, service, status):
     """change_service_status(status, service, server) Change process status on remote host by his name
     Return pid before change status, pid after change status, exit code
 
@@ -636,6 +636,11 @@ def change_service_status(status, service, server):
     except KeyError:
         raise AssertionError("Can't {0} service. No such status {0}".format(status))
     return change_status_result
+
+
+@world.absorb
+def change_service_status_by_aip(server, service, status):
+    pass
 
 
 @world.absorb

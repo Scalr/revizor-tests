@@ -833,7 +833,7 @@ def change_service_status(step, status, behavior, serv_as):
                              "The process name is not found by the bahavior name {1}".format(status, behavior))
     LOG.info("Change service status: {0} {1}".format(service, status))
     #Change service status, get pids before and after
-    res = world.change_service_status(status, service, server)
+    res = world.change_service_status(server, service, status)
     #Verify change status
     if any(pid in res['pid_before'] for pid in res['pid_after']):
         LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'][0], res['info'][0]))
