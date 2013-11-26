@@ -47,7 +47,7 @@ def start_rolebuild(step, behaviors):
         location = 'all'
     platform = Platform.to_scalr(Platform.from_driver_name(CONF.main.platform))
     os_family, os_version = re.findall(r'([a-zA-Z]+)(\d+)', CONF.main.dist)[0]
-    if os_family in ['centos', 'oel', 'rhel']:
+    if os_family in ['centos', 'oel', 'rhel', 'amazon']:
         images = IMPL.rolebuilder.images()[platform]['images']
         for image in images:
             if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
@@ -57,7 +57,8 @@ def start_rolebuild(step, behaviors):
                 os_version = image['os_version']
                 break
     else:
-        os_version = os_version[:2] + '.' + os_version[2:]
+        #Get os version ubuntu
+        os_version = '.'.join((os_version[:2], os_version[2:]))
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
