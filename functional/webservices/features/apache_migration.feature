@@ -33,6 +33,15 @@ Feature: Apache application server migration test
         And scalarizr version is last in A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Adding virtual host after update
+        When I create domain D3 to app role
+        And I add virtual host H3 to app role and domain D3
+        Then Scalr sends VhostReconfigure to A1
+        And D3 resolves into A1 ip address
+        And A1 has H3 in virtual hosts configuration
+        And http get domain D3 matches H3 index page
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify apache work after update
         When D1 resolves into A1 new ip address
         Then A1 has H1 in virtual hosts configuration
@@ -40,6 +49,17 @@ Feature: Apache application server migration test
         When D2 resolves into A1 new ip address
         Then A1 has H2 in virtual hosts configuration
         And https get domain D2 matches H2 index page
+
+    @ec2 @cloudstack @rackspaceng
+    Scenario: Verify vhosts work after reboot
+        When I reboot server A1
+        And Scalr receives RebootFinish from A1
+        Then A1 has H1 in virtual hosts configuration
+        And http get domain D1 matches H1 index page
+        Then A1 has H2 in virtual hosts configuration
+        And https get domain D2 matches H2 index page
+        Then A1 has H3 in virtual hosts configuration
+        And http get domain D3 matches H3 index page
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify new apache server work

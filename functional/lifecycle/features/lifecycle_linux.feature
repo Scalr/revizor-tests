@@ -16,7 +16,7 @@ Feature: Linux server lifecycle
         And directory '/var/www/src' exist in M1
         And hostname in M1 is valid
 
-    @ec2 @openstack @storages
+    @ec2 @cloudstack @openstack @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -74,10 +74,10 @@ Feature: Linux server lifecycle
     Scenario: Restart farm
         When I stop farm
         And wait all servers are terminated
-        Then I start farm
+        Then I start farm with delay
         And I expect server bootstrapping as M1
 
-    @ec2 @openstack @storages
+    @ec2 @cloudstack @openstack @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old

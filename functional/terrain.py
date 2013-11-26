@@ -254,35 +254,35 @@ def add_role_to_farm(step, behavior=None, options=None):
                                     "status": "",
                             }]
                     }
-                # elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
-                #     LOG.info('Add storages from IDCF/CloudStack')
-                #     additional_storages = {
-                #             "configs": [{
-                #                     "id": None,
-                #                     "type": "csvol",
-                #                     "fs": "ext3",
-                #                     "settings": {
-                #                             "csvol.size": "1",
-                #                     },
-                #                     "mount": True,
-                #                     "mountPoint": "/media/ebsmount",
-                #                     "reUse": True,
-                #                     "status": "",
-                #             }, {
-                #                     "id": None,
-                #                     "type": "raid.csvol",
-                #                     "fs": "ext3",
-                #                     "settings": {
-                #                             "raid.level": "10",
-                #                             "raid.volumes_count": 4,
-                #                             "csvol.size": "1",
-                #                     },
-                #                     "mount": True,
-                #                     "mountPoint": "/media/raidmount",
-                #                     "reUse": True,
-                #                     "status": "",
-                #             }]
-                #     }
+                elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+                     LOG.info('Add storages from IDCF/CloudStack')
+                     additional_storages = {
+                             "configs": [{
+                                     "id": None,
+                                     "type": "csvol",
+                                     "fs": "ext3",
+                                     "settings": {
+                                             "csvol.size": "1",
+                                     },
+                                     "mount": True,
+                                     "mountPoint": "/media/ebsmount",
+                                     "reUse": True,
+                                     "status": "",
+                             }, {
+                                     "id": None,
+                                     "type": "raid.csvol",
+                                     "fs": "ext3",
+                                     "settings": {
+                                             "raid.level": "10",
+                                             "raid.volumes_count": 4,
+                                             "csvol.size": "1",
+                                     },
+                                     "mount": True,
+                                     "mountPoint": "/media/raidmount",
+                                     "reUse": True,
+                                     "status": "",
+                             }]
+                     }
                 elif CONF.main.driver in [Platform.OPENSTACK, Platform.ECS]:
                     LOG.info('Add storages from OpenStack')
                     additional_storages = {
