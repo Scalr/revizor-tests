@@ -137,7 +137,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
         When I create database D2 on M1
         Then M2 contains database D2
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle
+	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @slavedatabundle
 	Scenario: Check databundle in slave
 		When I trigger databundle creation on slave
 		Then Scalr sends DbMsr_CreateDataBundle to M2
