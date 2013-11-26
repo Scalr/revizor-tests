@@ -10,6 +10,16 @@ Feature: Apache application server role
         And http get A1 contains default welcome message
         And https get A1 contains default welcome message
 
+    @ec2 @cloudstack @rackspaceng @openstack
+    Scenario: Apache start after scalarizr restart
+        Given apache is running on A1
+        Then I stop app on A1
+        And apache is not running on A1
+        Then I restart scalarizr on A1
+        And apache is running on A1
+        And http get A1 contains default welcome message
+        And https get A1 contains default welcome message
+
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding virtual host
         When I create domain D1 to app role
@@ -59,6 +69,7 @@ Feature: Apache application server role
         And http get domain D4 matches H4 index page
         Then I change the http virtual host H4 template invalid data
         Then Scalr sends VhostReconfigure to A1
+        And I restart app on A1
         And apache is running on A1
         And http get domain D4 matches H4 index page
 
