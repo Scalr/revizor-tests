@@ -4,12 +4,51 @@ from lettuce import world, step, after
 
 import requests
 
-from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 
 import logging
 
+#Uses for supporting TLS SNI
+from socket import socket
+import OpenSSL
+from OpenSSL.SSL import TLSv1_METHOD, Context, Connection
+from OpenSSL.crypto import FILETYPE_PEM
+
+
+class OpenSSLSNI(object):
+
+    def __init__(self, host, port):
+        self._host = str(host).split('//')[-1].split(':')[0]
+        self._port = int(port) if str(port).isdigit() else 443
+        self._connected = False
+
+    def __getattribute__(self, attr):
+        if not attr.startswith('_') and not self._connected:
+            self.__connect_()
+        return object.__getattribute__(self, attr)
+
+    def __connect_(self):
+        self._socket_client = socket()
+        self._socket_client.connect((self._host, self._port))
+        self._ssl_client = Connection(Context(TLSv1_METHOD), self._socket_client)
+        self._ssl_client.set_connect_state()
+        self._ssl_client.set_tlsext_host_name(self._host)
+        self._ssl_client.do_handshake()
+        self._connected = True
+
+    def __close_(self):
+        self._ssl_client.close()
+        del self._socket_client
+        self._connected = False
+
+    @property
+    def serial_number(self):
+        return self._ssl_client.get_peer_certificate().get_serial_number()
+
+    @property
+    def certificate(self):
+        return OpenSSL.crypto.dump_certificate(FILETYPE_PEM, self._ssl_client.get_peer_certificate())
 
 LOG = logging.getLogger('web-common')
 

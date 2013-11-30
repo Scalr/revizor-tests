@@ -39,6 +39,15 @@ Feature: Apache application server role
         And domain D2 contains valid Cert and CACert
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Adding SNI ssl virtual host
+        When I create domain D3 to app role
+        And I add ssl virtual host H3 with key revizor2-key to app role and domain D3
+        Then Scalr sends VhostReconfigure to A1
+        And D3 resolves into A1 ip address
+        And https get domain D3 matches H3 index page
+        And domain D3 contains valid Cert and CACert(Todo select cert + sni)
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Removing virtual host
         When I remove virtual host H1
         Then Scalr sends VhostReconfigure to A1
