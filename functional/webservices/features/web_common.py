@@ -17,18 +17,26 @@ from OpenSSL.crypto import FILETYPE_PEM
 
 
 class OpenSSLSNI(object):
-
+    """This class implements the functionality of obtaining certificates secure connection using
+        apache TLS Extension Server Name Indication (SNI)
+    """
     def __init__(self, host, port):
+        #Set host name
         self._host = str(host).split('//')[-1].split(':')[0]
+        #Set port
         self._port = int(port) if str(port).isdigit() else 443
+        #Set connection status
         self._connected = False
 
     def __getattribute__(self, attr):
+        #Call mechanisms for establishing a connection method returns data about certificates
         if not attr.startswith('_') and not self._connected:
             self.__connect_()
+        #Return original attr
         return object.__getattribute__(self, attr)
 
     def __connect_(self):
+        """This method implements the functionality of establishing a secure connection using TLS Extension"""
         self._socket_client = socket()
         self._socket_client.connect((self._host, self._port))
         self._ssl_client = Connection(Context(TLSv1_METHOD), self._socket_client)
@@ -38,17 +46,28 @@ class OpenSSLSNI(object):
         self._connected = True
 
     def __close_(self):
+        """This method implements the functional termination created connection"""
+        self._connected = False
         self._ssl_client.close()
         del self._socket_client
-        self._connected = False
 
     @property
     def serial_number(self):
-        return self._ssl_client.get_peer_certificate().get_serial_number()
+        """Returns  certificates serial number"""
+        try:
+            return self._ssl_client.get_peer_certificate().get_serial_number()
+        finally:
+            self.__close_()
 
     @property
     def certificate(self):
-        return OpenSSL.crypto.dump_certificate(FILETYPE_PEM, self._ssl_client.get_peer_certificate())
+        """Returns  certificate"""
+        try:
+            return OpenSSL.crypto.dump_certificate(FILETYPE_PEM, self._ssl_client.get_peer_certificate())
+        finally:
+            self.__close_()
+
+
 
 LOG = logging.getLogger('web-common')
 
