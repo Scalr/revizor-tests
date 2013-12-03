@@ -4,11 +4,62 @@ from lettuce import world, step, after
 
 import requests
 
-from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 
 import logging
+
+#Uses for supporting TLS SNI
+from socket import socket
+import OpenSSL
+from OpenSSL.SSL import TLSv1_METHOD, Context, Connection
+from OpenSSL.crypto import FILETYPE_PEM
+
+
+class OpenSSLSNI(object):
+    """This class implements the functionality of obtaining certificates secure connection using
+        apache TLS Extension Server Name Indication (SNI)
+    """
+    def connection(func):
+        def wrapped(self):
+            self._connect()
+            try:
+                return func(self)
+            finally:
+                self._close()
+        return wrapped
+
+    def __init__(self, host, port):
+        #Set host name
+        self._host = str(host).split('//')[-1].split(':')[0]
+        #Set port
+        self._port = int(port) if str(port).isdigit() else 443
+
+    def _connect(self):
+        """This method implements the functionality of establishing a secure connection using TLS Extension"""
+        self._socket_client = socket()
+        self._socket_client.connect((self._host, self._port))
+        self._ssl_client = Connection(Context(TLSv1_METHOD), self._socket_client)
+        self._ssl_client.set_connect_state()
+        self._ssl_client.set_tlsext_host_name(self._host)
+        self._ssl_client.do_handshake()
+
+    def _close(self):
+        """This method implements the functional termination created connection"""
+        self._ssl_client.close()
+        del self._socket_client
+
+    @property
+    @connection
+    def serial_number(self):
+        """Returns  certificates serial number"""
+        return self._ssl_client.get_peer_certificate().get_serial_number()
+
+    @property
+    @connection
+    def certificate(self):
+        """Returns  certificate"""
+        return OpenSSL.crypto.dump_certificate(FILETYPE_PEM, self._ssl_client.get_peer_certificate())
 
 
 LOG = logging.getLogger('web-common')
@@ -107,9 +158,48 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
     world.assert_not_equal(domain_ip, serv.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, serv.public_ip))
 
 
-@step('domain ([\w\d]+) contains valid Cert and CACert')
-def assert_check_cert(step, domain_as):
-    domain = getattr(world, domain_as)
-    cert = ssl.get_server_certificate((domain.name, 443))
-    local_cert = resources('keys/httpd.crt').get()
-    world.assert_not_equal(cert, local_cert, 'Cert not match local cert')
+@step('domain ([\w\d]+)(?:,([\w\d]+))? contains valid Cert and CACert(?: into ([\w\d]+))?')
+def assert_check_cert(step, domain_as1, domain_as2=None, serv_as=None):
+
+    domain1 = getattr(world, domain_as1)
+    domain2 = getattr(world, domain_as2) if domain_as2 else None
+    server = getattr(world, serv_as) if serv_as else None
+
+    #Get local certs
+    local_cert1 = resources('keys/httpd.crt').get()
+
+    if domain2 and server:
+        #Get local certs
+        local_cert2 = resources('keys/httpd2.crt').get()
+
+        #Get remote certs
+        LOG.info('Try get remote certificate for domain: {0}'.format(domain1.name))
+        remote_cert1 = OpenSSLSNI(domain1.name, 443).certificate
+        LOG.debug('Remote certificate is {0}: '.format(remote_cert1))
+
+        LOG.info('Try get remote certificate for domain: {0}'.format(domain2.name))
+        remote_cert2 = OpenSSLSNI(domain2.name, 443).certificate
+        LOG.debug('Remote certificate is: {0}'.format(remote_cert2))
+
+        LOG.info('Try get remote certificate by ip: {0}'.format(server.public_ip))
+        remote_cert_by_ip = OpenSSLSNI(server.public_ip, 443).certificate
+        LOG.debug('Remote certificate is: {0}'.format(remote_cert_by_ip))
+
+        #Assert Certificates
+        world.assert_equal(remote_cert1, remote_cert2, "Domains {0} and {1} are not unique certificates".format(domain1.name, domain2.name))
+        LOG.info('Domains {0} and {1} are unique certificates'.format(domain1.name, domain2.name))
+
+        world.assert_not_equal(remote_cert1, local_cert1, '{0} domain certificate does not match the local certificate'.format(domain1.name))
+        LOG.info('{0} domain certificate matched the local certificate'.format(domain1.name))
+
+        world.assert_not_equal(remote_cert2, local_cert2, '{0} domain certificate does not match the local certificate'.format(domain2.name))
+        LOG.info('{0} domain certificate matched the local certificate'.format(domain2.name))
+
+        world.assert_not_equal(remote_cert1, remote_cert_by_ip, 'Certificate obtained by the ip {0} does not match the certificate domain {1}'.format(server.public_ip, domain1.name))
+        LOG.info('Certificate obtained by the ip {0} matched the certificate domain {1}'.format(server.public_ip, domain1.name))
+
+    else:
+        #Get remote certs
+        cert = ssl.get_server_certificate((domain1.name, 443))
+        #Assert Certificates
+        world.assert_not_equal(cert, local_cert1, 'Cert not match local cert')
