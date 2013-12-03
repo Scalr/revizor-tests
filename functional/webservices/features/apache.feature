@@ -45,7 +45,7 @@ Feature: Apache application server role
         Then Scalr sends VhostReconfigure to A1
         And D3 resolves into A1 ip address
         And https get domain D3 matches H3 index page
-        And domain D3 contains valid Cert and CACert(Todo select cert + sni)
+        And domain D2,D3 contains valid Cert and CACert into A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Removing virtual host

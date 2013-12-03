@@ -158,9 +158,48 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
     world.assert_not_equal(domain_ip, serv.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, serv.public_ip))
 
 
-@step('domain ([\w\d]+) contains valid Cert and CACert')
-def assert_check_cert(step, domain_as):
-    domain = getattr(world, domain_as)
-    cert = ssl.get_server_certificate((domain.name, 443))
-    local_cert = resources('keys/httpd.crt').get()
-    world.assert_not_equal(cert, local_cert, 'Cert not match local cert')
+@step('domain ([\w\d]+)(?:,([\w\d]+))? contains valid Cert and CACert(?: into ([\w\d]+))?')
+def assert_check_cert(step, domain_as1, domain_as2=None, serv_as=None):
+
+    domain1 = getattr(world, domain_as1)
+    domain2 = getattr(world, domain_as2) if domain_as2 else None
+    server = getattr(world, serv_as) if serv_as else None
+
+    #Get local certs
+    local_cert1 = resources('keys/httpd.crt').get()
+
+    if domain2 and server:
+        #Get local certs
+        local_cert2 = resources('keys/httpd2.crt').get()
+
+        #Get remote certs
+        LOG.info('Try get remote certificate for domain: {0}'.format(domain1.name))
+        remote_cert1 = OpenSSLSNI(domain1.name, 443).certificate
+        LOG.debug('Remote certificate is {0}: '.format(remote_cert1))
+
+        LOG.info('Try get remote certificate for domain: {0}'.format(domain2.name))
+        remote_cert2 = OpenSSLSNI(domain2.name, 443).certificate
+        LOG.debug('Remote certificate is: {0}'.format(remote_cert2))
+
+        LOG.info('Try get remote certificate by ip: {0}'.format(server.public_ip))
+        remote_cert_by_ip = OpenSSLSNI(server.public_ip, 443).certificate
+        LOG.debug('Remote certificate is: {0}'.format(remote_cert_by_ip))
+
+        #Assert Certificates
+        world.assert_equal(remote_cert1, remote_cert2, "Domains {0} and {1} are not unique certificates".format(domain1.name, domain2.name))
+        LOG.info('Domains {0} and {1} are unique certificates'.format(domain1.name, domain2.name))
+
+        world.assert_not_equal(remote_cert1, local_cert1, '{0} domain certificate does not match the local certificate'.format(domain1.name))
+        LOG.info('{0} domain certificate matched the local certificate'.format(domain1.name))
+
+        world.assert_not_equal(remote_cert2, local_cert2, '{0} domain certificate does not match the local certificate'.format(domain2.name))
+        LOG.info('{0} domain certificate matched the local certificate'.format(domain2.name))
+
+        world.assert_not_equal(remote_cert1, remote_cert_by_ip, 'Certificate obtained by the ip {0} does not match the certificate domain {1}'.format(server.public_ip, domain1.name))
+        LOG.info('Certificate obtained by the ip {0} matched the certificate domain {1}'.format(server.public_ip, domain1.name))
+
+    else:
+        #Get remote certs
+        cert = ssl.get_server_certificate((domain1.name, 443))
+        #Assert Certificates
+        world.assert_not_equal(cert, local_cert1, 'Cert not match local cert')
