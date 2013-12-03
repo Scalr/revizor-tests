@@ -15,7 +15,6 @@ Feature: Check chef attributes set
     Scenario: Verify Scalr delete chef-fixtures
         When I stop farm
         And wait all servers are terminated
-        When I edit role to this farm with chef-solo
         Then I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -24,7 +23,7 @@ Feature: Check chef attributes set
         And chef node_name in M1 set by global hostname
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
-    Scenario: Stop farm softly
+    Scenario: Cleanup farm
         When I stop farm
         And wait all servers are terminated
 

@@ -11,7 +11,7 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see initializing server M1
         And I wait and see running server M1
-        And file 'C:\chef_result_file' exist in M1
+        And file 'C:\chef_result_file' exist in M1 windows
 
     @ec2
     Scenario: Restart scalarizr
@@ -60,4 +60,4 @@ Feature: Windows server lifecycle
         And wait all servers are terminated
         Then I start farm
         And I expect server bootstrapping as M1
-        And file 'c:/chef_result_file' exist in M1
+        And file 'c:/chef_result_file' exist in M1 windows

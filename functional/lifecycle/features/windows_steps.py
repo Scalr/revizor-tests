@@ -17,7 +17,7 @@ from revizor2.consts import ServerStatus, Platform
 LOG = logging.getLogger('lifecycle-windows')
 
 
-@step(r"file '([\w\d\:\\/_]+)' exist in ([\w\d]+)")
+@step(r"file '([\w\d\:\\/_]+)' exist in ([\w\d]+) windows$")
 def check_windows_file(step, path, serv_as):
     server = getattr(world, serv_as)
     console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
