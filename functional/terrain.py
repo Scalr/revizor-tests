@@ -5,8 +5,6 @@ from datetime import datetime
 from lettuce import world, step, after, before
 from common import *
 
-import paramiko
-
 
 from revizor2 import consts
 from revizor2.conf import CONF
@@ -34,6 +32,15 @@ FARM_OPTIONS = {
         "chef.server_id": "3",
         "chef.environment": "_default",
         "chef.daemonize": 1,
+    },
+    'chef-solo': {
+        "chef.bootstrap": 1,
+        "chef.cookbook_url": "git@github.com:Scalr/int-cookbooks.git",
+        "chef.runlist": json.dumps(["recipe[revizor-chef::default]"]),
+        "chef.cookbook_url_type": "git",
+        "chef.relative_path": "cookbooks",
+        "chef.ssh_private_key": open(os.path.expanduser(CONF.main.private_key), 'r').read(),
+        "chef.attributes": ""
     },
     'deploy': {
         "dm.application_id": "217",
@@ -164,7 +171,7 @@ def having_a_stopped_farm(step):
         farm.terminate()
 
 
-@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, ]+))?")
+@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, -]+))?")
 def add_role_to_farm(step, behavior=None, options=None):
     additional_storages = None
     scripting = None

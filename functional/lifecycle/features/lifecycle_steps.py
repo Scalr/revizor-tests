@@ -70,14 +70,15 @@ def check_message_config(step, config_group, message, serv_as):
         raise AssertionError('New and old details is not equal')
 
 
-@step("directory '(.+)' exist in (.+)$")
+@step("[directory|file] '(.+)' exist in (.+)$")
 def check_path(step, path, serv_as):
-    node = world.cloud.get_node(getattr(world, serv_as))
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
     out = node.run('/bin/ls %s' % path)
     LOG.info('Check directory %s' % path)
     if 'No such file or directory' in out[0] or 'No such file or directory' in out[1]:
-        LOG.error('Directory not exist')
-        raise AssertionError('No path %s' % path)
+        LOG.error('Directory (file) not exist')
+        raise AssertionError("'%s' not exist in server %s" % (path, server.id))
 
 
 @step("I create (\d+) files in '(.+)' in ([\w\d]+)")
