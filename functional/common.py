@@ -15,6 +15,7 @@ from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
 from revizor2.consts import ServerStatus, Platform, MessageStatus
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
+from revizor2.helpers.jsonrpc import SrzApiServiceProxy
 
 import httplib
 
@@ -606,41 +607,53 @@ def kill_process_by_name(server, process):
 
 
 @world.absorb
-def change_service_status(server, service, status):
+def change_service_status(server, service, status, _api=False, _pid=False):
     """change_service_status(status, service, server) Change process status on remote host by his name
     Return pid before change status, pid after change status, exit code
 
     @type   status: str
-    @param  status: Service status start, stop, restart
+    @param  status: Service status start, stop, restart, etc or api methods service_restart
 
-    @type   service: str
-    @param  service: Service name - scalarizr, apache2, etc...
+    @type   service: dict
+    @param  service: {node: name, api: name}, Service node name - scalarizr, apache2, etc...,
+                     service api endpoint name apahe, etc...
 
     @type   server: obj
     @param  server: Server object
 
+    @type   _api:   bool
+    @param  _api:   Status is api call or node command
+
+    @type   _pid:   bool
+    @param  _pid:   Status is change pid for node service
     """
-
+    #Init params
     node = world.cloud.get_node(server)
+    if _api:
+        api = SrzApiServiceProxy(server.public_ip, str(server.details['scalarizr.key']))
+
     #Get process pid
-    _get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service})[0].rstrip('\n').split('\n')
+    _get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service['node']})[0].rstrip('\n').split('\n')
     #Change process status
-    _change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service, 'status': status})
+    _change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service['node'], 'status': status})\
+        if not _api\
+        else getattr(getattr(api, service['api']), status)()
     #Action list
-    _statuses = {'start':   ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
-                 'stop':    ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
-                 'restart': ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid})
-                 }
+    _change_pid = {
+        True:   ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
+        False:  ({'pid_before': None}, {'info': _change_status}, {'pid_after': _get_pid}),
+    }
     try:
-        change_status_result = dict([key, value()] for item in _statuses[status] for key, value in item.iteritems())
-    except KeyError:
-        raise AssertionError("Can't {0} service. No such status {0}".format(status))
-    return change_status_result
-
-
-@world.absorb
-def change_service_status_by_aip(server, service, status):
-    pass
+        return dict([key, value()] for item in _change_pid[_pid] for key, value in item.iteritems())
+    except Exception as e:
+        error_msg = """An error occurred while trying to execute a command %(command)s.
+                    Error code: %(code)s
+                    Error message: %(message)s""" % {
+                        'code': e.code,
+                        'message': e.message,
+                        'command': '%s.%s()' % (service['api'], status)}
+        LOG.error(error_msg)
+        raise Exception(error_msg)
 
 
 @world.absorb
