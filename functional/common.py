@@ -647,10 +647,8 @@ def change_service_status(server, service, status, _api=False, _pid=False):
         return dict([key, value()] for item in _change_pid[_pid] for key, value in item.iteritems())
     except Exception as e:
         error_msg = """An error occurred while trying to execute a command %(command)s.
-                    Error code: %(code)s
-                    Error message: %(message)s""" % {
-                        'code': e.code,
-                        'message': e.message,
+                    Original error: %(error)s""" % {
+                        'error': e,
                         'command': '%s.%s()' % (service['api'], status)}
         LOG.error(error_msg)
         raise Exception(error_msg)
