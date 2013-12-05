@@ -819,34 +819,52 @@ def check_log(step, serv_as):
                error_text='Not see "Scalarizr terminated" in debug log')
 
 
-@step('I (start|stop|restart) ([\w\d]+) on ([\w\d]+)')
-def change_service_status(step, status, behavior, serv_as):
+@step('I ([\w\d]+) service ([\w\d]+)(?: and change ([\w]+))? on ([\w\d]+)(?: by ([\w]+))?')
+def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_api):
     """Change process status on remote host by his name. """
-    service = None
+
+    #Init params
+    service = {'node': None}
     server = getattr(world, serv_as)
+    is_api = True if is_api else False
+    is_change_pid = True if is_change_pid else False
     node = world.cloud.get_node(server)
+
     #Checking the behavior in the role
     if not behavior in server.role.behaviors and behavior != 'scalarizr':
         raise AssertionError("{0} can not be found in the tested role.".format(behavior))
+
     #Get behavior configs
-    common_config = api.SERVICES_CONFIG_DIRS.get(behavior)
-    #Get service name
+    common_config = api.SERVICES_CONFIG.get(behavior)
+    #Get service name & status
     if common_config:
-        service = common_config.get('service_name')
-        if not service:
-            service = common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')
-    if not service:
+        status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as
+        service.update({'node': common_config.get('service_name')})
+        if not service['node']:
+            service.update({'node': common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')})
+        if is_api:
+            service.update({'api': common_config['api_endpoint'].get('name')})
+            if not service['api']:
+                raise AssertionError("Can't {0} service. "
+                                     "The api endpoint name is not found by the bahavior name {1}".format(status_as, behavior))
+            if not status:
+                raise AssertionError("Can't {0} service. "
+                                     "The api call is not found for {1}".format(status_as, service['node']))
+
+    if not service['node']:
         raise AssertionError("Can't {0} service. "
-                             "The process name is not found by the bahavior name {1}".format(status, behavior))
-    LOG.info("Change service status: {0} {1}".format(service, status))
+                             "The process name is not found by the bahavior name {1}".format(status_as, behavior))
+
+
+    LOG.info("Change service status: {0} {1} {2}".format(service['node'], status, 'by api call' if is_api else ''))
     #Change service status, get pids before and after
-    res = world.change_service_status(server, service, status)
+    res = world.change_service_status(server, service, status, _api=is_api, _pid=is_change_pid)
     #Verify change status
     if any(pid in res['pid_before'] for pid in res['pid_after']):
         LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'][0], res['info'][0]))
-        raise AssertionError("Can't {0} service. No such process {1}".format(status, service))
+        raise AssertionError("Can't {0} service. No such process {1}".format(status_as, service['node']))
     LOG.info('Service change status info: {0}'.format(res['info'][0]))
-    LOG.info("Service status was successfully changed : {0} {1}".format(service, status))
+    LOG.info("Service status was successfully changed : {0} {1} {2}".format(service['node'], status_as, 'by api call' if is_api else ''))
 
 
 @before.all
