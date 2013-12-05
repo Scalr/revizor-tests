@@ -21,7 +21,7 @@ LOG = logging.getLogger('lifecycle-windows')
 def check_windows_file(step, path, serv_as):
     server = getattr(world, serv_as)
     console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.ec2_windows_password))
+                            auth=("Administrator", server.windows_password))
     LOG.info('Run command: %s' % 'ls %s' % path)
     out = console.run_cmd('ls %s' % path).std_out
     LOG.debug('Result of command:')
@@ -35,7 +35,7 @@ def check_windows_file(step, path, serv_as):
 def reboot_windows(step, serv_as):
     server = getattr(world, serv_as)
     console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.ec2_windows_password))
+                            auth=("Administrator", server.windows_password))
     LOG.info('Restart scalarizr via winrm')
     LOG.debug('Stop scalarizr')
     out = console.run_cmd('net stop Scalarizr')
@@ -49,7 +49,7 @@ def reboot_windows(step, serv_as):
 def check_terminated_in_log(step, serv_as):
     server = getattr(world, serv_as)
     console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.ec2_windows_password))
+                            auth=("Administrator", server.windows_password))
     #TODO: Add path
     LOG.info("Run command: cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
     out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'").std_out
@@ -64,7 +64,7 @@ def check_terminated_in_log(step, serv_as):
 def check_errors_in_log(step, serv_as):
     server = getattr(world, serv_as)
     console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.ec2_windows_password))
+                            auth=("Administrator", server.windows_password))
     #TODO: Add path
     LOG.info("Run command cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
     out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR").std_out
