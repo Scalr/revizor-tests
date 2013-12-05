@@ -322,26 +322,29 @@ def check_database_table(step, db, serv_as, table_name, line_count):
     #TODO: Support to all databases
     server = getattr(world, serv_as)
     assert world.db.database_exist(db, server) == True, 'Database %s not exist in server %s' % (db, server.id)
-    cursor = world.db.get_cursor(server)
+    cursor = world.db.get_connection(server).cursor()
     cursor.execute('USE %s;' % db)
     cursor.execute('SHOW TABLES;')
     tables = [t[0] for t in cursor.fetchall()]
     if not table_name in tables:
         raise AssertionError('Table %s not exist in database: %s' % (table_name, db))
     count = cursor.execute('SELECT * FROM %s;' % table_name)
+    cursor.close()
     if not int(count) == int(line_count):
-        raise AssertionError('In table %s lines, but must be: %s' % (count ,line_count))
+        raise AssertionError('In table %s lines, but must be: %s' % (count, line_count))
 
 
 @step('database ([\w\d]+) in ([\w\d]+) has relevant timestamp$')
 def check_timestamp(step, db, serv_as):
     server = getattr(world, serv_as)
-    cursor = world.db.get_cursor(server)
+    cursor = world.db.get_connection(server).cursor()
     cursor.execute('USE %s;' % db)
     cursor.execute('SELECT * FROM timestamp;')
     timestamp = cursor.fetchone()[0]
+    cursor.close()
     if not timestamp == getattr(world, 'backup_timestamp', timestamp):
-        raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, getattr(world, 'backup_timestamp', timestamp)))
+        raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, getattr(world, 'backup_timestamp',
+                                                                                           timestamp)))
 
 
 @step(r'([\w\d]+) replication status is ([\w\d]+)')
