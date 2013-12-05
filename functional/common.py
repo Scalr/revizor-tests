@@ -637,13 +637,24 @@ def change_service_status(server, service, status, _api=False, _pid=False):
     #Change process status
     _change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service['node'], 'status': status})\
         if not _api\
-        else api.service['api'].status()
+        else getattr(getattr(api, service['api']), status)()
     #Action list
     _change_pid = {
         True:   ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
         False:  ({'pid_before': None}, {'info': _change_status}, {'pid_after': _get_pid}),
     }
-    return dict([key, value()] for item in _change_pid[_pid] for key, value in item.iteritems())
+    try:
+        return dict([key, value()] for item in _change_pid[_pid] for key, value in item.iteritems())
+    except Exception as e:
+        error_msg = """An error occurred while trying to execute a command %(command)s.
+                    Error code: %(code)s
+                    Error message: %(message)s""" % {
+                        'code': e.code,
+                        'message': e.message,
+                        'command': '%s.%s()' % (service['api'], status)}
+        LOG.error(error_msg)
+        raise Exception(error_msg)
+
 
 @world.absorb
 def is_log_rotate(server, process, rights, group='nogroup'):
