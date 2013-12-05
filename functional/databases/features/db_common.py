@@ -256,7 +256,7 @@ def get_last_backup_url(step):
 @step('I know timestamp from ([\w\d]+) in ([\w\d]+)$')
 def save_timestamp(step, db, serv_as):
     server = getattr(world, serv_as)
-    cursor = world.db.get_cursor(server)
+    cursor = world.db.get_connection(server).cursor()
     cursor.execute('USE %s;' % db)
     cursor.execute('SELECT * FROM timestamp;')
     timestamp = cursor.fetchone()[0]
