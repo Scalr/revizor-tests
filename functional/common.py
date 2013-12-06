@@ -15,7 +15,7 @@ from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
 from revizor2.consts import ServerStatus, Platform, MessageStatus
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
-from revizor2.helpers.jsonrpc import SrzApiServiceProxy
+from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
 import httplib
 
@@ -630,7 +630,7 @@ def change_service_status(server, service, status, is_api=False, pid=False):
     #Init params
     node = world.cloud.get_node(server)
     if is_api:
-        api = SrzApiServiceProxy(server.public_ip, str(server.details['scalarizr.key']))
+        api = SzrApiServiceProxy(server.public_ip, str(server.details['scalarizr.key']))
 
     #Get process pid
     get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service['node']})[0].rstrip('\n').split('\n')
