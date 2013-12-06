@@ -607,7 +607,7 @@ def kill_process_by_name(server, process):
 
 
 @world.absorb
-def change_service_status(server, service, status, _api=False, _pid=False):
+def change_service_status(server, service, status, is_api=False, pid=False):
     """change_service_status(status, service, server) Change process status on remote host by his name
     Return pid before change status, pid after change status, exit code
 
@@ -621,30 +621,30 @@ def change_service_status(server, service, status, _api=False, _pid=False):
     @type   server: obj
     @param  server: Server object
 
-    @type   _api:   bool
-    @param  _api:   Status is api call or node command
+    @type   is_api:   bool
+    @param  is_api:   Status is api call or node command
 
-    @type   _pid:   bool
-    @param  _pid:   Status is change pid for node service
+    @type   pid:   bool
+    @param  pid:   Status is change pid for node service
     """
     #Init params
     node = world.cloud.get_node(server)
-    if _api:
+    if is_api:
         api = SrzApiServiceProxy(server.public_ip, str(server.details['scalarizr.key']))
 
     #Get process pid
-    _get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service['node']})[0].rstrip('\n').split('\n')
+    get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service['node']})[0].rstrip('\n').split('\n')
     #Change process status
-    _change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service['node'], 'status': status})\
-        if not _api\
+    change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service['node'], 'status': status})\
+        if not is_api\
         else getattr(getattr(api, service['api']), status)()
     #Action list
-    _change_pid = {
-        True:   ({'pid_before': _get_pid}, {'info': _change_status}, {'pid_after': _get_pid}),
-        False:  ({'pid_before': None}, {'info': _change_status}, {'pid_after': _get_pid}),
+    change_pid = {
+        True: ({'pid_before': get_pid}, {'info': change_status}, {'pid_after': get_pid}),
+        False: ({'pid_before': None}, {'info': change_status}, {'pid_after': get_pid}),
     }
     try:
-        return dict([key, value()] for item in _change_pid[_pid] for key, value in item.iteritems())
+        return dict([key, func() if func else ['']] for item in change_pid[pid] for key, func in item.iteritems())
     except Exception as e:
         error_msg = """An error occurred while trying to execute a command %(command)s.
                     Original error: %(error)s""" % {
