@@ -13,9 +13,9 @@ Feature: Apache application server role
     @ec2 @cloudstack @rackspaceng @openstack
     Scenario: Apache start after scalarizr restart
         Given apache is running on A1
-        Then I stop service app and change pid on A1
+        Then I stop service app and changed pid on A1
         And apache is not running on A1
-        Then I restart service scalarizr and change pid on A1
+        Then I restart service scalarizr and changed pid on A1
         And apache is running on A1
         And http get A1 contains default welcome message
         And https get A1 contains default welcome message
@@ -58,11 +58,11 @@ Feature: Apache application server role
     Scenario: Virtual host auto update
         Then I create domain D4 to app role
         And I add virtual host H4 to app role and domain D4
-        Then I stop service scalarizr and change pid on A1
+        Then I stop service scalarizr and changed pid on A1
         And D4 resolves into A1 ip address
         And A1 has H4 in virtual hosts configuration
         Then I remove virtual host H4
-        And I start service scalarizr and change pid on A1
+        And I start service scalarizr and changed pid on A1
         And http get domain D4 matches H4 index page
         Then I reboot server A1
         And Scalr receives RebootFinish from A1
@@ -79,7 +79,7 @@ Feature: Apache application server role
         And http get domain D5 matches H5 index page
         Then I change the http virtual host H5 template invalid data
         Then Scalr sends VhostReconfigure to A1
-        And I restart service app and change pid on A1
+        And I restart service app and changed pid on A1
         And apache is running on A1
         And http get domain D5 matches H5 index page
         When I remove virtual host H5
@@ -99,11 +99,11 @@ Feature: Apache application server role
     @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
     Scenario: Change the status of by api
         Given apache is running on A1
-        Then I stop service app and change pid on A1 by api
+        Then I stop service app and changed pid on A1 by api
         And apache is not running on A1
-        Then I start service app and change pid on A1 by api
+        Then I start service app and changed pid on A1 by api
         And apache is running on A1
-        Then I restart service app and change pid on A1 by api
+        Then I restart service app and changed pid on A1 by api
         And apache is running on A1
         Then I reload service app on A1 by api
         And http get A1 contains default welcome message
