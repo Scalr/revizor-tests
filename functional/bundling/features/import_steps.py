@@ -14,7 +14,7 @@ from revizor2.utils import wait_until
 from revizor2.fixtures import tables
 from revizor2.helpers import install_behaviors_on_node
 
-LOG = logging.getLogger('import')
+LOG = logging.getLogger('bundling.import test')
 
 #User data fixtures
 #ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
@@ -118,7 +118,8 @@ USER_DATA = {
 COOKBOOKS_BEHAVIOR = {
     'app': 'apache2',
     'www': 'nginx',
-    'mysql': 'mysql::server'
+    'mysql': 'mysql::server',
+    'mysql2': 'mysql::server'
 
 }
 
@@ -202,7 +203,7 @@ def is_scalarizr_connected(step, timeout=1400):
             world.behaviors = ','.join((','.join(res['behaviors']), 'base')).split(',')
         else:
             world.behaviors = res['behaviors']
-        LOG.info('Connection with scalarizr was established.')
+        LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.behaviors)
     else:
         raise AssertionError("Can't establish connection with scalarizr. Original error: %s" % res['failure_reason'])
 
