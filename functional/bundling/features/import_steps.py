@@ -12,8 +12,9 @@ from revizor2.consts import ServerStatus, OS, Platform
 from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
 from revizor2.fixtures import tables
+from revizor2.helpers import install_behaviors_on_node
 
-LOG = logging.getLogger('import')
+LOG = logging.getLogger('bundling.import test')
 
 #User data fixtures
 #ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
@@ -114,6 +115,13 @@ USER_DATA = {
                 }
 }
 
+COOKBOOKS_BEHAVIOR = {
+    'app': 'apache2',
+    'www': 'nginx',
+    'mysql': 'mysql::server',
+    'mysql2': 'mysql::server'
+
+}
 
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
@@ -126,9 +134,6 @@ def given_server_in_cloud(step, user_data):
         else None
     #Create node
     node = world.cloud.create_node(userdata=user_data)
-    #Install scalarizr to server
-    LOG.info('Install scalarizr in node')
-    node.install_scalarizr(branch=CONF.main.branch)
     setattr(world, 'cloud_server', node)
     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         #Get node external ip
@@ -147,6 +152,16 @@ def given_server_in_cloud(step, user_data):
             raise AssertionError('Import will failed, because opened port is not 8013, '
                                  'an installed port is: %s' % new_port)
 
+
+@step('I initiate the installation behaviors on the server')
+def install_behaviors(step):
+    #Set recipe's
+    cookbooks = ['base', 'scalarizr']
+    for behavior in CONF.main.behaviors:
+        if behavior in cookbooks:
+            continue
+        cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
+    install_behaviors_on_node(world.cloud_server, cookbooks, CONF.main.platform.lower(), branch=CONF.main.branch)
 
 @step('I trigger the Start building and run scalarizr')
 def start_building(step):
@@ -188,7 +203,7 @@ def is_scalarizr_connected(step, timeout=1400):
             world.behaviors = ','.join((','.join(res['behaviors']), 'base')).split(',')
         else:
             world.behaviors = res['behaviors']
-        LOG.info('Connection with scalarizr was established.')
+        LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.behaviors)
     else:
         raise AssertionError("Can't establish connection with scalarizr. Original error: %s" % res['failure_reason'])
 

@@ -24,7 +24,7 @@ Feature: Redis database server functional test
     Scenario: Restart scalarizr
        When I reboot scalarizr in M1
        And see 'Scalarizr terminated' in M1 log
-       Then scalarizr process is 2 in M1
+       And scalarizr is running on M1
        And not ERROR in M1 scalarizr log
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
@@ -43,7 +43,7 @@ Feature: Redis database server functional test
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
        And see 'Scalarizr terminated' in M1 log
-       Then scalarizr process is 2 in M1
+       And scalarizr is running on M1
        And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
@@ -93,7 +93,7 @@ Feature: Redis database server functional test
     Scenario: Restart scalarizr in slave
        When I reboot scalarizr in M2
        And see 'Scalarizr terminated' in M2 log
-       Then scalarizr process is 2 in M2
+       And scalarizr is running on M2
        And not ERROR in M2 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
@@ -102,7 +102,6 @@ Feature: Redis database server functional test
 		Then Scalr sends HostDown to M1
 		And not ERROR in M1 scalarizr log
 		And redis is running on M1
-		And scalarizr process is 2 in M1
 		Then I expect server bootstrapping as M2
 		And not ERROR in M1 scalarizr log
 		And not ERROR in M2 scalarizr log

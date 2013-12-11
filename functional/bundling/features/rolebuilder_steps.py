@@ -23,7 +23,8 @@ def start_rolebuild(step):
         platform = CONF.main.platform
     os_dist, os_ver = get_scalr_dist_info(CONF.main.dist)
     image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.main.platform]['location'] and
-                             x['os_family']==os_dist and x['os_version'].startswith(os_ver), images(CONF.main.platform).all()['images'])[0]
+                             x['os_family']==os_dist and x['os_version'].startswith(os_ver),
+                   images(CONF.main.platform).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
@@ -46,25 +47,20 @@ def start_rolebuild(step, behaviors):
     if CONF.main.driver == Platform.GCE:
         location = 'all'
     platform = Platform.to_scalr(Platform.from_driver_name(CONF.main.platform))
-    os_family, os_version = re.findall(r'([a-zA-Z]+)(\d+)', CONF.main.dist)[0]
-    if os_family in ['centos', 'oel', 'rhel', 'amazon']:
-        images = IMPL.rolebuilder.images()[platform]['images']
-        for image in images:
-            if image['os_family'] == os_family and image['os_version'].startswith(os_version) and \
-                image['architecture'] == 'x86_64' and image['cloud_location'] == location and not 'hvm' in image:
-                if CONF.main.driver == Platform.EC2 and not image['root_device_type'] == 'ebs':
-                    continue
-                os_version = image['os_version']
-                break
+    os_dist, os_ver = get_scalr_dist_info(CONF.main.dist)
+    if CONF.main.driver == Platform.GCE:
+        image = filter(lambda x: x['os_family']==os_dist and x['os_version'].startswith(os_ver),
+                       images(Platform.to_scalr(CONF.main.driver)).all()['images'])[0]
     else:
-        #Get os version ubuntu
-        os_version = '.'.join((os_version[:2], os_version[2:]))
+        image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.main.platform]['location'] and
+                             x['os_family']==os_dist and x['os_version'].startswith(os_ver),
+                       images(CONF.main.platform).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
                                         behaviors=behaviors,
-                                        os_family=os_family,
-                                        os_version=os_version,
+                                        os_family=image['os_family'],
+                                        os_version=image['os_version'],
                                         name='tmp-%s-%s-%s' % (CONF.main.platform, CONF.main.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr='',

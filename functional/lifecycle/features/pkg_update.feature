@@ -19,5 +19,4 @@ Feature: Update scalarizr test
     Scenario: Restart scalarizr after update
         When I reboot scalarizr in M1
         And see 'Scalarizr terminated' in M1 log
-        Then scalarizr process is 2 in M1
         And not ERROR in M1 scalarizr log
