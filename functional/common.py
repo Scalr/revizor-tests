@@ -607,7 +607,7 @@ def kill_process_by_name(server, process):
 
 
 @world.absorb
-def change_service_status(server, service, status, is_api=False, pid=False):
+def change_service_status(server, service, status, use_api=False, change_pid=False):
     """change_service_status(status, service, server) Change process status on remote host by his name
     Return pid before change status, pid after change status, exit code
 
@@ -616,43 +616,51 @@ def change_service_status(server, service, status, is_api=False, pid=False):
 
     @type   service: dict
     @param  service: {node: name, api: name}, Service node name - scalarizr, apache2, etc...,
-                     service api endpoint name apahe, etc...
+                     service api endpoint name apache, etc...
 
     @type   server: obj
     @param  server: Server object
 
-    @type   is_api:   bool
-    @param  is_api:   Status is api call or node command
+    @type   use_api:   bool
+    @param  use_api:   Status is api call or node command
 
-    @type   pid:   bool
-    @param  pid:   Status is change pid for node service
+    @type   change_pid:   bool
+    @param  change_pid:   Status is changed pid for node service
     """
     #Init params
     node = world.cloud.get_node(server)
-    if is_api:
-        api = SzrApiServiceProxy(server.public_ip, str(server.details['scalarizr.key']))
+
+    #Change process status by calling api method or service command
+    def change_status():
+        if use_api:
+            api = SzrApiServiceProxy(server.public_ip, str(server.details['scalarizr.key']))
+            #Change process status by calling api call
+            try:
+                return getattr(getattr(api, service['api']), status)()
+            except Exception as e:
+                error_msg = """An error occurred while trying to execute a command %(command)s.
+                               Original error: %(error)s""" % {
+                    'error': e,
+                    'command': '%s.%s()' % (service['api'], status)
+                }
+                LOG.error(error_msg)
+                raise Exception(error_msg)
+        else:
+            #Change process status by  calling command service
+            return node.run("service %(process)s %(status)s && sleep 5" %
+                            {'process': service['node'], 'status': status})
 
     #Get process pid
-    get_pid = lambda: node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" % {'process': service['node']})[0].rstrip('\n').split('\n')
-    #Change process status
-    change_status = lambda: node.run("service %(process)s %(status)s && sleep 5" % {'process': service['node'], 'status': status})\
-        if not is_api\
-        else getattr(getattr(api, service['api']), status)()
-    #Action list
-    change_pid = {
-        True: ({'pid_before': get_pid}, {'info': change_status}, {'pid_after': get_pid}),
-        False: ({'pid_before': None}, {'info': change_status}, {'pid_after': get_pid}),
-    }
-    try:
-        return dict([key, func() if func else ['']] for item in change_pid[pid] for key, func in item.iteritems())
-    except Exception as e:
-        error_msg = """An error occurred while trying to execute a command %(command)s.
-                    Original error: %(error)s""" % {
-                        'error': e,
-                        'command': '%s.%s()' % (service['api'], status)}
-        LOG.error(error_msg)
-        raise Exception(error_msg)
+    def get_pid():
+        return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
+                        {'process': service['node']})[0].rstrip('\n').split('\n')
 
+    #Change status and get pid
+    return {
+        'pid_before': get_pid() if change_pid else [''],
+        'info': change_status(),
+        'pid_after': get_pid()
+    }
 
 @world.absorb
 def is_log_rotate(server, process, rights, group='nogroup'):
