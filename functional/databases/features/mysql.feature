@@ -12,7 +12,6 @@ Feature: MySQL (old behavior) database server
     Scenario: Restart scalarizr
        When I reboot scalarizr in M1
        And see 'Scalarizr terminated' in M1 log
-       Then scalarizr process is 2 in M1
        And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
@@ -31,7 +30,6 @@ Feature: MySQL (old behavior) database server
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
        And see 'Scalarizr terminated' in M1 log
-       Then scalarizr process is 2 in M1
        And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
@@ -83,7 +81,6 @@ Feature: MySQL (old behavior) database server
     Scenario: Restart scalarizr in slave
         When I reboot scalarizr in M2
         And see 'Scalarizr terminated' in M2 log
-        Then scalarizr process is 2 in M2
         And not ERROR in M2 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
@@ -92,7 +89,6 @@ Feature: MySQL (old behavior) database server
         Then Scalr sends HostDown to M1
         And not ERROR in M1 scalarizr log
         And mysql is running on M1
-        And scalarizr process is 2 in M1
         Then I expect server bootstrapping as M2
         And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log
