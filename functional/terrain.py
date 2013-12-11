@@ -819,7 +819,7 @@ def check_log(step, serv_as):
                error_text='Not see "Scalarizr terminated" in debug log')
 
 
-@step('I ([\w\d]+) service ([\w\d]+)(?: and change ([\w]+))? on ([\w\d]+)(?: by ([\w]+))?')
+@step('I ([\w\d]+) service ([\w\d]+)(?: and changed ([\w]+))? on ([\w\d]+)(?: by ([\w]+))?')
 def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_api):
     """Change process status on remote host by his name. """
 

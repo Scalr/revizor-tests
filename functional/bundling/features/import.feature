@@ -3,6 +3,7 @@ Feature: Import server to scalr and use this role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Executing import command on server running without userdata
         Given I have a server running in cloud
+        Then I initiate the installation behaviors on the server
         Then I trigger the Start building and run scalarizr
         And Connection with scalarizr was established
         Then I trigger the Create role
@@ -18,6 +19,7 @@ Feature: Import server to scalr and use this role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Executing import command on server running with userdata
         Given I have a server with userdata running in cloud
+        Then I initiate the installation behaviors on the server
         Then I trigger the Start building and run scalarizr
         And Connection with scalarizr was established
         Then I trigger the Create role
