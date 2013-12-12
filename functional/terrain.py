@@ -351,7 +351,8 @@ def add_role_to_farm(step, behavior=None, options=None):
         db = Database.create(role)
         if not db:
             raise AssertionError('Database for role %s not found!' % role)
-        setattr(world, 'db', db)
+        world.database_users = {}
+        world.db = db
 
 
 @step('I change branch to system for (\w+) role')

@@ -1,19 +1,15 @@
-import os
 import time
-import socket
-import urllib2
 import logging
-from datetime import datetime, timedelta
-import httplib
+from datetime import timedelta
 
 from lettuce import world, step
 from lxml import html
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
-from revizor2.dbmsr import Database
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
+from revizor2.helpers import generate_random_string
 from revizor2.consts import Platform, ServerStatus
 
 LOG = logging.getLogger('databases')
@@ -23,38 +19,6 @@ LOG = logging.getLogger('databases')
 PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
              'mongodb': 27018, 'mysqlproxy': 4040}
 
-
-# @step(r'([\w]+) is( not)? running on (.+)')
-# def assert_check_service(step, service, has_not, serv_as):
-#     LOG.info("Check service %s" % service)
-#     server = getattr(world, serv_as)
-#     has_not = has_not and True or False
-#     port = PORTS_MAP[service]
-#     if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-#         node = world.cloud.get_node(server)
-#         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
-#     else:
-#         new_port = port
-#     if world.role_type == 'redis':
-#         LOG.info('Role is redis, add iptables rule for me')
-#         node = world.cloud.get_node(server)
-#         try:
-#             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-#         except httplib.BadStatusLine:
-#             time.sleep(5)
-#             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
-#         LOG.info('My IP address: %s, add rules' % my_ip)
-#         node.run('iptables -I INPUT -p tcp -s %s --dport 6379:6394 -j ACCEPT' % my_ip)
-#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-#     s.settimeout(15)
-#     try:
-#         s.connect((server.public_ip, new_port))
-#     except (socket.error, socket.timeout), e:
-#         raise AssertionError(e)
-#     if service == 'redis':
-#         LOG.info('Set main redis instances to %s' % serv_as)
-#         setattr(world, 'redis_instances', {6379: world.farm.db_info('redis')['access']['password'].split()[2][:-4]})
-#     LOG.info("Service work")
 
 
 @step(r'I trigger ([\w]+) creation( on slave)?')
@@ -106,20 +70,34 @@ def assert_check_databundle_date(step, back_type):
         raise AssertionError('Previous %s was: %s and last: %s' % (back_type, getattr(world, 'last_%s' % back_type, 'Never'), info['last_%s' % back_type]))
 
 
-@step(r'I have small-sized database (.+) on ([\w]+)')
-def having_small_database(step, db_name, serv_as):
+@step(r"I create new database user '([\w\d]+)' on ([\w\d]+)$")
+def create_database_user(step, username, serv_as):
     server = getattr(world, serv_as)
-    LOG.info("Create database %s in %s" % (db_name, server.id))
-    world.db.insert_data_to_database(db_name, server)
+    password = generate_random_string(12)
+    LOG.info("Create new database user '%s/%s' in server %s" % (username, password, server))
+    world.db.user_create(username, password, server)
+    world.database_users[username] = password
 
 
-@step(r'I create (\d+) databases on ([\w]+)$')
-def create_many_databases(step, db_count, serv_as):
+@step(r"I add small-sized database (.+) on ([\w]+)(?: by user '([\w\d]+)')?")
+def having_small_database(step, db_name, serv_as, username=None):
     server = getattr(world, serv_as)
+    if username:
+        LOG.info("Create database %s in server %s by user %s" % (db_name, server, username))
+        world.db.insert_data_to_database(db_name, server, (username, world.database_users[username]))
+    else:
+        LOG.info("Create database %s in server %s" % (db_name, server))
+        world.db.insert_data_to_database(db_name, server)
+
+
+@step("I create (\d+) databases on ([\w]+)(?: by user '([\w\d]+)')?$")
+def create_many_databases(step, db_count, serv_as, username=None):
+    server = getattr(world, serv_as)
+    credentials = (username, world.database_users[username]) if username else None
     for c in range(int(db_count)):
         db_name = "MDB%s" % c
-        LOG.info("Create database %s in %s" % (db_name, server.id))
-        world.db.database_create(db_name, server)
+        LOG.info("Create database %s in server %s" % (db_name, server))
+        world.db.database_create(db_name, server, credentials)
 
 
 @step('([^ .]+) is slave of ([^ .]+)$')
@@ -157,8 +135,8 @@ def create_databundle(step, bundle_type, when):
     world.farm.db_create_databundle(world.db.db_name, bundle_type, use_slave=use_slave)
 
 
-@step('([\w]+)( not)? contains database (.+)$')
-def check_database_in_new_server(step, serv_as, has_not, db_name):
+@step("([\w]+)( not)? contains databases? ([\w\d,]+)(?: by user '([\w\d]+)')?$")
+def check_database_in_new_server(step, serv_as, has_not, db_name, username=None):
     has_not = has_not and True or False
     time.sleep(5)
     dbs = db_name.split(',')
@@ -167,21 +145,23 @@ def check_database_in_new_server(step, serv_as, has_not, db_name):
         servers = filter(lambda s: s.status == ServerStatus.RUNNING, world.farm.servers)
     else:
         servers = [getattr(world, serv_as)]
+    credentials = (username, world.database_users[username]) if username else None
     for server in servers:
         for db in dbs:
             LOG.info('Check database %s in server %s' % (db, server.id))
-            world.assert_not_equal(world.db.database_exist(db, server), not has_not,
+            world.assert_not_equal(world.db.database_exist(db, server, credentials), not has_not,
                                    (has_not and 'Database %s exist in server %s, but must be erased.  All db: %s'
                                    or 'Database %s not exist in server %s, all db: %s')
                                    % (db_name, server.id, world.db.database_list(server)))
 
 
-@step('I create database (.+) on (.+)')
-def create_new_database(step, db_name, serv_as):
+@step("I create database ([\w\d]+) on ([\w\d]+)(?: by user '([\w\d]+)')?")
+def create_new_database(step, db_name, serv_as, username=None):
     server = getattr(world, serv_as)
-    LOG.info('Create database %s in %s' % (db_name, server.id))
-    world.db.database_create(db_name, server)
-    LOG.info('Database was success create')
+    LOG.info('Create database %s in server %s' % (db_name, server))
+    credentials = (username, world.database_users[username]) if username else None
+    world.db.database_create(db_name, server, credentials)
+    LOG.info('Database was success created')
     time.sleep(60)
 
 

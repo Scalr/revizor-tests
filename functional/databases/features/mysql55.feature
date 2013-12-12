@@ -48,13 +48,14 @@ Feature: MySQL database server with behavior mysql2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @oneserv
     Scenario: Modifying data
-        Given I have small-sized database D1 on M1
+        When I create new database user 'revizor' on M1
+        And I add small-sized database D1 on M1 by user 'revizor'
         When I trigger databundle creation
         Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And I terminate server M1
         Then I expect server bootstrapping as M1
-        And M1 contains database D1
+        And M1 contains database D1 by user 'revizor'
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle
     Scenario: Bundling data second time
@@ -70,7 +71,7 @@ Feature: MySQL database server with behavior mysql2
 
     @ec2 @gce @rackspaceng @openstack @eucalyptus @backup
     Scenario: Backuping 11 databases
-        When I create 11 databases on M1
+        When I create 11 databases on M1 by user 'revizor'
         Then I trigger backup creation
         Then Scalr sends DbMsr_CreateBackup to M1
         And Scalr receives DbMsr_CreateBackupResult from M1
@@ -86,7 +87,7 @@ Feature: MySQL database server with behavior mysql2
         Then I restore databases D1,MDB1,MDB10 in M1
         And database D1 in M1 contains 'table1' with 80 lines
         And database D1 in M1 has relevant timestamp
-        And M1 contains database D1,MDB1,MDB10
+        And M1 contains databases D1,MDB1,MDB10
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @replication
     Scenario: Setup replication
@@ -138,8 +139,8 @@ Feature: MySQL database server with behavior mysql2
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @replication
     Scenario: Writing on Master, reading on Slave
-        When I create database D2 on M1
-        Then M2 contains database D2
+        When I create database D2 on M1 by user 'revizor'
+        Then M2 contains database D2 by user 'revizor'
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle @slavedatabundle
 	Scenario: Check databundle in slave
@@ -152,21 +153,21 @@ Feature: MySQL database server with behavior mysql2
     Scenario: Slave -> Master promotion
         Given I increase minimum servers to 3 for mysql2 role
         And I expect server bootstrapping as M3
-        And M3 contains database D2
-        When I create database D3 on M1
+        And M3 contains database D2 by user 'revizor'
+        When I create database D3 on M1 by user 'revizor'
         And mysql2 replication status is up
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And Scalr sends DbMsr_NewMasterUp to all
         And mysql2 replication status is up
-        And M2 contains database D3
+        And M2 contains database D3 by user 'revizor'
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @promotion
 	Scenario: Check new master replication
 		Given I wait 1 minutes
-		When I create database D4 on N1
-		Then all contains database D4
+		When I create database D4 on N1 by user 'revizor'
+		Then all contains database D4 by user 'revizor'
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle @lvm
 	Scenario: Bundling data before terminate
@@ -182,13 +183,12 @@ Feature: MySQL database server with behavior mysql2
 		Then I start farm with delay
 		And I expect server bootstrapping as M1
 		And mysql is running on M1
-		And M1 contains database D3
+		And M1 contains database D3 by user 'revizor'
 		And scalarizr version is last in M1
 		Then I expect server bootstrapping as M2
 		And mysql2 replication status is up
 		And M2 is slave of M1
-		And M2 contains database D3
-		And M2 contains database D4
+		And M2 contains databases D3,D4 by user 'revizor'
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart
