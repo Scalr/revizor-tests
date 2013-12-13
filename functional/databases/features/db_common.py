@@ -347,3 +347,22 @@ def check_timestamp(step, db, serv_as):
 @step(r'([\w\d]+) replication status is ([\w\d]+)')
 def verify_replication_status(step, behavior, status):
     wait_until(world.wait_replication_status, args=(behavior, status), error_text="Replication in broken", timeout=600)
+
+
+@step(r'I (get|verify) ([\w\d]+) master storage id')
+def get_storage_id(step, action, db):
+    verify = False if action == 'get' else True
+    if not verify:
+        LOG.info('Get Master storage id for db %s before Slave -> Master promotion.' % db)
+        storage_id = world.farm.db_info(db)['storage']['id']
+        if not storage_id:
+            raise AssertionError("Can't get Master storage id for db %s before Slave -> Master promotion." % db)
+        setattr(world, 'storage_id', storage_id)
+        LOG.info('Master storage id for db %s before Slave -> Master promotion is %s' % (db, storage_id))
+    if CONF.main.storage == 'persistent' and verify:
+        LOG.info('Get Master storage id for db %s after Slave -> Master promotion.' % db)
+        storage_id = world.farm.db_info(db)['storage']['id']
+        world.assert_not_equal(world.storage_id, storage_id, 'Master storage id %s not matched id %s'
+                                                             ' saved before Slave -> Master promotion.' % 
+                                                             (storage_id, world.storage_id))
+        LOG.info('Master storage id %s matched id %s saved before Slave -> Master promotion.' % (storage_id, world.storage_id))
