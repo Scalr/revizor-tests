@@ -161,7 +161,8 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
 
             LOG.debug('Check lookup server init failed')
             if lookup_server.is_init_failed:
-                raise ServerFailed('Server %s failed in %s' % (lookup_server.id, ServerStatus.INIT))
+                raise ServerFailed('Server %s failed in %s. Failed (Why?): %s' %
+                                   (lookup_server.id, ServerStatus.INIT, lookup_server.get_failed_status_message()))
 
             LOG.debug('Try get node')
             if not lookup_node and not lookup_server.status in [ServerStatus.PENDING_LAUNCH,
