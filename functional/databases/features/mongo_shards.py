@@ -60,7 +60,7 @@ def assert_shard_status(step, serv_count):
                 LOG.info('Found server %s with cluster position %s' % (server.id, serv.cluster_position))
                 break
     world.assert_not_exist(server, 'Not find server with index 0-0')
-    conn = world.db.get_conn(server, 27017)
+    conn = world.db.get_connection(server, 27017)
     LOG.info('Create mongo connection to %s' % server.id)
     cur = conn.config.shards.find()
     rs_list = set([rs['host'].split('/')[0][-1] for rs in cur])
