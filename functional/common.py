@@ -200,13 +200,17 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
 @world.absorb
 def wait_servers_running(role_id, count):
     world.farm.servers.reload()
+    previous_servers = getattr(world, '_previous_servers', [])
     run_count = 0
     for server in world.farm.servers:
         if server.role_id == role_id and server.status == ServerStatus.RUNNING:
             LOG.info('Server %s is Running' % server.id)
+            if not server in previous_servers:
+                previous_servers.append(server)
             run_count += 1
     if int(count) == run_count:
         LOG.info('Servers in running state are %s' % run_count)
+        world._previous_servers = previous_servers
         return True
     return False
 
