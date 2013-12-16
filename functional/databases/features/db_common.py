@@ -352,6 +352,7 @@ def verify_replication_status(step, behavior, status):
 @step(r'I (get|verify) ([\w\d]+) master storage id')
 def get_storage_id(step, action, db):
     if not CONF.main.storage == 'persistent':
+        LOG.debug('Verify the master storage id is only available with persistent system')
         return True
     get = True if action == 'get' else False
     if get:

@@ -150,10 +150,12 @@ Feature: mariadb database server with behavior mariadb
         And M3 contains database D2
         When I create database D3 on M1
         And mariadb replication status is up
+        Then I get mariadb master storage id
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And Scalr sends DbMsr_NewMasterUp to all
+        And I verify mariadb master storage id
         And mariadb replication status is up
         And M2 contains database D3
 
