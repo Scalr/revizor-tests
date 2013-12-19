@@ -23,6 +23,8 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'po
              'mongodb': 27018, 'mysqlproxy': 4040}
 
 
+###DataBases handlers
+#####################
 #{'mysql': Mysql, 'mysql2': Mysql, 'percona': Mysql, 'redis': Redis, 'postgresql': PostgreSQL}
 realisations = dict()
 
@@ -33,6 +35,17 @@ def dbhandler(databases):
         for db in databases:
             realisations.update({db: cls})
     return wrapper
+
+
+@dbhandler('postgresql')
+class PostgreSQL(object):
+
+    def __init__(self, server, db=None):
+        #Get connection object
+        self.server = server
+        self.connection = world.db.get_connection(server)
+        self.db = db
+        self.node = world.cloud.get_node(server)
 
 
 @dbhandler('redis')
@@ -57,7 +70,7 @@ class Redis(object):
         self.node = world.cloud.get_node(server)
         self.snapshotting_type = 'aof' if not os.environ.get('RV_REDIS_SNAPSHOTTING') else 'rdb'
 
-    def timestamp(self):
+    def get_timestamp(self):
         return self.connection.get('revizor.timestamp')
 
     def restore(self, src_path, db=None):
@@ -86,6 +99,9 @@ class Redis(object):
                                  % (self.server.public_ip, out[0], out[1]))
         LOG.info('Redis server was successfully run.')
 
+    def check_data(self, pattern):
+        return len(self.connection.keys('*%s*' % pattern))
+
 
 @dbhandler('mysql, mysql2, percona')
 class MySQL(object):
@@ -97,7 +113,7 @@ class MySQL(object):
         self.db = db
         self.node = world.cloud.get_node(server)
 
-    def timestamp(self):
+    def get_timestamp(self):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
         cursor = self.connection.cursor()
@@ -119,6 +135,19 @@ class MySQL(object):
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
 
+    def check_data(self, pattern):
+        if not self.db:
+            raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
+        cursor = self.connection.cursor()
+        cursor.execute('USE %s;' % self.db)
+        cursor.execute('SHOW TABLES;')
+        tables = [t[0] for t in cursor.fetchall()]
+        if not pattern in tables:
+            raise AssertionError('Table %s not exist in database: %s' % (pattern, self.db))
+        count = cursor.execute('SELECT count(*) FROM %s;' % pattern)
+        cursor.close()
+        return count
+
 
 def get_db_handler(db_name):
     try:
@@ -128,7 +157,8 @@ def get_db_handler(db_name):
 
 
 
-
+###Testsuite steps
+##################
 @step(r'I trigger ([\w]+) creation( on slave)?')
 def trigger_creation(step, action, use_slave=None):
     #TODO: if databundle in progress, wait 10 minutes
@@ -349,13 +379,13 @@ def save_timestamp(step, db, serv_as):
     #Get db handler Class
     db_handler_class = get_db_handler(world.db.db_name)
     #Get db backup timestamp
-    LOG.info('Getting data base %s backup timestamp for %s server' % (db, world.db.db_name))
-    backup_timestamp = db_handler_class(server, db).timestamp()
+    LOG.info('Getting database %s backup timestamp for %s server' % (db, world.db.db_name))
+    backup_timestamp = db_handler_class(server, db).get_timestamp()
     if not backup_timestamp:
-        raise AssertionError('Data base %s backup timestamp for %s server is empty.') % (db, world.db.db_name)
+        raise AssertionError('Database %s backup timestamp for %s server is empty.' % (db, world.db.db_name))
     #Set timestamp to global
     setattr(world, '%s.backup_timestamp' % world.db.db_name, backup_timestamp)
-    LOG.info('Data base %s backup timestamp for %s server is: %s' % (db, world.db.db_name, backup_timestamp))
+    LOG.info('Database %s backup timestamp for %s server is: %s' % (db, world.db.db_name, backup_timestamp))
 
 @step('I download backup in ([\w\d]+)')
 def download_dump(step, serv_as):
@@ -406,37 +436,40 @@ def restore_databases(step, databases, serv_as):
         LOG.info('Restore database %s' % db)
         db_handler.restore('/tmp/dbrestore/', db)
         LOG.info('Database %s was successfully restored.' % db)
-    LOG.info('All databases %s was successfully restored.' % ','.join(databases))
+    LOG.info('All databases: %s was successfully restored.' % ','.join(databases))
 
 
 @step("database ([\w\d]+) in ([\w\d]+) contains '([\w\d]+)' with (\d+) lines$")
-def check_database_table(step, db, serv_as, table_name, line_count):
+def check_database_table(step, db, serv_as, pattern, line_count):
     #TODO: Support to all databases
     server = getattr(world, serv_as)
-    assert world.db.database_exist(db, server) == True, 'Database %s not exist in server %s' % (db, server.id)
-    cursor = world.db.get_connection(server).cursor()
-    cursor.execute('USE %s;' % db)
-    cursor.execute('SHOW TABLES;')
-    tables = [t[0] for t in cursor.fetchall()]
-    if not table_name in tables:
-        raise AssertionError('Table %s not exist in database: %s' % (table_name, db))
-    count = cursor.execute('SELECT * FROM %s;' % table_name)
-    cursor.close()
+    if not world.db.database_exist(db, server):
+        raise AssertionError('Database %s not exist in server %s' % (db, server.id))
+    #Get db handler Class
+    db_handler_class = get_db_handler(world.db.db_name)
+    #Get db records count
+    LOG.info('Getting database %s records count for %s server.' % (db, world.db.db_name))
+    count = db_handler_class(server, db).check_data(pattern)
     if not int(count) == int(line_count):
-        raise AssertionError('In table %s lines, but must be: %s' % (count, line_count))
+        raise AssertionError('Records count in restored db %s is %s, but must be: %s' % (db, count, line_count))
+    LOG.info('Records count in restored db %s is: %s this corresponds to the transferred' % (db, count))
 
 
 @step('database ([\w\d]+) in ([\w\d]+) has relevant timestamp$')
 def check_timestamp(step, db, serv_as):
+    #Init params
     server = getattr(world, serv_as)
-    cursor = world.db.get_connection(server).cursor()
-    cursor.execute('USE %s;' % db)
-    cursor.execute('SELECT * FROM timestamp;')
-    timestamp = cursor.fetchone()[0]
-    cursor.close()
-    if not timestamp == getattr(world, 'backup_timestamp', timestamp):
-        raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, getattr(world, 'backup_timestamp',
-                                                                                           timestamp)))
+    db = db if db else ''
+    #Get db handler Class
+    db_handler_class = get_db_handler(world.db.db_name)
+    #Get db backup timestamp
+    LOG.info('Getting database %s new backup timestamp for %s server' % (db, world.db.db_name))
+    timestamp = db_handler_class(server, db).get_timestamp()
+    backup_timestamp = getattr(world, '%s.backup_timestamp' % world.db.db_name)
+    if not timestamp == backup_timestamp:
+        raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, backup_timestamp))
+    #Set timestamp to global
+    LOG.info('Database %s new backup timestamp for %s server is equivalent: %s = %s' % (db, world.db.db_name, backup_timestamp, timestamp))
 
 
 @step(r'([\w\d]+) replication status is ([\w\d]+)')

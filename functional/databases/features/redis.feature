@@ -89,7 +89,7 @@ Feature: Redis database server functional test
         When I download backup in M1
         And I delete databases 1 in M1
         Then I restore databases 1 in M1
-        And database 1 in M1 contains 'table1' with 80 lines
+        And database 1 in M1 contains 'revizor' with 101 lines
         And database 1 in M1 has relevant timestamp
         And M1 contains database 1
 
