@@ -384,7 +384,7 @@ def save_timestamp(step, db, serv_as):
     if not backup_timestamp:
         raise AssertionError('Database %s backup timestamp for %s server is empty.' % (db, world.db.db_name))
     #Set timestamp to global
-    setattr(world, '%s.backup_timestamp' % world.db.db_name, backup_timestamp)
+    setattr(world, '%s_backup_timestamp' % world.db.db_name, backup_timestamp)
     LOG.info('Database %s backup timestamp for %s server is: %s' % (db, world.db.db_name, backup_timestamp))
 
 @step('I download backup in ([\w\d]+)')
@@ -465,7 +465,7 @@ def check_timestamp(step, db, serv_as):
     #Get db backup timestamp
     LOG.info('Getting database %s new backup timestamp for %s server' % (db, world.db.db_name))
     timestamp = db_handler_class(server, db).get_timestamp()
-    backup_timestamp = getattr(world, '%s.backup_timestamp' % world.db.db_name)
+    backup_timestamp = getattr(world, '%s_backup_timestamp' % world.db.db_name)
     if not timestamp == backup_timestamp:
         raise AssertionError('Timestamp is not equivalent: %s != %s' % (timestamp, backup_timestamp))
     #Set timestamp to global
