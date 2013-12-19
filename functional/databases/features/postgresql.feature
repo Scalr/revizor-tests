@@ -43,7 +43,7 @@ Feature: PostgreSQL database server functional test
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @oneserv
     Scenario: Modifying data
-        Given I have small-sized database D1 on M1
+        Given I add small-sized database D1 on M1
         When I trigger databundle creation
         Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
@@ -71,6 +71,17 @@ Feature: PostgreSQL database server functional test
         And Scalr receives DbMsr_CreateBackupResult from M1
 		And Last backup date updated to current
 		And not ERROR in M1 scalarizr log
+
+	@ec2 @backup @restore
+    Scenario: Restore from backup
+        Given I know last backup url
+        And I know timestamp from D1 in M1
+        When I download backup in M1
+        And I delete databases D1,MDB1,MDB10 in M1
+        Then I restore databases D1,MDB1,MDB10 in M1
+        And database D1 in M1 contains 'table1' with 80 lines
+        And database D1 in M1 has relevant timestamp
+        And M1 contains database D1,MDB1,MDB10
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Setup replication

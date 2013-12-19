@@ -12,12 +12,120 @@ from revizor2.fixtures import resources
 from revizor2.helpers import generate_random_string
 from revizor2.consts import Platform, ServerStatus
 
+import os
+from revizor2.consts import Dist
+
 LOG = logging.getLogger('databases')
 
 #TODO: add to all methods which call dbmsr 3 retries
 
 PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
              'mongodb': 27018, 'mysqlproxy': 4040}
+
+
+#{'mysql': Mysql, 'mysql2': Mysql, 'percona': Mysql, 'redis': Redis, 'postgresql': PostgreSQL}
+realisations = dict()
+
+
+def dbhandler(databases):
+    databases = databases.split(',')
+    def wrapper(cls):
+        for db in databases:
+            realisations.update({db: cls})
+    return wrapper
+
+
+@dbhandler('redis')
+class Redis(object):
+
+    redis_path = {
+        'debian':  {
+            'bin': '/usr/bin',
+            'conf': '/etc/redis'
+        },
+        'centos':  {
+            'bin': '/usr/sbin',
+            'conf': '/etc'
+        }
+    }
+
+    def __init__(self, server, db=0):
+        #Get connection object
+        self.server = server
+        self.connection = world.db.get_connection(server, db=db)
+        self.db = db
+        self.node = world.cloud.get_node(server)
+        self.snapshotting_type = 'aof' if not os.environ.get('RV_REDIS_SNAPSHOTTING') else 'rdb'
+
+    def timestamp(self):
+        return self.connection.get('revizor.timestamp')
+
+    def restore(self, src_path, db=None):
+        #Kill redis-server
+        LOG.info('Stopping Redis server.')
+        out = self.node.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l redis-server | awk {print'$1'}")[0]
+        if out:
+            raise AssertionError('Redis server, pid:%s  was not properly killed on remote host %s' % (out, self.server.public_ip))
+        LOG.info('Redis server was successfully stopped. Getting backups and moving to redis storage.')
+        #Move dump to redis storage
+        out = self.node.run("find %s -name '*%s*' -print0 | xargs -i{} -0 -r cp -v {} /mnt/redisstorage/" %
+                            (src_path, self.snapshotting_type))
+        if not out[0]:
+            raise AssertionError("Can't move dump to redis-server storage.  Error is: %s" % out[1])
+        LOG.info('Available backups in server: %s. Backups was successfully moved to redis storage.' % out[0].split()[0])
+
+        #Run redis-server
+        LOG.info('Running Redis server.')
+        out = self.node.run("/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" && sleep 5 &&  pgrep -l redis-server | awk {print'$1'}" %
+                            {
+                                 'bin': os.path.join(self.redis_path.get(Dist.get_os_family(self.node.os[0]))['bin'], 'redis-server'),
+                                 'conf': os.path.join(self.redis_path.get(Dist.get_os_family(self.node.os[0]))['conf'], 'redis.6379.conf')
+                            })
+        if out[2]:
+            raise AssertionError("Redis server was not properly started on remote host %s. Error is: %s %s"
+                                 % (self.server.public_ip, out[0], out[1]))
+        LOG.info('Redis server was successfully run.')
+
+
+@dbhandler('mysql, mysql2, percona')
+class MySQL(object):
+
+    def __init__(self, server, db=None):
+        #Get connection object
+        self.server = server
+        self.connection = world.db.get_connection(server)
+        self.db = db
+        self.node = world.cloud.get_node(server)
+
+    def timestamp(self):
+        if not self.db:
+            raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
+        cursor = self.connection.cursor()
+        cursor.execute('USE %s;' % self.db)
+        cursor.execute('SELECT * FROM timestamp;')
+        return cursor.fetchone()[0]
+
+    def restore(self, src_path, db):
+
+        backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].split()
+        LOG.info('Available backups in server: %s' % backups_in_server)
+        path = os.path.join(src_path, db)
+        if not path in backups_in_server:
+            raise AssertionError('Database %s backup not exist in path %s' % (db, path))
+        LOG.info('Creating db: %s in server.' % db)
+        world.db.database_create(db, self.server)
+        out = self.node.run('mysql -u scalr -p%s %s < %s' % (world.db.password, db, src_path))
+        if out[1]:
+            raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
+        LOG.info('Data base: %s was successfully created in server.' % db)
+
+
+def get_db_handler(db_name):
+    try:
+        return realisations[db_name]
+    except KeyError:
+        raise Exception("Can't get data base handler. No such class implemented.")
+
 
 
 
@@ -233,15 +341,21 @@ def get_last_backup_url(step):
     setattr(world, 'last_backup_url', last_backup_url)
 
 
-@step('I know timestamp from ([\w\d]+) in ([\w\d]+)$')
+@step(r'I know timestamp(?: from ([\w\d]+))? in ([\w\d]+)$')
 def save_timestamp(step, db, serv_as):
+    #Init params
     server = getattr(world, serv_as)
-    cursor = world.db.get_connection(server).cursor()
-    cursor.execute('USE %s;' % db)
-    cursor.execute('SELECT * FROM timestamp;')
-    timestamp = cursor.fetchone()[0]
-    setattr(world, 'backup_timestamp', timestamp)
-
+    db = db if db else ''
+    #Get db handler Class
+    db_handler_class = get_db_handler(world.db.db_name)
+    #Get db backup timestamp
+    LOG.info('Getting data base %s backup timestamp for %s server' % (db, world.db.db_name))
+    backup_timestamp = db_handler_class(server, db).timestamp()
+    if not backup_timestamp:
+        raise AssertionError('Data base %s backup timestamp for %s server is empty.') % (db, world.db.db_name)
+    #Set timestamp to global
+    setattr(world, '%s.backup_timestamp' % world.db.db_name, backup_timestamp)
+    LOG.info('Data base %s backup timestamp for %s server is: %s' % (db, world.db.db_name, backup_timestamp))
 
 @step('I download backup in ([\w\d]+)')
 def download_dump(step, serv_as):
@@ -280,21 +394,19 @@ def delete_databases(step, databases, serv_as):
 
 @step('I restore databases ([\w\d,]+) in ([\w\d]+)$')
 def restore_databases(step, databases, serv_as):
+    #Init params
     databases = databases.split(',')
     server = getattr(world, serv_as)
-    LOG.info('Restore databases  %s in server %s' % (databases, server.id))
-    node = world.cloud.get_node(server)
-    backups_in_server = node.run('ls /tmp/dbrestore/*')[0].split()
-    LOG.info('Available backups in server: %s' % backups_in_server)
+    #Get db handler
+    db_handler_class = get_db_handler(world.db.db_name)
+    db_handler = db_handler_class(server)
+    #Restoring db
+    LOG.info('Restoring databases %s in server %s' % (','.join(databases), server.id))
     for db in databases:
         LOG.info('Restore database %s' % db)
-        path = '/tmp/dbrestore/%s' % db
-        if not path in backups_in_server:
-            raise AssertionError('Database %s backup not exist in path %s' % (db, path))
-        world.db.database_create(db, server)
-        out = node.run('mysql -u scalr -p%s %s < %s' % (world.db.password, db, path))
-        if out[1]:
-            raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
+        db_handler.restore('/tmp/dbrestore/', db)
+        LOG.info('Database %s was successfully restored.' % db)
+    LOG.info('All databases %s was successfully restored.' % ','.join(databases))
 
 
 @step("database ([\w\d]+) in ([\w\d]+) contains '([\w\d]+)' with (\d+) lines$")

@@ -55,7 +55,7 @@ Feature: Redis database server functional test
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @oneserv
     Scenario: Modifying data
-        Given I have small-sized database 1 on M1
+        Given I add small-sized database 1 on M1
         When I trigger databundle creation
         Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
@@ -81,6 +81,17 @@ Feature: Redis database server functional test
         Then Scalr sends DbMsr_CreateBackup to M1
         And Scalr receives DbMsr_CreateBackupResult from M1
         And Last backup date updated to current
+
+    @ec2 @backup @restore
+    Scenario: Restore from backup
+        Given I know last backup url
+        And I know timestamp from 1 in M1
+        When I download backup in M1
+        And I delete databases 1 in M1
+        Then I restore databases 1 in M1
+        And database 1 in M1 contains 'table1' with 80 lines
+        And database 1 in M1 has relevant timestamp
+        And M1 contains database 1
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Setup replication
