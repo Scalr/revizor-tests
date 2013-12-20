@@ -130,7 +130,7 @@ class MySQL(object):
             raise AssertionError('Database %s backup not exist in path %s' % (db, path))
         LOG.info('Creating db: %s in server.' % db)
         world.db.database_create(db, self.server)
-        out = self.node.run('mysql -u scalr -p%s %s < %s' % (world.db.password, db, src_path))
+        out = self.node.run('mysql -u scalr -p%s %s < %s' % (world.db.password, db, path))
         if out[1]:
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
