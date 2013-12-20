@@ -138,15 +138,17 @@ class MySQL(object):
     def check_data(self, pattern):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
-        cursor = self.connection.cursor()
-        cursor.execute('USE %s;' % self.db)
-        cursor.execute('SHOW TABLES;')
-        tables = [t[0] for t in cursor.fetchall()]
-        if not pattern in tables:
-            raise AssertionError('Table %s not exist in database: %s' % (pattern, self.db))
-        count = cursor.execute('SELECT count(*) FROM %s;' % pattern)
-        cursor.close()
-        return count
+        try:
+            cursor = self.connection.cursor()
+            cursor.execute('USE %s;' % self.db)
+            cursor.execute('SHOW TABLES;')
+            tables = [t[0] for t in cursor.fetchall()]
+            if not pattern in tables:
+                raise AssertionError('Table %s not exist in database: %s' % (pattern, self.db))
+            cursor.execute('SELECT count(*) as rows FROM %s;' % pattern)
+            return cursor.fetchone()[0]
+        finally:
+            cursor.close()
 
 
 def get_db_handler(db_name):
