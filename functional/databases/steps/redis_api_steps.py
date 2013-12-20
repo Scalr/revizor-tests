@@ -7,7 +7,7 @@ from lettuce import step, world
 from revizor2.cloud import Cloud
 from revizor2.conf import CONF
 try:
-    #TODO: Rewrite RPC (not use scalarizr!!!)
+    #FIXME: Rewrite RPC (not use scalarizr!!!)
     from revizor2.helpers.jsonrpc_http import HttpServiceProxy
     from scalarizr.rpc import ServiceError
 except:

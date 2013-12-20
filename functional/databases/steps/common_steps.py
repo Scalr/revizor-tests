@@ -79,7 +79,7 @@ def create_database_user(step, username, serv_as):
     world.database_users[username] = password
 
 
-@step(r"I add small-sized database (.+) on ([\w]+)(?: by user '([\w\d]+)')?")
+@step(r"I (?:add|have) small-sized database ([\w\d]+) on ([\w\d]+)(?: by user '([\w\d]+)')?")
 def having_small_database(step, db_name, serv_as, username=None):
     server = getattr(world, serv_as)
     if username:

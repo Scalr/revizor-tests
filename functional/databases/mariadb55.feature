@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps
 Feature: mariadb database server with behavior mariadb
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @boot

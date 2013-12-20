@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps
 Feature: MySQL (old behavior) database server
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @boot

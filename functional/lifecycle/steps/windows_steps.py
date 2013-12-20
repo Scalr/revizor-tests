@@ -9,10 +9,6 @@ try:
 except ImportError:
     print "Please install WinRM"
 
-from revizor2.api import Farm, IMPL
-from revizor2.conf import CONF
-from revizor2.utils import wait_until
-from revizor2.consts import ServerStatus, Platform
 
 LOG = logging.getLogger('lifecycle-windows')
 

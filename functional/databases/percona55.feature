@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps
 Feature: Percona 5.5 database server with behavior percona2 (scalr behavior percona for Percona 5.5)
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @boot

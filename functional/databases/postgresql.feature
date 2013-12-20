@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps
 Feature: PostgreSQL database server functional test
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @boot

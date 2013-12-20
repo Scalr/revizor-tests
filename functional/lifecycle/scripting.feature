@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps, steps/scripting_steps
 Feature: Scalarizr scripting test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

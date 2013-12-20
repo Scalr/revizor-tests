@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps, steps/apache_steps, steps/nginx_new_steps
 Feature: Nginx load balancer role test with apache backends and new proxy settings
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

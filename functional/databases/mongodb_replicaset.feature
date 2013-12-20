@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps, steps/mongo_steps
 Feature: MongoDB replica set
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

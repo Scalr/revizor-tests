@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps, steps/chef_boot_steps, steps/lifecycle_steps
 Feature: Check chef attributes set
 
     @ec2 @gce @cloudstack @rackspaceng

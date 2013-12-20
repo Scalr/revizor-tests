@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps
 Feature: Tomcat 6 and 7 test for CentOS
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @tomcat7

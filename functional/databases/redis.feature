@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps, steps/redis_steps
 Feature: Redis database server functional test
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @boot

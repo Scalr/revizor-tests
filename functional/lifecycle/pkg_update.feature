@@ -1,3 +1,4 @@
+Using step definitions from: steps/common_steps, steps/pkg_update_steps
 Feature: Update scalarizr test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
