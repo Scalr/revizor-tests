@@ -37,15 +37,61 @@ def dbhandler(databases):
     return wrapper
 
 
+def cursor_close(func):
+    def wrapped(self, *args, **kwargs):
+        try:
+            return func(self, *args, **kwargs)
+        finally:
+            self._close()
+    return wrapped
+
+
 @dbhandler('postgresql')
 class PostgreSQL(object):
 
     def __init__(self, server, db=None):
         #Get connection object
         self.server = server
-        self.connection = world.db.get_connection(server)
+        self.cursor = world.db.get_connection(server, db=db).cursor()
         self.db = db
         self.node = world.cloud.get_node(server)
+
+    def _close(self):
+        self.cursor.close()
+
+    @cursor_close
+    def get_timestamp(self):
+        if not self.db:
+            raise AssertionError("Can't get data base timestamp for PostgreSQL server, not one database is not used.")
+        self.cursor.execute('SELECT * FROM timestamp;')
+        return self.cursor.fetchone()[0]
+
+    def restore(self, src_path, db):
+        backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].split()
+        LOG.info('Available backups in server: %s' % backups_in_server)
+        path = os.path.join(src_path, db)
+        if not path in backups_in_server:
+            raise AssertionError('Database %s backup not exist in path %s' % (db, path))
+        LOG.info('Creating db: %s in server.' % db)
+        world.db.database_create(db, self.server)
+        out = self.node.run('pg_restore -U scalr -W %s -C -d %s %s' % (world.db.password, db, path))
+        if out[1]:
+            raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
+        LOG.info('Data base: %s was successfully created in server.' % db)
+
+    @cursor_close
+    def check_data(self, pattern):
+        if not self.db:
+            raise AssertionError("Can't get data base timestamp for PostgreSQL server, not one database is not used.")
+        self.cursor.execute("SELECT table_name "
+                            "FROM information_schema.tables "
+                            "WHERE table_type = 'BASE TABLE' AND "
+                            "table_schema NOT IN ('pg_catalog', 'information_schema');")
+        tables = [t[0] for t in self.cursor.fetchall()]
+        if not pattern in tables:
+            raise AssertionError('Table %s not exist in database: %s' % (pattern, self.db))
+        self.cursor.execute('SELECT count(*) as rows FROM %s;' % pattern)
+        return self.cursor.fetchone()[0]
 
 
 @dbhandler('redis')
@@ -109,20 +155,22 @@ class MySQL(object):
     def __init__(self, server, db=None):
         #Get connection object
         self.server = server
-        self.connection = world.db.get_connection(server)
+        self.cursor = world.db.get_connection(server).cursor()
         self.db = db
         self.node = world.cloud.get_node(server)
 
+    def _close(self):
+        self.cursor.close()
+
+    @cursor_close
     def get_timestamp(self):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
-        cursor = self.connection.cursor()
-        cursor.execute('USE %s;' % self.db)
-        cursor.execute('SELECT * FROM timestamp;')
-        return cursor.fetchone()[0]
+        self.cursor.execute('USE %s;' % self.db)
+        self.cursor.execute('SELECT * FROM timestamp;')
+        return self.cursor.fetchone()[0]
 
     def restore(self, src_path, db):
-
         backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].split()
         LOG.info('Available backups in server: %s' % backups_in_server)
         path = os.path.join(src_path, db)
@@ -135,20 +183,17 @@ class MySQL(object):
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
 
+    @cursor_close
     def check_data(self, pattern):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
-        try:
-            cursor = self.connection.cursor()
-            cursor.execute('USE %s;' % self.db)
-            cursor.execute('SHOW TABLES;')
-            tables = [t[0] for t in cursor.fetchall()]
-            if not pattern in tables:
-                raise AssertionError('Table %s not exist in database: %s' % (pattern, self.db))
-            cursor.execute('SELECT count(*) as rows FROM %s;' % pattern)
-            return cursor.fetchone()[0]
-        finally:
-            cursor.close()
+        self.cursor.execute('USE %s;' % self.db)
+        self.cursor.execute('SHOW TABLES;')
+        tables = [t[0] for t in self.cursor.fetchall()]
+        if not pattern in tables:
+            raise AssertionError('Table %s not exist in database: %s' % (pattern, self.db))
+        self.cursor.execute('SELECT count(*) as rows FROM %s;' % pattern)
+        return self.cursor.fetchone()[0]
 
 
 def get_db_handler(db_name):
