@@ -1,3 +1,4 @@
+Using step definitions from: steps/rabbitmq_steps
 Feature: RabbitMQ test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

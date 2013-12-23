@@ -1,3 +1,4 @@
+Using step definitions from: steps/memcached_steps
 Feature: Memcached service standart port 11211 with behavior memcached
 
     @ec2 @gce @cloudstack @rackspaceng @boot

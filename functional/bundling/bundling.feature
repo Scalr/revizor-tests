@@ -1,3 +1,4 @@
+Using step definitions from: steps/bundling_steps
 Feature: Bundling server test
     
     Scenario: Add first role

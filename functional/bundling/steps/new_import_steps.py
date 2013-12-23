@@ -14,6 +14,8 @@ from revizor2.utils import get_scalr_dist_name
 LOG = logging.getLogger('import2')
 
 
+#TODO: Check import tests and join import/new_import steps file
+
 @step('I have a (.+) server running in cloud$')
 def given_server_in_cloud(step, mbeh):
     n = getattr(world, 'cloud_server', None)

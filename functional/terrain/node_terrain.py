@@ -8,7 +8,7 @@ from datetime import datetime
 
 from lettuce import world, step
 
-from revizor2 import consts
+from revizor2 import consts, api
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.cloud import Cloud
