@@ -71,7 +71,7 @@ class PostgreSQL(object):
         LOG.info('Available backups in server: %s' % backups_in_server)
         path = os.path.join(src_path, db)
         if not path in backups_in_server:
-            raise AssertionError('Database %s backup not exist in path %s' % (db, path))
+            raise AssertionError('Database %s backup not exist in path %s' % (db, src_path))
         LOG.info('Creating db: %s in server.' % db)
         world.db.database_create(db, self.server)
         out = self.node.run('pg_restore -U scalr -W %s -C -d %s %s' % (world.db.password, db, path))
