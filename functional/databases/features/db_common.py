@@ -80,8 +80,8 @@ class PostgreSQL(object):
                                  (db, src_path, ','.join(backups_in_server)))
         LOG.info('Creating db: %s in server.' % db)
         world.db.database_create(db, self.server)
-        out = self.node.run('export PGPASSWORD=%s && psql -U scalr -d %s -h %s -f' %
-                            (world.db.password, db, self.server.public_ip, path))
+        out = self.node.run('export PGPASSWORD=%s && psql -U scalr -d %s -h %s -f %s' %
+                            (world.db.password, db.lower(), self.server.public_ip, path))
         if out[1]:
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
