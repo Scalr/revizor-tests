@@ -71,13 +71,17 @@ class PostgreSQL(object):
     def restore(self, src_path, db):
         backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].lower().split()
         LOG.info('Available backups in server: %s' % backups_in_server)
-        path = os.path.join(src_path, db).lower()
-        if not path in backups_in_server:
-            raise AssertionError('Database %s backup not exist in path %s' % (db, src_path))
+        for backup in backups_in_server:
+            if os.path.join(src_path, db).lower() in backup.lower():
+                path = backup
+                break
+        else:
+            raise AssertionError('Database %s backup not exist in path %s. Available backups: %s' %
+                                 (db, src_path, ','.join(backups_in_server)))
         LOG.info('Creating db: %s in server.' % db)
         world.db.database_create(db, self.server)
         out = self.node.run('export PGPASSWORD=%s && psql -U scalr -d %s -h %s -f' %
-                            (world.db.password, db, self.server.public_ip, '.'.join((path, 'sql'))))
+                            (world.db.password, db, self.server.public_ip, path))
         if out[1]:
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
