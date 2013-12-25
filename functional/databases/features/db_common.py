@@ -37,7 +37,7 @@ def dbhandler(databases):
     return wrapper
 
 
-def cursor_close(func):
+def close(func):
     def wrapped(self, *args, **kwargs):
         try:
             return func(self, *args, **kwargs)
@@ -52,14 +52,16 @@ class PostgreSQL(object):
     def __init__(self, server, db=None):
         #Get connection object
         self.server = server
-        self.cursor = world.db.get_connection(server, db=db).cursor()
+        self.connection = world.db.get_connection(server, db=db)
+        self.cursor = self.connection.cursor()
         self.db = db
         self.node = world.cloud.get_node(server)
 
     def _close(self):
         self.cursor.close()
+        self.connection.close()
 
-    @cursor_close
+    @close
     def get_timestamp(self):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for PostgreSQL server, not one database is not used.")
@@ -67,19 +69,20 @@ class PostgreSQL(object):
         return self.cursor.fetchone()[0]
 
     def restore(self, src_path, db):
-        backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].split()
+        backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].lower().split()
         LOG.info('Available backups in server: %s' % backups_in_server)
-        path = os.path.join(src_path, db)
+        path = os.path.join(src_path, db).lower()
         if not path in backups_in_server:
             raise AssertionError('Database %s backup not exist in path %s' % (db, src_path))
         LOG.info('Creating db: %s in server.' % db)
         world.db.database_create(db, self.server)
-        out = self.node.run('pg_restore -U scalr -W %s -C -d %s %s' % (world.db.password, db, path))
+        out = self.node.run('export PGPASSWORD=%s && psql -U scalr -d %s -h %s -f' %
+                            (world.db.password, db, self.server.public_ip, '.'.join((path, 'sql'))))
         if out[1]:
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
 
-    @cursor_close
+    @close
     def check_data(self, pattern):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for PostgreSQL server, not one database is not used.")
@@ -116,6 +119,10 @@ class Redis(object):
         self.node = world.cloud.get_node(server)
         self.snapshotting_type = 'aof' if not os.environ.get('RV_REDIS_SNAPSHOTTING') else 'rdb'
 
+    def _close(self):
+        self.connection.close()
+
+    @close
     def get_timestamp(self):
         return self.connection.get('revizor.timestamp')
 
@@ -145,6 +152,7 @@ class Redis(object):
                                  % (self.server.public_ip, out[0], out[1]))
         LOG.info('Redis server was successfully run.')
 
+    @close
     def check_data(self, pattern):
         return len(self.connection.keys('*%s*' % pattern))
 
@@ -155,14 +163,16 @@ class MySQL(object):
     def __init__(self, server, db=None):
         #Get connection object
         self.server = server
-        self.cursor = world.db.get_connection(server).cursor()
+        self.connection = world.db.get_connection(server)
+        self.cursor = self.connection.cursor()
         self.db = db
         self.node = world.cloud.get_node(server)
 
     def _close(self):
         self.cursor.close()
+        self.connection.close()
 
-    @cursor_close
+    @close
     def get_timestamp(self):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
@@ -183,7 +193,7 @@ class MySQL(object):
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
 
-    @cursor_close
+    @close
     def check_data(self, pattern):
         if not self.db:
             raise AssertionError("Can't get data base timestamp for MySQL server, not one database is not used.")
