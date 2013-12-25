@@ -123,10 +123,6 @@ class Redis(object):
         self.node = world.cloud.get_node(server)
         self.snapshotting_type = 'aof' if not os.environ.get('RV_REDIS_SNAPSHOTTING') else 'rdb'
 
-    def _close(self):
-        self.connection.close()
-
-    @close
     def get_timestamp(self):
         return self.connection.get('revizor.timestamp')
 
@@ -156,7 +152,6 @@ class Redis(object):
                                  % (self.server.public_ip, out[0], out[1]))
         LOG.info('Redis server was successfully run.')
 
-    @close
     def check_data(self, pattern):
         return len(self.connection.keys('*%s*' % pattern))
 
