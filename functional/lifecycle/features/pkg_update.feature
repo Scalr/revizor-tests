@@ -10,8 +10,8 @@ Feature: Update scalarizr test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Change repo
-        When I change repo in M1 to system
-        And pin system repo in M1
+        When I change repo in M1
+        And pin repo in M1
         And update scalarizr in M1
         And scalarizr version is last in M1
 

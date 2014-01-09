@@ -393,7 +393,8 @@ def change_repo_to_branch(node, branch):
                       'protect=1\n'
         )
 
-@step('pin (\w+) repo in ([\w\d]+)$')
+
+@step('pin (\w+ )?repo in ([\w\d]+)$')
 def pin_repo(step, repo, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
