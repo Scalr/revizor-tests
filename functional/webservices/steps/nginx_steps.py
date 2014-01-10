@@ -21,10 +21,13 @@ def assert_check_http_get_answer(step, serv_as, mes):
         raise AssertionError('http://%s response not contains: "%s", response: "%s"' % (serv.public_ip, mes, resp))
 
 
-@step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)')
-def bootstrap_many_servers(step, serv_count, serv_names, timeout=1400):
+@step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)(?: in (\w+) role)?$')
+def bootstrap_many_servers(step, serv_count, serv_names, role_type, timeout=1400):
     serv_names = [s.strip() for s in serv_names.split(',')]
-    role = getattr(world, world.role_type + '_role')
+    if role_type:
+        role = getattr(world, role_type + '_role')
+    else:
+        role = world.farm.roles[0]
     for i in range(int(serv_count)):
         LOG.info('Launch %s server' % (i+1))
         role.launch_instance()

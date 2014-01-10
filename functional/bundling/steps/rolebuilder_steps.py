@@ -89,6 +89,6 @@ def assert_build_started(step):
     logs = IMPL.bundle.logs(world.bundle_id)
     for l in logs:
         if 'Role ID:' in l['message']:
-            world.new_role_id = re.findall(r"Role ID: ([\d]+)", l['message'])[0]
+            world.bundled_role_id = re.findall(r"Role ID: ([\d]+)", l['message'])[0]
             return
     raise AssertionError('Not found new role id for bundletask %s' % world.bundle_id)

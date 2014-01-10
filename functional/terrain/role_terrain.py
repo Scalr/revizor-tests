@@ -6,6 +6,7 @@ from datetime import datetime
 
 from lettuce import world, step
 
+from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.dbmsr import Database
@@ -88,15 +89,17 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 def add_new_role_to_farm(step):
     options = getattr(world, 'role_options', {})
     scripting = getattr(world, 'role_scripting', [])
-    if world.role_type == 'redis':
+    bundled_role = Role.get(world.bundled_role_id)
+    if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
-    world.farm.add_role(world.new_role_id, options=options, scripting=scripting)
+    world.farm.add_role(world.bundled_role_id, options=options, scripting=scripting)
     world.farm.roles.reload()
     role = world.farm.roles[0]
-    setattr(world, world.role_type + '_role', role)
+    setattr(world, bundled_role.behaviors_as_text() + '_role', role)
     LOG.info("Set DB object to world")
-    if world.role_type in ['mysql', 'mariadb', 'percona', 'postgresql', 'redis', 'mongodb', 'mysql2', 'percona2']:
+    if {bundled_role.behaviors}.intersection(['mysql', 'mariadb', 'percona', 'mysql2', 'percona2',
+                                              'postgresql', 'redis', 'mongodb']):
         db = Database.create(role)
         if db:
             setattr(world, 'db', db)

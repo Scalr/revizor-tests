@@ -11,17 +11,7 @@ from revizor2.consts import ServerStatus
 LOG = logging.getLogger(__name__)
 
 
-@step('I expect server bootstrapping as ([\w\d]+)$')
-def expect_server_bootstraping(step, serv_as, timeout=2000):
-    """Bootstrap server and add it to world"""
-    role = getattr(world, world.role_type + '_role', None)
-    if role is None:
-        role = world.farm.roles()[0]
-    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
-    setattr(world, serv_as, server)
-
-
-@step('I expect server bootstrapping as (.+) in (.+) role$')
+@step('I expect server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=2000):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = getattr(world, '%s_role' % role_type)

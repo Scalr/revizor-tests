@@ -74,31 +74,30 @@ def cleanup_all(total):
         farm = getattr(world, 'farm', None)
         if not farm:
             return
-        role = getattr(world, world.role_type + '_role', None)
-        if not role:
-            IMPL.farm.clear_roles(world.farm.id)
-            return
         IMPL.farm.clear_roles(world.farm.id)
-        new_role_id = getattr(world, 'new_role_id', None)
-        if new_role_id:
-            LOG.info('Delete bundled role: %s' % new_role_id)
+        bundled_role_id = getattr(world, 'bundled_role_id', None)
+        if bundled_role_id:
+            LOG.info('Delete bundled role: %s' % bundled_role_id)
             try:
-                IMPL.role.delete(new_role_id, delete_image=True)
-            except:
-                pass
+                IMPL.role.delete(bundled_role_id, delete_image=True)
+            except BaseException, e:
+                LOG.exception('Error on deletion role %s' % bundled_role_id)
         cloud_node = getattr(world, 'cloud_server', None)
         if cloud_node:
             LOG.info('Destroy node in cloud')
             try:
                 cloud_node.destroy()
             except BaseException, e:
-                LOG.error('Node %s can\'t be destroyed: %s' % (cloud_node.id, e))
+                LOG.exception('Node %s can\'t be destroyed' % cloud_node.id)
         world.farm.terminate()
+
         world.farm.vhosts.reload()
         world.farm.domains.reload()
+
         for vhost in world.farm.vhosts:
             LOG.info('Delete vhost: %s' % vhost.name)
             vhost.delete()
+
         for domain in world.farm.domains:
             LOG.info('Delete domain: %s' % domain.name)
             domain.delete()

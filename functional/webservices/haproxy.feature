@@ -11,7 +11,7 @@ Feature: HAProxy load balancer role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream
         When I add app role to this farm
-        And bootstrap 2 servers as (A1, A2)
+        And bootstrap 2 servers as (A1, A2) in app role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Check proxy for role

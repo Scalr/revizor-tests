@@ -154,7 +154,9 @@ def assert_check_service(step, service, has_not, serv_as):
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
-    if world.role_type in ['redis', 'memcached']:
+
+    # check if redis/memcached behavior in role behaviors
+    if {'redis', 'memcached'}.intersection(server.role.behaviors):
         world.set_iptables_rule(world.role_type, server, PORTS_MAP[service])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)

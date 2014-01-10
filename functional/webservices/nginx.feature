@@ -32,7 +32,7 @@ Feature: Nginx load balancer role test with apache backends
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream
         When I add app role to this farm
-        And bootstrap 2 servers as (A1, A2)
+        And bootstrap 2 servers as (A1, A2) in app role
         Then W1 upstream list should contains A1, A2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

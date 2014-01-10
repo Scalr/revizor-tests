@@ -1,19 +1,11 @@
-import os
 from datetime import datetime
 
 from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.api import Farm
+from revizor2.api import Farm, Role
 from revizor2.consts import ServerStatus
 from revizor2.utils import wait_until
-
-
-@step('I add role to this farm$')
-def add_role_to_given_farm(step):
-    world.role_type = os.environ.get('RV_BEHAVIOR', 'base')
-    role = world.add_role_to_farm(world.role_type)
-    setattr(world, world.role_type + '_role', role)
 
 
 @step('I have running server')
@@ -47,8 +39,9 @@ def assert_bundletask_completed(step, timeout=2400):
 
 @step('I add to farm role created by last bundle task')
 def add_new_role_to_farm(step):
-    world.farm.add_role(world.new_role_id)
+    bundled_role = Role.get(world.bundled_role_id)
+    world.farm.add_role(world.bundled_role_id)
     world.farm.roles.reload()
     role = world.farm.roles[0]
-    setattr(world, world.role_type + '_role', role)
+    setattr(world, bundled_role.behaviors_as_string() + '_role', role)
 

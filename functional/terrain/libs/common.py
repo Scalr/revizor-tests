@@ -313,8 +313,8 @@ def bundle_task_completed(server, bundle_id, *args, **kwargs):
                 if 'Bundle task status: success' in log['message']:
                     for l in contents:
                         if 'Role ID:' in l['message']:
-                            world.new_role_id = re.findall(r"Role ID: ([\d]+)", l['message'])[0]
-                    LOG.info('Bundle task %s is complete. New role id: %s' % (bundle_id, world.new_role_id))
+                            world.bundled_role_id = re.findall(r"Role ID: ([\d]+)", l['message'])[0]
+                    LOG.info('Bundle task %s is complete. New role id: %s' % (bundle_id, world.bundled_role_id))
                     return True
                 elif 'Bundle task status changed to: failed' in log['message']:
                     raise AssertionError(log['message'])

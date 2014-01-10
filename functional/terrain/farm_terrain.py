@@ -334,12 +334,11 @@ def add_role_to_farm(step, behavior=None, options=None):
         if storage:
             LOG.info('Add main settings for %s storage' % CONF.feature.storage)
             farm_options.update(storage.get(CONF.feature.storage, {}))
-    world.role_type = behavior
     world.role_options = farm_options
     world.role_scripting = scripting
     LOG.debug('All farm settings: %s' % farm_options)
-    role = world.add_role_to_farm(world.role_type, options=farm_options, scripting=scripting, storages=additional_storages)
-    setattr(world, '%s_role' % world.role_type, role)
+    role = world.add_role_to_farm(behavior, options=farm_options, scripting=scripting, storages=additional_storages)
+    setattr(world, '%s_role' % behavior, role)
     world.role = role
     if behavior in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2', 'mariadb']:
         db = Database.create(role)

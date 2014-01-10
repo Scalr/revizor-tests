@@ -230,7 +230,7 @@ def assert_role_task_created(step,  timeout=1400):
     if res['failure_reason']:
         raise AssertionError("Can't create role. Original error: %s" % res['failure_reason'])
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
-    world.new_role_id = res['role_id']
+    world.bundled_role_id = res['role_id']
     #Remove port forward rule for Cloudstack
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         LOG.info('Deleting a Port Forwarding Rule. IP:%s, Port:%s' % (world.forwarded_port, world.ip))
@@ -246,7 +246,7 @@ def assert_role_task_created(step,  timeout=1400):
 
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
-    world.farm.add_role(world.new_role_id)
+    world.farm.add_role(world.bundled_role_id)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, 'role_type', ','.join(role.role.behaviors))

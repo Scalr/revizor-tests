@@ -12,63 +12,62 @@ from revizor2.dbmsr import Database
 
 LOG = logging.getLogger(__name__)
 
-
-
-@step(r'I add (.+) role to this farm with (\d+) redis processes$')
-def add_role_to_given_farm(step, role_type, redis_count):
-    LOG.info("Add role to farm")
-    engine = CONF.feature.storage
-    LOG.info('Use storage engine: %s' % engine)
-    world.role_type = role_type
-    options_list = {'eph':{'db.msr.data_storage.engine': 'eph',
-                           'db.msr.data_storage.eph.disk': '/dev/sda2',
-                           'aws.instance_type':'m1.small',
-                           'aws.use_ebs': '0'},
-                    'lvm':{'db.msr.data_storage.engine': 'lvm',
-                           'aws.instance_type':'m1.large',
-                           'db.msr.data_storage.fstype': 'ext3',
-                           'db.msr.data_storage.eph.disk': '/dev/sdb'},
-                    'raid10':{'db.msr.data_storage.engine': 'raid.ebs',
-                              'db.msr.data_storage.raid.level': '10',
-                              'db.msr.data_storage.raid.volume_size': '15',
-                              'db.msr.data_storage.raid.volumes_count': '8',
-                              'db.msr.data_storage.fstype': 'ext3',
-                              },
-                    'raid5':{'db.msr.data_storage.engine': 'raid.ebs',
-                             'db.msr.data_storage.raid.level': '5',
-                             'db.msr.data_storage.raid.volume_size': '1',
-                             'db.msr.data_storage.raid.volumes_count': '3',},
-                    'raid0':{'db.msr.data_storage.engine': 'raid.ebs',
-                             'db.msr.data_storage.raid.level': '0',
-                             'db.msr.data_storage.raid.volume_size': '1',
-                             'db.msr.data_storage.raid.volumes_count': '2',},
-                    'raid1':{'db.msr.data_storage.engine': 'raid.ebs',
-                             'db.msr.data_storage.raid.level': '1',
-                             'db.msr.data_storage.raid.volume_size': '1',
-                             'db.msr.data_storage.raid.volumes_count': '2',},
-                    'ebs':{'db.msr.data_storage.engine':'ebs',
-                           'db.msr.data_storage.ebs.size': '1',}}
-    scripting = []
-    CONF.featureain.platform == 'ec2':
-        if role_type == 'mysql':
-            options = {'mysql.data_storage_engine' : 'ebs',
-                       'mysql.ebs_volume_size'      : 1}
-        else:
-            options = options_list[engine]
-    else:
-        options = {}
-    options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
-                    'db.msr.redis.num_processes': int(redis_count)})
-    world.role_options = options
-    world.role_scripting = scripting
-    role = world.add_role_to_farm(world.role_type, options=options, scripting=scripting)
-    setattr(world, world.role_type + '_role', role)
-    LOG.info("Set DB object to world")
-    if role_type in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
-        db = Database.create(role)
-        if not db:
-            raise AssertionError('Database for role %s not found!' % role)
-        setattr(world, 'db', db)
+#TODO: Rewrite this test
+#@step(r'I add (.+) role to this farm with (\d+) redis processes$')
+#def add_role_to_given_farm(step, role_type, redis_count):
+#    LOG.info("Add role to farm")
+#    engine = CONF.feature.storage
+#    LOG.info('Use storage engine: %s' % engine)
+#    world.role_type = role_type
+#    options_list = {'eph':{'db.msr.data_storage.engine': 'eph',
+#                           'db.msr.data_storage.eph.disk': '/dev/sda2',
+#                           'aws.instance_type':'m1.small',
+#                           'aws.use_ebs': '0'},
+#                    'lvm':{'db.msr.data_storage.engine': 'lvm',
+#                           'aws.instance_type':'m1.large',
+#                           'db.msr.data_storage.fstype': 'ext3',
+#                           'db.msr.data_storage.eph.disk': '/dev/sdb'},
+#                    'raid10':{'db.msr.data_storage.engine': 'raid.ebs',
+#                              'db.msr.data_storage.raid.level': '10',
+#                              'db.msr.data_storage.raid.volume_size': '15',
+#                              'db.msr.data_storage.raid.volumes_count': '8',
+#                              'db.msr.data_storage.fstype': 'ext3',
+#                              },
+#                    'raid5':{'db.msr.data_storage.engine': 'raid.ebs',
+#                             'db.msr.data_storage.raid.level': '5',
+#                             'db.msr.data_storage.raid.volume_size': '1',
+#                             'db.msr.data_storage.raid.volumes_count': '3',},
+#                    'raid0':{'db.msr.data_storage.engine': 'raid.ebs',
+#                             'db.msr.data_storage.raid.level': '0',
+#                             'db.msr.data_storage.raid.volume_size': '1',
+#                             'db.msr.data_storage.raid.volumes_count': '2',},
+#                    'raid1':{'db.msr.data_storage.engine': 'raid.ebs',
+#                             'db.msr.data_storage.raid.level': '1',
+#                             'db.msr.data_storage.raid.volume_size': '1',
+#                             'db.msr.data_storage.raid.volumes_count': '2',},
+#                    'ebs':{'db.msr.data_storage.engine':'ebs',
+#                           'db.msr.data_storage.ebs.size': '1',}}
+#    scripting = []
+#    CONF.featureain.platform == 'ec2':
+#        if role_type == 'mysql':
+#            options = {'mysql.data_storage_engine' : 'ebs',
+#                       'mysql.ebs_volume_size'      : 1}
+#        else:
+#            options = options_list[engine]
+#    else:
+#        options = {}
+#    options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
+#                    'db.msr.redis.num_processes': int(redis_count)})
+#    world.role_options = options
+#    world.role_scripting = scripting
+#    role = world.add_role_to_farm(world.role_type, options=options, scripting=scripting)
+#    setattr(world, world.role_type + '_role', role)
+#    LOG.info("Set DB object to world")
+#    if role_type in ['mysql', 'postgresql', 'redis', 'mongodb', 'percona', 'mysql2', 'percona2']:
+#        db = Database.create(role)
+#        if not db:
+#            raise AssertionError('Database for role %s not found!' % role)
+#        setattr(world, 'db', db)
 
 
 @step('redis work in ports: ([,\d]+) in (\w+)$')
