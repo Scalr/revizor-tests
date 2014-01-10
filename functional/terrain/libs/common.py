@@ -47,8 +47,8 @@ def give_empty_running_farm():
 @world.absorb
 def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None):
     role = None
-    if CONF.main.role_id:
-        role = roles_table[CONF.main.role_id]
+    if CONF.feature.role_id:
+        role = roles_table[CONF.feature.role_id]
     elif role_type:
         role = roles_table.filter({'behavior': role_type}).first()
     else:
@@ -504,7 +504,7 @@ def check_server_storage(serv_as, status):
     for vol in volumes:
         if CONF.main.platform == 'ec2':
             state = 'used' if vol.extra['state'] in ['in-use', 'available'] else 'deleted'
-        elif CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+        elif CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
             state = 'used'
         if status == 'use' and state == 'used':
             return True

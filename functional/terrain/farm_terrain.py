@@ -225,7 +225,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                              }]
             elif opt == 'storages':
                 LOG.info('Add additional storages')
-                if CONF.main.driver in [Platform.EC2]:
+                if CONF.feature.driver.current_cloud in [Platform.EC2]:
                     LOG.info('Add storages from EC2')
                     additional_storages = {
                         "configs": [{
@@ -258,7 +258,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                                         "status": "",
                                         }]
                     }
-                elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+                elif CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
                     LOG.info('Add storages from IDCF/CloudStack')
                     additional_storages = {
                         "configs": [{
@@ -287,7 +287,7 @@ def add_role_to_farm(step, behavior=None, options=None):
                                         "status": "",
                                         }]
                     }
-                elif CONF.main.driver in [Platform.OPENSTACK, Platform.ECS]:
+                elif CONF.feature.driver.current_cloud in [Platform.OPENSTACK, Platform.ECS]:
                     LOG.info('Add storages from OpenStack')
                     additional_storages = {
                         "configs": [{
@@ -323,17 +323,17 @@ def add_role_to_farm(step, behavior=None, options=None):
                 farm_options.update(FARM_OPTIONS.get(opt, {}))
     if behavior == 'rabbitmq':
         del(farm_options['base.hostname_format'])
-    if behavior == 'tomcat6' and CONF.main.dist.startswith('ubuntu'):
+    if behavior == 'tomcat6' and CONF.feature.dist.startswith('ubuntu'):
         behavior = 'tomcat7'
     if behavior == 'redis':
         LOG.info('Add redis settings')
         farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                              'db.msr.redis.use_password': True})
     if behavior in ['mysql', 'mysql2', 'percona2', 'mariadb', 'postgresql', 'redis', 'mongodb', 'percona']:
-        storage = STORAGES.get(Platform.to_scalr(CONF.main.driver), None)
+        storage = STORAGES.get(CONF.feature.driver.cloud_family, None)
         if storage:
-            LOG.info('Add main settings for %s storage' % CONF.main.storage)
-            farm_options.update(storage.get(CONF.main.storage, {}))
+            LOG.info('Add main settings for %s storage' % CONF.feature.storage)
+            farm_options.update(storage.get(CONF.feature.storage, {}))
     world.role_type = behavior
     world.role_options = farm_options
     world.role_scripting = scripting
@@ -373,7 +373,7 @@ def farm_launch(step):
 @step('I start farm with delay$')
 def farm_launch(step):
     """Start farm with delay for cloudstack"""
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         time.sleep(1800)
     world.farm.launch()
     LOG.info('Launch farm \'%s\' (%s)' % (world.farm.id, world.farm.name))

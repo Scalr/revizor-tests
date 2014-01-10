@@ -16,25 +16,25 @@ LOG = logging.getLogger('rolebuilder')
 
 @step('I start build role$')
 def start_rolebuild(step):
-    location = CONF.platforms[CONF.main.platform]['location']
-    if CONF.main.platform == 'rackspaceng':
+    location = CONF.platforms[CONF.feature.platform]['location']
+    if CONF.feature.platform == 'rackspaceng':
         platform = 'rackspacengus'
     else:
-        platform = CONF.main.platform
-    os_dist, os_ver = get_scalr_dist_info(CONF.main.dist)
-    image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.main.platform]['location'] and
+        platform = CONF.feature.platform
+    os_dist, os_ver = get_scalr_dist_info(CONF.feature.dist)
+    image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.feature.platform]['location'] and
                              x['os_family']==os_dist and x['os_version'].startswith(os_ver),
-                   images(CONF.main.platform).all()['images'])[0]
+                   images(CONF.feature.platform).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
-                                        behaviors=CONF.main.behaviors,
+                                        behaviors=CONF.feature.behaviors,
                                         os_family=image['os_family'],
                                         os_version=image['os_version'],
-                                        name='tmp-%s-%s-%s' % (CONF.main.platform, CONF.main.dist,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
-                                        scalarizr=CONF.main.branch,)
-    setattr(world, 'role_type', CONF.main.behaviors[0])
+                                        scalarizr=CONF.feature.branch,)
+    setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 
 
@@ -43,29 +43,29 @@ def start_rolebuild(step, behaviors):
     behaviors = behaviors.strip().split(',')
     if not 'chef' in behaviors:
         behaviors.append('chef')
-    location = CONF.platforms[CONF.main.platform]['location']
-    if CONF.main.driver == Platform.GCE:
+    location = CONF.platforms[CONF.feature.platform]['location']
+    if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
-    platform = Platform.to_scalr(Platform.from_driver_name(CONF.main.platform))
-    os_dist, os_ver = get_scalr_dist_info(CONF.main.dist)
-    if CONF.main.driver == Platform.GCE:
+    platform = Platform.to_scalr(Platform.from_driver_name(CONF.feature.platform))
+    os_dist, os_ver = get_scalr_dist_info(CONF.feature.dist)
+    if CONF.feature.driver.current_cloud == Platform.GCE:
         image = filter(lambda x: x['os_family']==os_dist and x['os_version'].startswith(os_ver),
-                       images(Platform.to_scalr(CONF.main.driver)).all()['images'])[0]
+                       images(Platform.to_scalr(CONF.feature.driver.current_cloud)).all()['images'])[0]
     else:
-        image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.main.platform]['location'] and
+        image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.feature.platform]['location'] and
                              x['os_family']==os_dist and x['os_version'].startswith(os_ver),
-                       images(CONF.main.platform).all()['images'])[0]
+                       images(CONF.feature.platform).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_family=image['os_family'],
                                         os_version=image['os_version'],
-                                        name='tmp-%s-%s-%s' % (CONF.main.platform, CONF.main.dist,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr='',
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql')
-    setattr(world, 'role_type', CONF.main.behaviors[0])
+    setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 
 

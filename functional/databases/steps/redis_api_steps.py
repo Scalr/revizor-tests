@@ -49,7 +49,7 @@ def check_redis_instances(step, instances_count, serv_as):
     LOG.info('Check working redis ports')
     #TODO: Rewrite this
     for instance in instances:
-        if CONF.main.platform in ['cloudstack', 'idcf']:
+        if CONF.feature.platform in ['cloudstack', 'idcf']:
             cloud = Cloud()
             node = cloud.get_node(server)
             ip = filter(lambda x: x.address == server.public_ip, node.driver.ex_list_public_ip())[0]
@@ -70,7 +70,7 @@ def check_redis_instances(step, instances_count, serv_as):
             raise redis.ConnectionError('Connection to redis: %s:%s with password %s is FAILED' % (server.public_ip, instance,
                                                                                                    instances[instance]))
         finally:
-            if CONF.main.platform in ['cloudstack', 'idcf']:
+            if CONF.feature.platform in ['cloudstack', 'idcf']:
                 node.driver.ex_delete_port_forwarding_rule(node, rule)
                 LOG.info('Rule for open port was delete')
     if not count == int(instances_count):
@@ -83,7 +83,7 @@ def check_redis_instances(step, instances_count, instance_type, serv_as):
     instances = getattr(world, 'redis_instances', {})
     count = 0
     for instance in instances:
-        if CONF.main.platform in ['cloudstack', 'idcf']:
+        if CONF.feature.platform in ['cloudstack', 'idcf']:
             cloud = Cloud()
             node = cloud.get_node(server)
             ip = filter(lambda x: x.address == server.public_ip, node.driver.ex_list_public_ip())[0]
@@ -104,7 +104,7 @@ def check_redis_instances(step, instances_count, instance_type, serv_as):
             raise redis.ConnectionError('Connection to redis: %s:%s with password %s is FAILED' % (server.public_ip, instance,
                                                                                                    instances[instance]))
         finally:
-            if CONF.main.platform in ['cloudstack', 'idcf']:
+            if CONF.feature.platform in ['cloudstack', 'idcf']:
                 node.driver.ex_delete_port_forwarding_rule(node, rule)
                 LOG.info('Rule for open port was delete')
         if info['role'] == instance_type:
@@ -121,7 +121,7 @@ def action_on_redis(step, action, instance_number, serv_as):
     server = getattr(world, serv_as)
     instances = getattr(world, 'redis_instances', {})
     instance = sorted(instances.items())[int(instance_number)-1]
-    if CONF.main.platform in ['cloudstack', 'idcf']:
+    if CONF.feature.platform in ['cloudstack', 'idcf']:
         cloud = Cloud()
         node = cloud.get_node(server)
         ip = filter(lambda x: x.address == server.public_ip, node.driver.ex_list_public_ip())[0]
@@ -141,7 +141,7 @@ def action_on_redis(step, action, instance_number, serv_as):
         if not data == 'test_value':
             LOG.error('Receive bad key value from redis instance: %s:%s' % (server.public_ip, instance[0]))
             raise AssertionError('Receive bad key value from redis instance: %s:%s' % (server.public_ip, instance[0]))
-    if CONF.main.platform in ['cloudstack', 'idcf']:
+    if CONF.feature.platform in ['cloudstack', 'idcf']:
         node.driver.ex_delete_port_forwarding_rule(node, rule)
         LOG.info('Rule for open port was delete')
 

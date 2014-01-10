@@ -39,9 +39,9 @@ def get_ebs_for_instance(step, serv_as):
     server = getattr(world, serv_as)
     volumes = server.get_volumes()
     LOG.debug('Volumes for server %s is: %s' % (server.id, volumes))
-    if CONF.main.driver == Platform.EC2:
+    if CONF.feature.driver.current_cloud == Platform.EC2:
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
-    elif CONF.main.driver in [Platform.IDCF, Platform.CLOUDSTACK]:
+    elif CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
         storages = filter(lambda x: x.extra['type'] == 'DATADISK', volumes)
     else:
         return
@@ -54,7 +54,7 @@ def get_ebs_for_instance(step, serv_as):
 @step('([\w]+) storage is (.+)$')
 def check_ebs_status(step, serv_as, status):
     """Check EBS storage status"""
-    if CONF.main.driver == Platform.GCE:
+    if CONF.feature.driver.current_cloud == Platform.GCE:
         return
     time.sleep(30)
     server = getattr(world, serv_as)

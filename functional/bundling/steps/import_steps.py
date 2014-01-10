@@ -130,12 +130,12 @@ def given_server_in_cloud(step, user_data):
     #Convert dict to formatted str
     dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
     #Get user data fixture for tested Cloud
-    user_data = dict_to_str(USER_DATA[Platform.get_platform_group(CONF.main.driver)]) if user_data \
+    user_data = dict_to_str(USER_DATA[Platform.get_platform_group(CONF.feature.driver)]) if user_data \
         else None
     #Create node
     node = world.cloud.create_node(userdata=user_data)
     setattr(world, 'cloud_server', node)
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         #Get node external ip
         #Run command
         out = node.run('wget -qO- ifconfig.me/ip')
@@ -157,11 +157,11 @@ def given_server_in_cloud(step, user_data):
 def install_behaviors(step):
     #Set recipe's
     cookbooks = ['base', 'scalarizr']
-    for behavior in CONF.main.behaviors:
+    for behavior in CONF.feature.behaviors:
         if behavior in cookbooks:
             continue
         cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
-    install_behaviors_on_node(world.cloud_server, cookbooks, CONF.main.platform.lower(), branch=CONF.main.branch)
+    install_behaviors_on_node(world.cloud_server, cookbooks, CONF.feature.platform.lower(), branch=CONF.feature.branch)
 
 @step('I trigger the Start building and run scalarizr')
 def start_building(step):
@@ -170,12 +170,12 @@ def start_building(step):
 
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
-    if CONF.main.driver == Platform.GCE:
+    if CONF.feature.driver.current_cloud == Platform.GCE:
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
     res = IMPL.bundle.import_start(platform=CONF.main.platform,
-                                   location=CONF.platforms[CONF.main.platform]['location'],
+                                   location=CONF.platforms[CONF.feature.platform]['location'],
                                    cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
     if not res:
@@ -210,7 +210,7 @@ def is_scalarizr_connected(step, timeout=1400):
 
 @step('I trigger the Create role')
 def create_role(step):
-    behaviors_name = CONF.main.behaviors
+    behaviors_name = CONF.feature.behaviors
     LOG.info('Create new role with %s behaviors.' % ','.join(behaviors_name))
     for behavior in behaviors_name:
         if not behavior in world.behaviors:
@@ -226,13 +226,13 @@ def create_role(step):
 @step('Role has successfully been created$')
 def assert_role_task_created(step,  timeout=1400):
     res = wait_until(IMPL.bundle.assert_role_task_created, args=(world.bundle_task_id, ), timeout=timeout,
-                     error_text="Time out error. Can't create role with sent behaviors: $s." % CONF.main.behaviors)
+                     error_text="Time out error. Can't create role with sent behaviors: $s." % CONF.feature.behaviors)
     if res['failure_reason']:
         raise AssertionError("Can't create role. Original error: %s" % res['failure_reason'])
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
     world.new_role_id = res['role_id']
     #Remove port forward rule for Cloudstack
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         LOG.info('Deleting a Port Forwarding Rule. IP:%s, Port:%s' % (world.forwarded_port, world.ip))
         if not world.cloud.close_port(world.cloud_server, world.forwarded_port, ip=world.ip):
             raise AssertionError("Can't delete a port forwarding Rule.")

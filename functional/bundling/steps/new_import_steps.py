@@ -24,11 +24,11 @@ def given_server_in_cloud(step, mbeh):
     cloud = Cloud()
     LOG.info('Create node in cloud')
     if mbeh == 'mbeh1':
-        image = images(CONF.main.platform).filter({'dist': get_scalr_dist_name(CONF.main.dist), 'behavior':'mysql2'}).first()
+        image = images(CONF.feature.platform).filter({'dist': get_scalr_dist_name(CONF.feature.dist), 'behavior':'mysql2'}).first()
     elif mbeh == 'mbeh2':
-        image = images(CONF.main.platform).filter({'dist': get_scalr_dist_name(CONF.main.dist), 'behavior':'www'}).first()
+        image = images(CONF.feature.platform).filter({'dist': get_scalr_dist_name(CONF.feature.dist), 'behavior':'www'}).first()
     LOG.debug('Use image: %s' % image)
-    node = cloud.create_node(image=image.keys()[0], userdata='scm-branch=%s' % CONF.main.branch)
+    node = cloud.create_node(image=image.keys()[0], userdata='scm-branch=%s' % CONF.feature.branch)
     setattr(world, 'cloud_server', node)
 
 
@@ -37,7 +37,7 @@ def execute_import(step):
     time.sleep(180)
     role_name = 'test-import-%s' % datetime.now().strftime('%m%d-%H%M')
     LOG.info('Start import')
-    server_id = IMPL.import2_start(platform=CONF.main.platform,
+    server_id = IMPL.import2_start(platform=CONF.feature.platform,
                                   roleName=role_name)
     start_cmd = IMPL.import_check(server_id=server_id).replace('https://my.scalr.net/messaging', 'http://localhost/')
     LOG.info('Start import command in scalarizr: %s' % start_cmd)

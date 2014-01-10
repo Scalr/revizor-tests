@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 @step(r'I add (.+) role to this farm with (\d+) redis processes$')
 def add_role_to_given_farm(step, role_type, redis_count):
     LOG.info("Add role to farm")
-    engine = CONF.main.storage
+    engine = CONF.feature.storage
     LOG.info('Use storage engine: %s' % engine)
     world.role_type = role_type
     options_list = {'eph':{'db.msr.data_storage.engine': 'eph',
@@ -49,7 +49,7 @@ def add_role_to_given_farm(step, role_type, redis_count):
                     'ebs':{'db.msr.data_storage.engine':'ebs',
                            'db.msr.data_storage.ebs.size': '1',}}
     scripting = []
-    if CONF.main.platform == 'ec2':
+    CONF.featureain.platform == 'ec2':
         if role_type == 'mysql':
             options = {'mysql.data_storage_engine' : 'ebs',
                        'mysql.ebs_volume_size'      : 1}

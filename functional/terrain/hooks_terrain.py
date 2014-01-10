@@ -26,7 +26,7 @@ def initialize_world():
 def get_all_logs(scenario):
     """Give scalarizr_debug.log logs from servers"""
     #Get path
-    if CONF.main.dist.startswith('win'):
+    if CONF.feature.dist.startswith('win'):
         return
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
     farm = getattr(world, 'farm', None)
@@ -38,7 +38,7 @@ def get_all_logs(scenario):
     test_name = scenario.described_at.file.split('/')[-1].split('.')[0]
     LOG.debug('Test name: %s' % test_name)
     start_time = world.test_start_time
-    path = os.path.realpath(os.path.join(CONF.main.logpath, 'scalarizr', test_name,
+    path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr', test_name,
                                          start_time.strftime('%m%d-%H:%M'), scenario.name.replace('/', '-')))
     LOG.debug('Path to save log: %s' % path)
     if not os.path.exists(path):
@@ -69,7 +69,7 @@ def cleanup_all(total):
     LOG.info('Failed steps: %s' % total.steps_failed)
     LOG.debug('Results %s' % total.scenario_results)
     LOG.debug('Passed %s' % total.scenarios_passed)
-    if not total.steps_failed and CONF.main.stop_farm:
+    if not total.steps_failed and CONF.feature.stop_farm:
         LOG.info('Clear and stop farm...')
         farm = getattr(world, 'farm', None)
         if not farm:

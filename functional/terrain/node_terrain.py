@@ -80,10 +80,10 @@ def update_scalarizr(step, serv_as):
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')
-        node.run('apt-get install scalarizr-base scalarizr-%s -y' % Platform.to_scalr(CONF.main.driver))
+        node.run('apt-get install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.cloud_family)
     elif 'centos' in node.os[0].lower():
         LOG.info('Update scalarizr in CentOS')
-        node.run('yum install scalarizr-base scalarizr-%s -y' % Platform.to_scalr(CONF.main.driver))
+        node.run('yum install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.cloud_family)
 
 
 @step('hostname in ([\w\d]+) is valid')
@@ -122,7 +122,7 @@ def verify_open_port(step, port, has_not, serv_as):
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()
         LOG.info('My IP address: %s' % my_ip)
         node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip, port))
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:
         new_port = port
@@ -149,7 +149,7 @@ def assert_check_service(step, service, has_not, serv_as):
     port = PORTS_MAP[service]
     if isinstance(port, (list, tuple)):
         port = port[0]
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         node = world.cloud.get_node(server)
         new_port = world.cloud.open_port(node, port, ip=server.public_ip)
     else:

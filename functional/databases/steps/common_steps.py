@@ -254,7 +254,7 @@ def session_is_available(step, service, search_string, element):
 @step(r'Last (.+) date updated to current')
 def assert_check_databundle_date(step, back_type):
     LOG.info("Check %s date" % back_type)
-    if CONF.main.driver in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         LOG.info('Platform is cloudstack-family, backup not doing')
         return True
     info = world.farm.db_info(world.db.db_name)
@@ -446,7 +446,7 @@ def download_dump(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
-    if CONF.main.driver == Platform.EC2:
+    if CONF.feature.driver.current_cloud == Platform.EC2:
         if node.os[0] == 'redhat' and node.os[1].startswith('5'):
             node.run('python26 /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
                 world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
@@ -455,12 +455,12 @@ def download_dump(step, serv_as):
             node.run('python /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
                 world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
             ))
-    # elif CONF.main.driver == Platform.GCE:
+    # elif CONF.feature.driver.current_cloud == Platform.GCE:
     #     with open(world.cloud.config.libcloud.key, 'r+') as key:
     #         node.put_file('/tmp/gcs_pk.p12', key.readall())
     #     node.run('python /tmp/download_backup.py --platform=gce --key=%s --url=%s' % (world.cloud.config.libcloud.username,
     #                                                                                   world.last_backup_url))
-    # elif CONF.main.driver == Platform.RACKSPACE_US:
+    # elif CONF.feature.driver.current_cloud == Platform.RACKSPACE_US:
     #     node.run('python /tmp/download_backup.py --platform=rackspaceng --key=%s --secret=%s --url=%s' % (
     #         world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
     #     ))
@@ -533,7 +533,7 @@ def verify_replication_status(step, behavior, status):
 
 @step(r'I (get|verify) ([\w\d]+) master storage id')
 def get_storage_id(step, action, db):
-    if not CONF.main.storage == 'persistent':
+    if not CONF.feature.storage == 'persistent':
         LOG.debug('Verify the master storage id is only available with persistent system')
         return True
     get = True if action == 'get' else False

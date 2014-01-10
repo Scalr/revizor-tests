@@ -5,31 +5,27 @@ import logging
 
 from lettuce import world, step
 
-from revizor2.api import Farm, IMPL
+from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
-from revizor2.consts import ServerStatus, Platform
+from revizor2.consts import ServerStatus
 
 LOG = logging.getLogger('lifecycle')
 
 
 @step('I see (.+) server (.+)$')
-def waiting_for_assertion(step, spec, serv_as, timeout=1400):
-    if CONF.main.platform == 'ucloud':
-        timeout = 2000
-    #server = wait_until(world.check_server_status, args=(spec, world.role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
-    server = world.wait_server_bootstrapping(world.role, spec)
+def waiting_for_assertion(step, state, serv_as, timeout=1400):
+    server = world.wait_server_bootstrapping(world.role, state, timeout)
     setattr(world, serv_as, server)
-    LOG.info('Server succesfully %s' % spec)
+    LOG.info('Server succesfully %s' % state)
 
 
 @step('I wait and see (.+) server (.+)$')
-def waiting_server(step, spec, serv_as, timeout=1400):
-    if CONF.main.dist.startswith('win'):
+def waiting_server(step, state, serv_as, timeout=1400):
+    if CONF.feature.dist.startswith('win'):
         timeout = 2400
-    #server = wait_until(world.check_server_status, args=(spec, world.role.role_id), timeout=timeout, error_text="I'm not see this %s state in server" % spec)
-    server = world.wait_server_bootstrapping(world.role, spec)
-    LOG.info('Server succesfully %s' % spec)
+    server = world.wait_server_bootstrapping(world.role, state, timeout)
+    LOG.info('Server succesfully %s' % state)
     setattr(world, serv_as, server)
 
 
@@ -76,7 +72,7 @@ def check_path(step, path, serv_as):
     node = world.cloud.get_node(server)
     out = node.run('/bin/ls %s' % path)
     LOG.info('Check directory %s' % path)
-    if 'No such file or directory' in out[0] or 'No such file or directory' in out[1]:
+    if 'No such file or directory' in out[0] or 'No such file or directory' in out[1] or not out[0]:
         LOG.error('Directory (file) not exist')
         raise AssertionError("'%s' not exist in server %s" % (path, server.id))
 
@@ -96,10 +92,8 @@ def check_file_count(step, directory, file_count, serv_as):
     LOG.info('Check count of files in directory %s' % directory)
     out = node.run('cd %s && ls' % directory)[0].split()
     for i in ['..', '.', '...', 'lost+found']:
-        try:
+        if i in out:
             out.remove(i)
-        except ValueError:
-            continue
     if not int(file_count) == len(out):
         raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
