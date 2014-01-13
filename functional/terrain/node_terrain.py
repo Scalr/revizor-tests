@@ -8,19 +8,15 @@ from datetime import datetime
 
 from lettuce import world, step
 
-from revizor2 import consts, api
+from revizor2 import consts
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.cloud import Cloud
-from revizor2.consts import Platform
+from revizor2.defaults import DEFAULT_SERVICES_CONFIG
+from revizor2.consts import Platform, SERVICES_PORTS_MAP
 
 
 LOG = logging.getLogger(__name__)
-
-
-PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona': 3306, 'postgresql': 5432, 'redis': (6379, 6395),
-             'mongodb': 27018, 'mysqlproxy': 4040, 'scalarizr': 8013, 'scalr-upd-client': 8008, 'nginx': 80,
-             'apache': 80, 'memcached': 11211}
 
 
 @step('I change repo in ([\w\d]+)$')
@@ -146,7 +142,7 @@ def assert_check_service(step, service, has_not, serv_as):
     LOG.info("Check service %s" % service)
     has_not = has_not and True or False
     server = getattr(world, serv_as)
-    port = PORTS_MAP[service]
+    port = SERVICES_PORTS_MAP[service]
     if isinstance(port, (list, tuple)):
         port = port[0]
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
@@ -157,7 +153,7 @@ def assert_check_service(step, service, has_not, serv_as):
 
     # check if redis/memcached behavior in role behaviors
     if {'redis', 'memcached'}.intersection(server.role.behaviors):
-        world.set_iptables_rule(world.role_type, server, PORTS_MAP[service])
+        world.set_iptables_rule(world.role_type, server, SERVICES_PORTS_MAP[service])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
     try:
@@ -288,7 +284,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         raise AssertionError("{0} can not be found in the tested role.".format(behavior))
 
     #Get behavior configs
-    common_config = api.SERVICES_CONFIG.get(behavior)
+    common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
     #Get service name & status
     if common_config:
         status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as

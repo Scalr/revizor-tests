@@ -1,3 +1,4 @@
+import os
 import time
 import logging
 from datetime import timedelta
@@ -10,17 +11,11 @@ from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.helpers import generate_random_string
-from revizor2.consts import Platform, ServerStatus
-
-import os
-from revizor2.consts import Dist
+from revizor2.consts import Platform, ServerStatus, Dist
 
 LOG = logging.getLogger('databases')
 
 #TODO: add to all methods which call dbmsr 3 retries
-
-PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'postgresql': 5432, 'redis': 6379,
-             'mongodb': 27018, 'mysqlproxy': 4040}
 
 
 ###DataBases handlers

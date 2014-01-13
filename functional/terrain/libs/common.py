@@ -3,6 +3,7 @@ import re
 import time
 import socket
 import urllib2
+import httplib
 import logging
 import traceback
 from datetime import datetime
@@ -17,9 +18,7 @@ from revizor2.consts import ServerStatus, Platform, MessageStatus
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
-import httplib
-
-LOG = logging.getLogger('common')
+LOG = logging.getLogger(__name__)
 
 SCALARIZR_LOG_IGNORE_ERRORS = ['boto', 'p2p_message', 'Caught exception reading instance data']
 
