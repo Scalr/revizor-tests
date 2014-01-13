@@ -35,8 +35,8 @@ def having_a_stopped_farm(step):
         farm.terminate()
 
 
-@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d, -]+))?")
-def add_role_to_farm(step, behavior=None, options=None):
+@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
+def add_role_to_farm(step, behavior=None, options=None, alias=None):
     additional_storages = None
     scripting = None
     farm_options = {
@@ -79,8 +79,12 @@ def add_role_to_farm(step, behavior=None, options=None):
     world.role_options = farm_options
     world.role_scripting = scripting
     LOG.debug('All farm settings: %s' % farm_options)
-    role = world.add_role_to_farm(behavior, options=farm_options, scripting=scripting, storages=additional_storages)
-    setattr(world, '%s_role' % behavior, role)
+    role = world.add_role_to_farm(behavior, options=farm_options, scripting=scripting,
+                                  storages=additional_storages, alias=alias)
+    if alias:
+        setattr(world, '%s_role' % alias, role)
+    else:
+        setattr(world, '%s_role' % behavior, role)
     world.role = role
     if behavior in DATABASE_BEHAVIORS:
         db = Database.create(role)

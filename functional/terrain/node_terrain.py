@@ -31,7 +31,7 @@ def change_repo(step, serv_as):
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    change_repo_to_branch(node, CONF.main.branch.replace('/', '-').replace('.', '').strip())
+    change_repo_to_branch(node, CONF.feature.branch.replace('/', '-').replace('.', '').strip())
 
 
 def change_repo_to_branch(node, branch):
@@ -55,7 +55,7 @@ def pin_repo(step, repo, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     if repo == 'system':
-        branch = CONF.main.branch
+        branch = CONF.feature.branch
     else:
         branch = os.environ.get('RV_TO_BRANCH', 'master')
     if 'ubuntu' in node.os[0].lower():
@@ -109,7 +109,7 @@ def verify_open_port(step, port, has_not, serv_as):
     server = getattr(world, serv_as)
     port = int(port)
     node = world.cloud.get_node(server)
-    if not CONF.main.dist.startswith('win'):
+    if not CONF.feature.dist.startswith('win'):
         LOG.info('Add iptables rule for my IP and port %s' % port)
         try:
             my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()

@@ -174,7 +174,7 @@ def start_building(step):
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
-    res = IMPL.bundle.import_start(platform=CONF.main.platform,
+    res = IMPL.bundle.import_start(platform=CONF.feature.platform,
                                    location=CONF.platforms[CONF.feature.platform]['location'],
                                    cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))

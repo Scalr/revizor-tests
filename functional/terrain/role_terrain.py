@@ -21,7 +21,7 @@ def change_branch_in_role_for_system(step, role):
     """Change branch for selected role"""
     LOG.info('Change branch to system for %s role' % role)
     role = getattr(world, '%s_role' % role)
-    role.edit(options={"user-data.scm_branch": CONF.main.branch})
+    role.edit(options={"user-data.scm_branch": CONF.feature.branch})
 
 
 @step('I increase minimum servers to (.+) for (.+) role')

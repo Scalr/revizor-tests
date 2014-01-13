@@ -44,7 +44,7 @@ def give_empty_running_farm():
 
 
 @world.absorb
-def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None):
+def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None, alias=None):
     role = None
     if CONF.feature.role_id:
         role = roles_table[CONF.feature.role_id]
@@ -56,7 +56,7 @@ def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None
         raise AssertionError('Not find role in roles table')
     old_roles_ids = [r.id for r in world.farm.roles]
     LOG.info('Add role %s to farm' % role)
-    world.farm.add_role(role.keys()[0], options=options, scripting=scripting, storages=storages)
+    world.farm.add_role(role.keys()[0], options=options, scripting=scripting, storages=storages, alias=alias)
     LOG.info('Add role %s to farm %s\n options: %s\n scripting: %s' % (role.keys()[0], world.farm.id, options, scripting))
     time.sleep(5)
     world.farm.roles.reload()
@@ -492,16 +492,16 @@ def check_server_storage(serv_as, status):
     server = getattr(world, serv_as)
     volumes = server.get_volumes()
     LOG.debug('Volumes for server %s is: %s' % (server.id, volumes))
-    if CONF.main.platform == 'ec2':
+    if CONF.feature.platform == 'ec2':
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
-    elif CONF.main.platform in ['cloudstack', 'idcf', 'ucloud']:
+    elif CONF.feature.platform in ['cloudstack', 'idcf', 'ucloud']:
         storages = filter(lambda x: x.extra['type'] == 'DATADISK', volumes)
     if not storages and not status.strip() == 'deleted':
         raise AssertionError('Server %s not have storages' % server.id)
     if status.strip() == 'deleted' and len(storages) < len(getattr(world, '%s_storages' % serv_as)):
         return True
     for vol in volumes:
-        if CONF.main.platform == 'ec2':
+        if CONF.feature.platform == 'ec2':
             state = 'used' if vol.extra['state'] in ['in-use', 'available'] else 'deleted'
         elif CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
             state = 'used'
