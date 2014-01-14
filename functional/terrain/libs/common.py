@@ -23,47 +23,27 @@ LOG = logging.getLogger(__name__)
 SCALARIZR_LOG_IGNORE_ERRORS = ['boto', 'p2p_message', 'Caught exception reading instance data']
 
 
-@world.absorb
-def give_empty_running_farm():
-    farm_id = os.environ.get('RV_FARM_ID', CONF.main.farm_id)
-    world.farm = Farm.get(farm_id)
-    world.farm.roles.reload()
-    if len(world.farm.roles):
-        IMPL.farm.clear_roles(world.farm.id)
-    world.farm.vhosts.reload()
-    world.farm.domains.reload()
-    for vhost in world.farm.vhosts:
-        LOG.info('Delete vhost: %s' % vhost.name)
-        vhost.delete()
-    for domain in world.farm.domains:
-        LOG.info('Delete domain: %s' % domain.name)
-        domain.delete()
-    if world.farm.terminated:
-        world.farm.launch()
-    LOG.info('Return empty running farm: %s' % world.farm.id)
-
-
-@world.absorb
-def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None, alias=None):
-    role = None
-    if CONF.feature.role_id:
-        role = roles_table[CONF.feature.role_id]
-    elif role_type:
-        role = roles_table.filter({'behavior': role_type}).first()
-    else:
-        role = roles_table.filter().first()
-    if not role:
-        raise AssertionError('Not find role in roles table')
-    old_roles_ids = [r.id for r in world.farm.roles]
-    LOG.info('Add role %s to farm' % role)
-    world.farm.add_role(role.keys()[0], options=options, scripting=scripting, storages=storages, alias=alias)
-    LOG.info('Add role %s to farm %s\n options: %s\n scripting: %s' % (role.keys()[0], world.farm.id, options, scripting))
-    time.sleep(5)
-    world.farm.roles.reload()
-    for r in world.farm.roles:
-        if not r.id in old_roles_ids:
-            return r
-    return None
+#@world.absorb
+#def add_role_to_farm(role_type=None, options=None, scripting=None, storages=None, alias=None):
+#    role = None
+#    if CONF.feature.role_id:
+#        role = roles_table[CONF.feature.role_id]
+#    elif role_type:
+#        role = roles_table.filter({'behavior': role_type}).first()
+#    else:
+#        role = roles_table.filter().first()
+#    if not role:
+#        raise AssertionError('Not find role in roles table')
+#    old_roles_ids = [r.id for r in world.farm.roles]
+#    LOG.info('Add role %s to farm' % role)
+#    world.farm.add_role(role.keys()[0], options=options, scripting=scripting, storages=storages, alias=alias)
+#    LOG.info('Add role %s to farm %s\n options: %s\n scripting: %s' % (role.keys()[0], world.farm.id, options, scripting))
+#    time.sleep(5)
+#    world.farm.roles.reload()
+#    for r in world.farm.roles:
+#        if not r.id in old_roles_ids:
+#            return r
+#    return None
 
 
 @world.absorb
