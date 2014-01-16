@@ -1,6 +1,8 @@
 __author__ = 'gigimon'
 import os
+import re
 import logging
+import copy
 from datetime import datetime
 
 from lettuce import world, after, before
@@ -10,7 +12,8 @@ from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus
-
+from revizor2.fixtures import manifests
+from revizor2.helpers.roles import get_role_versions
 
 LOG = logging.getLogger(__name__)
 
@@ -20,6 +23,44 @@ def initialize_world():
     setattr(world, 'test_start_time', datetime.now())
     c = Cloud()
     setattr(world, 'cloud', c)
+
+
+@before.each_feature
+def exclude_scenarios_by_version(feature):
+    """
+    This hook remove some scenarios in depends from role version.
+    You can set in .manifest file EXCLUDE_SCENARIOS variable with version software
+    and scenarios which You want exclude from test in this role version.
+
+    >>> EXCLUDE_SCENARIOS= {
+    >>>    "default": ["Bootstrapping role"],
+    >>>    "26": ["Bundling data", "Modifying data"]
+    >>> }
+    """
+    version = 'default'
+    if CONF.feature.role_id:
+        role = IMPL.role.get(CONF.feature.role_id)
+        version = re.findall('(\d+)', role['name'].split('-')[0])
+        version = int(version[0]) if version else 'default'
+    elif CONF.feature.role_version:
+        version = CONF.feature.role_version if CONF.feature.role_version else 'default'
+
+    manifest = os.path.realpath(
+        os.path.join(os.path.dirname(feature.scenarios[0].with_file.split('.')[0]),
+                     'manifests',
+                     feature.described_at.file.split('.')[0].split('/')[-1] + '.manifest')
+    )
+    if not os.path.isfile(manifest):
+        return
+    manifest = manifests(manifest)
+    if 'EXCLUDED_SCENARIOS' in manifest:
+        excluded_scenarios_name = manifest['EXCLUDED_SCENARIOS'].get(version, [])
+        new_scenarios_list = []
+        for scenario in feature.scenarios:
+            if not scenario.name in excluded_scenarios_name:
+                new_scenarios_list.append(scenario)
+        if new_scenarios_list:
+            feature.scenarios = new_scenarios_list
 
 
 @after.each_scenario

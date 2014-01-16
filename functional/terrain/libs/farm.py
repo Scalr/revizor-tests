@@ -61,7 +61,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             #TODO: insert code to find shared role
             pass
         else:
-            if CONF.feature.role_version:
+            if CONF.feature.role_version and not CONF.feature.role_version == 'default':
                 role_name = '%s%s-%s-%s' % (behavior, CONF.feature.role_version,
                                             CONF.feature.dist, CONF.feature.role_type)
             else:
