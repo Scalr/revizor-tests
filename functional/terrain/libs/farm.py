@@ -16,7 +16,7 @@ from revizor2.fixtures import resources
 from revizor2.conf import CONF, roles_table
 from revizor2.consts import ServerStatus, Platform, MessageStatus, BEHAVIORS_ALIASES
 from revizor2.exceptions import NotFound
-from revizor2.helpers.jsonrpc import SzrApiServiceProxy
+from revizor2.helpers.roles import get_role_versions
 
 
 LOG = logging.getLogger(__name__)
@@ -57,12 +57,18 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         if not role:
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
-        role_version = CONF.feature.role_version or ''
         if CONF.feature.role_type == 'shared':
             #TODO: insert code to find shared role
             pass
         else:
-            role_name = '%s%s-%s-%s' % (behavior, role_version, CONF.feature.dist, CONF.feature.role_type)
+            if CONF.feature.role_version:
+                role_name = '%s%s-%s-%s' % (behavior, CONF.feature.role_version,
+                                            CONF.feature.dist, CONF.feature.role_type)
+            else:
+                mask = '%s*-%s-%s' % (behavior, CONF.feature.dist, CONF.feature.role_type)
+                versions = get_role_versions(mask)
+                role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                            CONF.feature.dist, CONF.feature.role_type)
             roles = IMPL.role.list(query=role_name)
             if not roles:
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
