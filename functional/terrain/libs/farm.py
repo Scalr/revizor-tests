@@ -58,8 +58,9 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
         if CONF.feature.role_type == 'shared':
+            #Use table with exclude list
             #TODO: insert code to find shared role
-            pass
+            raise NotImplemented('Insert shared roles not implemented!')
         else:
             if CONF.feature.role_version and not CONF.feature.role_version == 'default':
                 role_name = '%s%s-%s-%s' % (behavior, CONF.feature.role_version,

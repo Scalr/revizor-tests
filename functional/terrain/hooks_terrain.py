@@ -2,7 +2,6 @@ __author__ = 'gigimon'
 import os
 import re
 import logging
-import copy
 from datetime import datetime
 
 from lettuce import world, after, before
@@ -13,7 +12,6 @@ from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus
 from revizor2.fixtures import manifests
-from revizor2.helpers.roles import get_role_versions
 
 LOG = logging.getLogger(__name__)
 
@@ -37,6 +35,7 @@ def exclude_scenarios_by_version(feature):
     >>>    "26": ["Bundling data", "Modifying data"]
     >>> }
     """
+    #TODO: Implement version oeprator > < => =<
     version = 'default'
     if CONF.feature.role_id:
         role = IMPL.role.get(CONF.feature.role_id)
@@ -51,10 +50,13 @@ def exclude_scenarios_by_version(feature):
                      feature.described_at.file.split('.')[0].split('/')[-1] + '.manifest')
     )
     if not os.path.isfile(manifest):
+        LOG.warning("Manifest file %s doesn't exist")
         return
     manifest = manifests(manifest)
     if 'EXCLUDED_SCENARIOS' in manifest:
         excluded_scenarios_name = manifest['EXCLUDED_SCENARIOS'].get(version, [])
+        LOG.info('Exclude the following scenarios %s from test because role version: %s' %
+                 (excluded_scenarios_name, version))
         new_scenarios_list = []
         for scenario in feature.scenarios:
             if not scenario.name in excluded_scenarios_name:
