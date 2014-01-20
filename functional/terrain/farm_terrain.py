@@ -90,7 +90,11 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
         db = Database.create(role)
         if not db:
             raise AssertionError('Database for role %s not found!' % role)
-        world.database_users = {}
+        if hasattr(world, 'database_users'):
+            world.database_users[db.db_name] = {}
+        else:
+            world.database_users = {db.db_name: {}}
+        setattr(world, '%s_db' % db.db_name, db)
         world.db = db
 
 

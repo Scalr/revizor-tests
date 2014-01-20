@@ -13,9 +13,7 @@ from revizor2.fixtures import resources
 from revizor2.helpers import generate_random_string
 from revizor2.consts import Platform, ServerStatus, Dist
 
-LOG = logging.getLogger('databases')
-
-#TODO: add to all methods which call dbmsr 3 retries
+LOG = logging.getLogger(__name__)
 
 
 ###DataBases handlers
