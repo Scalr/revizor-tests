@@ -51,6 +51,7 @@ def assert_check_replicaset(step, slaves, serv_ind):
 @step('shard status have ([\d]+) replicaset')
 def assert_shard_status(step, serv_count):
     serv_count = int(serv_count)
+    db_role = world.get_role()
     world.farm.servers.reload()
     server = None
     for serv in world.farm.servers:
@@ -60,7 +61,8 @@ def assert_shard_status(step, serv_count):
                 LOG.info('Found server %s with cluster position %s' % (server.id, serv.cluster_position))
                 break
     world.assert_not_exist(server, 'Not find server with index 0-0')
-    conn = world.db.get_connection(server, 27017)
+
+    conn = db_role.db.get_connection(server, 27017)
     LOG.info('Create mongo connection to %s' % server.id)
     cur = conn.config.shards.find()
     rs_list = set([rs['host'].split('/')[0][-1] for rs in cur])

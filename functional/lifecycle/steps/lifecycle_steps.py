@@ -14,7 +14,8 @@ LOG = logging.getLogger('lifecycle')
 
 @step('I see (.+) server (.+)$')
 def waiting_for_assertion(step, state, serv_as, timeout=1400):
-    server = world.wait_server_bootstrapping(world.role, state, timeout)
+    role = world.get_role()
+    server = world.wait_server_bootstrapping(role, state, timeout)
     setattr(world, serv_as, server)
     LOG.info('Server succesfully %s' % state)
 
@@ -23,7 +24,8 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
 def waiting_server(step, state, serv_as, timeout=1400):
     if CONF.feature.dist.startswith('win'):
         timeout = 2400
-    server = world.wait_server_bootstrapping(world.role, state, timeout)
+    role = world.get_role()
+    server = world.wait_server_bootstrapping(role, state, timeout)
     LOG.info('Server succesfully %s' % state)
     setattr(world, serv_as, server)
 
@@ -152,9 +154,10 @@ def define_event_to_role(step, event):
 @step('I attach a script \'(.+)\' on this event')
 def attach_script(step, script_name):
     scripts = IMPL.script.list()
+    role = world.get_role()
     res = filter(lambda x: x['name'] == script_name, scripts)[0]
     LOG.info('Add script %s to custom event %s' % (res['name'], world.last_event['name']))
-    IMPL.farm.edit_role(world.farm.id, world.role.role.id, scripting=[{
+    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[{
                           "script_id": str(res['id']),
                           "script": res['name'],
                           "params": [],
@@ -164,8 +167,8 @@ def attach_script(step, script_name):
                           "issync": "1",
                           "order_index": "1",
                           "event": world.last_event['name']
-                    }]
-                            )
+                        }]
+                    )
 
 
 @step('I execute \'(.+)\' in (.+)$')

@@ -153,7 +153,7 @@ def assert_check_service(step, service, has_not, serv_as):
 
     # check if redis/memcached behavior in role behaviors
     if {'redis', 'memcached'}.intersection(server.role.behaviors):
-        world.set_iptables_rule(world.role_type, server, SERVICES_PORTS_MAP[service])
+        world.set_iptables_rule(server, SERVICES_PORTS_MAP[service])
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(15)
     try:

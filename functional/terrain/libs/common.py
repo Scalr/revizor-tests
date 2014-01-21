@@ -450,7 +450,8 @@ def mongodb_wait_data2(node, data):
 
 @world.absorb
 def wait_database(db_name, server):
-    return world.db.database_exist(db_name, server)
+    db_role = world.get_role()
+    return db_role.db.database_exist(db_name, server)
 
 
 @world.absorb
@@ -565,9 +566,9 @@ def assert_not_in(first, second, message=''):
     assert first in second, message
 
 @world.absorb
-def set_iptables_rule(role_type, server, port):
+def set_iptables_rule(server, port):
     """Set iptables rule in the top of the list (str, str, list||tuple)->"""
-    LOG.info('Role is %s, add iptables rule for me' % role_type)
+    LOG.info('Insert iptables rule to server %s for opening port %s' % (server, port))
     node = world.cloud.get_node(server)
     try:
         my_ip = urllib2.urlopen('http://ifconfig.me/ip').read().strip()

@@ -62,14 +62,16 @@ def replicaset_control(step, action):
 @step('([\w]+) is master$')
 def check_master(step, serv_as):
     server = getattr(world, serv_as)
-    res = world.db.check_master(server)
+    db_role = world.get_role()
+    res = db_role.db.check_master(server)
     world.assert_not_exist(res, '%s is not master' % server.id)
 
 
 @step('Then I write data to (.+)$')
 def write_data(step, serv_as):
     server = getattr(world, serv_as)
-    id = world.db.database_create('supertestdb', server)
+    db_role = world.get_role()
+    id = db_role.db.database_create('supertestdb', server)
     world.data_id = id
 
 

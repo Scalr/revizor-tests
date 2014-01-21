@@ -81,16 +81,6 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
                                   storages=additional_storages, alias=alias)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
-    if behavior in DATABASE_BEHAVIORS:
-        db = Database.create(role)
-        if not db:
-            raise AssertionError('Database for role %s not found!' % role)
-        if hasattr(world, 'database_users'):
-            world.database_users[db.db_name] = {}
-        else:
-            world.database_users = {db.db_name: {}}
-        setattr(world, '%s_db' % db.db_name, db)
-        world.db = db
 
 
 @step('I delete (\w+) role from this farm')
