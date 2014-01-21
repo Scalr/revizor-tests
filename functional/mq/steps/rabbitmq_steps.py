@@ -39,7 +39,7 @@ def assert_check_node_type(step, serv_as, node_type):
 
 @step('I (increase|decrease) minimum servers to (.+) for (.+) role$')
 def increase_instances(step, action_type, count, role_type):
-    role = getattr(world, '%s_role' % role_type)
+    role = world.get_role(role_type)
     options = { "scaling.max_instances": int(count) + 1,
                             "scaling.min_instances": count,
                             "rabbitmq.nodes_ratio": "66%", }

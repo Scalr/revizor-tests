@@ -17,17 +17,17 @@ LOG = logging.getLogger(__name__)
 
 
 @step('I change branch to system for (\w+) role')
-def change_branch_in_role_for_system(step, role):
+def change_branch_in_role_for_system(step, role_type):
     """Change branch for selected role"""
-    LOG.info('Change branch to system for %s role' % role)
-    role = getattr(world, '%s_role' % role)
+    LOG.info('Change branch to system for %s role' % role_type)
+    role = world.get_role(role_type)
     role.edit(options={"user-data.scm_branch": CONF.feature.branch})
 
 
 @step('I increase minimum servers to (.+) for (.+) role')
 def increase_instances(step, count, role_type):
     """Increase minimum servers count for role"""
-    role = getattr(world, '%s_role' % role_type)
+    role = world.get_role(role_type)
     options = {"scaling.max_instances": int(count) + 1,
                "scaling.min_instances": count}
     world.farm.edit_role(role.role_id, options)

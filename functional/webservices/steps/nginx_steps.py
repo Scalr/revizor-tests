@@ -84,19 +84,19 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
 
 
 @step(r'I add (\w+) role as app role in ([\w\d]+) scalarizr config')
-def add_custom_role_to_backend(step, role, serv_as):
-    LOG.info("Add %s role to %s scalarizr config" % (role, serv_as))
+def add_custom_role_to_backend(step, role_type, serv_as):
+    LOG.info("Add %s role to %s scalarizr config" % (role_type, serv_as))
     server = getattr(world, serv_as)
-    role = getattr(world, '%s_role' % role)
+    role = world.get_role(role_type)
     node = world.cloud.get_node(server)
     node.run("sed -i 's/upstream_app_role =/upstream_app_role = %s/g' /etc/scalr/public.d/www.ini" % role.name)
 
 
 @step(r'I remove (\w+) role from ([\w\d]+) scalarizr config')
-def delete_custom_role_from_backend(step, role, serv_as):
+def delete_custom_role_from_backend(step, role_type, serv_as):
     LOG.info("Delete %s role to %s scalarizr config" % (role, serv_as))
     server = getattr(world, serv_as)
-    role = getattr(world, '%s_role' % role)
+    role = world.get_role(role_type)
     node = world.cloud.get_node(server)
     node.run("sed -i 's/upstream_app_role = %s/upstream_app_role =/g' /etc/scalr/public.d/www.ini" % role.name)
 

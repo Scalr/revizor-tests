@@ -44,8 +44,8 @@ def parse_haproxy_config(node):
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend")
 def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
     LOG.info("Add haproxy proxy %s with role backend" % proxy_name)
-    proxy_role = getattr(world, '%s_role' % proxy_role)
-    backend_role = getattr(world, '%s_role' % backend_role)
+    proxy_role = world.get_role(proxy_role)
+    backend_role = world.get_role(backend_role)
     backends = [{
         'farm_role_id': backend_role.id,
         'port': str(port),

@@ -37,8 +37,8 @@ def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, ba
     :param vhost_name: Virtual host name
     :type vhost_name: str
     """
-    proxy_role = getattr(world, '%s_role' % proxy_role)
-    backend_role = getattr(world, '%s_role' % backend_role)
+    proxy_role = world.get_role(proxy_role)
+    backend_role = world.get_role(backend_role)
     vhost = getattr(world, vhost_name)
     opts = {}
     if proto == 'http':
@@ -79,7 +79,7 @@ def check_proxy_in_nginx_config(step, www_serv, vhost_name):
 
 
 @step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies:")
-def modify_nginx_proxy(step, proxy, role, ip_hash):
+def modify_nginx_proxy(step, proxy, role_type, ip_hash):
     """
     Modify nginx proxy settings via farm builder, use lettuce multiline for get proxy settings.
     If string in multiline startswith '/', this line will parsing as backend:
@@ -90,7 +90,7 @@ def modify_nginx_proxy(step, proxy, role, ip_hash):
     """
     LOG.info('Modify proxy %s with backends:\n %s' % (proxy, step.multiline))
     proxy = getattr(world, '%s_proxy' % proxy)
-    role = getattr(world, '%s_role' % role)
+    role = world.get_role(role_type)
     ip_hash = True if ip_hash == 'with' else False
     backends = []
     templates = {'server': []}

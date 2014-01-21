@@ -76,16 +76,11 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
         if storages:
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
             farm_options.update(storages.get(CONF.feature.storage, {}))
-    world.role_options = farm_options
-    world.role_scripting = scripting
     LOG.debug('All farm settings: %s' % farm_options)
     role = world.add_role_to_farm(behavior, options=farm_options, scripting=scripting,
                                   storages=additional_storages, alias=alias)
-    if alias:
-        setattr(world, '%s_role' % alias, role)
-    else:
-        setattr(world, '%s_role' % behavior, role)
-    world.role = role
+    LOG.debug('Save role object with name %s' % role.alias)
+    setattr(world, '%s_role' % role.alias, role)
     if behavior in DATABASE_BEHAVIORS:
         db = Database.create(role)
         if not db:
@@ -101,7 +96,7 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
 @step('I delete (\w+) role from this farm')
 def delete_role_from_farm(step, role_type):
     LOG.info('Delete role %s from farm' % role_type)
-    role = getattr(world, '%s_role' % role_type)
+    role = world.get_role(role_type)
     world.farm.delete_role(role.role_id)
 
 

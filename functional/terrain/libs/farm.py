@@ -1,20 +1,12 @@
 import os
-import re
 import time
-import socket
-import urllib2
-import httplib
 import logging
-import traceback
-from datetime import datetime
 
-import requests
 from lettuce import world
 
-from revizor2.api import Farm, Role, IMPL
-from revizor2.fixtures import resources
-from revizor2.conf import CONF, roles_table
-from revizor2.consts import ServerStatus, Platform, MessageStatus, BEHAVIORS_ALIASES
+from revizor2.api import Farm, IMPL
+from revizor2.conf import CONF
+from revizor2.consts import BEHAVIORS_ALIASES
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
