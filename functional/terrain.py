@@ -55,6 +55,9 @@ FARM_OPTIONS = {
     },
     'branch_stable': {
         "user-data.scm_branch": "release/stable"
+    },
+    'branch_latest': {
+        "user-data.scm_branch": "release/latest"
     }
 }
 
@@ -355,11 +358,15 @@ def add_role_to_farm(step, behavior=None, options=None):
         world.db = db
 
 
-@step('I change branch to system for (\w+) role')
-def change_branch_in_role_for_system(step, role):
-    LOG.info('Change branch to system for %s role' % role)
+@step('I change branch to ([\w\W]*) for (\w+) role')
+def change_branch_in_role_for_system(step, branch, role):
+    branch, version = branch.split('.')[0], '.'.join(branch.split('.')[1:])
+    LOG.info('Change branch to %s for %s role' % (branch, role))
     role = getattr(world, '%s_role' % role)
-    role.edit(options={"user-data.scm_branch": CONF.main.branch})
+    role.edit(options={
+        "user-data.scm_branch": branch if branch != 'system' else CONF.main.branch,
+        "user-data.szr_version": version
+    })
 
 
 @step('I change repo in ([\w\d]+)$')
