@@ -67,6 +67,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
     old_roles_id = [r.id for r in world.farm.roles]
+    alias = alias or role['name']
     world.farm.add_role(role['id'], options=options, scripting=scripting, storages=storages, alias=alias)
     time.sleep(3)
     world.farm.roles.reload()

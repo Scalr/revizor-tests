@@ -25,7 +25,7 @@ Feature: PostgreSQL database server functional test
 	@ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
     Scenario: Use new role
         Given I have a an empty running farm
-        When I add to farm role created by last bundle task
+        When I add to farm role created by last bundle task as postgresql role
         Then I expect server bootstrapping as M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle @restart

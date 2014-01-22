@@ -30,7 +30,7 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @rebundle
     Scenario: Use new role
         Given I have a an empty running farm
-        When I add to farm role created by last bundle task
+        When I add to farm role created by last bundle task as mysql2 role
         Then I expect server bootstrapping as M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @rebundle @restart
@@ -43,7 +43,6 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle
     Scenario: Bundling data
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
@@ -52,7 +51,6 @@ Feature: MySQL database server with behavior mysql2
         When I create new database user 'revizor' on M1
         And I add small-sized database D1 on M1 by user 'revizor'
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And I terminate server M1
         Then I expect server bootstrapping as M1
@@ -61,7 +59,6 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle
     Scenario: Bundling data second time
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
@@ -74,7 +71,6 @@ Feature: MySQL database server with behavior mysql2
     Scenario: Backuping 11 databases
         When I create 11 databases on M1 by user 'revizor'
         Then I trigger backup creation
-        Then Scalr sends DbMsr_CreateBackup to M1
         And Scalr receives DbMsr_CreateBackupResult from M1
         And Last backup date updated to current
         And not ERROR in M1 scalarizr log
@@ -146,7 +142,6 @@ Feature: MySQL database server with behavior mysql2
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle @slavedatabundle
 	Scenario: Check databundle in slave
 		When I trigger databundle creation on slave
-		Then Scalr sends DbMsr_CreateDataBundle to M2
 		And Scalr receives DbMsr_CreateDataBundleResult from M2
         And Last databundle date updated to current
 
@@ -175,7 +170,6 @@ Feature: MySQL database server with behavior mysql2
 	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle @lvm
 	Scenario: Bundling data before terminate
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to N1
         And Scalr receives DbMsr_CreateDataBundleResult from N1
 		And Last databundle date updated to current
 

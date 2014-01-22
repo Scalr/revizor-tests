@@ -85,21 +85,15 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
     wait_until(world.bundle_task_completed, args=(serv, world.bundle_id), timeout=timeout, error_text="Bundle not completed")
 
 
-@step('I add to farm role created by last bundle task')
-def add_new_role_to_farm(step):
+@step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
+def add_new_role_to_farm(step, alias=None):
     options = getattr(world, 'role_options', {})
     scripting = getattr(world, 'role_scripting', [])
     bundled_role = Role.get(world.bundled_role_id)
     if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
-    world.farm.add_role(world.bundled_role_id, options=options, scripting=scripting)
+    world.farm.add_role(world.bundled_role_id, options=options, scripting=scripting, alias=alias)
     world.farm.roles.reload()
     role = world.farm.roles[0]
-    setattr(world, bundled_role.behaviors_as_text() + '_role', role)
-    LOG.info("Set DB object to world")
-    if {bundled_role.behaviors}.intersection(['mysql', 'mariadb', 'percona', 'mysql2', 'percona2',
-                                              'postgresql', 'redis', 'mongodb']):
-        db = Database.create(role)
-        if db:
-            setattr(world, 'db', db)
+    setattr(world, '%s_role' % role.alias, role)

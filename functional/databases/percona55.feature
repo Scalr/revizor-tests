@@ -1,10 +1,10 @@
 Using step definitions from: steps/common_steps
-Feature: Percona 5.5 database server with behavior percona2 (scalr behavior percona for Percona 5.5)
+Feature: Percona 5.5 database server with behavior percona (scalr behavior percona for Percona 5.5)
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @boot
     Scenario: Bootstraping percona role
         Given I have a an empty running farm
-        When I add percona2 role to this farm
+        When I add percona role to this farm
         Then I expect server bootstrapping as M1
         And percona is running on M1
         And scalarizr version is last in M1
@@ -25,7 +25,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
     Scenario: Use new role
         Given I have a an empty running farm
-        When I add to farm role created by last bundle task
+        When I add to farm role created by last bundle task as percona role
         Then I expect server bootstrapping as M1
 
     @ec2 @gce @cloudstack @rackspaceng @rebundle @openstack @restart
@@ -38,7 +38,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
     @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
     Scenario: Bundling data
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
@@ -46,7 +45,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
     Scenario: Modifying data
         Given I have small-sized database D1 on M1
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And I terminate server M1
         Then I expect server bootstrapping as M1
@@ -55,7 +53,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle
 	Scenario: Bundling data second time
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
 		And Last databundle date updated to current
 
@@ -68,7 +65,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	Scenario: Backuping 11 databases
 		When I create 11 databases on M1
 		Then I trigger backup creation
-		Then Scalr sends DbMsr_CreateBackup to M1
         And Scalr receives DbMsr_CreateBackupResult from M1
 		And Last backup date updated to current
 		And not ERROR in M1 scalarizr log
@@ -86,7 +82,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Setup replication
-        When I increase minimum servers to 2 for percona2 role
+        When I increase minimum servers to 2 for percona role
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
         And percona replication status is up
@@ -112,9 +108,9 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 
 	@ec2 @grow
 	Scenario: Grow storage
-		When I increase storage to 5 Gb in percona2 role
+		When I increase storage to 5 Gb in percona role
 		Then grow status is completed
-		And new storage size is 5 Gb in percona2 role
+		And new storage size is 5 Gb in percona role
 		And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log
 
@@ -128,7 +124,7 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 
 	@ec2 @cloudstack @volumes
 	Scenario: Setup replication for volume delete test
-        When I increase minimum servers to 2 for percona2 role
+        When I increase minimum servers to 2 for percona role
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
 
@@ -140,13 +136,12 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @slavedatabundle
 	Scenario: Check databundle in slave
 		When I trigger databundle creation on slave
-		Then Scalr sends DbMsr_CreateDataBundle to M2
 		And Scalr receives DbMsr_CreateDataBundleResult from M2
         And Last databundle date updated to current
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
     Scenario: Slave -> Master promotion
-        Given I increase minimum servers to 3 for percona2 role
+        Given I increase minimum servers to 3 for percona role
         And I expect server bootstrapping as M3
         And M3 contains database D2
         When I create database D3 on M1
@@ -169,7 +164,6 @@ Feature: Percona 5.5 database server with behavior percona2 (scalr behavior perc
 	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @lvm
 	Scenario: Bundling data before terminate
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to N1
         And Scalr receives DbMsr_CreateDataBundleResult from N1
 		And Last databundle date updated to current
 
