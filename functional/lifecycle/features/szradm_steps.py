@@ -35,13 +35,21 @@ class SzrAdmResultsParser(object):
             if line.startswith('+'):
                 continue
             lines.append([row.strip() for row in line.strip('|').split('|')])
-
+        #Combines multi-line table cells
+        combi_lines = [lines.pop(0)]
+        for line_num in xrange(len(lines)):
+            if len(lines[line_num]) == len(combi_lines[0]):
+                combi_lines.append(lines[line_num])
+            else:
+                combi_lines[-1][-1] = '\n'.join((combi_lines[-1][-1], lines[line_num][0]))
+        del lines
         #Convert table to dict result {table header[1]: [table rows[1:]], table header[n]: [table rows[1:]}
         table = {}
-        for row_cell in xrange(len(lines[0])):
-            table.update({lines[0][row_cell]: []})
-            for table_row in xrange(len(lines[1:])):
-                table[lines[0][row_cell]].append(lines[table_row+1][row_cell])
+        for row_cell in xrange(len(combi_lines[0])):
+            table.update({combi_lines[0][row_cell]: []})
+            for table_row in xrange(len(combi_lines[1:])):
+                table[combi_lines[0][row_cell]].append(combi_lines[table_row+1][row_cell])
+
         return table
 
     @staticmethod
@@ -110,16 +118,33 @@ server = farm.servers[0]
 c = Cloud()
 
 node = c.get_node(server)
+#x
 #lr = node.run('szradm --queryenv get-latest-version')
-lr = node.run('szradm --queryenv list-global-variables')
-#lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
+#t
 #lr = node.run('szradm list-roles')
-#lr = node.run('szradm message-details 050b5417-1486-4562-b630-c33ee996b709')
+#t
+#lr = node.run('szradm list-roles -b app')
+#x
+#lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
+#x
+#lr = node.run('szradm --queryenv list-global-variables')
+#t
+#lr = node.run('szradm get-https-certificate')
+#t
+#lr = node.run('szradm list-virtualhosts')
+#t
+#lr = node.run('szradm list-ebs-mountpoints')
+#t
+lr = node.run('szradm list-messages')
+#y
+#lr = node.run('szradm message-details c456fda9-b071-4270-b5a7-c0e7ed6623fc')
 ########################################
 
-
-#print SzrAdmResultsParser.tables_parser(lr[0])
-#print SzrAdmResultsParser.yaml_parser(lr[0])
-#print SzrAdmResultsParser.xml_parser(ET.XML(lr[0]))
 print lr[0]
-print SzrAdmResultsParser.xml_parser(lr[0])
+
+#Table parser
+print SzrAdmResultsParser.tables_parser(lr[0])
+#YAMLparser
+#print SzrAdmResultsParser.yaml_parser(lr[0])
+#XML parser
+#print SzrAdmResultsParser.xml_parser(lr[0])
