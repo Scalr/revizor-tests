@@ -102,39 +102,39 @@ Feature: MySQL database server with behavior mysql2
        And not ERROR in M2 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @slavetermination
-	Scenario: Slave force termination
-		When I force terminate M2
-		Then Scalr sends HostDown to M1
-		And not ERROR in M1 scalarizr log
-		And mysql is running on M1
-		Then I expect server bootstrapping as M2
-		And not ERROR in M1 scalarizr log
-		And not ERROR in M2 scalarizr log
-		And mysql is running on M1
+    Scenario: Slave force termination
+        When I force terminate M2
+        Then Scalr sends HostDown to M1
+        And not ERROR in M1 scalarizr log
+        And mysql is running on M1
+        Then I expect server bootstrapping as M2
+        And not ERROR in M1 scalarizr log
+        And not ERROR in M2 scalarizr log
+        And mysql is running on M1
 
-	@ec2 @grow
-	Scenario: Grow storage
-		When I increase storage to 5 Gb in mysql2 role
-		Then grow status is completed
-		And new storage size is 5 Gb in mysql2 role
-		And not ERROR in M1 scalarizr log
+    @ec2 @grow
+    Scenario: Grow storage
+        When I increase storage to 5 Gb in mysql2 role
+        Then grow status is completed
+        And new storage size is 5 Gb in mysql2 role
+        And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log
 
-	@ec2 @cloudstack @volumes
+    @ec2 @cloudstack @volumes
     Scenario: Slave delete volumes
-    	When I know M2 storages
-    	And M2 storage is use
-    	Then I terminate server M2 with decrease
-   		And M2 storage is deleted
-   		And not ERROR in M1 scalarizr log
+        When I know M2 storages
+        And M2 storage is use
+        Then I terminate server M2 with decrease
+        And M2 storage is deleted
+        And not ERROR in M1 scalarizr log
 
-	@ec2 @cloudstack @volumes
-	Scenario: Setup replication for volume delete test
+    @ec2 @cloudstack @volumes
+    Scenario: Setup replication for volume delete test
         When I increase minimum servers to 2 for mysql2 role
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @replication
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @replication
     Scenario: Writing on Master, reading on Slave
         When I create database D2 on M1 by user 'revizor'
         Then M2 contains database D2 by user 'revizor'

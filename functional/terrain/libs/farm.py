@@ -6,6 +6,7 @@ from lettuce import world
 
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
+from revizor2.fixtures import tables
 from revizor2.consts import BEHAVIORS_ALIASES
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
@@ -50,9 +51,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
         if CONF.feature.role_type == 'shared':
-            #Use table with exclude list
-            #TODO: insert code to find shared role
-            raise NotImplemented('Insert shared roles not implemented!')
+            role = tables('roles-shared').filter({'dist': CONF.feature.dist,
+                                                 'behavior': behavior,
+                                                 'platform': CONF.feature.driver.scalr_cloud}).first()
+            role = IMPL.role.get(role.keys()[0])
         else:
             if CONF.feature.role_version and not CONF.feature.role_version == 'default':
                 role_name = '%s%s-%s-%s' % (behavior, CONF.feature.role_version,

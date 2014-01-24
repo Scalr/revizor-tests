@@ -9,7 +9,6 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
-from revizor2.dbmsr import Database
 from revizor2.consts import Platform
 
 

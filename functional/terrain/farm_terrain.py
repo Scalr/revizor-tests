@@ -9,7 +9,6 @@ from lettuce import world, step
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
-from revizor2.dbmsr import Database
 from revizor2.api import Script, Farm
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_FARM_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_SCRIPTING
