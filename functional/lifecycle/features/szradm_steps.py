@@ -6,9 +6,10 @@ Created on 01.22.2014
 """
 
 from lettuce import world, step
-from xml.etree import cElementTree as ET
-from collections import defaultdict
 from common import LOG
+
+from xml.etree import ElementTree as ET
+from collections import defaultdict
 import yaml
 ########################################
 
@@ -20,7 +21,7 @@ class SzrAdmResultsParser(object):
         """Convert input formatted string to dict this keys from table headers.
             Return dist {table header[1]: [table rows[1:]], table header[n]: [table rows[1:]}
             :param  data: formatted string
-            :type   data:str
+            :type   data: str
 
             >>> Usage:
                 SzrAdmResultsParser.tables_parser(string)
@@ -45,24 +46,37 @@ class SzrAdmResultsParser(object):
 
     @staticmethod
     def xml_parser(data):
-        d = {data.tag: {} if data.attrib else None}
+        """Convert input xml formatted string. Return dict .
+            :param  data: xml formatted string
+            :type   data: str
+
+            >>> Usage:
+                SzrAdmResultsParser.yaml_parser(string)
+        """
+        try:
+            if not isinstance(data, ET.Element):
+                data = ET.XML(data)
+        except ET.ParseError, e:
+            raise AssertionError('\nMessage: %s, \nInput data is:\n%s' % (e.message, data))
+
+        result = {data.tag: {} if data.attrib else None}
         children = list(data)
         if children:
             dd = defaultdict(list)
             for dc in map(SzrAdmResultsParser.xml_parser, children):
-                for k, v in dc.iteritems():
-                    dd[k].append(v)
-            d = {data.tag: {k: v[0] if len(v) == 1 else v for k, v in dd.iteritems()}}
+                for key, value in dc.iteritems():
+                    dd[key].append(value)
+            result = {data.tag: {key: value[0] if len(value) == 1 else value for key, value in dd.iteritems()}}
         if data.attrib:
-            d[data.tag].update(('@' + k, v) for k, v in data.attrib.iteritems())
+            result[data.tag].update(('@'+key, value) for key, value in data.attrib.iteritems())
         if data.text:
             text = data.text.strip()
             if children or data.attrib:
-                if text:
-                  d[data.tag]['#text'] = text
+                result[data.tag]['@text'] = text if text else ''
             else:
-                d[data.tag] = text
-        return d
+                result[data.tag] = text
+        return result
+
 
     @staticmethod
     def yaml_parser(data):
@@ -70,7 +84,7 @@ class SzrAdmResultsParser(object):
            If there are no data in the input, it returns None.
 
             :param  data: yaml formatted string
-            :type   data:str
+            :type   data: str
 
             >>> Usage:
                 SzrAdmResultsParser.yaml_parser(string)
@@ -80,7 +94,9 @@ class SzrAdmResultsParser(object):
         except yaml.YAMLError, exc:
             if hasattr(exc, 'problem_mark'):
                 mark_line, mark_column = exc.problem_mark.line+1, exc.problem_mark.column+1
-                raise AssertionError('An error occurred while parsing yaml. Error position:(%s:%s) on:%s' % (mark_line, mark_column, data))
+                raise AssertionError('\nMessage: An error occurred while parsing yaml.\n'
+                                     'Error position:(%s:%s)\n'
+                                     'Input data is:\n%s' % (mark_line, mark_column, data))
 
 
 ########################################
@@ -95,8 +111,8 @@ c = Cloud()
 
 node = c.get_node(server)
 #lr = node.run('szradm --queryenv get-latest-version')
-#lr = node.run('szradm --queryenv list-global-variables')
-lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
+lr = node.run('szradm --queryenv list-global-variables')
+#lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
 #lr = node.run('szradm list-roles')
 #lr = node.run('szradm message-details 050b5417-1486-4562-b630-c33ee996b709')
 ########################################
@@ -104,4 +120,6 @@ lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
 
 #print SzrAdmResultsParser.tables_parser(lr[0])
 #print SzrAdmResultsParser.yaml_parser(lr[0])
-print SzrAdmResultsParser.xml_parser(ET.XML(lr[0]))
+#print SzrAdmResultsParser.xml_parser(ET.XML(lr[0]))
+print lr[0]
+print SzrAdmResultsParser.xml_parser(lr[0])
