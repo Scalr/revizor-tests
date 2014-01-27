@@ -19,37 +19,53 @@ class SzrAdmResultsParser(object):
     @staticmethod
     def tables_parser(data):
         """Convert input formatted string to dict this keys from table headers.
-            Return dist {table header[1]: [table rows[1:]], table header[n]: [table rows[1:]}
+            Return dict {table header[1]: [table rows[1:]], table header[n]: [table rows[1:]}
             :param  data: formatted string
             :type   data: str
 
             >>> Usage:
                 SzrAdmResultsParser.tables_parser(string)
+
+                Input string:
+                +------+------+--------+
+                | cert | pkey | cacert |
+                +------+------+--------+
+                | None | None |  None  |
+                | None | None |  None  |
+                | None | None |  None  |
+                +------+------+--------+
+
+                Output dict: {'cacert': ['None', 'None', 'None'],
+                               'pkey': ['None', 'None', 'None'],
+                               'cert': ['None', 'None', 'None']}
         """
         if not data.startswith('+'):
             raise AssertionError('An error occurred while parsing table. Invalid data format:\n%s' % data)
 
-        #Get table lines, result [[line1], [line1]]
-        lines = []
-        for line in data.splitlines():
+        #Get table header and body
+        header_end = 2
+        for s_num in xrange(len(data)):
+            if data[s_num] != '+':
+                    continue
+            elif data[s_num+2] == '|':
+                header_end -= 1
+            if not header_end:
+                header = data[:s_num+1]
+                body = data[s_num+2:]
+                break
+        #Get header elements [cel1, cel2, cel...n]
+        table = {}
+        for line in header.splitlines():
             if line.startswith('+'):
                 continue
-            lines.append([row.strip() for row in line.strip('|').split('|')])
-        #Combines multi-line table cells
-        combi_lines = [lines.pop(0)]
-        for line_num in xrange(len(lines)):
-            if len(lines[line_num]) == len(combi_lines[0]):
-                combi_lines.append(lines[line_num])
-            else:
-                combi_lines[-1][-1] = '\n'.join((combi_lines[-1][-1], lines[line_num][0]))
-        del lines
-        #Convert table to dict result {table header[1]: [table rows[1:]], table header[n]: [table rows[1:]}
-        table = {}
-        for row_cell in xrange(len(combi_lines[0])):
-            table.update({combi_lines[0][row_cell]: []})
-            for table_row in xrange(len(combi_lines[1:])):
-                table[combi_lines[0][row_cell]].append(combi_lines[table_row+1][row_cell])
-
+            header = [row.strip() for row in line.strip('|').split('|')]
+            table = {item: [] for item in header}
+            break
+        #Get body elements [cel1, cel2, cel...n]
+        body = [line.strip() for line in body.strip('|').split('|') if len(line.strip()) and not line.strip().startswith('+')]
+        #Set output result
+        for body_cell in xrange(len(body)):
+            table[header[body_cell-(len(header)*(body_cell / len(header)))]].append(body[body_cell])
         return table
 
     @staticmethod
@@ -129,18 +145,18 @@ node = c.get_node(server)
 #x
 #lr = node.run('szradm --queryenv list-global-variables')
 #t
-#lr = node.run('szradm get-https-certificate')
+lr = node.run('szradm get-https-certificate')
 #t
 #lr = node.run('szradm list-virtualhosts')
 #t
 #lr = node.run('szradm list-ebs-mountpoints')
 #t
-lr = node.run('szradm list-messages')
+#lr = node.run('szradm list-messages')
 #y
 #lr = node.run('szradm message-details c456fda9-b071-4270-b5a7-c0e7ed6623fc')
 ########################################
 
-print lr[0]
+#print lr[0]
 
 #Table parser
 print SzrAdmResultsParser.tables_parser(lr[0])

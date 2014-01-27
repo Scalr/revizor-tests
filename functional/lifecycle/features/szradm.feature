@@ -13,7 +13,7 @@ Feature: SzrAdm check backward compatibility
 
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Verify szradm queryenv
+    Scenario: Verify szradm --queryenv get-latest-version
 
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
