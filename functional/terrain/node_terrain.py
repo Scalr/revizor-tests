@@ -71,7 +71,7 @@ class VerifyProcessWork(object):
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    branch = os.environ.get('RV_TO_BRANCH', 'master').replace('/', '-').replace('.', '').strip()
+    branch = CONF.feature.to_branch
     change_repo_to_branch(node, branch)
 
 
@@ -79,7 +79,7 @@ def change_repo(step, serv_as):
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    change_repo_to_branch(node, CONF.feature.branch.replace('/', '-').replace('.', '').strip())
+    change_repo_to_branch(node, CONF.feature.branch)
 
 
 def change_repo_to_branch(node, branch):
@@ -98,14 +98,14 @@ def change_repo_to_branch(node, branch):
                       'protect=1\n')
 
 
-@step('pin (\w+) repo in ([\w\d]+)$')
+@step('pin([ \w]+)? repo in ([\w\d]+)$')
 def pin_repo(step, repo, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    if repo == 'system':
-        branch = CONF.feature.branch
+    if repo.strip() == 'system':
+        branch = CONF.feature.branch.replace('/', '-').replace('.', '').strip()
     else:
-        branch = os.environ.get('RV_TO_BRANCH', 'master')
+        branch = os.environ.get('RV_TO_BRANCH', 'master').replace('/', '-').replace('.', '').strip()
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Pin repository for branch %s in Ubuntu' % branch)
         node.put_file('/etc/apt/preferences',

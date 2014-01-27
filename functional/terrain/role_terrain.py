@@ -15,12 +15,16 @@ from revizor2.consts import Platform
 LOG = logging.getLogger(__name__)
 
 
-@step('I change branch to system for (\w+) role')
-def change_branch_in_role_for_system(step, role_type):
+@step('I change branch( to system)? for(?: (\w+))? role')
+def change_branch_in_role_for_system(step, branch, role_type):
     """Change branch for selected role"""
+    if 'system' in branch:
+        branch = CONF.feature.branch
+    else:
+        branch = CONF.feature.to_branch
     LOG.info('Change branch to system for %s role' % role_type)
     role = world.get_role(role_type)
-    role.edit(options={"user-data.scm_branch": CONF.feature.branch})
+    role.edit(options={"user-data.scm_branch": branch})
 
 
 @step('I increase minimum servers to (.+) for (.+) role')
@@ -30,6 +34,13 @@ def increase_instances(step, count, role_type):
     options = {"scaling.max_instances": int(count) + 1,
                "scaling.min_instances": count}
     world.farm.edit_role(role.role_id, options)
+
+
+@step('I start a new server for(?: ([\w\d+]))? role')
+def start_new_instance(step, role_type):
+    role = world.get_role(role_type)
+    LOG.info('Start new instance for role %s' % role)
+    role.launch_instance()
 
 
 @step('I know ([\w]+) storages$')
