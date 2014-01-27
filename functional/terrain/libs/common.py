@@ -1,8 +1,13 @@
 import socket
 import logging
+import functools
+from distutils.version import LooseVersion
 
 import requests
 from lettuce import world
+
+from revizor2.api import Server
+from revizor2.consts import ServerStatus
 
 LOG = logging.getLogger(__name__)
 
@@ -16,6 +21,46 @@ LOG = logging.getLogger(__name__)
 #        LOG.debug('Added role: %s' % role)
 #        roles.append(role.keys()[0])
 #    world.farm.add_role(roles, options=options)
+
+@world.absorb
+def passed_by_version_scalarizr(version, reverse=False):
+    """
+    Decorator for set maximum/minimum (with reverse) version of scalarizr version
+    for this step.
+    If we set 0.23 - step will passed if server has version more 0.23
+    With reverse=True, step will passed if server has version less 0.23
+
+    :param str version: Scalarizr version for compare
+    :param bool reverse: If set reverse to True, version will be minimum for this step
+    """
+    version = LooseVersion(version)
+    LOG.debug('Initialize decorator for passed step by version: %s%s' % ('<' if reverse else '>', version))
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            LOG.debug('Passed by version work')
+            server_szr_version = None
+            for arg in args:
+                LOG.debug('Lookup argument %s for server' % arg)
+                if isinstance(arg, (str, unicode)) and hasattr(world, arg):
+                    obj = getattr(world, arg)
+                    if isinstance(obj, Server) and obj.status == ServerStatus.RUNNING:
+                        server_szr_version = LooseVersion(obj.agent_version)
+                        break
+            if server_szr_version:
+                LOG.debug('Compare version scalarizr %s with %s' % (server_szr_version, version))
+                LOG.debug('%s < %s = %s' % (version, server_szr_version, version < server_szr_version))
+                if version < server_szr_version and not reverse:
+                    LOG.info('Pass step because selected version (%s) < version on scalarizr (%s)'
+                             % (version, server_szr_version))
+                    return True
+                elif version > server_szr_version and reverse:
+                    LOG.info('Pass step because selected version (%s) > version on scalarizr (%s) and reverse enable'
+                             % (version, server_szr_version))
+                    return True
+            return func(*args, **kwargs)
+        return wrapper
+    return decorator
 
 
 @world.absorb
