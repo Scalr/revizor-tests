@@ -37,7 +37,6 @@ Feature: mariadb database server with behavior mariadb
     @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
     Scenario: Bundling data
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
@@ -45,7 +44,6 @@ Feature: mariadb database server with behavior mariadb
     Scenario: Modifying data
         Given I have small-sized database D1 on M1
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And I terminate server M1
         Then I expect server bootstrapping as M1
@@ -54,7 +52,6 @@ Feature: mariadb database server with behavior mariadb
     @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
     Scenario: Bundling data second time
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to M1
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
@@ -67,7 +64,6 @@ Feature: mariadb database server with behavior mariadb
     Scenario: Backuping 11 databases
         When I create 11 databases on M1
         Then I trigger backup creation
-        Then Scalr sends DbMsr_CreateBackup to M1
         And Scalr receives DbMsr_CreateBackupResult from M1
         And Last backup date updated to current
         And not ERROR in M1 scalarizr log
@@ -139,7 +135,6 @@ Feature: mariadb database server with behavior mariadb
 	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @slavedatabundle
 	Scenario: Check databundle in slave
 		When I trigger databundle creation on slave
-		Then Scalr sends DbMsr_CreateDataBundle to M2
 		And Scalr receives DbMsr_CreateDataBundleResult from M2
         And Last databundle date updated to current
 
@@ -168,7 +163,6 @@ Feature: mariadb database server with behavior mariadb
 	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @lvm
 	Scenario: Bundling data before terminate
         When I trigger databundle creation
-        Then Scalr sends DbMsr_CreateDataBundle to N1
         And Scalr receives DbMsr_CreateDataBundleResult from N1
 		And Last databundle date updated to current
 
