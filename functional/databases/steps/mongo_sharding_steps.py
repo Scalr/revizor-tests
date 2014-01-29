@@ -20,20 +20,22 @@ def add_shard(step, action):
 
 @step('wait ([\d]+) servers is running')
 def assert_wait_servers(step, serv_count):
+    role = world.get_role()
     serv_count = int(serv_count)
     timeout = 60 * 15 * serv_count
     LOG.info('Wait %s servers, timeout %s seconds' % (serv_count, timeout))
-    wait_until(world.wait_servers_running, args=(world.mongodb_role.role_id, serv_count), timeout=timeout,
+    wait_until(world.wait_servers_running, args=(role.role_id, serv_count), timeout=timeout,
                     error_text='Not see %s servers running' % serv_count)
 
 
 @step('servers \[([\w\d,-]+)\] in replicaset R([\d]+)')
 def assert_check_replicaset(step, slaves, serv_ind):
     world.farm.servers.reload()
+    role = world.get_role()
     server = None
     serv_ind = int(serv_ind) - 1
     for serv in world.farm.servers:
-        if serv.status == 'Running' and serv.role_id == world.mongodb_role.role_id:
+        if serv.status == 'Running' and serv.role_id == role.role_id:
             if int(serv.cluster_position[0]) == serv_ind:
                 server = serv
                 LOG.info('Found server %s with cluster position %s' % (server.id, serv.cluster_position))
@@ -50,12 +52,13 @@ def assert_check_replicaset(step, slaves, serv_ind):
 
 @step('shard status have ([\d]+) replicaset')
 def assert_shard_status(step, serv_count):
+    role = world.get_role()
     serv_count = int(serv_count)
     db_role = world.get_role()
     world.farm.servers.reload()
     server = None
     for serv in world.farm.servers:
-        if serv.status == 'Running' and serv.role_id == world.mongodb_role.role_id:
+        if serv.status == 'Running' and serv.role_id == role.role_id:
             if serv.cluster_position == '0-0':
                 server = serv
                 LOG.info('Found server %s with cluster position %s' % (server.id, serv.cluster_position))
@@ -73,9 +76,10 @@ def assert_shard_status(step, serv_count):
 @step('I random terminate ([\d]+) servers')
 def random_terminates(step, serv_count):
     dead_index = random.sample(range(9), 5)
+    role = world.get_role()
     servs = []
     for serv in world.farm.servers:
-        if serv.status == 'Running' and serv.role_id == world.mongodb_role.role_id:
+        if serv.status == 'Running' and serv.role_id == role.role_id:
             servs.append(serv)
     for i in dead_index:
         LOG.info('Terminate server %s' % servs[i].id)

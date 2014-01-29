@@ -12,9 +12,10 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     Scenario: Verify broken postinstall script
         Given I have reverted and working branch
         When I broke branch with commit "@update-system @postinst"
-        And I update scalarizr via api on M1
-        Then update process is finished on M1
-        And scalarizr version equal stored version on M1
+        And new package is builded
+        Then I update scalarizr via api on M1
+        When update process is finished on M1 with error
+        Then scalarizr version is the same on M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
@@ -22,7 +23,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1
-        Then scalarizr version equal stored version on M1
+        Then scalarizr version is the same on M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
@@ -30,9 +31,10 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     Scenario: Verify broken with fatal error
         Given I have reverted and working branch
         When I broke branch with commit "@update-system @fatal-error"
-        And I update scalarizr via api on M1
-        Then update process is finished on M1
-        And scalarizr version equal stored version on M1
+        And new package is builded
+        Then I update scalarizr via api on M1
+        When update process is finished on M1 with error
+        Then scalarizr version is the same on M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
@@ -40,7 +42,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1
-        Then scalarizr version equal stored version on M1
+        Then scalarizr version is the same on M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
@@ -48,7 +50,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     Scenario: Verify scalr-upd-client update to normal version
         Given I have reverted and working branch
         And I update scalarizr via api on M1
-        Then update process is finished on M1
-        And scalarizr version equal stored version on M1
+        When update process is finished on M1 without error
+        Then scalarizr version is last in M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
