@@ -23,7 +23,7 @@ BUILDBOT_URL = 'http://buildbot.scalr-labs.com:8010'
 @step('I remember scalarizr version on ([\w\d]+)$')
 def remember_scalarizr_version(step, serv_as):
     server = getattr(world, serv_as)
-    version = server.upd_api.status()['installed']
+    version = server.upd_api.status(cached=False)['installed']
     LOG.info('Remember Scalarizr version (%s) on server %s' % (version, server.id))
     setattr(world, '%s_last_scalarizr' % serv_as, version)
 
@@ -31,7 +31,7 @@ def remember_scalarizr_version(step, serv_as):
 @step('scalarizr version is the same on ([\w\d]+)$')
 def remember_scalarizr_version(step, serv_as):
     server = getattr(world, serv_as)
-    version = server.upd_api.status()['installed']
+    version = server.upd_api.status(cached=False)['installed']
     LOG.info('Verify scalarizr version %s with old version' % version)
     if not version == getattr(world, '%s_last_scalarizr' % serv_as):
         raise AssertionError('Scalarizr version after update not same as before: %s != %s'
@@ -53,7 +53,8 @@ def verify_repository_is_working(step):
 
     if not os.path.isdir(SCALARIZR_REPO_PATH):
         LOG.info('Clone scalarizr repo')
-        exit_code = subprocess.call(['git', 'clone', '-b', branch, SCALARIZR_GITHUB_PATH, SCALARIZR_REPO_PATH])
+        exit_code = subprocess.call(['git', 'clone', '-b', branch, SCALARIZR_GITHUB_PATH, SCALARIZR_REPO_PATH],
+                                    stderr=subprocess.PIPE)
         if not exit_code == 0:
             raise AssertionError('Error in git clone!')
 
@@ -74,8 +75,10 @@ def verify_repository_is_working(step):
 def broke_scalarizr_branch(step, comment):
     os.chdir(SCALARIZR_REPO_PATH)
 
-    git_log = subprocess.check_output(['git', 'log', '--pretty=oneline', '--grep', '\'Revert "%s"\'' % comment]).splitlines()
-    LOG.info('Get latest commits from git history: %s' % git_log)
+    command = ['git', 'log', '--pretty=oneline', '--grep=\'Revert "%s"\'' % comment]
+    LOG.debug('Execute grep by git: %s' % command)
+    git_log = subprocess.check_output(command, stderr=subprocess.PIPE).splitlines()
+    LOG.info('Get latest commits from git history (in broke step): %s' % git_log)
     commit, message = git_log[0].split(' ', 1)
     LOG.info('Revert commit "%s %s" for brake repository' % (commit, message))
     subprocess.call(['git', 'revert', commit, '-n', '--no-edit'])

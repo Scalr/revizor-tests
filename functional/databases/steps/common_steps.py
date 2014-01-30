@@ -314,7 +314,6 @@ def assert_check_slave(step, slave_serv, master_serv):
 
 @step('I create a ([\w]+)$')
 def do_action(step, action):
-    #TODO: Wait databundle will complete
     action = action.strip()
     db_role = world.get_role()
     getattr(db_role.db, 'create_%s' % action)()

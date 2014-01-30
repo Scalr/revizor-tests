@@ -61,7 +61,7 @@ class VerifyProcessWork(object):
         return all(results)
 
     @staticmethod
-    def _verify_scalarizr(server, port):
+    def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
@@ -238,6 +238,38 @@ def assert_scalarizr_version(step, repo, serv_as):
         raise AssertionError('Installed scalarizr version is not last! Installed %s, last: %s'
                              % (server_info['installed'], versions[-1]))
 
+
+@step('scalarizr version is last in (.+)$')
+def assert_scalarizr_version(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    installed_version = None
+    candidate_version = None
+    if 'ubuntu' in server.role.os.lower():
+        LOG.info('Check ubuntu installed scalarizr')
+        out = node.run('apt-cache policy scalarizr-base')
+        LOG.debug('Installed information: %s' % out[0])
+        for line in out[0].splitlines():
+            if line.strip().startswith('Installed'):
+                installed_version = line.split()[-1].split('-')[0].split('.')[-1]
+                LOG.info('Installed version: %s' % installed_version)
+            elif line.strip().startswith('Candidate'):
+                candidate_version = line.split()[-1].split('-')[0].split('.')[-1]
+                LOG.info('Candidate version: %s' % candidate_version)
+    elif ('centos' or 'redhat') in server.role.os.lower():
+        LOG.info('Check ubuntu installed scalarizr')
+        out = node.run('yum list --showduplicates scalarizr-base')
+        LOG.debug('Installed information: %s' % out[0])
+        for line in out[0]:
+            if line.strip().endswith('installed'):
+                installed_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
+                LOG.info('Installed version: %s' % installed_version)
+            elif line.strip().startswith('scalarizr-base'):
+                candidate_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
+                LOG.info('Candidate version: %s' % candidate_version)
+    if candidate_version and not installed_version == candidate_version:
+        raise AssertionError('Installed scalarizr is not last! Installed: %s, '
+                             'candidate: %s' % (installed_version, candidate_version))
 
 
 @step('I reboot scalarizr in (.+)$')

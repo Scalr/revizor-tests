@@ -24,10 +24,7 @@ def assert_check_http_get_answer(step, serv_as, mes):
 @step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)(?: in (\w+) role)?$')
 def bootstrap_many_servers(step, serv_count, serv_names, role_type, timeout=1400):
     serv_names = [s.strip() for s in serv_names.split(',')]
-    if role_type:
-        role = getattr(world, role_type + '_role')
-    else:
-        role = world.farm.roles[0]
+    role = world.get_role(role_type)
     for i in range(int(serv_count)):
         LOG.info('Launch %s server' % (i+1))
         role.launch_instance()
