@@ -36,23 +36,24 @@ class SzrAdmResultsParser(object):
                 | None | None |  None  |
                 +------+------+--------+
 
-                Output dict: {'cacert': ['None', 'None', 'None'],
-                               'pkey': ['None', 'None', 'None'],
-                               'cert': ['None', 'None', 'None']}
+                Output dict: {'cacert': [],
+                               'pkey': [],
+                               'cert': []}
         """
         if not data.startswith('+'):
             raise AssertionError('An error occurred while parsing table. Invalid data format:\n%s' % data)
 
+        #Set header lines count
+        header_end = 3
         #Get table header and body
-        header_end = 2
         for s_num in xrange(len(data)):
-            if data[s_num] != '+':
-                    continue
-            elif data[s_num+2] == '|':
-                header_end -= 1
+            if data[s_num] != '\n':
+                continue
+            header_end -= 1
+
             if not header_end:
-                header = data[:s_num+1]
-                body = data[s_num+2:]
+                header = data[:s_num]
+                body = data[s_num+1:]
                 break
         #Get header elements [cel1, cel2, cel...n]
         table = {}
@@ -66,6 +67,8 @@ class SzrAdmResultsParser(object):
         body = [line.strip() for line in body.strip('|').split('|') if len(line.strip()) and not line.strip().startswith('+')]
         #Set output result
         for body_cell in xrange(len(body)):
+            if (not body[body_cell]) or (body[body_cell] == 'None'):
+                continue
             table[header[body_cell-(len(header)*(body_cell / len(header)))]].append(body[body_cell])
         return table
 
@@ -160,7 +163,7 @@ class SzrAdmResultsParser(object):
                 for x in SzrAdmResultsParser.get_value(j, key):
                     yield x
 
-# ########################################
+#########################################
 
 
 @step(r'I run "(.*)" on ([\w]+)')
@@ -226,22 +229,22 @@ def search_servers_ip(step, pattern, serv_as):
 #########################################
 
 
-from revizor2.api import Farm
-from revizor2.cloud import Cloud
-farm = Farm.get(16707)
-
-servers = farm.servers
-server = farm.servers[0]
-c = Cloud()
-
-node = c.get_node(server)
+# from revizor2.api import Farm
+# from revizor2.cloud import Cloud
+# farm = Farm.get(16707)
+#
+# servers = farm.servers
+# server = farm.servers[0]
+# c = Cloud()
+#
+# node = c.get_node(server)
 #x
 #lr = node.run('szradm --queryenv get-latest-version')
 #t
 #lr = node.run('szradm list-roles')
 #t
 #lr = node.run('szradm list-roles -b app')
-lr = node.run('szradm list-roles -b base')
+#lr = node.run('szradm list-roles -b base')
 #x
 # lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
 #x
@@ -258,10 +261,10 @@ lr = node.run('szradm list-roles -b base')
 #lr = node.run('szradm message-details c456fda9-b071-4270-b5a7-c0e7ed6623fc')
 ########################################
 
-print lr[0]
+#print lr[0]
 
 #Table parser
-print SzrAdmResultsParser.tables_parser(lr[0])
+#print SzrAdmResultsParser.tables_parser(lr[0])
 #YAMLparser
 #print SzrAdmResultsParser.yaml_parser(lr[0])
 #XML parser
