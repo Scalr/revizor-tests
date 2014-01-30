@@ -206,7 +206,7 @@ def compare_results(step, serv_as):
 def get_key(step, pattern, serv_as):
     server = getattr(world, serv_as)
     results = getattr(world, 'results')[serv_as]
-    if not len(SzrAdmResultsParser.get_value(results, pattern)):
+    if not len(list(SzrAdmResultsParser.get_value(results, pattern))):
         raise AssertionError("The key %s does not exists or has an empty result on %s" % (pattern, server.id))
 
 
