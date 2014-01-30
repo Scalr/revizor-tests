@@ -250,6 +250,40 @@ def check_variable(step, var, serv_as):
         raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." % (script_result, environment_result, server.id))
     LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
 
+
+@step('I create domain ([\w\d]+) to ([\w\d]+) role')
+def create_domain_to_role(step, domain_as, role):
+    LOG.info('Create new domain for role %s as %s' % (role, domain_as))
+    role = getattr(world, '%s_role' % role)
+    domain = role.create_domain()
+    LOG.info('New domain: %s' % domain.name)
+    setattr(world, domain_as, domain)
+
+
+@step('I add(?: (ssl))? virtual host ([\w\d]+)(?: with key ([\w\d-]+))? to ([\w\d]+) role and domain ([\w\d]+)')
+def create_vhost_to_role(step, ssl, vhost_as, key_name, role, domain_as):
+    ssl = True if ssl else False
+    key_name = key_name if key_name else None
+    role = getattr(world, '%s_role' % role)
+    domain = getattr(world, domain_as)
+    LOG.info('Add new virtual host for role %s, domain %s as %s %s' % (role, domain.name, vhost_as,
+                                                                       'with key {0}'.format(key_name)
+                                                                       if key_name
+                                                                       else ''))
+    vhost = role.add_vhost(domain.name, document_root='/var/www/%s' % vhost_as, ssl=ssl, cert=key_name)
+    setattr(world, vhost_as, vhost)
+
+
+@step(r'([\w]+) has (.+) in virtual hosts configuration')
+def assert_check_vhost(step, serv_as, vhost_as):
+    node = world.cloud.get_node(getattr(world, serv_as))
+    vhost = getattr(world, vhost_as)
+    out = node.run('ls /etc/scalr/private.d/vhosts/')[0]
+    if vhost.name in out:
+        return True
+    LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
+    raise AssertionError('VHost not in apache config, in out: %s' % out)
+
 #########################################
 
 

@@ -65,13 +65,21 @@ Feature: SzrAdm check backward compatibility
         When I create domain D1 to app role
         And I add virtual host H1 to app role and domain D1
         Then Scalr sends VhostReconfigure to A1
-        And D1 resolves into A1 ip address
+        Then Scalr sends VhostReconfigure to A2
         And A1 has H1 in virtual hosts configuration
-        And http get domain D1 matches H1 index page
-
+        And A2 has H1 in virtual hosts configuration
+        Then I run "szradm list-virtualhosts" on A1
+        And I run "szradm list-virtualhosts" on A2
+        Then I compare the obtained results of A1,A2
+        And the key "hostname" has 1 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm get-https-certificate
+        When I run "szradm get-https-certificate" on A1
+        And I run "szradm get-https-certificate" on A2
+        Then I compare the obtained results of A1,A2
+        And the key "cert" has 0 record on A1
+
 
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
