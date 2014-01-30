@@ -7,7 +7,7 @@ Feature: SzrAdm check backward compatibility
         Then I expect server bootstrapping as A1
         And scalarizr version is last in A1
         When I change branch to feature/szradm-rewrite for app role
-        When I increase minimum servers to 2 for app role
+        Then I increase minimum servers to 2 for app role
         Then I expect server bootstrapping as A2
         And scalarizr version is last in A2
 
@@ -16,15 +16,14 @@ Feature: SzrAdm check backward compatibility
         When I run "szradm --queryenv get-latest-version" on A1
         And I run "szradm --queryenv get-latest-version" on A2
         Then I compare the obtained results of A1,A2
-        And The key "version" has a non-empty result on A1
-
+        And the key "version" has 1 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-roles
         When I run "szradm list-roles" on A1
         And I run "szradm list-roles" on A2
         Then I compare the obtained results of A1,A2
-        And Table contains external-ip servers A1,A2
+        And table contains external-ip servers A1,A2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-roles -b base
@@ -43,17 +42,32 @@ Feature: SzrAdm check backward compatibility
         When I run "szradm list-roles -b app" on A1
         And I run "szradm list-roles -b app" on A2
         Then I compare the obtained results of A1,A2
-        And Table contains external-ip servers A1,A2
+        And table contains external-ip servers A1,A2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-roles --behaviour app
         When I run "szradm list-roles --behaviour app" on A1
         And I run "szradm list-roles --behaviour app" on A2
         Then I compare the obtained results of A1,A2
-        And Table contains external-ip servers A1,A2
+        And table contains external-ip servers A1,A2
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Verify szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID
+        When I check an variable "SCALR_FARM_ROLE_ID" on A1
+        And I check an variable "SCALR_FARM_ROLE_ID" on A2
+        When I run "szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID" on A1
+        And I run "szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID" on A2
+        Then I compare the obtained results of A1,A2
+        And the key "behaviour" has 1 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-virtualhosts
+        When I create domain D1 to app role
+        And I add virtual host H1 to app role and domain D1
+        Then Scalr sends VhostReconfigure to A1
+        And D1 resolves into A1 ip address
+        And A1 has H1 in virtual hosts configuration
+        And http get domain D1 matches H1 index page
 
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

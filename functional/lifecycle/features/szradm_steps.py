@@ -202,15 +202,18 @@ def compare_results(step, serv_as):
     LOG.info('Results of commands on the server %s and %s successfully compared' % id)
 
 
-@step(r'The key "(.+)" has a non-empty result on ([\w\d]+)')
-def get_key(step, pattern, serv_as):
+@step(r'the key "(.+)" has ([\d]+) record on ([\w\d]+)')
+def get_key(step, pattern, record_count, serv_as):
     server = getattr(world, serv_as)
     results = getattr(world, 'results')[serv_as]
-    if not len(list(SzrAdmResultsParser.get_value(results, pattern))):
+    key_value = list(SzrAdmResultsParser.get_value(results, pattern))
+    LOG.debug('Verify existence the key %s: %s in:\n%s' % (pattern, key_value, results))
+    if len(key_value) != int(record_count):
         raise AssertionError("The key %s does not exists or has an empty result on %s" % (pattern, server.id))
+    LOG.info("The key %s exists and not is empty on %s" % (pattern, server.id))
 
 
-@step(r'Table contains (.+) servers ([\w\d,]+)')
+@step(r'table contains (.+) servers ([\w\d,]+)')
 def search_servers_ip(step, pattern, serv_as):
     serv_as = serv_as.split(',')
     results = getattr(world, 'results')
@@ -226,6 +229,27 @@ def search_servers_ip(step, pattern, serv_as):
         else:
             LOG.info('Table: %s contains all verified address.' % result[pattern])
 
+
+@step(r'I check an variable "(.+)" on ([\w\d]+)')
+def check_variable(step, var, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    #Get an variable from script /etc/profile.d/scalr_globals.
+    LOG.info('Get variable %s from scalr_globals.sh on %s' % (var, server.id))
+    result = node.run("grep '%s' /etc/profile.d/scalr_globals.sh" % var)
+    if len(result[0].split('=')) != 2:
+        raise AssertionError("Can't get variable %s from scalr_globals.sh on %s." % (var, server.id))
+    script_result = result[0].split('=')[1].strip('"')
+    #Get an variable from the environment
+    LOG.info('Get variable %s from the environment on %s' % (var, server.id))
+    result = node.run("env | grep '%s'" % var)
+    if len(result[0].split('=')) != 2:
+        raise AssertionError("Can't get variable %s from the environment on %s." % (var, server.id))
+    environment_result = result[0].split('=')[1]
+    if script_result != environment_result:
+        raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." % (script_result, environment_result, server.id))
+    LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
+
 #########################################
 
 
@@ -238,7 +262,7 @@ def search_servers_ip(step, pattern, serv_as):
 # c = Cloud()
 #
 # node = c.get_node(server)
-#x
+# #x
 #lr = node.run('szradm --queryenv get-latest-version')
 #t
 #lr = node.run('szradm list-roles')
@@ -246,7 +270,7 @@ def search_servers_ip(step, pattern, serv_as):
 #lr = node.run('szradm list-roles -b app')
 #lr = node.run('szradm list-roles -b base')
 #x
-# lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
+#lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
 #x
 #lr = node.run('szradm --queryenv list-global-variables')
 #t
@@ -268,5 +292,5 @@ def search_servers_ip(step, pattern, serv_as):
 #YAMLparser
 #print SzrAdmResultsParser.yaml_parser(lr[0])
 #XML parser
-# print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.xml_parser(lr[0]), 'external-ip'))
+#print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.xml_parser(lr[0]), 'behaviour'))
 #print SzrAdmResultsParser.xml_parser(lr[0])
