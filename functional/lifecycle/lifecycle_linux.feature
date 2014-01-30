@@ -12,7 +12,7 @@ Feature: Linux server lifecycle
         Then I see pending server M1
         And I wait and see initializing server M1
         And I wait and see running server M1
-        And scalarizr version is last in M1
+        And scalarizr version from system repo is last in M1
         Then Scalr receives DeployResult from M1
         And directory '/var/www/src' exist in M1
         And hostname in M1 is valid
@@ -76,6 +76,7 @@ Feature: Linux server lifecycle
         And wait all servers are terminated
         Then I start farm with delay
         And I expect server bootstrapping as M1
+        And scalarizr version from system repo is last in M1
 
     @ec2 @cloudstack @openstack @storages
     Scenario: Check attached storages after restart farm

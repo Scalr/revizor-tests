@@ -9,6 +9,7 @@ from lettuce import world, step
 from revizor2 import consts
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
+from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 
@@ -168,9 +169,9 @@ def verify_port_status(step, port, closed, serv_as):
         results.append(world.check_open_port(server, port))
         time.sleep(5)
 
-    if closed and any(results):
+    if closed and results[-1]:
         raise AssertionError('Port %s is open on server %s (attempts: %s)' % (port, server.id, results))
-    elif not closed and not all(results):
+    elif not closed and not results[-1]:
         raise AssertionError('Port %s is closed on server %s (attempts: %s)' % (port, server.id, results))
 
 
@@ -208,38 +209,35 @@ def service_control(step, action, service, serv_as):
     node.run('/etc/init.d/%s %s' % (service, action))
 
 
-@step('scalarizr version is last in (.+)$')
-def assert_scalarizr_version(step, serv_as):
-    #TODO: Rewrite this and verify scalarizr version with our repository
+@step('scalarizr version from (\w+) repo is last in (.+)$')
+def assert_scalarizr_version(step, repo, serv_as):
+    """
+    Argument repo can be system or role.
+    System repo - CONF.feature.branch
+    Role repo - CONF.feature.to_branch
+    """
+    if repo == 'system':
+        repo = CONF.feature.branch
+    elif repo == 'role':
+        repo = CONF.feature.to_branch
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    installed_version = None
-    candidate_version = None
-    if 'ubuntu' in server.role.os.lower():
-        LOG.info('Check ubuntu installed scalarizr')
-        out = node.run('apt-cache policy scalarizr-base')
-        LOG.debug('Installed information: %s' % out[0])
-        for line in out[0].splitlines():
-            if line.strip().startswith('Installed'):
-                installed_version = line.split()[-1].split('-')[0].split('.')[-1]
-                LOG.info('Installed version: %s' % installed_version)
-            elif line.strip().startswith('Candidate'):
-                candidate_version = line.split()[-1].split('-')[0].split('.')[-1]
-                LOG.info('Candidate version: %s' % candidate_version)
-    elif ('centos' or 'redhat') in server.role.os.lower():
-        LOG.info('Check ubuntu installed scalarizr')
-        out = node.run('yum list --showduplicates scalarizr-base')
-        LOG.debug('Installed information: %s' % out[0])
-        for line in out[0]:
-            if line.strip().endswith('installed'):
-                installed_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
-                LOG.info('Installed version: %s' % installed_version)
-            elif line.strip().startswith('scalarizr-base'):
-                candidate_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
-                LOG.info('Candidate version: %s' % candidate_version)
-    if candidate_version and not installed_version == candidate_version:
-        raise AssertionError('Installed scalarizr is not last! Installed: %s, '
-                             'candidate: %s' % (installed_version, candidate_version))
+    if consts.Dist.is_centos_family(node.os[0]):
+        repo_data = parse_rpm_repository(repo)
+    elif consts.Dist.is_debian_family(node.os[0]):
+        repo_data = parse_apt_repository(repo)
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+    versions.sort()
+    LOG.info('Scalarizr versions in repository %s: %s' % (repo, versions))
+    server_info = server.upd_api.status(cached=False)
+    LOG.debug('Server %s status: %s' % (server.id, server_info))
+    if not repo == server_info['repository']:
+        raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'
+                             % (server_info['repository'], repo))
+    if not versions[-1] == server_info['installed']:
+        raise AssertionError('Installed scalarizr version is not last! Installed %s, last: %s'
+                             % (server_info['installed'], versions[-1]))
+
 
 
 @step('I reboot scalarizr in (.+)$')
