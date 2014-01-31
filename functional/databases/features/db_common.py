@@ -25,7 +25,7 @@ PORTS_MAP = {'mysql': 3306, 'mysql2': 3306, 'mariadb': 3306, 'percona':3306, 'po
 
 ###DataBases handlers
 #####################
-#{'mysql': Mysql, 'mysql2': Mysql, 'percona': Mysql, 'redis': Redis, 'postgresql': PostgreSQL}
+#{'mysql': Mysql, 'mysql2': Mysql, 'percona': Mysql, 'mariadb': Mysql, 'redis': Redis, 'postgresql': PostgreSQL}
 realisations = dict()
 
 
@@ -156,7 +156,7 @@ class Redis(object):
         return len(self.connection.keys('*%s*' % pattern))
 
 
-@dbhandler('mysql, mysql2, percona')
+@dbhandler('mysql, mysql2, percona, mariadb')
 class MySQL(object):
 
     def __init__(self, server, db=None):
