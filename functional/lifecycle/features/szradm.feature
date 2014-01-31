@@ -80,14 +80,23 @@ Feature: SzrAdm check backward compatibility
         Then I compare the obtained results of A1,A2
         And the key "cert" has 0 record on A1
 
-
-
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm get-ebs-mountpoints
 
-
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-messages
+        When I run "szradm list-messages" on A1
+        And I run "szradm list-messages" on A2
+        And the key "name" has not 0 record on A1
+        And the key "name" has not 0 record on A2
+        Then I set environment variable "HostInitResponse" as "hirm_id" on A1
+        Then I set environment variable "HostInitResponse" as "hirm_id" on A2
+        Then I run "szradm message-details $hirm_id" on A1
+        And I run "szradm message-details $hirm_id" on A2
+        And the key "name" has not 0 record on A1
+        And the key "name" has not 0 record on A2
+
+
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm message-details

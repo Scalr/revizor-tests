@@ -173,52 +173,52 @@ def run_command(step, command, serv_as):
     LOG.info('Execute a command: %s on a remote server: %s' % (command, server.id))
     result = node.run(command)
     if result[2]:
-        error_text = "Сommand: %s, was not executed properly. An error has occurred:\n%s" % (command, result[1])
-        LOG.error(error_text)
-        raise AssertionError(error_text)
-    setattr(world, '%s_result' % serv_as, result[0])
-    LOG.debug('Command execution result is stored in world.%s_result:\n%s' % (serv_as, result[0]))
+        raise AssertionError("Сommand: %s, was not executed properly. An error has occurred:\n%s" % (command, result[1]))
+    LOG.debug('Parsing a command result on a remote host: %s' % server.id)
+    result = SzrAdmResultsParser.parser(result[0])
+    LOG.debug('Command result was successfully parsed on a remote host:%s\n%s' % (server.id, result))
+    setattr(world, '%s_result' % serv_as, result)
+    LOG.info('Command execution result is stored in world.%s_result' % serv_as)
 
 
 @step(r'I compare the obtained results of ([\w\d,]+)')
 def compare_results(step, serv_as):
-
     serv_as = serv_as.split(',')
-    results = {}
+    results = []
     id = []
     for i in xrange(len(serv_as)):
         server = getattr(world, serv_as[i])
         id.append(server.id)
-        LOG.debug('Parsing a command result on a remote server: %s' % server.id)
-        results.update({serv_as[i]: SzrAdmResultsParser.parser(getattr(world, '%s_result' % serv_as[i]))})
-        LOG.debug('Command result was successfully parsed on a remote server:%s\n%s' % (server.id, results[serv_as[i]]))
+        results.append(getattr(world, '%s_result' % serv_as[i]))
     id = tuple(id)
-    LOG.debug(results)
     #Compare results
-    if results.values()[0] != results.values()[1]:
+    if results[0] != results[1]:
         raise AssertionError("An error has occurred:\n"
                              "The results of commands on the servers %s and %s do not match." % id)
-    setattr(world, 'results', results)
     LOG.info('Results of commands on the server %s and %s successfully compared' % id)
 
-
-@step(r'the key "(.+)" has ([\d]+) record on ([\w\d]+)')
-def get_key(step, pattern, record_count, serv_as):
+@step(r'the key "(.+)" has(?: ([\w]+))? ([\d]+) record on ([\w\d]+)')
+def get_key(step, pattern, denial, record_count, serv_as):
+    denial = True if denial else False
     server = getattr(world, serv_as)
-    results = getattr(world, 'results')[serv_as]
+    results = getattr(world, '%s_result' % serv_as)
     key_value = list(SzrAdmResultsParser.get_value(results, pattern))
+    key_len = len(key_value[0] if isinstance(key_value[0], list) else key_value)
     LOG.debug('Verify existence the key %s: %s in:\n%s' % (pattern, key_value, results))
-    if len(key_value) != int(record_count):
-        raise AssertionError("The key %s does not exists or has an empty result on %s" % (pattern, server.id))
-    LOG.info("The key %s exists and not is empty on %s" % (pattern, server.id))
+    if not denial:
+        if key_len != int(record_count):
+            raise AssertionError("The key %s does not exists or number of entries do not match on %s" % (pattern, server.id))
+    else:
+        if key_len == int(record_count):
+            raise AssertionError("The key %s does not exists or number of entries is match on %s" % (pattern, server.id))
+    LOG.info("The key %s exists and has %s records on %s" % (pattern, record_count, server.id))
 
 
 @step(r'table contains (.+) servers ([\w\d,]+)')
 def search_servers_ip(step, pattern, serv_as):
     serv_as = serv_as.split(',')
-    results = getattr(world, 'results')
     for serv_result in serv_as:
-        result = results[serv_result]
+        result = getattr(world, '%s_result' % serv_result)
         LOG.debug('Checking the ip address entry in result on the server %s' % getattr(world, serv_result).id)
         for serv in serv_as:
             server_ip = getattr(world, serv).public_ip
@@ -284,6 +284,22 @@ def assert_check_vhost(step, serv_as, vhost_as):
     LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
     raise AssertionError('VHost not in apache config, in out: %s' % out)
 
+
+@step(r'I set environment variable "([\w]+)" as "([\w]+)" on ([\w\d]+)')
+def set_environment_variable(step, pattern, name, serv_as):
+    server = getattr(world, serv_as)
+    result = getattr(world, '%s_result' % serv_as)
+    node = world.cloud.get_node(server)
+    try:
+        var = result['id'][result['name'].index(pattern)]
+        LOG.info('Set environment variable $%s = %s on a remote host: %s' % (name, var, server.id))
+        result = node.run('export %s=%s' % (name, var))
+        if result[2]:
+            raise AssertionError("Can't set environment variable $%s = %s on a remote host: %s" % (name, var, server.id))
+        LOG.info('Environment variable $%s = %s was successfully set up on a remote host: %s' % (name, var, server.id))
+    except (ValueError, KeyError) as e:
+        raise AssertionError("Can't get %s id from command result on a remote host: %s\nError on:%s" % (pattern, server.id, e))
+
 #########################################
 
 
@@ -296,7 +312,7 @@ def assert_check_vhost(step, serv_as, vhost_as):
 # c = Cloud()
 #
 # node = c.get_node(server)
-# #x
+# # # #x
 #lr = node.run('szradm --queryenv get-latest-version')
 #t
 #lr = node.run('szradm list-roles')
@@ -316,7 +332,7 @@ def assert_check_vhost(step, serv_as, vhost_as):
 #t
 #lr = node.run('szradm list-messages')
 #y
-#lr = node.run('szradm message-details c456fda9-b071-4270-b5a7-c0e7ed6623fc')
+#lr = node.run('szradm message-details bdaf21d1-c44f-47ff-a0f8-0ca3ae833e55')
 ########################################
 
 #print lr[0]
@@ -325,6 +341,8 @@ def assert_check_vhost(step, serv_as, vhost_as):
 #print SzrAdmResultsParser.tables_parser(lr[0])
 #YAMLparser
 #print SzrAdmResultsParser.yaml_parser(lr[0])
+#print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.yaml_parser(lr[0]), 'name'))
 #XML parser
 #print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.xml_parser(lr[0]), 'behaviour'))
 #print SzrAdmResultsParser.xml_parser(lr[0])
+
