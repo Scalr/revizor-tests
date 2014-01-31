@@ -170,7 +170,7 @@ class SzrAdmResultsParser(object):
 def run_command(step, command, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    LOG.info('Execute a command: %s on a remote server: %s' % (command, server.id))
+    LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
     result = node.run(command)
     if result[2]:
         raise AssertionError("Сommand: %s, was not executed properly. An error has occurred:\n%s" % (command, result[1]))
@@ -185,17 +185,17 @@ def run_command(step, command, serv_as):
 def compare_results(step, serv_as):
     serv_as = serv_as.split(',')
     results = []
-    id = []
+    server_ids = []
     for i in xrange(len(serv_as)):
         server = getattr(world, serv_as[i])
-        id.append(server.id)
+        server_ids.append(server.id)
         results.append(getattr(world, '%s_result' % serv_as[i]))
-    id = tuple(id)
+    server_ids = tuple(server_ids)
     #Compare results
     if results[0] != results[1]:
         raise AssertionError("An error has occurred:\n"
-                             "The results of commands on the servers %s and %s do not match." % id)
-    LOG.info('Results of commands on the server %s and %s successfully compared' % id)
+                             "The results of commands on the servers %s and %s do not match." % server_ids)
+    LOG.info('Results of commands on the server %s and %s successfully compared' % server_ids)
 
 @step(r'the key "(.+)" has(?: ([\w]+))? ([\d]+) record on ([\w\d]+)')
 def get_key(step, pattern, denial, record_count, serv_as):
@@ -285,18 +285,20 @@ def assert_check_vhost(step, serv_as, vhost_as):
     raise AssertionError('VHost not in apache config, in out: %s' % out)
 
 
-@step(r'I set environment variable "([\w]+)" as "([\w]+)" on ([\w\d]+)')
-def set_environment_variable(step, pattern, name, serv_as):
+@step(r'I set "([\w]+)" id as "([\w]+)" and run "(.*)" on ([\w\d]+)')
+def set_environment_variable(step, pattern, name, command, serv_as):
     server = getattr(world, serv_as)
     result = getattr(world, '%s_result' % serv_as)
     node = world.cloud.get_node(server)
     try:
         var = result['id'][result['name'].index(pattern)]
-        LOG.info('Set environment variable $%s = %s on a remote host: %s' % (name, var, server.id))
-        result = node.run('export %s=%s' % (name, var))
+        LOG.info('Set environment variable %s=%s and get details on a remote host: %s' % (name, var, server.id))
+        result = node.run('export %(var_name)s=%(id)s && %(command)s $%(var_name)s' % {'id': var, 'command': command, 'var_name': name})
         if result[2]:
-            raise AssertionError("Can't set environment variable $%s = %s on a remote host: %s" % (name, var, server.id))
-        LOG.info('Environment variable $%s = %s was successfully set up on a remote host: %s' % (name, var, server.id))
+            raise AssertionError("Can't set environment variable $%s = %s or get details on a remote host: %s" % (name, var, server.id))
+        result = SzrAdmResultsParser.parser(result[0])
+        setattr(world, '%s_result' % serv_as, result)
+        LOG.debug('Environment was successfully set up and details was saved into %s on a remote host:%s\n%s' % ('%s_result' % serv_as, server.id, result))
     except (ValueError, KeyError) as e:
         raise AssertionError("Can't get %s id from command result on a remote host: %s\nError on:%s" % (pattern, server.id, e))
 
@@ -312,7 +314,7 @@ def set_environment_variable(step, pattern, name, serv_as):
 # c = Cloud()
 #
 # node = c.get_node(server)
-# # # #x
+# # # # #x
 #lr = node.run('szradm --queryenv get-latest-version')
 #t
 #lr = node.run('szradm list-roles')
@@ -342,6 +344,7 @@ def set_environment_variable(step, pattern, name, serv_as):
 #YAMLparser
 #print SzrAdmResultsParser.yaml_parser(lr[0])
 #print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.yaml_parser(lr[0]), 'name'))
+#print SzrAdmResultsParser.parser(lr[0])
 #XML parser
 #print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.xml_parser(lr[0]), 'behaviour'))
 #print SzrAdmResultsParser.xml_parser(lr[0])
