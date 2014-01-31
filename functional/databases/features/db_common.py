@@ -121,7 +121,7 @@ class Redis(object):
         self.connection = world.db.get_connection(server, db=db)
         self.db = db
         self.node = world.cloud.get_node(server)
-        self.snapshotting_type = 'aof' if not os.environ.get('RV_REDIS_SNAPSHOTTING') else 'rdb'
+        self.snapshotting_type = 'aof' if os.environ.get('RV_REDIS_SNAPSHOTTING') in ('aof', None) else 'rdb'
 
     def get_timestamp(self):
         return self.connection.get('revizor.timestamp')
