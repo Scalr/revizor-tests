@@ -14,7 +14,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         When I broke branch with commit "@update-system @postinst"
         And new package is builded
         Then I update scalarizr via api on M1
-        When update process is finished on M1 with error
+        When update process is finished on M1 with status rollbacked
         Then scalarizr version is the same on M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
@@ -33,7 +33,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         When I broke branch with commit "@update-system @fatal-error"
         And new package is builded
         Then I update scalarizr via api on M1
-        When update process is finished on M1 with error
+        When update process is finished on M1 with status rollbacked
         Then scalarizr version is the same on M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
@@ -50,7 +50,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     Scenario: Verify scalr-upd-client update to normal version
         Given I have reverted and working branch
         And I update scalarizr via api on M1
-        When update process is finished on M1 without error
+        When update process is finished on M1 with status completed
         Then scalarizr version is last in M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1

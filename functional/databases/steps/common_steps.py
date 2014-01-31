@@ -132,7 +132,7 @@ class Redis(object):
         out = self.node.run("find %s -name '*%s*' -print0 | xargs -i{} -0 -r cp -v {} /mnt/redisstorage/" %
                             (src_path, self.snapshotting_type))
         if not out[0]:
-            raise AssertionError("Can't move dump to redis-server storage.  Error is: %s" % out[1])
+            raise AssertionError("Can't move dump to redis-server storage.  Error is: %s %s" % (out[0], out[1]))
         LOG.info('Available backups in server: %s. Backups was successfully moved to redis storage.' % out[0].split()[0])
 
         #Run redis-server

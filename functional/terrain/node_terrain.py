@@ -32,7 +32,7 @@ class VerifyProcessWork(object):
     def _verify_process_running(server, process_name):
         LOG.debug('Check process %s in running state on server %s' % (process_name, server.id))
         node = world.cloud.get_node(server)
-        out = node.run("pgrep -l %s | awk {print'$1'}" % process_name)
+        out = node.run("ps a | grep %s | awk {print'$1'}" % process_name)
         if not out[0].strip():
             LOG.warning("Process %s don't work in server %s" % (process_name, server.id))
             return False
@@ -66,6 +66,7 @@ class VerifyProcessWork(object):
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
                    VerifyProcessWork._verify_open_port(server, port)]
+        LOG.debug('Scalarizr verifying results: %s' % results)
         return all(results)
 
 

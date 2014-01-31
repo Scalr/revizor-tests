@@ -42,10 +42,13 @@ def remember_scalarizr_version(step, serv_as):
 def verify_repository_is_working(step):
     if Dist.is_centos_family(Dist.from_name(CONF.feature.dist)):
         branch = 'test/update-system-rpm'
+        commits = ["@update-system @rpm @postinst", "@update-system @rpm @fatal-error"]
     elif Dist.is_debian_family(Dist.from_name(CONF.feature.dist)):
         branch = 'test/update-system-deb'
+        commits = ["@update-system @deb @postinst", "@update-system @deb @fatal-error"]
     elif CONF.feature.dist.startswith('win'):
         branch = 'test/update-system-win'
+        commits = ["@update-system @win @postinst", "@update-system @win @fatal-error"]
     else:
         raise AssertionError('Don\'t know what branch use!')
     LOG.info('Used scalarizr branch is %s' % branch)
@@ -60,24 +63,45 @@ def verify_repository_is_working(step):
 
     os.chdir(SCALARIZR_REPO_PATH)
 
-    git_log = subprocess.check_output(['git', 'log', '--pretty=oneline', '-2']).splitlines()
+    git_log = subprocess.check_output(['git', 'log', '--pretty=oneline', '-20']).splitlines()
     LOG.info('Get latest commits from git history: %s' % git_log)
-    if not git_log[0].split()[1].startswith('Revert'):
-        # revert last commit
-        commit, message = git_log[0].split(' ', 1)
-        LOG.info('Revert commit "%s %s"' % (commit, message))
-        subprocess.call(['git', 'revert', commit, '-n', '--no-edit'])
-        subprocess.call(['git', 'commit', '-a', '-m', 'Revert "%s"' % message])
-        subprocess.call(['git', 'push'])
+    flags = {}
+    for log in git_log:
+        commit, message = log.split(' ', 1)
+        message = message.strip()
+        for m in commits:
+            if message.startswith('Revert "%s"' % m) or message.startswith("Revert '%s'" % m):
+                flags[m] = True
+            elif message.startswith(m) and not flags.get(m, False):
+                # revert last commit
+                LOG.info('Revert broken commit "%s %s"' % (commit, message))
+                subprocess.call(['git', 'revert', commit, '-n', '--no-edit'])
+                subprocess.call(['git', 'commit', '-a', '-m', "Revert '%s'" % message])
+                subprocess.call(['git', 'push'])
+                flags[m] = True
+        if len(flags) == len(commits):
+            return
 
 
 @step('I broke branch with commit "(.+)"$')
 def broke_scalarizr_branch(step, comment):
+    LOG.debug('Git work dir: %s' % SCALARIZR_REPO_PATH)
     os.chdir(SCALARIZR_REPO_PATH)
 
-    command = ['git', 'log', '--pretty=oneline', '--grep=\'Revert "%s"\'' % comment]
+    if Dist.is_centos_family(Dist.from_name(CONF.feature.dist)):
+        tag = '@rpm'
+    elif Dist.is_debian_family(Dist.from_name(CONF.feature.dist)):
+        tag = '@deb'
+    elif CONF.feature.dist.startswith('win'):
+        tag = '@win'
+
+    comment = comment.split()
+    comment.insert(-1, tag)
+    comment = ' '.join(comment)
+
+    command = ['git', 'log', '--pretty=oneline', '--grep=Revert "%s"' % comment]
     LOG.debug('Execute grep by git: %s' % command)
-    git_log = subprocess.check_output(command, stderr=subprocess.PIPE).splitlines()
+    git_log = subprocess.check_output(command, stderr=subprocess.PIPE).strip().splitlines()
     LOG.info('Get latest commits from git history (in broke step): %s' % git_log)
     commit, message = git_log[0].split(' ', 1)
     LOG.info('Revert commit "%s %s" for brake repository' % (commit, message))
@@ -111,24 +135,21 @@ def update_scalarizr_via_api(step, serv_as):
     server.upd_api.update(async=True)
 
 
-@step('update process is finished on ([\w\d]+) (\w+) error')
-def wait_updating_finish(step, serv_as, error):
+@step('update process is finished on ([\w\d]+) with status (\w+)')
+def wait_updating_finish(step, serv_as, status):
     server = getattr(world, serv_as)
-    with_error = True if error == 'with' else False
-    while True:
+    start_time = time.time()
+    while int(time.time()-start_time) < 600:
         try:
             LOG.info('Verify update process is finished')
             result = server.upd_api.status()
-            if result['state'] == 'noop':
-                LOG.info('Update process finished')
-                break
+            if result['state'].startswith(status):
+                LOG.info('Update process finished with waited status: %s' % result['state'])
+                return
+            elif not status == 'error' and result['state'].startswith('error'):
+                raise AssertionError('Update process failed with error: %s' % result['error'])
             else:
-                LOG.info('Update process on server %s in "%s" state' % (server.id, result['state']))
+                LOG.info('Update process on server %s in "%s" state, wait status %s' % (server.id, result['state'], status))
                 time.sleep(5)
         except:
             time.sleep(15)
-    if with_error and not result['error']:
-        raise AssertionError('Update process must be finished with error, but it finished without error')
-    elif not with_error and result['error']:
-        raise AssertionError('Update process must be finished without error, but it finished with error: %s'
-                             % result['error'])
