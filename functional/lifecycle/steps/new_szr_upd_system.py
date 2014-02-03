@@ -20,6 +20,12 @@ SCALARIZR_REPO_PATH = '/tmp/revizor_%s/int-scalarizr' % int(time.time())
 BUILDBOT_URL = 'http://buildbot.scalr-labs.com:8010'
 
 
+@step('I push an empty commit to scalarizr repo$')
+def bump_scalarizr_version(step):
+    pass
+
+
+
 @step('I remember scalarizr version on ([\w\d]+)$')
 def remember_scalarizr_version(step, serv_as):
     server = getattr(world, serv_as)
@@ -139,17 +145,20 @@ def update_scalarizr_via_api(step, serv_as):
 def wait_updating_finish(step, serv_as, status):
     server = getattr(world, serv_as)
     start_time = time.time()
-    while int(time.time()-start_time) < 600:
+    status = status.strip()
+    LOG.info('Wait status %s on update process' % status)
+    while int(time.time()-start_time) < 900:
         try:
-            LOG.info('Verify update process is finished')
-            result = server.upd_api.status()
+            result = server.upd_api.status(cached=False)
             if result['state'].startswith(status):
                 LOG.info('Update process finished with waited status: %s' % result['state'])
                 return
-            elif not status == 'error' and result['state'].startswith('error'):
+            elif result['state'].startswith('error') and not status == 'error':
                 raise AssertionError('Update process failed with error: %s' % result['error'])
-            else:
-                LOG.info('Update process on server %s in "%s" state, wait status %s' % (server.id, result['state'], status))
-                time.sleep(5)
-        except:
+            LOG.info('Update process on server %s in "%s" state, wait status %s' % (server.id, result['state'], status))
+            time.sleep(5)
+        except BaseException, e:
+            LOG.debug('Checking update process raise exception: %s' % e)
             time.sleep(15)
+    else:
+        raise AssertionError('Until 10 minutes status not: %s, it: %s' % (status, result['state']))

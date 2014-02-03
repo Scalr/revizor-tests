@@ -6,7 +6,10 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         Given I have a an empty running farm
         When I add role to this farm
         Then I expect server bootstrapping as M1
-        And I remember scalarizr version on M1
+        And I push an empty commit to scalarizr repo
+        Then I update scalarizr via api on M1
+        When update process is finished on M1 with status completed
+        Then I remember scalarizr version on M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify broken postinstall script
