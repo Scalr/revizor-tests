@@ -6,7 +6,7 @@ Feature: MongoDB shard 3x3 test
         When I add mongodb role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And M1 hostname is mongo-0-0
+        And hostname in M1 is valid
         And port 27018 is listen in M1
         And port 27017 is listen in M1
         And port 27019 is listen in M1
@@ -23,7 +23,7 @@ Feature: MongoDB shard 3x3 test
         When I add shard
         Then I expect server bootstrapping as M2
         And scalarizr version is last in M2
-        And M2 hostname is mongo-1-0
+        And hostname in M2 is valid
         And wait 4 servers is running
         And servers [1-0,1-1] in replicaset R2
         And shard status have 2 replicaset
@@ -49,7 +49,6 @@ Feature: MongoDB shard 3x3 test
         When I add shard
         Then I expect server bootstrapping as M3
         And scalarizr version is last in M3
-        And M3 hostname is mongo-2-0
         And wait 9 servers is running
         And servers [2-0,2-1,2-2] in replicaset R3
 
