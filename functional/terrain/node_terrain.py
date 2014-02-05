@@ -1,4 +1,5 @@
 __author__ = 'gigimon'
+
 import os
 import time
 import logging
@@ -32,7 +33,7 @@ class VerifyProcessWork(object):
     def _verify_process_running(server, process_name):
         LOG.debug('Check process %s in running state on server %s' % (process_name, server.id))
         node = world.cloud.get_node(server)
-        out = node.run("ps a | grep %s | awk {print'$1'}" % process_name)
+        out = node.run("ps -C %s -o pid=" % process_name)
         if not out[0].strip():
             LOG.warning("Process %s don't work in server %s" % (process_name, server.id))
             return False
@@ -57,6 +58,13 @@ class VerifyProcessWork(object):
     def _verify_www(server, port):
         LOG.info('Verify nginx (%s) work in server %s' % (port, server.id))
         results = [VerifyProcessWork._verify_process_running(server, 'nginx'),
+                   VerifyProcessWork._verify_open_port(server, port)]
+        return all(results)
+
+    @staticmethod
+    def _verify_redis(server, port):
+        LOG.info('Verify redis-server (%s) work in server %s' % (port, server.id))
+        results = [VerifyProcessWork._verify_process_running(server, 'redis-server'),
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
 

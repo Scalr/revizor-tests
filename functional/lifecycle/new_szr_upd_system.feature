@@ -3,10 +3,13 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping
-        Given I have a an empty running farm
+        Given I have reverted and working branch
+        And I have a an empty running farm
         When I add role to this farm
         Then I expect server bootstrapping as M1
+        Given I have reverted and working branch
         And I push an empty commit to scalarizr repo
+        When new package is builded
         Then I update scalarizr via api on M1
         When update process is finished on M1 with status completed
         Then I remember scalarizr version on M1
@@ -52,7 +55,8 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify scalr-upd-client update to normal version
         Given I have reverted and working branch
-        And I update scalarizr via api on M1
+        And new package is builded
+        Then I update scalarizr via api on M1
         When update process is finished on M1 with status completed
         Then scalarizr version is last in M1
         And scalarizr is running on M1

@@ -276,7 +276,7 @@ def check_index_page(node, proto, revert, domain_name, name):
         url = '%s://%s/' % (proto, domain_name)
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
-        LOG.debug('Upload index page %s to server %s' % (name, n.public_ip))
+        LOG.debug('Upload index page %s to server %s' % (name, n.id))
         n.run('mkdir /var/www/%s' % name)
         n.put_file(path='/var/www/%s/index.php' % name, content=index)
     for i in range(3):

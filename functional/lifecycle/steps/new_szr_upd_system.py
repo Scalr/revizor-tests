@@ -22,14 +22,21 @@ BUILDBOT_URL = 'http://buildbot.scalr-labs.com:8010'
 
 @step('I push an empty commit to scalarizr repo$')
 def bump_scalarizr_version(step):
-    pass
-
+    subprocess.call(["echo ' ' >> %s/requirements_test" % SCALARIZR_REPO_PATH], shell=True)
+    os.chdir(SCALARIZR_REPO_PATH)
+    subprocess.call(['git', 'commit', '-a', '-m', "Bump scalarizr version for test"])
+    last_revision = subprocess.check_output(['git', 'log', '--pretty=oneline', '-1']).splitlines()[0].split()[0].strip()
+    LOG.info('Last pushed revision: %s' % last_revision)
+    setattr(world, 'last_scalarizr_revision', last_revision)
+    out = subprocess.check_output(['git', 'push'])
+    LOG.debug('Push log: %s' % out)
 
 
 @step('I remember scalarizr version on ([\w\d]+)$')
 def remember_scalarizr_version(step, serv_as):
+    LOG.info('Kepp scalarizr version')
     server = getattr(world, serv_as)
-    version = server.upd_api.status(cached=False)['installed']
+    version = server.upd_api.status(cached=True)['installed']
     LOG.info('Remember Scalarizr version (%s) on server %s' % (version, server.id))
     setattr(world, '%s_last_scalarizr' % serv_as, version)
 
@@ -69,6 +76,15 @@ def verify_repository_is_working(step):
 
     os.chdir(SCALARIZR_REPO_PATH)
 
+    LOG.info('Merge hotfix/update-system to this repository')
+
+    merge_proc = subprocess.Popen(['git', 'merge', '-m', 'merge parent branch', 'origin/hotfix/update-system'],
+                                  stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+    merge_proc.wait()
+
+    if merge_proc.returncode != 0:
+        raise AssertionError('Something wrong in git merge, please see log: %s' % merge_proc.stdout.read())
+
     git_log = subprocess.check_output(['git', 'log', '--pretty=oneline', '-20']).splitlines()
     LOG.info('Get latest commits from git history: %s' % git_log)
     flags = {}
@@ -83,6 +99,9 @@ def verify_repository_is_working(step):
                 LOG.info('Revert broken commit "%s %s"' % (commit, message))
                 subprocess.call(['git', 'revert', commit, '-n', '--no-edit'])
                 subprocess.call(['git', 'commit', '-a', '-m', "Revert '%s'" % message])
+                last_revision = subprocess.check_output(['git', 'log', '--pretty=oneline', '-1']).splitlines()[0].split()[0].strip()
+                LOG.info('Last pushed revision: %s' % last_revision)
+                setattr(world, 'last_scalarizr_revision', last_revision)
                 subprocess.call(['git', 'push'])
                 flags[m] = True
         if len(flags) == len(commits):
@@ -105,15 +124,25 @@ def broke_scalarizr_branch(step, comment):
     comment.insert(-1, tag)
     comment = ' '.join(comment)
 
-    command = ['git', 'log', '--pretty=oneline', '--grep=Revert "%s"' % comment]
+    command = ['git', 'log', '--pretty=oneline', "--grep=Revert '%s'" % comment]
     LOG.debug('Execute grep by git: %s' % command)
     git_log = subprocess.check_output(command, stderr=subprocess.PIPE).strip().splitlines()
+    if not git_log:
+        command = ['git', 'log', '--pretty=oneline', '--grep=Revert "%s"' % comment]
+        LOG.debug('Execute grep by git: %s' % command)
+        git_log = subprocess.check_output(command, stderr=subprocess.PIPE).strip().splitlines()
     LOG.info('Get latest commits from git history (in broke step): %s' % git_log)
-    commit, message = git_log[0].split(' ', 1)
+    splitted_log = git_log[0].split(' ', 2)
+    commit = splitted_log[0]
+    message = splitted_log[-1].replace('"', '').replace("'", '')
     LOG.info('Revert commit "%s %s" for brake repository' % (commit, message))
     subprocess.call(['git', 'revert', commit, '-n', '--no-edit'])
     subprocess.call(['git', 'commit', '-a', '-m', '%s' % message])
+    last_revision = subprocess.check_output(['git', 'log', '--pretty=oneline', '-1']).splitlines()[0].split()[0].strip()
+    LOG.info('Last pushed revision: %s' % last_revision)
+    setattr(world, 'last_scalarizr_revision', last_revision)
     subprocess.call(['git', 'push'])
+    time.sleep(60)
 
 
 @step('new package is builded')
@@ -124,21 +153,32 @@ def verify_package_is_builded(step):
         if not resp['state'] == 'idle':
             time.sleep(15)
             continue
-        return
-        #latest_build = resp['cachedBuilds'][-1]
-        #break
-    #build = requests.get('%s/json/builders/scalarizr%%20source/builds/%s' % (BUILDBOT_URL, latest_build)).json()
-    #for prop in build['properties']:
-    #    if prop[0] == 'normalized_branch' and prop[1] == world.scalarizr_branch:
-    #        return
-    #raise AssertionError('Last build in buildbot not from this branch')
+        for build_number in reversed(resp['cachedBuilds']):
+            LOG.debug('Check for our scalarizr build: %s' % build_number)
+            build = requests.get('%s/json/builders/scalarizr%%20source/builds/%s' % (BUILDBOT_URL, build_number)).json()
+            if not build['sourceStamps'][0]['revision'] == world.last_scalarizr_revision:
+                LOG.debug('This build has revision: %s' % build['sourceStamps'][0]['revision'])
+                continue
+            elif build['sourceStamps'][0]['revision'] == world.last_scalarizr_revision:
+                if not world.scalarizr_branch in build['sourceStamps'][0]['branch']:
+                    raise AssertionError('Last build %s not with current scalarizr branch: %s (it has %s)' %
+                                (build_number, world.scalarizr_branch, build['sourceStamps'][0]['branch'])
+                    )
+                LOG.info('We found our build and it finished')
+                return
 
 
 @step('I update scalarizr via api on ([\w\d]+)')
 def update_scalarizr_via_api(step, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Update scalarizr bi Scalarizr update API on server %s' % server.id)
-    server.upd_api.update(async=True)
+    for i in range(3):
+        try:
+            server.upd_api.update(async=True)
+            break
+        except:
+            LOG.debug('Try update scalarizr via api attempt %s' % i)
+            time.sleep(5)
 
 
 @step('update process is finished on ([\w\d]+) with status (\w+)')
@@ -149,7 +189,7 @@ def wait_updating_finish(step, serv_as, status):
     LOG.info('Wait status %s on update process' % status)
     while int(time.time()-start_time) < 900:
         try:
-            result = server.upd_api.status(cached=False)
+            result = server.upd_api.status(cached=True)
             if result['state'].startswith(status):
                 LOG.info('Update process finished with waited status: %s' % result['state'])
                 return
@@ -157,6 +197,9 @@ def wait_updating_finish(step, serv_as, status):
                 raise AssertionError('Update process failed with error: %s' % result['error'])
             LOG.info('Update process on server %s in "%s" state, wait status %s' % (server.id, result['state'], status))
             time.sleep(5)
+        except AssertionError:
+            LOG.error('Update process failed')
+            raise
         except BaseException, e:
             LOG.debug('Checking update process raise exception: %s' % e)
             time.sleep(15)
