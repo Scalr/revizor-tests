@@ -8,8 +8,8 @@ from lettuce import world, step
 from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.cloud import Cloud
+from revizor2.consts import Dist
 from revizor2.fixtures import images
-from revizor2.utils import get_scalr_dist_name
 
 LOG = logging.getLogger('import2')
 
@@ -24,9 +24,9 @@ def given_server_in_cloud(step, mbeh):
     cloud = Cloud()
     LOG.info('Create node in cloud')
     if mbeh == 'mbeh1':
-        image = images(CONF.feature.platform).filter({'dist': get_scalr_dist_name(CONF.feature.dist), 'behavior':'mysql2'}).first()
+        image = images(CONF.feature.platform).filter({'dist': Dist.get_scalr_dist_name(CONF.feature.dist), 'behavior':'mysql2'}).first()
     elif mbeh == 'mbeh2':
-        image = images(CONF.feature.platform).filter({'dist': get_scalr_dist_name(CONF.feature.dist), 'behavior':'www'}).first()
+        image = images(CONF.feature.platform).filter({'dist': Dist.get_scalr_dist_name(CONF.feature.dist), 'behavior':'www'}).first()
     LOG.debug('Use image: %s' % image)
     node = cloud.create_node(image=image.keys()[0], userdata='scm-branch=%s' % CONF.feature.branch)
     setattr(world, 'cloud_server', node)

@@ -63,23 +63,6 @@ def assert_check_upstream_after_delete(step, www_serv, have, app_serv):
                    timeout=180, error_text="Upstream %s not in list" % server.private_ip)
 
 
-@step(r'my IP in ([\w]+) ([\w]+)([ \w]+)? access logs$')
-def check_rpaf(step, serv_as, domain_as, ssl=None):
-    LOG.debug('Check mod_rpaf')
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    domain = getattr(world, domain_as)
-    path = '/var/log/http-%s-access.log' % domain.name
-    LOG.info('Check my IP in %s log' % path)
-    out = node.run('cat %s' % path)
-    LOG.debug('Access log (%s) contains: %s' % (path, out[0]))
-    page = urllib2.urlopen('http://www.showmemyip.com/').read()
-    ip = re.findall('((?:[\d]+)\.(?:[\d]+)\.(?:[\d]+)\.(?:[\d]+))', page)[0]
-    LOG.info('My public IP is %s' % ip)
-    if not ip in out[0]:
-        raise AssertionError('Not see my IP in access log')
-
-
 @step(r'I add (\w+) role as app role in ([\w\d]+) scalarizr config')
 def add_custom_role_to_backend(step, role_type, serv_as):
     LOG.info("Add %s role to %s scalarizr config" % (role_type, serv_as))
@@ -91,8 +74,9 @@ def add_custom_role_to_backend(step, role_type, serv_as):
 
 @step(r'I remove (\w+) role from ([\w\d]+) scalarizr config')
 def delete_custom_role_from_backend(step, role_type, serv_as):
-    LOG.info("Delete %s role to %s scalarizr config" % (role, serv_as))
     server = getattr(world, serv_as)
+    LOG.info('Delete %s role from %s scalarizr config' % (role_type, server.id))
+    #TODO: Debug this not work :(
     role = world.get_role(role_type)
     node = world.cloud.get_node(server)
     node.run("sed -i 's/upstream_app_role = %s/upstream_app_role =/g' /etc/scalr/public.d/www.ini" % role.name)

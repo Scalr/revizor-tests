@@ -12,8 +12,8 @@
         "lvm": ["-volumes", "-grow"],
         "eph": ["-volumes", "-grow"],
         "raid5": ["-volumes", "-lvm"],
-        "raid10": ["-volumes", "-lvm"],
+        "raid10": ["-volumes", "-lvm", "-grow"],
         "raid1": ["-volumes", "-lvm"],
-        "raid0": ["-volumes", "-lvm"]
+        "raid0": ["-volumes", "-lvm", "-grow"]
     }
 }

@@ -17,7 +17,7 @@ Feature: Linux server lifecycle
         And directory '/var/www/src' exist in M1
         And hostname in M1 is valid
 
-    @ec2 @cloudstack @openstack @storages
+    @ec2 @openstack @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -78,7 +78,7 @@ Feature: Linux server lifecycle
         And I expect server bootstrapping as M1
         And scalarizr version from system repo is last in M1
 
-    @ec2 @cloudstack @openstack @storages
+    @ec2 @openstack @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old

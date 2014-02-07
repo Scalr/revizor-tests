@@ -76,11 +76,12 @@ def verify_repository_is_working(step):
 
     os.chdir(SCALARIZR_REPO_PATH)
 
-    LOG.info('Merge hotfix/update-system to this repository')
+    LOG.info('Merge feature/update-system to this repository')
 
-    merge_proc = subprocess.Popen(['git', 'merge', '-m', 'merge parent branch', 'origin/hotfix/update-system'],
+    merge_proc = subprocess.Popen(['git', 'merge', '-m', 'merge parent branch', 'origin/feature/update-system'],
                                   stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     merge_proc.wait()
+    LOG.debug('Merge process result: %s' % merge_proc.stdout.read())
 
     if merge_proc.returncode != 0:
         raise AssertionError('Something wrong in git merge, please see log: %s' % merge_proc.stdout.read())
@@ -102,10 +103,11 @@ def verify_repository_is_working(step):
                 last_revision = subprocess.check_output(['git', 'log', '--pretty=oneline', '-1']).splitlines()[0].split()[0].strip()
                 LOG.info('Last pushed revision: %s' % last_revision)
                 setattr(world, 'last_scalarizr_revision', last_revision)
-                subprocess.call(['git', 'push'])
                 flags[m] = True
         if len(flags) == len(commits):
-            return
+            break
+    LOG.debug('Push changes to working branch')
+    subprocess.call(['git', 'push'])
 
 
 @step('I broke branch with commit "(.+)"$')
@@ -171,7 +173,7 @@ def verify_package_is_builded(step):
 @step('I update scalarizr via api on ([\w\d]+)')
 def update_scalarizr_via_api(step, serv_as):
     server = getattr(world, serv_as)
-    LOG.info('Update scalarizr bi Scalarizr update API on server %s' % server.id)
+    LOG.info('Update scalarizr by Scalarizr update API on server %s' % server.id)
     for i in range(3):
         try:
             server.upd_api.update(async=True)

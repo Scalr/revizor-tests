@@ -55,7 +55,7 @@ def verify_scalarizr_log(node):
 
 
 @world.absorb
-def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
+def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=2100):
     """
     Wait a moment when new server starting in the pointed role and wait server will in selected state.
     Moreover this function remember all previous started servers.
@@ -63,6 +63,7 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
     :param class:Role role: Show in which role lookup a new server
     :return class:Server: Return a new Server
     """
+    #TODO: Use role as optional parameter, find in all roles by default
     status = ServerStatus.from_code(status)
 
     LOG.info('Launch process looking for new server in farm %s for role %s, wait status %s' %
@@ -82,8 +83,13 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
     while time.time() - start_time < timeout:
         if not lookup_server:
             LOG.debug('Reload servers in role')
-            role.servers.reload()
-            for server in role.servers:
+            if not role:
+                world.servers.reload()
+                servers = world.servers
+            else:
+                role.servers.reload()
+                servers = role.servers
+            for server in servers:
                 LOG.debug('Work with server: %s - %s' % (server.id, server.status))
                 if not server in previous_servers and server.status in [ServerStatus.PENDING_LAUNCH,
                                                                         ServerStatus.PENDING,
@@ -138,19 +144,19 @@ def wait_server_bootstrapping(role, status=ServerStatus.RUNNING, timeout=2100):
         time.sleep(10)
     else:
         if lookup_server:
-            raise TimeoutError('Server %s not in state "%s" it has status: "%s"' % (lookup_server.id, status, lookup_server.status))
+            raise TimeoutError('Server %s not in state "%s" it has status: "%s"'
+                               % (lookup_server.id, status, lookup_server.status))
         raise TimeoutError('New server in role "%s" was not founding' % role)
 
 
 
 @world.absorb
-def wait_servers_running(role_id, count):
-    #TODO: Rewrite this to role object, not role_id
-    world.farm.servers.reload()
+def wait_servers_running(role, count):
+    role.servers.reload()
     previous_servers = getattr(world, '_previous_servers', [])
     run_count = 0
-    for server in world.farm.servers:
-        if server.role_id == role_id and server.status == ServerStatus.RUNNING:
+    for server in role.servers:
+        if server.status == ServerStatus.RUNNING:
             LOG.info('Server %s is Running' % server.id)
             if not server in previous_servers:
                 previous_servers.append(server)

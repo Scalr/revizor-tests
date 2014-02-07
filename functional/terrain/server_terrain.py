@@ -17,7 +17,7 @@ LOG = logging.getLogger(__name__)
 @step('I expect server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=2000):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
-    role = world.get_role(role_type)
+    role = world.get_role(role_type) if role_type else None
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as, role_type))
     server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
     setattr(world, serv_as, server)

@@ -203,3 +203,19 @@ def assert_check_cert(step, domain_as1, domain_as2=None, serv_as=None):
         cert = ssl.get_server_certificate((domain1.name, 443))
         #Assert Certificates
         world.assert_not_equal(cert, local_cert1, 'Cert not match local cert')
+
+
+@step(r'my IP in ([\w]+) ([\w]+)([ \w]+)? access logs$')
+def check_rpaf(step, serv_as, domain_as, ssl=None):
+    LOG.debug('Check mod_rpaf')
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    domain = getattr(world, domain_as)
+    path = '/var/log/http-%s-access.log' % domain.name
+    LOG.info('Check my IP in %s log' % path)
+    out = node.run('cat %s' % path)
+    LOG.debug('Access log (%s) contains: %s' % (path, out[0]))
+    ip = world.get_external_local_ip()
+    LOG.info('My public IP is %s' % ip)
+    if not ip in out[0]:
+        raise AssertionError('Not see my IP in access log')

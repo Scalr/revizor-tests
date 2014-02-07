@@ -24,7 +24,7 @@ def assert_wait_servers(step, serv_count):
     serv_count = int(serv_count)
     timeout = 60 * 15 * serv_count
     LOG.info('Wait %s servers, timeout %s seconds' % (serv_count, timeout))
-    wait_until(world.wait_servers_running, args=(role.role_id, serv_count), timeout=timeout,
+    wait_until(world.wait_servers_running, args=(role, serv_count), timeout=timeout,
                     error_text='Not see %s servers running' % serv_count)
 
 

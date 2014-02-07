@@ -45,6 +45,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     """
     if behavior in BEHAVIORS_ALIASES:
         behavior = BEHAVIORS_ALIASES[behavior]
+    if CONF.feature.dist.startswith('win'):
+        dist = CONF.feature.dist.replace('win', 'windows')
+    else:
+        dist = CONF.feature.dist
     if CONF.feature.role_id:
         role = IMPL.role.get(CONF.feature.role_id)
         if not role:
@@ -58,18 +62,19 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         else:
             if CONF.feature.role_version and not CONF.feature.role_version == 'default':
                 role_name = '%s%s-%s-%s' % (behavior, CONF.feature.role_version,
-                                            CONF.feature.dist, CONF.feature.role_type)
+                                            dist, CONF.feature.role_type)
             else:
-                mask = '%s*-%s-%s' % (behavior, CONF.feature.dist, CONF.feature.role_type)
+                mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
                 versions = get_role_versions(mask)
                 role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                            CONF.feature.dist, CONF.feature.role_type)
+                                            dist, CONF.feature.role_type)
             roles = IMPL.role.list(query=role_name)
             if not roles:
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
+    LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
     world.farm.add_role(role['id'], options=options, scripting=scripting, storages=storages, alias=alias)
     time.sleep(3)
     world.farm.roles.reload()

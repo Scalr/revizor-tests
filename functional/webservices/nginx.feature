@@ -13,7 +13,7 @@ Feature: Nginx load balancer role test with apache backends
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding custom role to upstream
         When I add base role to this farm
-        Then I expect server bootstrapping as B1
+        Then I expect server bootstrapping as B1 in base role
         And I add base role as app role in W1 scalarizr config
         Then I restart service scalarizr in W1
         And I wait 1 minutes

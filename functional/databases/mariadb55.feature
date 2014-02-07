@@ -100,15 +100,15 @@ Feature: mariadb database server with behavior mariadb
        And not ERROR in M2 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
-	Scenario: Slave force termination
-		When I force terminate M2
-		Then Scalr sends HostDown to M1
-		And not ERROR in M1 scalarizr log
-		And mariadb is running on M1
-		Then I expect server bootstrapping as M2
-		And not ERROR in M1 scalarizr log
-		And not ERROR in M2 scalarizr log
-		And mariadb is running on M1
+    Scenario: Slave force termination
+        When I force terminate M2
+        Then Scalr sends HostDown to M1
+        And not ERROR in M1 scalarizr log
+        And mariadb is running on M1
+        Then I expect server bootstrapping as M2
+        And not ERROR in M1 scalarizr log
+        And not ERROR in M2 scalarizr log
+        And mariadb is running on M1
 
 	@ec2 @grow
 	Scenario: Grow storage
