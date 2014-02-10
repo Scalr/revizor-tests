@@ -46,7 +46,6 @@ def check_terminated_in_log(step, serv_as):
     server = getattr(world, serv_as)
     console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
                             auth=("Administrator", server.windows_password))
-    #TODO: Add path
     LOG.info("Run command: cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
     out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'").std_out
     LOG.debug('Result of command:')

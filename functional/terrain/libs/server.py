@@ -63,11 +63,10 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
     :param class:Role role: Show in which role lookup a new server
     :return class:Server: Return a new Server
     """
-    #TODO: Use role as optional parameter, find in all roles by default
     status = ServerStatus.from_code(status)
 
     LOG.info('Launch process looking for new server in farm %s for role %s, wait status %s' %
-             (world.farm.id, role.role.name, status))
+             (world.farm.id, role, status))
 
     previous_servers = getattr(world, '_previous_servers', [])
     if not previous_servers:
@@ -84,8 +83,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
         if not lookup_server:
             LOG.debug('Reload servers in role')
             if not role:
-                world.servers.reload()
-                servers = world.servers
+                world.farm.servers.reload()
+                servers = world.farm.servers
             else:
                 role.servers.reload()
                 servers = role.servers
@@ -108,7 +107,9 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
             LOG.debug('Check lookup server launch failed')
             if lookup_server.is_launch_failed:
-                raise ServerFailed('Server %s failed in %s' % (lookup_server.id, ServerStatus.PENDING_LAUNCH))
+                raise ServerFailed('Server %s failed in %s. Reason: %s'
+                                   % (lookup_server.id, ServerStatus.PENDING_LAUNCH,
+                                      lookup_server.get_failed_status_message()))
 
             LOG.debug('Check lookup server init failed')
             if lookup_server.is_init_failed:
@@ -188,17 +189,18 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     """
     def check_message_in_server(server, message_name, message_type):
         server.messages.reload()
+        last_internal_message = getattr(world, '_server_%s_last_message' % server.id, None)
         for message in server.messages:
             LOG.debug('Work with message: %s / %s - %s (%s) on server %s ' %
                       (message.type, message.name, message.delivered, int(message.id), server.id))
-            if server._last_internal_message and int(message.id) <= int(server._last_internal_message.id):
-                LOG.debug('This message <= when last internal message: %s <= %s' % (int(message.id), int(server._last_internal_message.id)))
+            if last_internal_message and int(message.id) <= int(last_internal_message.id):
+                LOG.debug('This message <= when last internal message: %s <= %s' % (int(message.id), int(last_internal_message.id)))
                 continue
             if message.name == message_name and message.type == message_type:
                 LOG.info('This message matching the our pattern')
                 if message.delivered:
                     LOG.info('Lookup message delivered')
-                    server._last_internal_message = message
+                    setattr(world, '_server_%s_last_message' % server.id, message)
                     return True
                 elif message.status == MessageStatus.FAILED:
                     raise MessageFailed('Message %s / %s (%s) failed' % (message.type, message.name, message.messageid))
@@ -242,6 +244,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
 
 @world.absorb
 def wait_script_execute(server, message, state):
+    #TODO: Rewrite this as expect server bootstrapping
     LOG.info('Find message %s and state %s in scripting logs' % (message, state))
     server.scriptlogs.reload()
     for log in server.scriptlogs:

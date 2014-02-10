@@ -75,7 +75,7 @@ def add_new_role_to_farm(step, alias=None):
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
     world.farm.add_role(world.bundled_role_id, options=options, scripting=scripting, alias=alias)
-    alias = alias or bundled_role.alias
+    alias = alias or bundled_role.name
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s' % alias)
     setattr(world, '%s_role' % alias, role)

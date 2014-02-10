@@ -10,7 +10,7 @@ from lettuce import world, step
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus
 
-LOG = logging.getLogger('nginx')
+LOG = logging.getLogger(__name__)
 
 
 @step(r"http get (.+) contains '(.+)'")
@@ -76,7 +76,6 @@ def add_custom_role_to_backend(step, role_type, serv_as):
 def delete_custom_role_from_backend(step, role_type, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Delete %s role from %s scalarizr config' % (role_type, server.id))
-    #TODO: Debug this not work :(
     role = world.get_role(role_type)
     node = world.cloud.get_node(server)
     node.run("sed -i 's/upstream_app_role = %s/upstream_app_role =/g' /etc/scalr/public.d/www.ini" % role.name)

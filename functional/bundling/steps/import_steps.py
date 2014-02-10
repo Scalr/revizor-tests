@@ -1,20 +1,16 @@
-import os
 import time
 from datetime import datetime
 import logging
-import json
 
-from lettuce import world, step, after
+from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.api import Farm, IMPL, Server
-from revizor2.consts import ServerStatus, OS, Platform
-from revizor2.cloud import Cloud
+from revizor2.api import IMPL, Server
+from revizor2.consts import Platform
 from revizor2.utils import wait_until
-from revizor2.fixtures import tables
 from revizor2.helpers import install_behaviors_on_node
 
-LOG = logging.getLogger('bundling.import test')
+LOG = logging.getLogger(__name__)
 
 #User data fixtures
 #ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
@@ -189,7 +185,7 @@ def start_building(step):
     world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
 
 
-@step('Connection with scalarizr was established')
+@step('connection with scalarizr was established')
 def is_scalarizr_connected(step, timeout=1400):
     LOG.info('Establish connection with scalarizr.')
     #Whait outbound request from scalarizr
@@ -241,7 +237,7 @@ def assert_role_task_created(step,  timeout=1400):
     LOG.info('Destroying virtual machine %s in Cloud' % world.cloud_server.id)
     if not world.cloud_server.destroy():
         raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
-    LOG.info('Virtual machine was successfully destroyed.')
+    LOG.info('Virtual machine %s was successfully destroyed.' % world.cloud_server.id)
 
 
 @step('I add to farm imported role$')
@@ -249,5 +245,4 @@ def add_new_role_to_farm(step):
     world.farm.add_role(world.bundled_role_id)
     world.farm.roles.reload()
     role = world.farm.roles[0]
-    setattr(world, 'role_type', ','.join(role.role.behaviors))
-    setattr(world, '%s_role' % ','.join(role.role.behaviors), role)
+    setattr(world, '%s_role' % role.alias, role)

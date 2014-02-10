@@ -37,9 +37,9 @@ def assert_check_script_in_log(step, message, serv_as, user, exitcode):
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
     time.sleep(30)
-    serv = getattr(world, serv_as)
-    serv.scriptlogs.reload()
-    last_count = getattr(world, '%s_script_count' % serv_as)
-    if not len(serv.scriptlogs) == last_count+1:
-        LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (last_count, len(serv.scriptlogs), last_count+1))
+    server = getattr(world, serv_as)
+    server.scriptlogs.reload()
+    last_count = int(getattr(world, '_server_%s_last_scripts' % server.id))
+    if not len(server.scriptlogs) == last_count+1:
+        LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (last_count, len(server.scriptlogs), last_count+1))
         raise AssertionError('Not see script result in script logs')

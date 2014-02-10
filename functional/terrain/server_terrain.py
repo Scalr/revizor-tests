@@ -86,14 +86,14 @@ def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
 @step("I execute script '(.+)' (.+) on (.+)")
 def execute_script(step, script_name, exec_type, serv_as):
     synchronous = 1 if exec_type.strip() == 'synchronous' else 0
-    serv = getattr(world, serv_as)
+    server = getattr(world, serv_as)
     script = Script.get_id(script_name)
     LOG.info('Execute script id: %s, name: %s' % (script['id'], script_name))
-    serv.scriptlogs.reload()
-    setattr(world, '%s_script_count' % serv_as, len(serv.scriptlogs))
-    LOG.debug('Count of complete scriptlogs: %s' % len(serv.scriptlogs))
-    Script.script_execute(world.farm.id, serv.farm_role_id, serv.id, script['id'], synchronous, script['version'])
-    LOG.info('Script execute success')
+    server.scriptlogs.reload()
+    setattr(world, '_server_%s_last_scripts' % server.id, server.scriptlogs)
+    LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
+    Script.script_execute(world.farm.id, server.farm_role_id, server.id, script['id'], synchronous, script['version'])
+    LOG.info('Script executed success')
 
 
 @step('wait all servers are terminated')

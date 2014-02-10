@@ -207,10 +207,6 @@ def validate_clean_nginx_upstream(step, serv_as):
     LOG.info('Upstream list: %s' % upstream)
     if upstream.strip():
         raise AssertionError('Upstream list not clean')
-    # upstream = upstream.replace(re.findall(r"(upstream backend \{(?:.*)\})", upstream, re.MULTILINE | re.DOTALL)[0], '')
-    # ips = re.findall(r"((?:\d+\.?){4};)", upstream)
-    # if ips:
-    #     raise AssertionError('Upstream list has IP adresses: %s' % ips)
 
 
 @step(r"([\w\d]+) http( not)? redirect to ([\w\d]+) https")

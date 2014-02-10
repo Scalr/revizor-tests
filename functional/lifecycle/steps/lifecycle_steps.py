@@ -99,18 +99,14 @@ def check_file_count(step, directory, file_count, serv_as):
         raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
 
-@step('I see execution result in scripting log')
-def check_result_script_log(step):
-    wait_until(check_script_log, timeout=1000, error_text="I'm not see messages in script logs")
-
-
 @step("script output contains '(.+)' in (.+)$")
 def assert_check_message_in_log(step, message, serv_as):
-    #TODO: Rewrite this, because 2 identically script not work
-    time.sleep(60)
     server = getattr(world, serv_as)
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id)
     server.scriptlogs.reload()
     for log in server.scriptlogs:
+        if log in last_scripts:
+            continue
         LOG.debug('Server %s log content: %s' % (server.id, log.message))
         if message.strip()[1:-1] in log.message:
             return True
@@ -185,11 +181,3 @@ def check_file(step, serv_as, path):
     LOG.info('Check exist path: %s' % path)
     if not out[2] == 0:
         raise AssertionError('File \'%s\' not exist: %s' % (path, out))
-
-
-def check_script_log(*args, **kwargs):
-    world.server.scriptlogs.reload()
-    if len(world.server.scriptlogs) > world.server_script_count:
-        world.scriptlog = world.server.scriptlogs
-        return True
-    return False

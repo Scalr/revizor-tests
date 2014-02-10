@@ -213,7 +213,6 @@ def get_db_handler(db_name):
 ##################
 @step(r'I trigger ([\w]+) creation( on slave)?')
 def trigger_creation(step, action, use_slave=None):
-    #TODO: if databundle in progress, wait 10 minutes
     action = action.strip()
     use_slave = True if use_slave else False
     db_role = world.get_role()
@@ -250,6 +249,7 @@ def session_is_available(step, service, search_string, element):
 
 @step(r'Last (.+) date updated to current')
 def assert_check_databundle_date(step, back_type):
+    #TODO: if databundle in progress, wait 10 minutes
     LOG.info("Check %s date" % back_type)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         LOG.info('Platform is cloudstack-family, backup not doing')
