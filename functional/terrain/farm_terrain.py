@@ -26,12 +26,12 @@ def having_empty_running_farm(step):
 @step('I have a clean and stopped farm')
 def having_a_stopped_farm(step):
     """Clear all roles from farm and stop farm"""
-    world.farm = farm = Farm.get(CONF.main.farm_id)
+    world.farm = Farm.get(CONF.main.farm_id)
     IMPL.farm.clear_roles(world.farm.id)
     LOG.info('Clear farm')
-    if farm.running:
-        LOG.info('Terminate farm')
-        farm.terminate()
+    if world.farm.running:
+        LOG.info('Terminate farm %s' % world.farm.id)
+        world.farm.terminate()
 
 
 @step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")

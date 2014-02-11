@@ -1,4 +1,3 @@
-__author__ = 'gigimon'
 import time
 
 from lettuce import step

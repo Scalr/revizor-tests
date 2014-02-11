@@ -10,7 +10,6 @@ Feature: Windows server lifecycle
         And I add role to this farm with winchef
         When I start farm
         Then I see pending server M1
-        And I wait and see initializing server M1
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
 

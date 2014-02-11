@@ -12,16 +12,6 @@ from revizor2.consts import ServerStatus
 LOG = logging.getLogger(__name__)
 
 
-#@world.absorb
-#def add_roles_to_farm(roles_type=None, options=None):
-#    roles = []
-#    for r in roles_type:
-#        LOG.info('Add role with behavior %s to farm' % r)
-#        role = roles_table.filter({'behavior': r}).first()
-#        LOG.debug('Added role: %s' % role)
-#        roles.append(role.keys()[0])
-#    world.farm.add_role(roles, options=options)
-
 @world.absorb
 def passed_by_version_scalarizr(version, reverse=False):
     """

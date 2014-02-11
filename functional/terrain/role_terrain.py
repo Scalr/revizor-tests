@@ -33,7 +33,7 @@ def increase_instances(step, count, role_type):
     role = world.get_role(role_type)
     options = {"scaling.max_instances": int(count) + 1,
                "scaling.min_instances": count}
-    world.farm.edit_role(role.role_id, options)
+    role.edit(options)
 
 
 @step('I start a new server for(?: ([\w\d+]))? role')
@@ -46,9 +46,9 @@ def start_new_instance(step, role_type):
 @step('I create server snapshot for ([\w]+)$')
 def rebundle_server(step, serv_as):
     """Start rebundle for server"""
-    serv = getattr(world, serv_as)
-    name = 'tmp-%s-%s' % (serv.role.name, datetime.now().strftime('%m%d%H%M'))
-    bundle_id = serv.create_snapshot('no_replace', name)
+    server = getattr(world, serv_as)
+    name = 'tmp-%s-%s' % (server.role.name, datetime.now().strftime('%m%d%H%M'))
+    bundle_id = server.create_snapshot('no_replace', name)
     if bundle_id:
         world.bundle_id = bundle_id
 
@@ -56,14 +56,14 @@ def rebundle_server(step, serv_as):
 @step('Bundle task created for ([\w]+)')
 def assert_bundletask_created(step, serv_as):
     """Check bundle task status"""
-    serv = getattr(world, serv_as)
-    world.bundle_task_created(serv, world.bundle_id)
+    server = getattr(world, serv_as)
+    world.bundle_task_created(server, world.bundle_id)
 
 
 @step('Bundle task becomes completed for ([\w]+)')
 def assert_bundletask_completed(step, serv_as, timeout=1800):
-    serv = getattr(world, serv_as)
-    wait_until(world.bundle_task_completed, args=(serv, world.bundle_id), timeout=timeout, error_text="Bundle not completed")
+    server = getattr(world, serv_as)
+    wait_until(world.bundle_task_completed, args=(server, world.bundle_id), timeout=timeout, error_text="Bundle not completed")
 
 
 @step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
@@ -79,3 +79,10 @@ def add_new_role_to_farm(step, alias=None):
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s' % alias)
     setattr(world, '%s_role' % alias, role)
+
+
+@step('I change suspend policy in role to (\w+)')
+def change_suspend_policy(step, policy):
+    role = world.get_role()
+    LOG.info('Change suspend policy for role %s to %s' % (role.alias, policy))
+    role.edit(options={"base.resume_strategy": policy})

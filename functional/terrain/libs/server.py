@@ -7,6 +7,7 @@ from datetime import datetime
 
 import requests
 from lettuce import world
+from libcloud.compute.types import NodeState
 
 from revizor2.fixtures import resources
 from revizor2.consts import ServerStatus, MessageStatus
@@ -55,7 +56,7 @@ def verify_scalarizr_log(node):
 
 
 @world.absorb
-def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=2100):
+def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=2100, server=None):
     """
     Wait a moment when new server starting in the pointed role and wait server will in selected state.
     Moreover this function remember all previous started servers.
@@ -74,7 +75,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
     LOG.debug('Previous servers: %s' % previous_servers)
 
-    lookup_server = None
+    lookup_server = server or None
     lookup_node = None
 
     start_time = time.time()
@@ -119,12 +120,18 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('Try get node')
             if not lookup_node and not lookup_server.status in [ServerStatus.PENDING_LAUNCH,
                                                                 ServerStatus.PENDING_TERMINATE,
-                                                                ServerStatus.TERMINATED]:
+                                                                ServerStatus.TERMINATED,
+                                                                ServerStatus.PENDING_SUSPEND,
+                                                                ServerStatus.SUSPENDED]:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
-            LOG.debug('Verify debug log')
-            if lookup_node:
+            LOG.debug('Verify debug log in node')
+            if lookup_node and not lookup_server.status in [ServerStatus.PENDING_LAUNCH,
+                                                            ServerStatus.PENDING_TERMINATE,
+                                                            ServerStatus.TERMINATED,
+                                                            ServerStatus.PENDING_SUSPEND,
+                                                            ServerStatus.SUSPENDED]:
                 LOG.debug('Check scalarizr log in lookup server')
                 verify_scalarizr_log(lookup_node)
 
@@ -171,9 +178,8 @@ def wait_servers_running(role, count):
 
 @world.absorb
 def wait_farm_terminated(*args, **kwargs):
-    farm = world.farm
-    farm.servers.reload()
-    for server in farm.servers:
+    world.farm.servers.reload()
+    for server in world.farm.servers:
         if server.status == ServerStatus.TERMINATED:
             continue
         else:
@@ -331,7 +337,7 @@ def check_text_in_scalarizr_log(node, text):
 
 @world.absorb
 def set_iptables_rule(server, port):
-    """Set iptables rule in the top of the list (str, str, list||tuple)->"""
+    """Insert iptables rule in the top of the list (str, str, list||tuple)->"""
     LOG.info('Insert iptables rule to server %s for opening port %s' % (server, port))
     node = world.cloud.get_node(server)
     my_ip = world.get_external_local_ip()

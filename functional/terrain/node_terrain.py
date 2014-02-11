@@ -113,7 +113,7 @@ def change_repo_to_branch(node, branch):
 def pin_repo(step, repo, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    if repo.strip() == 'system':
+    if repo and repo.strip() == 'system':
         branch = CONF.feature.branch.replace('/', '-').replace('.', '').strip()
     else:
         branch = os.environ.get('RV_TO_BRANCH', 'master').replace('/', '-').replace('.', '').strip()

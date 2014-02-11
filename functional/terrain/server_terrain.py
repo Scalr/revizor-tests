@@ -23,47 +23,36 @@ def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=2000):
     setattr(world, serv_as, server)
 
 
-@step(r'I terminate server ([\w]+)$')
-def terminate_server(step, serv_as):
-    """Terminate server (no force)"""
+@step('I wait server ([\w\d]+) in ([ \w]+) state')
+def wait_server_state(step, serv_as, state):
+    """
+    Wait old server in selected state
+    """
     server = getattr(world, serv_as)
-    LOG.info('Terminate server %s' % server.id)
-    server.terminate()
+    LOG.info('Wait server %s in state %s' % (server.id, state))
+    world.wait_server_bootstrapping(status=ServerStatus.from_code(state), server=server)
 
 
-@step(r'I terminate server ([\w]+) with decrease')
-def terminate_server_decrease(step, serv):
-    """Terminate server (no force), but with decrease"""
-    server = getattr(world, serv)
-    LOG.info('Terminate server %s with decrease' % server.id)
-    server.terminate(decrease=True)
-
-
-@step('I force terminate ([\w\d]+)$')
-def terminate_server_force(step, serv_as):
-    """Terminate server force"""
+@step(r'I( force)? terminate server ([\w]+)( with decrease)?$')
+def terminate_server_decrease(step, force, serv_as, decrease=False):
+    """Terminate server (no force) with/without decrease"""
     server = getattr(world, serv_as)
-    LOG.info('Terminate server %s force' % server.id)
-    server.terminate(force=True)
+    decrease = bool(decrease)
+    force = bool(force)
+    LOG.info('Terminate server %s, decrease %s' % (server.id, decrease))
+    server.terminate(force=force, decrease=decrease)
 
 
-@step('I force terminate server ([\w\d]+) with decrease$')
-def terminate_server_force(step, serv_as):
-    """Terminate server force"""
+@step('I (reboot|suspend|resume) server ([\w\d]+)$')
+def server_state_action(step, action, serv_as):
     server = getattr(world, serv_as)
-    LOG.info('Terminate server %s force' % server.id)
-    server.terminate(force=True, decrease=True)
-
-
-@step('I reboot server (.+)$')
-def reboot_server(step, serv_as):
-    server = getattr(world, serv_as)
-    server.reboot()
-    LOG.info('Server %s was rebooted' % serv_as)
+    LOG.info('%s server %s' % (action.capitalize(), server.id))
+    getattr(server, action)()
+    LOG.info('Server %s was %sed' % (server.id, action))
 
 
 @step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)')
-def assert_get_message(step, msgtype, msg, serv_as, timeout=1500):
+def assert_server_message(step, msgtype, msg, serv_as, timeout=1500):
     """Check scalr in/out message delivering"""
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
     if serv_as == 'all':
@@ -96,13 +85,13 @@ def execute_script(step, script_name, exec_type, serv_as):
     LOG.info('Script executed success')
 
 
-@step('wait all servers are terminated')
+@step('wait all servers are terminated$')
 def wait_all_terminated(step):
     """Wait termination of all servers"""
     wait_until(world.wait_farm_terminated, timeout=1800, error_text='Servers in farm not terminated too long')
 
 
-@step('hostname in ([\w\d]+) is valid')
+@step('hostname in ([\w\d]+) is valid$')
 def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)

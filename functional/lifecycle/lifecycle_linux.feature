@@ -10,7 +10,6 @@ Feature: Linux server lifecycle
         And I add role to this farm with deploy,storages
         When I start farm
         Then I see pending server M1
-        And I wait and see initializing server M1
         And I wait and see running server M1
         And scalarizr version from system repo is last in M1
         Then Scalr receives DeployResult from M1
@@ -86,3 +85,22 @@ Feature: Linux server lifecycle
         And directory '/media/raidmount' exist in M1
         And count of files in directory '/media/ebsmount' is 100 in M1
         And count of files in directory '/media/raidmount' is 100 in M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @stopresume
+    Scenario: Stop/resume on init policy
+        When I suspend server M1
+        Then I wait server M1 in suspended state
+        And Scalr receives HostDown from M1
+        When I resume server M1
+        Then I wait server M1 in running state
+        And Scalr receives HostUp from M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @stopresume
+    Scenario: Stop/resume on reboot policy
+        When I change suspend policy in role to reboot
+        And I suspend server M1
+        Then I wait server M1 in suspended state
+        And Scalr receives HostDown from M1
+        When I resume server M1
+        Then I wait server M1 in running state
+        And Scalr receives RebootFinish from M1

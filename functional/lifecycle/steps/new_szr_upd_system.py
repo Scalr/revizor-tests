@@ -185,6 +185,7 @@ def update_scalarizr_via_api(step, serv_as):
 
 @step('update process is finished on ([\w\d]+) with status (\w+)')
 def wait_updating_finish(step, serv_as, status):
+    #TODO: verify scalarizr vesion by revision
     server = getattr(world, serv_as)
     start_time = time.time()
     status = status.strip()
