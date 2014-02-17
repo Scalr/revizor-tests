@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/apache_steps, steps/apache_migration_steps
+Using step definitions from: steps/common_steps, steps/apache_steps
 Feature: Apache application server migration test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

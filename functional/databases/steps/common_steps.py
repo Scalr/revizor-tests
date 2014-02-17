@@ -226,9 +226,12 @@ def trigger_creation(step, action, use_slave=None):
     LOG.info("I'm trigger %s" % action)
     time.sleep(180)
 
+
 @step(r'I launch ([\w]+) session')
 def launch_session(step, service):
-    """Step calling the appropriate service method to run it"""
+    """
+    Run farm method for phpmyadmin
+    """
     service = service.strip()
     LOG.info("I'm launch %s session" % service)
     world.launch_request = getattr(world.farm, 'db_launch_%s_session' % service)()
@@ -314,6 +317,9 @@ def assert_check_slave(step, slave_serv, master_serv):
 
 @step('I create a ([\w]+)$')
 def do_action(step, action):
+    """
+    Run databundle or backup process in farm
+    """
     action = action.strip()
     db_role = world.get_role()
     getattr(db_role.db, 'create_%s' % action)()

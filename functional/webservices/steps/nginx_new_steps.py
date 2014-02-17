@@ -1,16 +1,12 @@
-import re
 import logging
-import time
 import requests
 
 from lettuce import world, step
 
 from revizor2.api import Certificate, IMPL
-from revizor2.utils import wait_until
-from revizor2.fixtures import resources
 
 
-LOG = logging.getLogger('nginx-full')
+LOG = logging.getLogger(__name__)
 
 
 def get_nginx_default_server_template():

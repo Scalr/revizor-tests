@@ -11,7 +11,7 @@ from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 
 
-LOG = logging.getLogger('haproxy-full')
+LOG = logging.getLogger(__name__)
 
 
 def parse_haproxy_config(node):
@@ -202,6 +202,7 @@ def delete_haproxy_proxy(step, proxy_name):
     proxy = getattr(world, '%s_proxy' % proxy_name)
     LOG.info("Delete haproxy proxy for port %s" % proxy['port'])
     proxy_role.delete_haproxy_proxy(proxy['port'])
+
 
 @step(r'([\w\d]+) config should not contains ([\w\d]+)')
 def verify_proxy_in_config(step, serv_as, proxy_name):

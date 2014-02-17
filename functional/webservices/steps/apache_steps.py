@@ -4,7 +4,7 @@ import logging
 from lettuce import world, step
 
 
-LOG = logging.getLogger('apache')
+LOG = logging.getLogger(__name__)
 
 
 @step('I create domain ([\w\d]+) to ([\w\d]+) role')

@@ -8,14 +8,8 @@ from lettuce import world, step, after
 
 from revizor2.utils import wait_until
 
-LOG = logging.getLogger('RabbitMQ')
 
-
-# @step(r'I add (.+) role to this farm')
-# def add_role_to_given_farm(step, role_type):
-#     world.role_type = role_type
-#     role = world.add_role_to_farm(world.role_type, options={"rabbitmq.nodes_ratio": "66%", })
-#     setattr(world, world.role_type + '_role', role)
+LOG = logging.getLogger(__name__)
 
 
 @step('([\w]+) is (.+) node$')
@@ -37,14 +31,14 @@ def assert_check_node_type(step, serv_as, node_type):
         world.assert_not_in('rabbit@rabbit-%s' % server.index, rams, 'server %s is not %s node' % (server.id, node_type))
 
 
-@step('I (increase|decrease) minimum servers to (.+) for (.+) role$')
-def increase_instances(step, action_type, count, role_type):
-    role = world.get_role(role_type)
-    options = { "scaling.max_instances": int(count) + 1,
-                            "scaling.min_instances": count,
-                            "rabbitmq.nodes_ratio": "66%", }
-    LOG.info('Edit role options to: %s' % options)
-    world.farm.edit_role(role.role_id, options)
+# @step('I (increase|decrease) minimum servers to (.+) for (.+) role$')
+# def increase_instances(step, action_type, count, role_type):
+#     role = world.get_role(role_type)
+#     options = { "scaling.max_instances": int(count) + 1,
+#                             "scaling.min_instances": count,
+#                             "rabbitmq.nodes_ratio": "66%", }
+#     LOG.info('Edit role options to: %s' % options)
+#     world.farm.edit_role(role.role_id, options)
 
 
 @step('I check (.+) nodes in cluster on ([\w]+)$')
@@ -84,6 +78,9 @@ def assert_server_ratio(step, hdd_count, ram_count, serv_as):
 
 @step('I add ([\w]+) to (.+)$')
 def add_objects(step, obj, serv_as):
+    """
+    Insert data to RabbitMQ server
+    """
     serv = getattr(world, serv_as)
     node = world.cloud.get_node(serv)
     password = wait_until(world.wait_rabbitmq_cp, timeout=360, error_text="Not see detail to rabbitmq panel")['password']
@@ -133,6 +130,9 @@ def check_cp(step):
 
 @step('([\w]+) exists in (.+)$')
 def assert_check_objects(step, obj, serv_as):
+    """
+    Verify RabbitMQ object exists
+    """
     serv = getattr(world, serv_as)
     node = world.cloud.get_node(serv)
     password = getattr(world, 'rabbitmq_password')

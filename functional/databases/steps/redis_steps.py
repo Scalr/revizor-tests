@@ -5,7 +5,7 @@ import logging
 from revizor2.consts import Dist
 
 
-LOG = logging.getLogger('redis')
+LOG = logging.getLogger(__name__)
 
 
 @step('And ([^ .]+) is slave of ([^ .]+)')

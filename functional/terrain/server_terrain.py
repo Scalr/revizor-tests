@@ -33,7 +33,7 @@ def wait_server_state(step, serv_as, state):
     world.wait_server_bootstrapping(status=ServerStatus.from_code(state), server=server)
 
 
-@step(r'I( force)? terminate server ([\w]+)( with decrease)?$')
+@step(r'I( force)? terminate server ([\w\d]+)( with decrease)?$')
 def terminate_server_decrease(step, force, serv_as, decrease=False):
     """Terminate server (no force) with/without decrease"""
     server = getattr(world, serv_as)
@@ -43,11 +43,15 @@ def terminate_server_decrease(step, force, serv_as, decrease=False):
     server.terminate(force=force, decrease=decrease)
 
 
-@step('I (reboot|suspend|resume) server ([\w\d]+)$')
-def server_state_action(step, action, serv_as):
+@step('I (reboot|suspend|resume)( soft|hard)? server ([\w\d]+)$')
+def server_state_action(step, action, reboot_type, serv_as):
+    #TODO: Change default policy for reboot type by clouds. If cloud not know hard, use soft
     server = getattr(world, serv_as)
     LOG.info('%s server %s' % (action.capitalize(), server.id))
-    getattr(server, action)()
+    meth = getattr(server, action)
+    if action == 'reboot':
+        reboot_type = reboot_type.strip() if reboot_type else 'soft'
+        meth(method=reboot_type.strip())
     LOG.info('Server %s was %sed' % (server.id, action))
 
 
@@ -94,8 +98,7 @@ def wait_all_terminated(step):
 @step('hostname in ([\w\d]+) is valid$')
 def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    hostname = node.run('hostname')[0].strip()
+    hostname = world.get_hostname(server)
     valid_hostname = '%s-%s-%s'.lower() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
     if not hostname == valid_hostname:
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
@@ -105,25 +108,7 @@ def verify_hostname_is_valid(step, serv_as):
 def check_scalarizr_log(step, serv_as):
     """Check scalarizr log for errors"""
     node = world.cloud.get_node(getattr(world, serv_as))
-    out = node.run('cat /var/log/scalarizr_debug.log | grep ERROR')[0]
-    LOG.info('Check scalarizr error')
-    errors = []
-    if 'Caught exception reading instance data' in out:
-        return
-    if 'ERROR' in out:
-        log = out.splitlines()
-        for l in log:
-            try:
-                d = datetime.strptime(l.split()[0], '%Y-%m-%d')
-                log_level = l.strip().split()[3]
-            except ValueError:
-                continue
-            now = datetime.now()
-            if not d.year == now.year or not d.month == now.month or not d.day == now.day or not log_level == 'ERROR':
-                continue
-            errors.append(l)
-    if errors:
-        raise AssertionError('ERROR in log: %s' % errors)
+    world.verify_scalarizr_log(node)
 
 
 @step('scalarizr process is (.+) in (.+)$')

@@ -1,7 +1,6 @@
 import re
-import urllib2
-import logging
 import time
+import logging
 
 import requests
 
@@ -10,15 +9,16 @@ from lettuce import world, step
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus
 
+
 LOG = logging.getLogger(__name__)
 
 
 @step(r"http get (.+) contains '(.+)'")
 def assert_check_http_get_answer(step, serv_as, mes):
-    serv = getattr(world, serv_as)
-    resp = requests.get('http://%s' % serv.public_ip, timeout=15).text
+    server = getattr(world, serv_as)
+    resp = requests.get('http://%s' % server.public_ip, timeout=15).text
     if not mes in resp:
-        raise AssertionError('http://%s response not contains: "%s", response: "%s"' % (serv.public_ip, mes, resp))
+        raise AssertionError('http://%s response not contains: "%s", response: "%s"' % (server.public_ip, mes, resp))
 
 
 @step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)(?: in (\w+) role)?$')

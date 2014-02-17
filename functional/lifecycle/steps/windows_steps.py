@@ -1,4 +1,3 @@
-import os
 import time
 import logging
 from datetime import datetime
@@ -7,7 +6,7 @@ from lettuce import world, step
 try:
     import winrm
 except ImportError:
-    print "Please install WinRM"
+    raise ImportError("Please install WinRM")
 
 
 LOG = logging.getLogger('lifecycle-windows')

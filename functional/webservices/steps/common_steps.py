@@ -1,21 +1,23 @@
 import ssl
+import logging
+from socket import socket
 
-from lettuce import world, step, after
+from lettuce import world, step
 
 import requests
 
-from revizor2.utils import wait_until
-from revizor2.fixtures import resources
-
-import logging
-
-#Uses for supporting TLS SNI
-from socket import socket
 import OpenSSL
 from OpenSSL.SSL import TLSv1_METHOD, Context, Connection
 from OpenSSL.crypto import FILETYPE_PEM
 
+from revizor2.utils import wait_until
+from revizor2.fixtures import resources
 
+
+LOG = logging.getLogger(__name__)
+
+
+#Uses for supporting TLS SNI
 class OpenSSLSNI(object):
     """This class implements the functionality of obtaining certificates secure connection using
         apache TLS Extension Server Name Indication (SNI)
@@ -62,13 +64,10 @@ class OpenSSLSNI(object):
         return OpenSSL.crypto.dump_certificate(FILETYPE_PEM, self._ssl_client.get_peer_certificate())
 
 
-LOG = logging.getLogger('web-common')
-
-
 @step(r'([\w]+) resolves into (.+) new ip address')
 def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
     domain = getattr(world, domain_as)
-    serv = getattr(world, serv_as)
+    server = getattr(world, serv_as)
 
     def check_new_ip(domain_name, ip):
         try:
@@ -81,7 +80,7 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
         else:
             LOG.debug('Actual IP is not server IP: %s != %s' % (actual_ip, ip))
             return False
-    wait_until(check_new_ip, args=(domain.name, serv.public_ip), timeout=timeout,
+    wait_until(check_new_ip, args=(domain.name, server.public_ip), timeout=timeout,
                            error_text="Domain resolve not new IP")
 
 
@@ -153,9 +152,9 @@ def start_basehttpserver(step, port, serv_as):
 @step(r'([\w]+) resolves into (.+) ip address')
 def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
     domain = getattr(world, domain_as)
-    serv = getattr(world, serv_as)
+    server = getattr(world, serv_as)
     domain_ip = wait_until(world.check_resolving, args=(domain.name,), timeout=timeout, error_text="Not see domain resolve")
-    world.assert_not_equal(domain_ip, serv.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, serv.public_ip))
+    world.assert_not_equal(domain_ip, server.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, server.public_ip))
 
 
 @step('domain ([\w\d]+)(?:,([\w\d]+))? contains valid Cert and CACert(?: into ([\w\d]+))?')
@@ -216,6 +215,6 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
     out = node.run('cat %s' % path)
     LOG.debug('Access log (%s) contains: %s' % (path, out[0]))
     ip = world.get_external_local_ip()
-    LOG.info('My public IP is %s' % ip)
     if not ip in out[0]:
         raise AssertionError('Not see my IP in access log')
+    LOG.info('My public IP %s in %s access log' % (ip, server.id))

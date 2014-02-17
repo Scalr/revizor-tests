@@ -9,6 +9,7 @@ import requests
 from lettuce import world
 from libcloud.compute.types import NodeState
 
+from revizor2.api import Server
 from revizor2.fixtures import resources
 from revizor2.consts import ServerStatus, MessageStatus
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
@@ -21,6 +22,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = ['boto', 'p2p_message', 'Caught exception reading 
 
 
 def verify_scalarizr_log(node):
+    if isinstance(node, Server):
+        node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
         log_out = node.run('grep "ERROR\|Traceback" /var/log/scalarizr_debug.log ')

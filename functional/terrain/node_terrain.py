@@ -71,6 +71,7 @@ class VerifyProcessWork(object):
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
+        #FIXME: Verify why in centos scalr-upd-client not found in process
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
                    VerifyProcessWork._verify_open_port(server, port)]
@@ -194,6 +195,9 @@ def assert_check_service(step, service, closed, serv_as):
     LOG.info('Verify port %s is %s on server %s' % (
         port, 'closed' if closed else 'open', server.id
     ))
+    if service == 'scalarizr' and CONF.feature.dist.startswith('win'):
+        assert server.upd_api.status()['service_status'] == 'running', 'Scalarizr is not running in windows'
+        return
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.startswith('win'):
         world.set_iptables_rule(server, port)
