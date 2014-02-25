@@ -44,6 +44,19 @@ Feature: Nginx load balancer role test with apache backends
         And Scalr sends HostDown to W1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Stop/resume app server
+        When I suspend server A1
+        Then I wait server A1 in suspended state
+        And Scalr receives HostDown from A1
+        Then I expect server bootstrapping as A3
+        And W1 upstream list should not contain A1
+        But W1 upstream list should contain A3
+        When I resume server A1
+        Then I wait server A1 in running state
+        And Scalr receives HostUp from A1
+        Then I terminate server A3
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: HTTP proxying
         When I create domain D1 to www role
         And I add virtual host H1 to app role and domain D1

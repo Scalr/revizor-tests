@@ -61,3 +61,15 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         Then scalarizr version is last in M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Verify auto-update cron work
+        When I remember scalarizr version on M1
+        Given I have reverted and working branch
+        And I push an empty commit to scalarizr repo
+        When new package is builded
+        Then wait 10 minutes for scalarizr auto updates on M1
+        Then update process is finished on M1 with status completed
+        And scalarizr version is last in M1
+        And scalarizr is running on M1
+        And scalr-upd-client is running on M1

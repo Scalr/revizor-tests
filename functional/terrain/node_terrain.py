@@ -42,7 +42,12 @@ class VerifyProcessWork(object):
 
     @staticmethod
     def _verify_open_port(server, port):
-        return world.check_open_port(server, port)
+        for i in range(5):
+            opened = world.check_open_port(server, port)
+            if opened:
+                return True
+            time.sleep(15)
+        return False
 
     @staticmethod
     def _verify_app(server, port):

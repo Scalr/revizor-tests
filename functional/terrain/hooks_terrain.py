@@ -35,14 +35,12 @@ def exclude_scenarios_by_version(feature):
     >>>    "26": ["Bundling data", "Modifying data"]
     >>> }
     """
-    #TODO: Implement version oeprator > < => =<
+    #TODO: Implement version operator > < => =<
     version = 'default'
     if CONF.feature.role_id:
         role = IMPL.role.get(CONF.feature.role_id)
         version = re.findall('(\d+)', role['name'].split('-')[0])
         version = int(version[0]) if version else 'default'
-    elif CONF.feature.role_version:
-        version = CONF.feature.role_version if CONF.feature.role_version else 'default'
 
     manifest = os.path.realpath(
         os.path.join(os.path.dirname(feature.scenarios[0].with_file.split('.')[0]),

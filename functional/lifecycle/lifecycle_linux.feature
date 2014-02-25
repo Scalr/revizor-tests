@@ -91,6 +91,7 @@ Feature: Linux server lifecycle
         When I suspend server M1
         Then I wait server M1 in suspended state
         And Scalr receives HostDown from M1
+        Then I expect server bootstrapping as M2
         When I resume server M1
         Then I wait server M1 in running state
         And Scalr receives HostUp from M1
@@ -101,6 +102,7 @@ Feature: Linux server lifecycle
         And I suspend server M1
         Then I wait server M1 in suspended state
         And Scalr receives HostDown from M1
+        And I wait 5 minutes
         When I resume server M1
         Then I wait server M1 in running state
         And Scalr receives RebootFinish from M1

@@ -52,6 +52,8 @@ def server_state_action(step, action, reboot_type, serv_as):
     if action == 'reboot':
         reboot_type = reboot_type.strip() if reboot_type else 'soft'
         meth(method=reboot_type.strip())
+    else:
+        meth()
     LOG.info('Server %s was %sed' % (server.id, action))
 
 

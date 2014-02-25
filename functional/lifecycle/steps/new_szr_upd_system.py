@@ -4,6 +4,7 @@ import os
 import time
 import logging
 import subprocess
+from distutils.version import LooseVersion
 
 import requests
 from lettuce import world, step
@@ -208,3 +209,28 @@ def wait_updating_finish(step, serv_as, status):
             time.sleep(15)
     else:
         raise AssertionError('Until 10 minutes status not: %s, it: %s' % (status, result['state']))
+
+
+@step('wait (\d+) minutes for scalarizr auto updates on ([\w\d]+)')
+def wait_scalarizr_auto_update(step, timeout, serv_as):
+    timeout = int(timeout)*60
+    server = getattr(world, serv_as)
+    start_time = time.time()
+    LOG.info('Wait %s minutes for auto-update scalarizr')
+    while int(time.time()-start_time) < timeout:
+        try:
+            result = server.upd_api.status(cached=True)
+            LOG.debug('Server %s update status: %s' % (server.id, result))
+        except:
+            time.sleep(15)
+            continue
+        version = LooseVersion(result['installed'])
+        previous_version = LooseVersion(getattr(world, '%s_last_scalarizr' % serv_as))
+        if version == previous_version:
+            LOG.debug('Current and old version is equivalent')
+            time.sleep(15)
+            continue
+        if version > previous_version:
+            LOG.info('New version %s was installed on %s' % (result['installed'], server.id))
+            return
+    raise AssertionError('Scalarizr wasn\'t updates by cron')

@@ -23,14 +23,15 @@ def assert_check_http_get_answer(step, serv_as, mes):
 
 @step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)(?: in (\w+) role)?$')
 def bootstrap_many_servers(step, serv_count, serv_names, role_type, timeout=1400):
+    #FIXME: Think about count of servers. Maybe use min server?
     serv_names = [s.strip() for s in serv_names.split(',')]
     role = world.get_role(role_type)
-    for i in range(int(serv_count)):
+    for i in range(int(serv_count)-1):
         LOG.info('Launch %s server' % (i+1))
-        role.launch_instance()
         server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
         LOG.info('Server %s bootstrapping as %s' % (server.id, serv_names[i]))
         setattr(world, serv_names[i], server)
+        role.launch_instance()
 
 
 @step(r'([\w]+) upstream list should contains (.+)$')

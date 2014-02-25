@@ -43,6 +43,22 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    def get_role(behavior, dist):
+        if CONF.feature.role_type == 'shared':
+            role = tables('roles-shared').filter({'dist': CONF.feature.dist,
+                                                  'behavior': behavior,
+                                                  'platform': CONF.feature.driver.scalr_cloud}).first()
+            role = IMPL.role.get(role.keys()[0])
+        else:
+            mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
+            versions = get_role_versions(mask)
+            role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                        dist, CONF.feature.role_type)
+            roles = IMPL.role.list(query=role_name)
+            if not roles:
+                raise NotFound('Role with name: %s not found in Scalr' % role_name)
+            role = roles[0]
+        return role
     if behavior in BEHAVIORS_ALIASES:
         behavior = BEHAVIORS_ALIASES[behavior]
     if CONF.feature.dist.startswith('win'):
@@ -51,27 +67,12 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         dist = CONF.feature.dist
     if CONF.feature.role_id:
         role = IMPL.role.get(CONF.feature.role_id)
+        if not behavior in role['behaviors']:
+            role = get_role(behavior, role['dist'])
         if not role:
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
-        if CONF.feature.role_type == 'shared':
-            role = tables('roles-shared').filter({'dist': CONF.feature.dist,
-                                                 'behavior': behavior,
-                                                 'platform': CONF.feature.driver.scalr_cloud}).first()
-            role = IMPL.role.get(role.keys()[0])
-        else:
-            if CONF.feature.role_version and not CONF.feature.role_version == 'default':
-                role_name = '%s%s-%s-%s' % (behavior, CONF.feature.role_version,
-                                            dist, CONF.feature.role_type)
-            else:
-                mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
-                versions = get_role_versions(mask)
-                role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                            dist, CONF.feature.role_type)
-            roles = IMPL.role.list(query=role_name)
-            if not roles:
-                raise NotFound('Role with name: %s not found in Scalr' % role_name)
-            role = roles[0]
+        role = get_role(behavior, dist)
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
