@@ -99,20 +99,6 @@ def check_file_count(step, directory, file_count, serv_as):
         raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
 
-@step("script output contains '(.+)' in (.+)$")
-def assert_check_message_in_log(step, message, serv_as):
-    server = getattr(world, serv_as)
-    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id)
-    server.scriptlogs.reload()
-    for log in server.scriptlogs:
-        if log in last_scripts:
-            continue
-        LOG.debug('Server %s log content: %s' % (server.id, log.message))
-        if message.strip()[1:-1] in log.message:
-            return True
-    raise AssertionError("Not see message %s in scripts logs" % message)
-
-
 @step("I deploy app with name '(.+)'")
 def deploy_app(step, app_name):
     LOG.info('Deploy app %s' % app_name)

@@ -45,6 +45,14 @@ Feature: Linux server lifecycle
         Then I see script result in M1
         And script output contains 'Non_ascii_script' in M1
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @scripting
+    Scenario: Verify hidden global variable
+        Given I have running server M1
+        And file '/etc/profile.d/scalr_globals.sh' not contain 'revizor_hidden_var' in M1
+        When I execute script 'Verify hidden variable' synchronous on M1
+        Then I see script result in M1
+        And script output contains 'REVIZOR_HIDDEN_VARIABLE' in M1
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restart
     Scenario: Restart scalarizr
         Given I have running server M1

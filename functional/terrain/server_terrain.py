@@ -1,6 +1,7 @@
 __author__ = 'gigimon'
 
 import time
+import copy
 import logging
 from datetime import datetime
 
@@ -85,7 +86,7 @@ def execute_script(step, script_name, exec_type, serv_as):
     script = Script.get_id(script_name)
     LOG.info('Execute script id: %s, name: %s' % (script['id'], script_name))
     server.scriptlogs.reload()
-    setattr(world, '_server_%s_last_scripts' % server.id, server.scriptlogs)
+    setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
     LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script['id'], synchronous, script['version'])
     LOG.info('Script executed success')
@@ -122,3 +123,13 @@ def check_processes(step, count, serv_as):
     LOG.info('Scalarizr count of processes %s' % len(list_proc.strip().splitlines()))
     world.assert_not_equal(len(list_proc.strip().splitlines()), int(count),
                     'Scalarizr processes is: %s but processes \n%s' % (len(list_proc.strip().splitlines()), list_proc))
+
+
+@step("file '(.+)' not contain '(.+)' in ([\w\d]+)")
+def verify_string_in_file(step, file_path, value, serv_as):
+    server = getattr(world, serv_as)
+    LOG.info('Verify file "%s" in %s not contain "%s"' % (file_path, server.id, value))
+    node = world.cloud.get_node(server)
+    out = node.run('cat %s | grep %s' % (file_path, value))
+    if out[0].strip():
+        raise AssertionError('File %s contain: %s. Result of grep: %s' % (file_path, value, out[0]))

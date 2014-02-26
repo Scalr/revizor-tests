@@ -39,7 +39,21 @@ def assert_check_script_work(step, serv_as):
     time.sleep(30)
     server = getattr(world, serv_as)
     server.scriptlogs.reload()
-    last_count = int(getattr(world, '_server_%s_last_scripts' % server.id))
+    last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
     if not len(server.scriptlogs) == last_count+1:
         LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (last_count, len(server.scriptlogs), last_count+1))
         raise AssertionError('Not see script result in script logs')
+
+
+@step("script output contains '(.+)' in (.+)$")
+def assert_check_message_in_log(step, message, serv_as):
+    server = getattr(world, serv_as)
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id)
+    server.scriptlogs.reload()
+    for log in server.scriptlogs:
+        if log in last_scripts:
+            continue
+        LOG.debug('Server %s log content: %s' % (server.id, log.message))
+        if message.strip()[1:-1] in log.message:
+            return True
+    raise AssertionError("Not see message %s in scripts logs" % message)

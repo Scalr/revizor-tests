@@ -11,7 +11,7 @@ from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.api import Script, Farm
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
-from revizor2.defaults import DEFAULT_FARM_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_SCRIPTING
+from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_SCRIPTING
 
 
 LOG = logging.getLogger(__name__)
@@ -38,7 +38,7 @@ def having_a_stopped_farm(step):
 def add_role_to_farm(step, behavior=None, options=None, alias=None):
     additional_storages = None
     scripting = None
-    farm_options = {
+    role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
     if not behavior:
@@ -51,7 +51,7 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
             if 'redis processes' in opt:
                 redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
                 LOG.info('Setup %s redis processes' % redis_count)
-                farm_options.update({'db.msr.redis.num_processes': int(redis_count)})
+                role_options.update({'db.msr.redis.num_processes': int(redis_count)})
             elif opt == 'scripts':
                 LOG.info('Setup scripting options')
                 script_id = Script.get_id('Linux ping-pong')['id']
@@ -61,22 +61,22 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
                 additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
             else:
                 LOG.info('Insert configs for %s' % opt)
-                farm_options.update(DEFAULT_FARM_OPTIONS.get(opt, {}))
+                role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
     if behavior == 'rabbitmq':
-        del(farm_options['base.hostname_format'])
+        del(role_options['base.hostname_format'])
     if behavior == 'tomcat6' and CONF.feature.dist.startswith('ubuntu'):
         behavior = 'tomcat7'
     if behavior == 'redis':
         LOG.info('Insert redis settings')
-        farm_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
+        role_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                              'db.msr.redis.use_password': True})
     if behavior in DATABASE_BEHAVIORS:
         storages = DEFAULT_STORAGES.get(CONF.feature.driver.cloud_family, None)
         if storages:
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
-            farm_options.update(storages.get(CONF.feature.storage, {}))
-    LOG.debug('All farm settings: %s' % farm_options)
-    role = world.add_role_to_farm(behavior, options=farm_options, scripting=scripting,
+            role_options.update(storages.get(CONF.feature.storage, {}))
+    LOG.debug('All farm settings: %s' % role_options)
+    role = world.add_role_to_farm(behavior, options=role_options, scripting=scripting,
                                   storages=additional_storages, alias=alias)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
