@@ -242,13 +242,24 @@ def check_variable(step, var, serv_as):
     script_result = result[0].split('=')[1].strip('"')
     #Get an variable from the environment
     LOG.info('Get variable %s from the environment on %s' % (var, server.id))
-    result = node.run("env | grep '%s'" % var)
-    if len(result[0].split('=')) != 2:
+    shell = node.get_interactive()
+    if not shell.recv_ready():
+        shell.settimeout(30)
+    shell.recv(4096)
+    ###############
+    shell.send('uptime\n')
+    shell.send('env | grep %s\n' % var)
+    if not shell.recv_ready():
+        shell.settimeout(30)
+    environment_result = shell.recv(4096)
+    LOG.debug('Environment result received from %s is : %s' % (server.id, environment_result))
+    if not environment_result:
         raise AssertionError("Can't get variable %s from the environment on %s." % (var, server.id))
-    environment_result = result[0].split('=')[1]
-    if script_result != environment_result:
+
+    if script_result != environment_result.split('\r\n')[1]:
         raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." % (script_result, environment_result, server.id))
     LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
+    shell.close()
 
 
 @step('I create domain ([\w\d]+) to ([\w\d]+) role')
