@@ -7,6 +7,7 @@ Created on 01.22.2014
 
 import logging
 import yaml
+import time
 from xml.etree import ElementTree as ET
 from collections import defaultdict
 from lettuce import world, step
@@ -239,24 +240,25 @@ def check_variable(step, var, serv_as):
     result = node.run("grep '%s' /etc/profile.d/scalr_globals.sh" % var)
     if len(result[0].split('=')) != 2:
         raise AssertionError("Can't get variable %s from scalr_globals.sh on %s." % (var, server.id))
-    script_result = result[0].split('=')[1].strip('"')
+    script_result = result[0].split('=')[1].strip('"\n')
     #Get an variable from the environment
     LOG.info('Get variable %s from the environment on %s' % (var, server.id))
     shell = node.get_interactive()
     if not shell.recv_ready():
-        shell.settimeout(30)
-    shell.recv(4096)
+        time.sleep(10)
+    LOG.debug('Received from shell: %s' % shell.recv(4096))
     ###############
-    shell.send('uptime\n')
-    shell.send('env | grep %s\n' % var)
+    shell.send("echo $%s\n" % var)
     if not shell.recv_ready():
-        shell.settimeout(30)
-    environment_result = shell.recv(4096)
+        time.sleep(10)
+    environment_result = shell.recv(1024)
     LOG.debug('Environment result received from %s is : %s' % (server.id, environment_result))
+    ###############
     if not environment_result:
         raise AssertionError("Can't get variable %s from the environment on %s." % (var, server.id))
-
-    if script_result != environment_result.split('\r\n')[1]:
+    environment_result = environment_result.split('\r\n')[1]
+    ###############
+    if script_result != environment_result:
         raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." % (script_result, environment_result, server.id))
     LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
     shell.close()
