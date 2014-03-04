@@ -1,5 +1,5 @@
 {
-    "BEHAVIORS": ["percona2"],
+    "BEHAVIOR": "percona",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2", "-slavedatabundle"], "default": true},
         "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle"],

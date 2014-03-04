@@ -1,5 +1,5 @@
 {
-    "BEHAVIORS": ["rabbitmq"],
+    "BEHAVIOR": "rabbitmq",
     "RV_PLATFORM": {
         "ec2": {"tags": [], "default": true},
         "gce": [],

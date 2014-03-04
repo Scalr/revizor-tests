@@ -1,5 +1,5 @@
 {
-    "BEHAVIORS": ["redis"],
+    "BEHAVIOR": "redis",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2"], "default": true},
         "gce": ["gce", "-volumes", "-reboot", "-grow"],

@@ -21,6 +21,7 @@ LOG = logging.getLogger(__name__)
 SCALARIZR_LOG_IGNORE_ERRORS = ['boto', 'p2p_message', 'Caught exception reading instance data']
 
 
+@world.absorb
 def verify_scalarizr_log(node):
     if isinstance(node, Server):
         node = world.cloud.get_node(node)

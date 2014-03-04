@@ -1,5 +1,5 @@
 {
-    "BEHAVIORS": ["mysql"],
+    "BEHAVIOR": "mysql",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2"], "default": true},
         "idcf": ["cloudstack", "-backup", "-volumes"]
