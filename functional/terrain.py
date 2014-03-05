@@ -58,6 +58,14 @@ FARM_OPTIONS = {
     },
     'branch_latest': {
         "user-data.scm_branch": "release/latest"
+    },
+    'ebs': {
+        "aws.use_ebs": 1,
+        "aws.ebs_size": "5",
+        "aws.ebs_snapid": "",
+        "aws.ebs_type": "standard",
+        "aws.ebs_mount": 1,
+        "aws.ebs_mountpoint": "/mnt/storage"
     }
 }
 

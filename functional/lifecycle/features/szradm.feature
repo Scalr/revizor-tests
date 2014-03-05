@@ -3,7 +3,7 @@ Feature: SzrAdm check backward compatibility
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping two servers with the app role
         Given I have a an empty running farm
-        When I add app role to this farm with branch_latest
+        When I add app role to this farm with branch_latest, ebs
         Then I expect server bootstrapping as A1
         And scalarizr version is last in A1
         When I change branch to feature/refactoring-0.25 for app role
@@ -30,12 +30,14 @@ Feature: SzrAdm check backward compatibility
         When I run "szradm list-roles -b base" on A1
         And I run "szradm list-roles -b base" on A2
         Then I compare the obtained results of A1,A2
+        And the key "external-ip" has 0 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-roles --behaviour base
         When I run "szradm list-roles --behaviour base" on A1
         And I run "szradm list-roles --behaviour base" on A2
         Then I compare the obtained results of A1,A2
+        And the key "external-ip" has 0 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-roles -b app
@@ -82,6 +84,10 @@ Feature: SzrAdm check backward compatibility
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm get-ebs-mountpoints
+        When I run "szradm list-ebs-mountpoints" on A1
+        And I run "szradm list-ebs-mountpoints" on A2
+        Then I compare the obtained results of A1,A2
+        And the key "volume-id" has 1 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-messages
