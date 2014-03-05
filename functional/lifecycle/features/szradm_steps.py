@@ -135,11 +135,13 @@ class SzrAdmResultsParser(object):
             return SzrAdmResultsParser.xml_parser(data)
         elif data.startswith('body:'):
             return SzrAdmResultsParser.yaml_parser(data)
+        elif data.startswith('Sending SzrAdmTest'):
+            return data
         else:
             raise AssertionError('An error occurred while trying get parser. Unknown data format:\n%s' % data)
 
     @staticmethod
-    def get_value(data, key):
+    def get_values_by_key(data, key):
         """Takes a dict with nested lists and dicts,
            and searches all dicts for a key of the field
            provided.
@@ -151,17 +153,17 @@ class SzrAdmResultsParser(object):
             :type   key: str
 
             >>> Usage:
-                list(SzrAdmResultsParser.get_value(dict, 'key'))
+                list(SzrAdmResultsParser.get_values_by_key(dict, 'key'))
         """
         if isinstance(data, list):
             for i in data:
-                for x in SzrAdmResultsParser.get_value(i, key):
+                for x in SzrAdmResultsParser.get_values_by_key(i, key):
                     yield x
         elif isinstance(data, dict):
             if key in data:
                 yield data[key]
             for j in data.values():
-                for x in SzrAdmResultsParser.get_value(j, key):
+                for x in SzrAdmResultsParser.get_values_by_key(j, key):
                     yield x
 
 #########################################
@@ -203,7 +205,7 @@ def get_key(step, pattern, denial, record_count, serv_as):
     denial = True if denial else False
     server = getattr(world, serv_as)
     results = getattr(world, '%s_result' % serv_as)
-    key_value = list(SzrAdmResultsParser.get_value(results, pattern))
+    key_value = list(SzrAdmResultsParser.get_values_by_key(results, pattern))
     key_len = len(key_value[0] if isinstance(key_value[0], list) else key_value)
     LOG.debug('Verify existence the key %s: %s in:\n%s' % (pattern, key_value, results))
     if not denial:
@@ -318,15 +320,15 @@ def set_environment_variable(step, pattern, name, command, serv_as):
 #########################################
 
 
-# from revizor2.api import Farm
-# from revizor2.cloud import Cloud
-# farm = Farm.get(16707)
+#from revizor2.api import Farm
+#from revizor2.cloud import Cloud
+#farm = Farm.get(16707)
 #
-# servers = farm.servers
-# server = farm.servers[0]
-# c = Cloud()
+#servers = farm.servers
+#server = farm.servers[1]
+#c = Cloud()
 #
-# node = c.get_node(server)
+#node = c.get_node(server)
 # # # # #x
 #lr = node.run('szradm --queryenv get-latest-version')
 #t
@@ -347,7 +349,8 @@ def set_environment_variable(step, pattern, name, command, serv_as):
 #t
 #lr = node.run('szradm list-messages')
 #y
-#lr = node.run('szradm message-details bdaf21d1-c44f-47ff-a0f8-0ca3ae833e55')
+#lr = node.run('szradm message-details b10cd080-da3b-438e-af37-ac264b303415')
+#lr = node.run('szradm --fire-event SzrAdmTest easy=like one=two three=1')
 ########################################
 
 #print lr[0]
@@ -356,9 +359,9 @@ def set_environment_variable(step, pattern, name, command, serv_as):
 #print SzrAdmResultsParser.tables_parser(lr[0])
 #YAMLparser
 #print SzrAdmResultsParser.yaml_parser(lr[0])
-#print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.yaml_parser(lr[0]), 'name'))
+#print list(SzrAdmResultsParser.get_values_by_key(SzrAdmResultsParser.yaml_parser(lr[0]), 'name'))
 #print SzrAdmResultsParser.parser(lr[0])
 #XML parser
-#print list(SzrAdmResultsParser.get_value(SzrAdmResultsParser.xml_parser(lr[0]), 'behaviour'))
+#print list(SzrAdmResultsParser.get_values_by_key(SzrAdmResultsParser.xml_parser(lr[0]), 'behaviour'))
 #print SzrAdmResultsParser.xml_parser(lr[0])
 

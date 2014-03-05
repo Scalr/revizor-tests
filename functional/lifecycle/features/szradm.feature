@@ -98,10 +98,10 @@ Feature: SzrAdm check backward compatibility
     Scenario: Verify szradm --fire-event
         When I run "szradm --fire-event SzrAdmTest easy=like one=two three=1" on A1
         And I run "szradm --fire-event SzrAdmTest easy=like one=two three=1" on A2
-        And the key "name" has not 0 record on A1
-        And the key "name" has not 0 record on A2
-        Then I set "FireEvent" id as "fv_id" and run "szradm message-details" on A1
-        Then I set "FireEvent" id as "fv_id" and run "szradm message-details" on A2
+        Then I run "szradm list-messages" on A1
+        And I run "szradm list-messages" on A2
+        Then I set "FireEvent" id as "fe_id" and run "szradm message-details" on A1
+        Then I set "FireEvent" id as "fe_id" and run "szradm message-details" on A2
         And the key "easy" has 1 record on A1
         And the key "easy" has 1 record on A2
         And the key "three" has 1 record on A1
