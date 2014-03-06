@@ -176,7 +176,8 @@ def run_command(step, command, serv_as):
     LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
     result = node.run(command)
     if result[2]:
-        raise AssertionError("Сommand: %s, was not executed properly. An error has occurred:\n%s" % (command, result[1]))
+        raise AssertionError("Сommand: %s, was not executed properly. An error has occurred:\n%s" %
+                             (command, result[1]))
     LOG.debug('Parsing a command result on a remote host: %s' % server.id)
     result = SzrAdmResultsParser.parser(result[0])
     LOG.debug('Command result was successfully parsed on a remote host:%s\n%s' % (server.id, result))
@@ -200,11 +201,11 @@ def compare_results(step, fields_compare, serv_as):
     server_ids = tuple(server_ids)
     #Compare results
     if results[0] != results[1]:
-        raise AssertionError("An error has occurred:\n"
-                             "The results of commands on the servers %s and %s do not match.\n"
-                             "Obtained results: %s" % (server_ids, results))
-    LOG.info('Results of commands on the server %s and %s successfully compared.\n'
-             'Obtained results: %s' % (server_ids, results))
+        raise AssertionError('\n'.join(("An error has occurred:\n"
+                                       "The results of commands on the servers %s and %s do not match." % server_ids,
+                                       "Obtained results: %s" % results)))
+    LOG.info('\n'.join(('Results of commands on the server %s and %s successfully compared.' % server_ids,
+                        'Obtained results: %s' % results)))
 
 
 @step(r'the key "(.+)" has(?: ([\w]+))? ([\d]+) record on ([\w\d]+)')
@@ -217,10 +218,12 @@ def get_key(step, pattern, denial, record_count, serv_as):
     LOG.debug('Verify existence the key %s: %s in:\n%s' % (pattern, key_value, results))
     if not denial:
         if key_len != int(record_count):
-            raise AssertionError("The key %s does not exists or number of entries do not match on %s" % (pattern, server.id))
+            raise AssertionError("The key %s does not exists or number of entries do not match on %s" %
+                                 (pattern, server.id))
     else:
         if key_len == int(record_count):
-            raise AssertionError("The key %s does not exists or number of entries is match on %s" % (pattern, server.id))
+            raise AssertionError("The key %s does not exists or number of entries is match on %s" %
+                                 (pattern, server.id))
     LOG.info("The key %s exists and has %s records on %s" % (pattern, record_count, server.id))
 
 
@@ -268,7 +271,8 @@ def check_variable(step, var, serv_as):
     environment_result = environment_result.split('\r\n')[1]
     ###############
     if script_result != environment_result:
-        raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." % (script_result, environment_result, server.id))
+        raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." %
+                             (script_result, environment_result, server.id))
     LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
     shell.close()
 
@@ -315,60 +319,18 @@ def set_environment_variable(step, pattern, name, command, serv_as):
     try:
         var = result['id'][result['name'].index(pattern)]
         LOG.info('Set environment variable %s=%s and get details on a remote host: %s' % (name, var, server.id))
-        result = node.run('export %(var_name)s=%(id)s && %(command)s $%(var_name)s' % {'id': var, 'command': command, 'var_name': name})
+        result = node.run('export %(var_name)s=%(id)s && %(command)s $%(var_name)s' % {'id': var,
+                                                                                       'command': command,
+                                                                                       'var_name': name})
         if result[2]:
-            raise AssertionError("Can't set environment variable $%s = %s or get details on a remote host: %s" % (name, var, server.id))
+            raise AssertionError("Can't set environment variable $%s = %s or get details on a remote host: %s" %
+                                 (name, var, server.id))
         result = SzrAdmResultsParser.parser(result[0])
         setattr(world, '%s_result' % serv_as, result)
-        LOG.debug('Environment was successfully set up and details was saved into %s on a remote host:%s\n%s' % ('%s_result' % serv_as, server.id, result))
+        LOG.debug('Environment was successfully set up and details was saved into %s on a remote host:%s\n%s' %
+                  ('%s_result' % serv_as, server.id, result))
     except (ValueError, KeyError) as e:
-        raise AssertionError("Can't get %s id from command result on a remote host: %s\nError on:%s" % (pattern, server.id, e))
+        raise AssertionError("Can't get %s id from command result on a remote host: %s\nError on:%s" %
+                             (pattern, server.id, e))
 
 #########################################
-
-
-#from revizor2.api import Farm
-#from revizor2.cloud import Cloud
-#farm = Farm.get(16707)
-#
-#servers = farm.servers
-#server = farm.servers[1]
-#c = Cloud()
-#
-#node = c.get_node(server)
-# # # # #x
-#lr = node.run('szradm --queryenv get-latest-version')
-#t
-#lr = node.run('szradm list-roles')
-#t
-#lr = node.run('szradm list-roles -b app')
-#lr = node.run('szradm list-roles -b base')
-#x
-#lr = node.run('szradm --queryenv list-roles farm-role-id=$SCALR_FARM_ROLE_ID')
-#x
-#lr = node.run('szradm --queryenv list-global-variables')
-#t
-#lr = node.run('szradm get-https-certificate')
-#t
-#lr = node.run('szradm list-virtualhosts')
-#t
-#lr = node.run('szradm list-ebs-mountpoints')
-#t
-#lr = node.run('szradm list-messages')
-#y
-#lr = node.run('szradm message-details b10cd080-da3b-438e-af37-ac264b303415')
-#lr = node.run('szradm --fire-event SzrAdmTest easy=like one=two three=1')
-########################################
-
-#print lr[0]
-
-#Table parser
-#print SzrAdmResultsParser.tables_parser(lr[0])
-#YAMLparser
-#print SzrAdmResultsParser.yaml_parser(lr[0])
-#print list(SzrAdmResultsParser.get_values_by_key(SzrAdmResultsParser.yaml_parser(lr[0]), 'name'))
-#print SzrAdmResultsParser.parser(lr[0])
-#XML parser
-#print list(SzrAdmResultsParser.get_values_by_key(SzrAdmResultsParser.xml_parser(lr[0]), 'behaviour'))
-#print SzrAdmResultsParser.xml_parser(lr[0])
-
