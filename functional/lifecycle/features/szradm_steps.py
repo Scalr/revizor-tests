@@ -184,21 +184,28 @@ def run_command(step, command, serv_as):
     LOG.info('Command execution result is stored in world.%s_result' % serv_as)
 
 
-@step(r'I compare the obtained results of ([\w\d,]+)')
-def compare_results(step, serv_as):
+@step(r'I compare(?: ([\w]+))? obtained results of ([\w\d,]+)')
+def compare_results(step, fields_compare, serv_as):
+    fields_compare = False if fields_compare else True
     serv_as = serv_as.split(',')
     results = []
     server_ids = []
     for i in xrange(len(serv_as)):
         server = getattr(world, serv_as[i])
         server_ids.append(server.id)
-        results.append(getattr(world, '%s_result' % serv_as[i]))
+        if not fields_compare:
+            results.append(getattr(world, '%s_result' % serv_as[i]))
+        else:
+            results.append([key for key in getattr(world, '%s_result' % serv_as[i]).iterkeys()])
     server_ids = tuple(server_ids)
     #Compare results
     if results[0] != results[1]:
         raise AssertionError("An error has occurred:\n"
-                             "The results of commands on the servers %s and %s do not match." % server_ids)
-    LOG.info('Results of commands on the server %s and %s successfully compared' % server_ids)
+                             "The results of commands on the servers %s and %s do not match.\n"
+                             "Obtained results: %s" % (server_ids, results))
+    LOG.info('Results of commands on the server %s and %s successfully compared.\n'
+             'Obtained results: %s' % (server_ids, results))
+
 
 @step(r'the key "(.+)" has(?: ([\w]+))? ([\d]+) record on ([\w\d]+)')
 def get_key(step, pattern, denial, record_count, serv_as):
