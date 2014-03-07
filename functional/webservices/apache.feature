@@ -107,7 +107,7 @@ Feature: Apache application server role
         Then I restart service app and changed pid on A1 by api
         And apache is running on A1
         Then I reload service app on A1 by api
-        And http get A1 contains default welcome message
-        And https get A1 contains default welcome message
+        And https get domain D2 matches H2 index page
+
 
 
