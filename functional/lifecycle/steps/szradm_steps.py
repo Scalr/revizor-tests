@@ -12,7 +12,7 @@ from xml.etree import ElementTree as ET
 from collections import defaultdict
 from lettuce import world, step
 
-LOG = logging.getLogger('SzrAdm')
+LOG = logging.getLogger(__name__)
 ########################################
 
 
@@ -41,6 +41,7 @@ class SzrAdmResultsParser(object):
                                'pkey': [],
                                'cert': []}
         """
+        #TODO: Change help for more information and check if was 1 options setted with many None
         if not data.startswith('+'):
             raise AssertionError('An error occurred while parsing table. Invalid data format:\n%s' % data)
 
@@ -166,8 +167,6 @@ class SzrAdmResultsParser(object):
                 for x in SzrAdmResultsParser.get_values_by_key(j, key):
                     yield x
 
-#########################################
-
 
 @step(r'I run "(.*)" on ([\w]+)')
 def run_command(step, command, serv_as):
@@ -247,7 +246,7 @@ def search_servers_ip(step, pattern, serv_as):
 def check_variable(step, var, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    #Get an variable from script /etc/profile.d/scalr_globals.
+
     LOG.info('Get variable %s from scalr_globals.sh on %s' % (var, server.id))
     result = node.run("grep '%s' /etc/profile.d/scalr_globals.sh" % var)
     if len(result[0].split('=')) != 2:
@@ -259,21 +258,21 @@ def check_variable(step, var, serv_as):
     if not shell.recv_ready():
         time.sleep(10)
     LOG.debug('Received from shell: %s' % shell.recv(4096))
-    ###############
+
     shell.send("echo $%s\n" % var)
     if not shell.recv_ready():
         time.sleep(10)
     environment_result = shell.recv(1024)
     LOG.debug('Environment result received from %s is : %s' % (server.id, environment_result))
-    ###############
+
     if not environment_result:
         raise AssertionError("Can't get variable %s from the environment on %s." % (var, server.id))
     environment_result = environment_result.split('\r\n')[1]
-    ###############
+
     if script_result != environment_result:
         raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." %
                              (script_result, environment_result, server.id))
-    LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
+    LOG.info('Variable %s is checked successfully on %ws' % (var, server.id))
     shell.close()
 
 
@@ -332,5 +331,3 @@ def set_environment_variable(step, pattern, name, command, serv_as):
     except (ValueError, KeyError) as e:
         raise AssertionError("Can't get %s id from command result on a remote host: %s\nError on:%s" %
                              (pattern, server.id, e))
-
-#########################################

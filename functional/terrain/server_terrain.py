@@ -34,7 +34,7 @@ def wait_server_state(step, serv_as, state):
     world.wait_server_bootstrapping(status=ServerStatus.from_code(state), server=server)
 
 
-@step(r'I( force)? terminate server ([\w\d]+)( with decrease)?$')
+@step(r'I( force)? terminate(?: server)? ([\w\d]+)( with decrease)?$')
 def terminate_server_decrease(step, force, serv_as, decrease=False):
     """Terminate server (no force) with/without decrease"""
     server = getattr(world, serv_as)

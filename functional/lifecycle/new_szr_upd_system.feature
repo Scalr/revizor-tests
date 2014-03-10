@@ -68,7 +68,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         Given I have reverted and working branch
         And I push an empty commit to scalarizr repo
         When new package is builded
-        Then wait 15 minutes for scalarizr auto updates on M1
+        Then wait 25 minutes for scalarizr auto updates on M1
         Then update process is finished on M1 with status completed
         And scalarizr version is last in M1
         And scalarizr is running on M1

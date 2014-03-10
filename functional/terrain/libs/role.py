@@ -1,6 +1,11 @@
 __author__ = 'gigimon'
 
+import logging
+
 from lettuce import world
+
+
+LOG = logging.getLogger(__name__)
 
 
 @world.absorb
@@ -11,11 +16,15 @@ def get_role(alias=None):
     :return: class:FarmRole
     """
     def find_role(alias):
+        LOG.debug('Find role with alias: %s' % alias)
         if not alias:
-            return getattr(world, '%s_role' % world.farm.roles[0].alias)
+            role = getattr(world, '%s_role' % world.farm.roles[0].alias)
+            return role
         for role in world.farm.roles:
             if alias == role.alias or alias in role.role.behaviors:
-                return getattr(world, '%s_role' % role.alias)
+                if hasattr(world, '%s_role' % role.alias):
+                    return getattr(world, '%s_role' % role.alias)
+                return role
     role = find_role(alias)
     if not role:
         world.farm.roles.reload()

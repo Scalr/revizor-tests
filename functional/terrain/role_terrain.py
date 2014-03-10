@@ -15,13 +15,15 @@ from revizor2.consts import Platform
 LOG = logging.getLogger(__name__)
 
 
-@step('I change branch( to system)? for(?: (\w+))? role')
+@step('I change branch(?: to (.+))? for(?: (\w+))? role')
 def change_branch_in_role_for_system(step, branch, role_type):
     """Change branch for selected role"""
     if 'system' in branch:
         branch = CONF.feature.branch
-    else:
+    elif not branch.strip():
         branch = CONF.feature.to_branch
+    else:
+        branch = branch.strip()
     LOG.info('Change branch to system for %s role' % role_type)
     role = world.get_role(role_type)
     role.edit(options={"user-data.scm_branch": branch})
@@ -68,6 +70,7 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 
 @step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
 def add_new_role_to_farm(step, alias=None):
+    LOG.info('Add rebundled role to farm with alias: %s' % alias)
     options = getattr(world, 'role_options', {})
     scripting = getattr(world, 'role_scripting', [])
     bundled_role = Role.get(world.bundled_role_id)
@@ -75,9 +78,10 @@ def add_new_role_to_farm(step, alias=None):
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
     world.farm.add_role(world.bundled_role_id, options=options, scripting=scripting, alias=alias)
+    world.farm.roles.reload()
     alias = alias or bundled_role.name
     role = world.get_role(alias)
-    LOG.debug('Save Role object after insert rebundled role to farm as: %s' % alias)
+    LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
     setattr(world, '%s_role' % alias, role)
 
 

@@ -33,6 +33,7 @@ class VerifyProcessWork(object):
     def _verify_process_running(server, process_name):
         LOG.debug('Check process %s in running state on server %s' % (process_name, server.id))
         node = world.cloud.get_node(server)
+        time.sleep(5)
         out = node.run("ps -C %s -o pid=" % process_name)
         if not out[0].strip():
             LOG.warning("Process %s don't work in server %s" % (process_name, server.id))
@@ -76,7 +77,6 @@ class VerifyProcessWork(object):
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
-        #FIXME: Verify why in centos scalr-upd-client not found in process
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
                    VerifyProcessWork._verify_open_port(server, port)]

@@ -98,6 +98,7 @@ Feature: Linux server lifecycle
     Scenario: Stop/resume on init policy
         When I suspend server M1
         Then I wait server M1 in suspended state
+        And Scalr sends BeforeHostTerminate to M1
         And Scalr receives HostDown from M1
         Then I expect server bootstrapping as M2
         When I resume server M1
