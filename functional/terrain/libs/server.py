@@ -298,14 +298,14 @@ def check_index_page(node, proto, revert, domain_name, name):
         LOG.debug('Upload index page %s to server %s' % (name, n.id))
         n.run('mkdir /var/www/%s' % name)
         n.put_file(path='/var/www/%s/index.php' % name, content=index)
-    for i in range(3):
+    for i in range(5):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
         try:
             resp = requests.get(url, timeout=30, verify=False)
             break
         except Exception, e:
             LOG.warning("Error in openning page '%s': %s" % (url, e))
-            time.sleep(5)
+            time.sleep(10)
     else:
         raise AssertionError("Can't get index page: %s" % url)
     if ('VHost %s added' % name in resp.text) or (revert and resp.status_code == 200):
