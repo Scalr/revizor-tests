@@ -151,6 +151,9 @@ def broke_scalarizr_branch(step, comment):
 @step('new package is builded')
 def verify_package_is_builded(step):
     LOG.info('Wait last scalarizr source builder in buildbot finish work')
+    last_revision = getattr(world, 'last_scalarizr_revision', None)
+    if not last_revision:
+        return
     while True:
         resp = requests.get('%s/json/builders/scalarizr%%20source' % BUILDBOT_URL).json()
         if not resp['state'] == 'idle':
@@ -171,13 +174,17 @@ def verify_package_is_builded(step):
                 return
 
 
-@step('I update scalarizr via api on ([\w\d]+)')
-def update_scalarizr_via_api(step, serv_as):
+@step('I update scalarizr via( old)? api on ([\w\d]+)')
+def update_scalarizr_via_api(step, old, serv_as):
     server = getattr(world, serv_as)
+    old = True if old else False
     LOG.info('Update scalarizr by Scalarizr update API on server %s' % server.id)
     for i in range(3):
         try:
-            server.upd_api.update(async=True)
+            if old:
+                server.upd_api_old.update()
+            else:
+                server.upd_api.update(async=True)
             break
         except:
             LOG.debug('Try update scalarizr via api attempt %s' % i)

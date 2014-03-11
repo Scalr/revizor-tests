@@ -239,10 +239,9 @@ def assert_scalarizr_version(step, repo, serv_as):
     elif repo == 'role':
         repo = CONF.feature.to_branch
     server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    if consts.Dist.is_centos_family(node.os[0]):
+    if consts.Dist.is_centos_family(server.role.dist):
         repo_data = parse_rpm_repository(repo)
-    elif consts.Dist.is_debian_family(node.os[0]):
+    elif consts.Dist.is_debian_family(server.role.dist):
         repo_data = parse_apt_repository(repo)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
@@ -386,3 +385,23 @@ def check_ebs_status(step, serv_as, status):
     time.sleep(30)
     server = getattr(world, serv_as)
     wait_until(world.check_server_storage, args=(serv_as, status), timeout=300, error_text='Volume from server %s is not %s' % (server.id, status))
+
+
+@step('change branch in server ([\w\d]+) in sources to ([\w\d]+)')
+def change_branch_in_sources(step, serv_as, branch):
+    if 'system' in branch:
+        branch = CONF.feature.branch
+    elif not branch.strip():
+        branch = CONF.feature.to_branch
+    else:
+        branch = branch.replace('/', '-').replace('.', '').strip()
+    server = getattr(world, serv_as)
+    if Dist.is_debian_family(server.role.dist):
+        node = world.cloud.get_node(server)
+        for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
+            LOG.info("Change branch in %s to %s" % (repo_file, branch))
+            node.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
+    elif Dist.is_centos_family(server.role.dist):
+        pass
+    elif Dist.is_windows_family(server.role.dist):
+        pass

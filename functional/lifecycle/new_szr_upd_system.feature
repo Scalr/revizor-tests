@@ -2,16 +2,23 @@ Using step definitions from: steps/common_steps, steps/new_szr_upd_system
 Feature: New scalarizr update policy test for broke the system with postinstall/fatal error
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Bootstraping
-        Given I have reverted and working branch
-        And I have a an empty running farm
-        When I add role to this farm
+    Scenario: Bootstrap old scalarizr
+        Given I have a an empty running farm
+        When I add role to this farm with branch_custom
         Then I expect server bootstrapping as M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Update to new
         Given I have reverted and working branch
-        And I push an empty commit to scalarizr repo
         When new package is builded
-        Then I update scalarizr via api on M1
+        Then I change branch to system for role
+        And change branch in server M1 in sources to system
+        And I update scalarizr via old api on M1
         When update process is finished on M1 with status completed
+        Then I push an empty commit to scalarizr repo
+        And new package is builded
+        Then I update scalarizr via api on M1
+        And update process is finished on M1 with status completed
         Then I remember scalarizr version on M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
