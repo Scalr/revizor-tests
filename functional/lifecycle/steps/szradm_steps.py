@@ -272,24 +272,24 @@ def check_variable(step, var, serv_as):
     if script_result != environment_result:
         raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." %
                              (script_result, environment_result, server.id))
-    LOG.info('Variable %s is checked successfully on %ws' % (var, server.id))
+    LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
     shell.close()
 
 
 @step('I create domain ([\w\d]+) to ([\w\d]+) role')
-def create_domain_to_role(step, domain_as, role):
-    LOG.info('Create new domain for role %s as %s' % (role, domain_as))
-    role = getattr(world, '%s_role' % role)
+def create_domain_to_role(step, domain_as, role_type):
+    LOG.info('Create new domain for role %s as %s' % (role_type, domain_as))
+    role = world.get_role(role_type)
     domain = role.create_domain()
     LOG.info('New domain: %s' % domain.name)
     setattr(world, domain_as, domain)
 
 
 @step('I add(?: (ssl))? virtual host ([\w\d]+)(?: with key ([\w\d-]+))? to ([\w\d]+) role and domain ([\w\d]+)')
-def create_vhost_to_role(step, ssl, vhost_as, key_name, role, domain_as):
+def create_vhost_to_role(step, ssl, vhost_as, key_name, role_type, domain_as):
     ssl = True if ssl else False
     key_name = key_name if key_name else None
-    role = getattr(world, '%s_role' % role)
+    role = world.get_role(role_type)
     domain = getattr(world, domain_as)
     LOG.info('Add new virtual host for role %s, domain %s as %s %s' % (role, domain.name, vhost_as,
                                                                        'with key {0}'.format(key_name)

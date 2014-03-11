@@ -3,10 +3,10 @@ Feature: SzrAdm check backward compatibility
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping two servers with the app role
         Given I have a an empty running farm
-        When I add app role to this farm with branch_latest, ebs
+        When I add app role to this farm with branch_latest,ebs
         Then I expect server bootstrapping as A1
         And scalarizr version is last in A1
-        When I change branch to feature/refactoring-0.25 for app role
+        When I change branch to system for app role
         Then I increase minimum servers to 2 for app role
         Then I expect server bootstrapping as A2
         And scalarizr version is last in A2
