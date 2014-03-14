@@ -1,3 +1,4 @@
+Using step definitions from: steps/szradm_steps.py
 Feature: SzrAdm check backward compatibility
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
