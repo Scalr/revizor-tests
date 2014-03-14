@@ -63,7 +63,7 @@ def start_rolebuild(step, behaviors):
                                         os_version=image['os_version'],
                                         name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
-                                        scalarizr='',
+                                        scalarizr=CONF.feature.branch,
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql')
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
@@ -90,5 +90,6 @@ def assert_build_started(step):
     for l in logs:
         if 'Role ID:' in l['message']:
             world.bundled_role_id = re.findall(r"Role ID: ([\d]+)", l['message'])[0]
+            LOG.info('New bundled role id is: %s' % world.bundled_role_id)
             return
     raise AssertionError('Not found new role id for bundletask %s' % world.bundle_id)

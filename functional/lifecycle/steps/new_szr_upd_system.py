@@ -87,6 +87,10 @@ def verify_repository_is_working(step):
     if merge_proc.returncode != 0:
         raise AssertionError('Something wrong in git merge, please see log: %s' % merge_proc.stdout.read())
 
+    last_revision = subprocess.check_output(['git', 'log', '--pretty=oneline', '-1']).splitlines()[0].split()[0].strip()
+    LOG.info('Last pushed revision: %s' % last_revision)
+    setattr(world, 'last_scalarizr_revision', last_revision)
+
     git_log = subprocess.check_output(['git', 'log', '--pretty=oneline', '-20']).splitlines()
     LOG.info('Get latest commits from git history: %s' % git_log)
     flags = {}
@@ -153,7 +157,9 @@ def verify_package_is_builded(step):
     LOG.info('Wait last scalarizr source builder in buildbot finish work')
     last_revision = getattr(world, 'last_scalarizr_revision', None)
     if not last_revision:
+        LOG.debug('Last scalarizr revision not founded')
         return
+    LOG.info('Wait scalarizr %s revision will builded' % last_revision)
     while True:
         resp = requests.get('%s/json/builders/scalarizr%%20source' % BUILDBOT_URL).json()
         if not resp['state'] == 'idle':
@@ -193,7 +199,6 @@ def update_scalarizr_via_api(step, old, serv_as):
 
 @step('update process is finished on ([\w\d]+) with status (\w+)')
 def wait_updating_finish(step, serv_as, status):
-    #TODO: verify scalarizr vesion by revision
     server = getattr(world, serv_as)
     start_time = time.time()
     status = status.strip()
@@ -207,12 +212,13 @@ def wait_updating_finish(step, serv_as, status):
             elif result['state'].startswith('error') and not status == 'error':
                 raise AssertionError('Update process failed with error: %s' % result['error'])
             LOG.info('Update process on server %s in "%s" state, wait status %s' % (server.id, result['state'], status))
-            time.sleep(5)
+            time.sleep(15)
         except AssertionError:
             LOG.error('Update process failed')
             raise
         except BaseException, e:
             LOG.debug('Checking update process raise exception: %s' % e)
+            server._upd_api = None
             time.sleep(15)
     else:
         raise AssertionError('Until 10 minutes status not: %s, it: %s' % (status, result['state']))

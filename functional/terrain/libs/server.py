@@ -11,7 +11,7 @@ from libcloud.compute.types import NodeState
 
 from revizor2.api import Server
 from revizor2.fixtures import resources
-from revizor2.consts import ServerStatus, MessageStatus
+from revizor2.consts import ServerStatus, MessageStatus, Dist
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
@@ -136,8 +136,9 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.TERMINATED,
                                                             ServerStatus.PENDING_SUSPEND,
                                                             ServerStatus.SUSPENDED]:
-                LOG.debug('Check scalarizr log in lookup server')
-                verify_scalarizr_log(lookup_node)
+                if not Dist.is_windows_family(lookup_server.role.dist):
+                    LOG.debug('Check scalarizr log in lookup server')
+                    verify_scalarizr_log(lookup_node)
 
             LOG.debug('If server Running and we wait Initializing, return server')
             if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:

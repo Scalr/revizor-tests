@@ -10,7 +10,7 @@ from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Dist
 from revizor2.fixtures import manifests
 
 LOG = logging.getLogger(__name__)
@@ -86,6 +86,8 @@ def get_all_logs(scenario):
         os.makedirs(path, 0755)
 
     for server in servers:
+        if Dist.is_windows_family(server.role.dist):
+            continue
         if server.status == ServerStatus.RUNNING or \
                         server.status == ServerStatus.INIT or \
                         server.status == ServerStatus.PENDING:

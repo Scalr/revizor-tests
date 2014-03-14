@@ -7,7 +7,7 @@ from lettuce import world
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
-from revizor2.consts import BEHAVIORS_ALIASES
+from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
@@ -45,6 +45,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     """
     def get_role(behavior, dist):
         if CONF.feature.role_type == 'shared':
+            #TODO: Try get from Scalr
             role = tables('roles-shared').filter({'dist': CONF.feature.dist,
                                                   'behavior': behavior,
                                                   'platform': CONF.feature.driver.scalr_cloud}).first()
@@ -52,6 +53,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         else:
             mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             versions = get_role_versions(mask)
+            #TODO: Return RV_ROLE_VERSION
             role_name = '%s%s-%s-%s' % (behavior, versions[0],
                                         dist, CONF.feature.role_type)
             roles = IMPL.role.list(query=role_name)
@@ -61,8 +63,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         return role
     if behavior in BEHAVIORS_ALIASES:
         behavior = BEHAVIORS_ALIASES[behavior]
-    if CONF.feature.dist.startswith('win'):
-        dist = CONF.feature.dist.replace('win', 'windows')
+    if CONF.feature.dist in DIST_ALIASES:
+        dist = DIST_ALIASES[CONF.feature.dist]
     else:
         dist = CONF.feature.dist
     if CONF.feature.role_id:

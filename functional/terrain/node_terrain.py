@@ -396,12 +396,25 @@ def change_branch_in_sources(step, serv_as, branch):
     else:
         branch = branch.replace('/', '-').replace('.', '').strip()
     server = getattr(world, serv_as)
+    LOG.info('Change branches in sources list in server %s to %s' % (server.id, branch))
     if Dist.is_debian_family(server.role.dist):
+        LOG.debug('Change in debian')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
     elif Dist.is_centos_family(server.role.dist):
-        pass
+        LOG.debug('Change in centos')
+        node = world.cloud.get_node(server)
+        for repo_file in ['/etc/yum.repos.d/scalr-stable.repo', '/etc/yum.repos.d/scalr-latest.repo']:
+            LOG.info("Change branch in %s to %s" % (repo_file, branch))
+            node.run('echo "[scalr-branch]\nname=scalr-stable\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
     elif Dist.is_windows_family(server.role.dist):
-        pass
+        # LOG.debug('Change in windows')
+        import winrm
+        console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                                auth=("Administrator", server.windows_password))
+        for repo_file in ['C:\Program Files\Scalarizr\etc\scalr-latest.winrepo',
+                          'C:\Program Files\Scalarizr\etc\scalr-stable.winrepo']:
+            # LOG.info("Change branch in %s to %s" % (repo_file, branch))
+            console.run_cmd('echo http://buildbot.scalr-labs.com/win/%s/x86_64/ > "%s"' % (branch, repo_file))

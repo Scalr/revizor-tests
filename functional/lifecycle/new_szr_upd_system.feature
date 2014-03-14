@@ -15,10 +15,12 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         And change branch in server M1 in sources to system
         And I update scalarizr via old api on M1
         When update process is finished on M1 with status completed
+        Then Scalr receives HostUpdate from M1
         Then I push an empty commit to scalarizr repo
         And new package is builded
         Then I update scalarizr via api on M1
         And update process is finished on M1 with status completed
+        And Scalr receives HostUpdate from M1
         Then I remember scalarizr version on M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
@@ -65,6 +67,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         And new package is builded
         Then I update scalarizr via api on M1
         When update process is finished on M1 with status completed
+        And Scalr receives HostUpdate from M1
         Then scalarizr version is last in M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
@@ -77,6 +80,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         When new package is builded
         Then wait 25 minutes for scalarizr auto updates on M1
         Then update process is finished on M1 with status completed
+        And Scalr receives HostUpdate from M1
         And scalarizr version is last in M1
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
