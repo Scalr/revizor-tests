@@ -424,8 +424,12 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
     }
 
 @world.absorb
-def is_log_rotate(server, process, rights, group='nogroup'):
+def is_log_rotate(server, process, rights, group=None):
     """Checks for logrotate config file and rotates the log. Returns the status of the operation."""
+    if not group:
+        group = ['nogroup', process]
+    elif isinstance(group, str):
+        group = [group, process]
     LOG.info('Loking for config file:  %s-logrotate on remote host %s' % (process, server.public_ip))
     node = world.cloud.get_node(server)
     logrotate_conf = node.run('cat /etc/logrotate.d/%s-logrotate' % process)
@@ -453,7 +457,7 @@ def is_log_rotate(server, process, rights, group='nogroup'):
                         has_gz = True
                     if not (log_file_atr['rights'] == rights and
                                     log_file_atr['user'] == process and
-                                    log_file_atr['group'] == group):
+                                    log_file_atr['group'] in group):
                         raise AssertionError("%(file)s file attributes are not correct. Wrong attributes %(atr)s: " %
                                              {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'],
                                                                                     log_file_atr['user'],
