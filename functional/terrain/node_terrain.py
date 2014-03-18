@@ -246,11 +246,14 @@ def assert_scalarizr_version(step, repo, serv_as):
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
     LOG.info('Scalarizr versions in repository %s: %s' % (repo, versions))
-    server_info = server.upd_api.status(cached=False)
+    try:
+        server_info = server.upd_api.status(cached=False)
+    except Exception:
+        server_info = server.upd_api_old.status()
     LOG.debug('Server %s status: %s' % (server.id, server_info))
-    if not repo == server_info['repository']:
-        raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'
-                             % (server_info['repository'], repo))
+    # if not repo == server_info['repository']:
+    #     raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'
+    #                          % (server_info['repository'], repo))
     if not versions[-1] == server_info['installed']:
         raise AssertionError('Installed scalarizr version is not last! Installed %s, last: %s'
                              % (server_info['installed'], versions[-1]))
@@ -406,9 +409,10 @@ def change_branch_in_sources(step, serv_as, branch):
     elif Dist.is_centos_family(server.role.dist):
         LOG.debug('Change in centos')
         node = world.cloud.get_node(server)
-        for repo_file in ['/etc/yum.repos.d/scalr-stable.repo', '/etc/yum.repos.d/scalr-latest.repo']:
+        for repo_file in ['/etc/yum.repos.d/scalr-stable.repo']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
-            node.run('echo "[scalr-branch]\nname=scalr-stable\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
+            node.run('echo "[scalr-branch]\nname=scalr-branch\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
+        node.run('echo > /etc/yum.repos.d/scalr-latest.repo')
     elif Dist.is_windows_family(server.role.dist):
         # LOG.debug('Change in windows')
         import winrm
