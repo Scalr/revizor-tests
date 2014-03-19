@@ -5,6 +5,7 @@ from lettuce import world, step
 
 from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
+from revizor2.conf import CONF
 
 
 LOG = logging.getLogger('mongodb')
@@ -63,7 +64,7 @@ def replicaset_control(step, action):
 def check_master(step, serv_as):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    res = db_role.db.check_master(server)
+    res = db_role.db.check_master(server, credentials={'ssl': CONF.feature.ssl_on})
     world.assert_not_exist(res, '%s is not master' % server.id)
 
 
