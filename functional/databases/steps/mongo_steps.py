@@ -6,6 +6,7 @@ from lettuce import world, step
 from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
 from revizor2.conf import CONF
+from random import randrange
 
 
 LOG = logging.getLogger('mongodb')
@@ -79,10 +80,21 @@ def write_data(step, serv_as):
 @step('wait (.+) have data$')
 def check_data(step, serv_as):
     server = getattr(world, serv_as)
-    data = {'db':'supertestdb', 'id': world.data_id}
-    node = world.cloud.get_node(server)
-    wait_until(world.mongodb_wait_data2, args=(node, data), timeout=600, error_text="Server %s not have data" %
-                                                                                    serv_as)
+    db_role = world.get_role()
+    id = {}
+    options = {'ssl': CONF.feature.ssl_on}
+    for i in xrange(3):
+        coll = 'revizor[%s]' % randrange(0, 10, 1)
+        id.update({coll: []})
+        for j in xrange(10):
+            id[coll].append(db_role.db.get_collection('revizor-test', coll, server, credentials=options)[randrange(0, 100, 1)]['_id'])
+    for key, value in id.iteritems():
+        if any(id_obj not in world.data_id[key] for id_obj in value):
+            raise AssertionError('An error occurred while trying to check data.\nServer %s not have data: %s' % serv_as)
+    # data = {'db': 'revizor-test', 'id': world.data_id}
+    # node = world.cloud.get_node(server)
+    # wait_until(world.mongodb_wait_data2, args=(node, data), timeout=600, error_text="Server %s not have data" %
+    #                                                                                 serv_as)
 
 
 @step('(\w+) log rotated on ([\w\d]+) and new created with ([\d]+) rights')
