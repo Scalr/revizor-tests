@@ -1,16 +1,19 @@
 import time
+import sys
 import logging
 
 from lettuce import world, step
-
 from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
 from revizor2.conf import CONF
 from random import randrange
 
-
 LOG = logging.getLogger('mongodb')
 
+try:
+    from pymongo.errors import OperationFailure
+except ImportError:
+    LOG.warning('For use mongo via revizor2 please install pymongo')
 
 @step('([\w]+) hostname is (.+)')
 def assert_hostname(step, serv_as, hostname):
@@ -83,11 +86,17 @@ def check_data(step, serv_as):
     db_role = world.get_role()
     id = {}
     options = {'ssl': CONF.feature.ssl_on}
+    connection = db_role.db.get_connection(server, credentials=options)
     for i in xrange(3):
-        coll = 'revizor[%s]' % randrange(0, 10, 1)
-        id.update({coll: []})
+        id.update({coll_name: []})
+        coll_name = 'revizor[%s]' % randrange(0, 10, 1)
+        try:
+            collection = connection['revizor-test'][coll_name].find()
+        except:
+            raise OperationFailure('An error occurred while trying to get collection from %s database.\n'
+                                   'Original error: %s' % ('revizor-test', sys.exc_info()[1]))
         for j in xrange(10):
-            id[coll].append(db_role.db.get_collection('revizor-test', coll, server, credentials=options)[randrange(0, 100, 1)]['_id'])
+            id[coll_name].append(collection[randrange(0, 100, 1)]['_id'])
     for key, value in id.iteritems():
         if any(id_obj not in world.data_id[key] for id_obj in value):
             raise AssertionError('An error occurred while trying to check data.\nServer %s not have data: %s' % serv_as)
