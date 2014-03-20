@@ -68,11 +68,11 @@ def check_master(step, serv_as):
     world.assert_not_exist(res, '%s is not master' % server.id)
 
 
-@step('Then I write data to (.+)$')
+@step('I write data to ([\w]+)')
 def write_data(step, serv_as):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    id = db_role.db.database_create('supertestdb', server)
+    id = db_role.db.database_create('revizor-test', server)
     world.data_id = id
 
 
