@@ -94,7 +94,7 @@ Feature: Linux server lifecycle
         And count of files in directory '/media/ebsmount' is 100 in M1
         And count of files in directory '/media/raidmount' is 100 in M1
 
-    @ec2 @cloudstack @rackspaceng @openstack @stopresume
+    @ec2 @openstack @stopresume
     Scenario: Stop/resume on init policy
         When I suspend server M1
         Then I wait server M1 in suspended state
@@ -105,7 +105,7 @@ Feature: Linux server lifecycle
         Then I wait server M1 in running state
         And Scalr receives HostUp from M1
 
-    @ec2 @cloudstack @rackspaceng @openstack @stopresume
+    @ec2 @openstack @stopresume
     Scenario: Stop/resume on reboot policy
         When I change suspend policy in role to reboot
         And I suspend server M1

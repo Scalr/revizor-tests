@@ -21,6 +21,7 @@ def get_role(alias=None):
             role = getattr(world, '%s_role' % world.farm.roles[0].alias)
             return role
         for role in world.farm.roles:
+            LOG.debug('Processing role: %s (%s) in farm' % (role.alias, role.id))
             if alias == role.alias or alias in role.role.behaviors:
                 if hasattr(world, '%s_role' % role.alias):
                     return getattr(world, '%s_role' % role.alias)
@@ -29,5 +30,5 @@ def get_role(alias=None):
     if not role:
         world.farm.roles.reload()
         role = find_role(alias)
-    assert role, 'Role with alias %s not found' % alias
+    assert role, 'Role with alias %s not found: %s' % (alias, role)
     return role
