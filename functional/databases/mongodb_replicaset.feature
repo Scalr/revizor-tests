@@ -28,18 +28,18 @@ Feature: MongoDB replica set
     Scenario: Downscale replica-set
         When I delete replicaset
         And M1 is master
-        Then I write data to M1
+        Then I add small-sized database D1 on M1
         And I add replicaset
         Then I expect server bootstrapping as M3
         And scalarizr version is last in M3
-        And wait M3 have data
+        And wait M3 have database D1 data
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Upscale replica-set to 3 instance
         When I add replicaset
         Then I expect server bootstrapping as M4
         And scalarizr version is last in M4
-        And wait M4 have data
+        And wait M4 have database D1 data
         And port 27017 is not listen in M4
         And port 27019 is not listen in M4
         And port 27020 is not listen in all
