@@ -6,9 +6,10 @@ from lettuce import world, step
 from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
 from revizor2.conf import CONF
-from random import randrange
+from random import randrange, sample
 from pymongo.errors import OperationFailure
 from revizor2 import exceptions
+from bson.objectid import ObjectId
 
 LOG = logging.getLogger('mongodb')
 
@@ -67,36 +68,51 @@ def replicaset_control(step, action):
 def check_master(step, serv_as):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    res = db_role.db.check_master(server, credentials={'ssl': CONF.feature.ssl_on})
+    credentials = {'ssl': True} if CONF.feature.ssl_on else None
+    res = db_role.db.check_master(server, credentials=credentials)
     world.assert_not_exist(res, '%s is not master' % server.id)
+    LOG.info('Master checked. %s is master. ' % serv_as)
 
 
-@step('wait ([\w]+) have database ([\w]+) data$')
-def check_data(step, serv_as, db_name):
+@step('wait ([\w]+) (as replica )?have data in database ([\w]+)$')
+def wait_data_in_mongodb(step, serv_as, replica, db_name):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    id = {}
-    options = {'ssl': CONF.feature.ssl_on}
-    connection = db_role.db.get_connection(server, credentials=options)
-    for i in xrange(3):
-        coll_name = 'revizor[%s]' % randrange(0, 10, 1)
-        id.update({coll_name: []})
-        collection = False
+    credentials = {}
+    #Set credentials
+    if CONF.feature.ssl_on:
+        credentials.update({'ssl': True})
+    if replica:
+        credentials.update({'replicaSet': serv_as, 'readPreference': 'secondary'})
+    #Get connection
+    connection = db_role.db.get_connection(server, credentials=credentials if len(credentials) else None)
+    LOG.info('Checking data on %s. Connected with %s options.' % (serv_as, credentials))
+    #Get randomom collection
+    id = dict(sample(world.data_id.items(), 3))
+    #Get document from random collection
+    id = dict([(key, sample(value, 10)) for key, value in id.iteritems()])
+    #Check inserted data in database
+    for collection, objects in id.iteritems():
         start_time = time.time()
-        while not collection:
+        while True:
             try:
-                collection = connection[db_name][coll_name].find()
+                LOG.info('Try to get documents: %s from random collection %s.' % (objects, collection))
+                records_count = connection[db_name][collection].find({'_id': {'$in': objects}}).count()
+                LOG.info('Obtained documents count from random collection %s:%s on %s.' % (collection, records_count, serv_as))
             except:
                 raise OperationFailure('An error occurred while trying to get collection from %s database.\n'
-                                       'Original error: %s' % ('revizor-test', sys.exc_info()[1]))
-            if (time.time() - start_time) >= 600:
+                                       'Original error: %s' % (db_name, sys.exc_info()[1]))
+            if records_count != 0:
+                break
+            elif (time.time() - start_time) >= 600:
                 raise exceptions.TimeoutError('Timeout: 600 seconds reached.\n'
-                                              'Server %s not have data on %s database.' % (server, db_name))
-        for j in xrange(10):
-            id[coll_name].append(collection[randrange(0, 100, 1)]['_id'])
-    for key, value in id.iteritems():
-        if any(id_obj not in world.data_id[key] for id_obj in value):
-            raise AssertionError('An error occurred while trying to check data.\nServer %s not have data: %s' % serv_as)
+                                              'Server %s has not all inserted data to %s database.' % (server, db_name))
+            time.sleep(5)
+        if records_count != len(objects):
+            raise AssertionError('An error occurred while trying to check data.\n'
+                                 'Server %s has not data from %s' % (serv_as, objects))
+    LOG.info('Random data checked successfully on %s' % serv_as)
+
 
 @step('(\w+) log rotated on ([\w\d]+) and new created with ([\d]+) rights')
 def is_log_rotated(step, service, serv_as, rights):

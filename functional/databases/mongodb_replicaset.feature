@@ -32,14 +32,14 @@ Feature: MongoDB replica set
         And I add replicaset
         Then I expect server bootstrapping as M3
         And scalarizr version is last in M3
-        And wait M3 have database D1 data
+        And wait M3 as replica have data in database D1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Upscale replica-set to 3 instance
         When I add replicaset
         Then I expect server bootstrapping as M4
         And scalarizr version is last in M4
-        And wait M4 have database D1 data
+        And wait M4 as replica have data in database D1
         And port 27017 is not listen in M4
         And port 27019 is not listen in M4
         And port 27020 is not listen in all
