@@ -92,9 +92,10 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
     #Get document from random collection
     id = dict([(key, sample(value, 10)) for key, value in id.iteritems()])
     #Check inserted data in database
-    for collection, objects in id.iteritems():
-        start_time = time.time()
-        while True:
+    start_time = time.time()
+    while (time.time() - start_time) >= 600:
+        collection_count = len(id)
+        for collection, objects in id.iteritems():
             try:
                 LOG.info('Try to get documents: %s from random collection %s.' % (objects, collection))
                 records_count = connection[db_name][collection].find({'_id': {'$in': objects}}).count()
@@ -102,15 +103,18 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
             except:
                 raise OperationFailure('An error occurred while trying to get collection from %s database.\n'
                                        'Original error: %s' % (db_name, sys.exc_info()[1]))
-            if records_count != 0:
+            if not records_count:
                 break
-            elif (time.time() - start_time) >= 600:
-                raise exceptions.TimeoutError('Timeout: 600 seconds reached.\n'
-                                              'Server %s has not all inserted data to %s database.' % (server, db_name))
-            time.sleep(5)
-        if records_count != len(objects):
-            raise AssertionError('An error occurred while trying to check data.\n'
-                                 'Server %s has not data from %s' % (serv_as, objects))
+            if records_count != len(objects):
+                raise AssertionError('An error occurred while trying to check data.\n'
+                                     'Server %s has not data from %s' % (serv_as, objects))
+            collection_count -= 1
+        if not collection_count:
+            break
+        time.sleep(5)
+    else:
+        raise exceptions.TimeoutError('Timeout: 600 seconds reached.\n'
+                                      'Server %s has not all inserted data to %s database.' % (server, db_name))
     LOG.info('Random data checked successfully on %s' % serv_as)
 
 
