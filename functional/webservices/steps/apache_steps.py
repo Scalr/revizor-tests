@@ -45,8 +45,11 @@ def assert_check_http_get_answer(step, proto, revert, serv_as):
         else:
             msg = None
 
-    LOG.debug('Apache message: %s' % msg if not revert else 'No apache message revert mode for ssl.')
-    apache_messages = ['It works!', 'Apache HTTP Server', 'Welcome to your Scalr application']
+    LOG.debug('Step mode: %s. Apache message: %s' % ('not contains message' if revert else 'contains message', msg))
+    apache_messages = ['It works!',
+                       'Apache HTTP Server',
+                       'Welcome to your Scalr application',
+                       'Scalr farm configured succesfully']
     if not revert and not any(message in msg for message in apache_messages):
         raise AssertionError('Not see default message, Received message: %s,  code: %s' % (msg, resp.status_code))
     elif revert and msg:
