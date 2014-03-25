@@ -33,13 +33,15 @@ class VerifyProcessWork(object):
     def _verify_process_running(server, process_name):
         LOG.debug('Check process %s in running state on server %s' % (process_name, server.id))
         node = world.cloud.get_node(server)
-        time.sleep(5)
-        out = node.run("ps -C %s -o pid=" % process_name)
-        if not out[0].strip():
-            LOG.warning("Process %s don't work in server %s" % (process_name, server.id))
-            return False
-        LOG.info("Process %s work in server %s" % (process_name, server.id))
-        return True
+        for i in range(3):
+            out = node.run("ps -C %s -o pid=" % process_name)
+            if not out[0].strip():
+                LOG.warning("Process %s don't work in server %s (attempt %s)" % (process_name, server.id, i))
+            else:
+                LOG.info("Process %s work in server %s" % (process_name, server.id))
+                return True
+            time.sleep(5)
+        return False
 
     @staticmethod
     def _verify_open_port(server, port):
@@ -72,6 +74,7 @@ class VerifyProcessWork(object):
         LOG.info('Verify redis-server (%s) work in server %s' % (port, server.id))
         results = [VerifyProcessWork._verify_process_running(server, 'redis-server'),
                    VerifyProcessWork._verify_open_port(server, port)]
+        LOG.debug('Redis-server verifying results: %s' % results)
         return all(results)
 
     @staticmethod
@@ -298,6 +301,7 @@ def reboot_scalarizr(step, serv_as):
     node = world.cloud.get_node(server)
     node.run('/etc/init.d/scalarizr restart')
     LOG.info('Scalarizr restart complete')
+    time.sleep(15)
 
 
 @step("see 'Scalarizr terminated' in ([\w]+) log")

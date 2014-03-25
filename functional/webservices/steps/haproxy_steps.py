@@ -57,10 +57,10 @@ def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
     setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
 
-@step(r"I add proxy ([\w\d]+) to haproxy role for ([\d]+) port with backends: ([\w\d\' ,:\.]+) and healthcheck: ([\w\d, ]+)")
-def add_proxy_with_healtcheck(step, proxy_name, port, options, healthchecks):
+@step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with backends: ([\w\d\' ,:\.]+) and healthcheck: ([\w\d, ]+)")
+def add_proxy_with_healtcheck(step, proxy_name, proxy_role, port, options, healthchecks):
     LOG.info("Add proxy %s with many backends (%s) and healthcheck (%s)" % (proxy_name, options, healthchecks))
-    proxy_role = getattr(world, 'haproxy_role')
+    proxy_role = world.get_role(proxy_role)
     options = options.strip().replace('\'', '').split()
     options = zip(*[options[i::2] for i in range(2)])
     healthchecks = [int(x.strip()) for x in healthchecks.replace(',', '').split()]
@@ -85,10 +85,10 @@ def add_proxy_with_healtcheck(step, proxy_name, port, options, healthchecks):
     setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
 
 
-@step(r"I modify proxy ([\w\d]+) in haproxy role with backends: ([\w\d\' ,\.]+) and healthcheck: ([\w\d, ]+)")
-def modify_haproxy_role(step, proxy_name, options, healthchecks):
+@step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role with backends: ([\w\d\' ,\.]+) and healthcheck: ([\w\d, ]+)")
+def modify_haproxy_role(step, proxy_name, proxy_role, options, healthchecks):
     LOG.info("Modify proxy %s" % proxy_name)
-    proxy_role = getattr(world, 'haproxy_role')
+    proxy_role = world.get_role(proxy_role)
     proxy = getattr(world, '%s_proxy' % proxy_name)
     options = options.strip().replace('\'', '').split()
     options = zip(*[options[i::2] for i in range(2)])
@@ -195,10 +195,10 @@ def verify_backend_list_clean(step, serv_as):
         raise AssertionError("HAProxy config contains backends/listeners section: %s" % config)
 
 
-@step(r'I delete proxy ([\w\d]+) in haproxy role')
-def delete_haproxy_proxy(step, proxy_name):
+@step(r'I delete proxy ([\w\d]+) in ([\w\d]+) role')
+def delete_haproxy_proxy(step, proxy_name, proxy_role):
     LOG.info("Delete haproxy proxy %s" % proxy_name)
-    proxy_role = getattr(world, 'haproxy_role')
+    proxy_role = world.get_role(proxy_role)
     proxy = getattr(world, '%s_proxy' % proxy_name)
     LOG.info("Delete haproxy proxy for port %s" % proxy['port'])
     proxy_role.delete_haproxy_proxy(proxy['port'])
@@ -206,7 +206,6 @@ def delete_haproxy_proxy(step, proxy_name):
 
 @step(r'([\w\d]+) config should not contains ([\w\d]+)')
 def verify_proxy_in_config(step, serv_as, proxy_name):
-    proxy_role = getattr(world, 'haproxy_role')
     proxy = getattr(world, '%s_proxy' % proxy_name)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)

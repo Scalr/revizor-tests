@@ -45,11 +45,12 @@ Feature: Nginx load balancer role test with apache backends
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Stop/resume app server
+        Given I have remembered private_ip of A1
         When I suspend server A1
         Then I wait server A1 in suspended state
         And Scalr receives HostDown from A1
         Then I expect server bootstrapping as A3
-        And W1 upstream list should not contain A1
+        And W1 upstream list should not contain A1 remembered private_ip
         But W1 upstream list should contain A3
         When I resume server A1
         Then I wait server A1 in running state

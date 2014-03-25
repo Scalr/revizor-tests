@@ -252,12 +252,15 @@ def session_is_available(step, service, search_string, element):
 
 @step(r'Last (.+) date updated to current')
 def assert_check_databundle_date(step, back_type):
-    #TODO: if databundle in progress, wait 10 minutes
     LOG.info("Check %s date" % back_type)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         LOG.info('Platform is cloudstack-family, backup not doing')
         return True
     info = world.get_role().db.info()
+    if info['last_%s' % back_type] == 'In progress...':
+        while world.get_role().db.info()['last_%s' % back_type] == 'In progress...':
+            LOG.debug('Last %s in progress, wait 10 seconds' % back_type)
+            time.sleep(10)
     if not info['last_%s' % back_type] == getattr(world, 'last_%s' % back_type, 'Never'):
         return
     else:

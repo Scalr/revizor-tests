@@ -49,11 +49,11 @@ def assert_check_http_get_answer(step, proto, serv_as):
 def assert_check_vhost(step, serv_as, vhost_as):
     node = world.cloud.get_node(getattr(world, serv_as))
     vhost = getattr(world, vhost_as)
-    out = node.run('ls /etc/scalr/private.d/vhosts/')[0]
-    if vhost.name in out:
+    out = node.run('ls /etc/scalr/private.d/vhosts/')
+    if vhost.name in out[0]:
         return True
     LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
-    raise AssertionError('VHost not in apache config, in out: %s' % out)
+    raise AssertionError('VHost "%s" not in apache config, in out: %s' % (vhost.name, out))
 
 
 @step(r'([\w]+) has not (.+) in virtual host configuration')

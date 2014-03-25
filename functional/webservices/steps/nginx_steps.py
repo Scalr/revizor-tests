@@ -37,18 +37,26 @@ def assert_check_upstream(step, www_serv, app_servers):
             raise AssertionError('Private IP from server %s not found in upstream' % server.id)
 
 
-@step(r'([\w]+) upstream list should(?: (not))? contain (.+)')
-def assert_check_upstream_after_delete(step, www_serv, have, app_serv):
+@step(r'([\w]+) upstream list should(?: (not))? contain ([\w\d]+)( remembered private_ip)?')
+def assert_check_upstream_after_delete(step, www_serv, have, app_serv, private_ip=None):
     server = getattr(world, app_serv)
     www_serv = getattr(world, www_serv)
+    ip = getattr(world, '%s_private_ip' % app_serv) if private_ip else server.private_ip
     if have:
         LOG.info('Check if upstream not have %s in list' % server.id)
-        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip, False),
-                   timeout=180, error_text="Upstream %s in list" % server.private_ip)
+        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), ip, False),
+                   timeout=180, error_text="Server %s (%s) in upstream list" % (server.id, ip))
     else:
         LOG.info('Check if upstream have %s in list' % server.id)
-        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), server.private_ip),
-                   timeout=180, error_text="Upstream %s not in list" % server.private_ip)
+        wait_until(world.wait_upstream_in_config, args=(world.cloud.get_node(www_serv), ip),
+                   timeout=180, error_text="Server %s (%s) not in upstream list" % (server.id, ip))
+
+
+@step(r'I have remembered private_ip of ([\w\d]+)')
+def save_server_public_ip(step, serv_as):
+    server = getattr(world, serv_as)
+    LOG.info('Save public_ip (%s) of server %s' % (server.private_ip, server.id))
+    setattr(world, '%s_private_ip' % serv_as, server.private_ip)
 
 
 @step(r'I add (\w+) role as app role in ([\w\d]+) scalarizr config')

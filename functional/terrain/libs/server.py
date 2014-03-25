@@ -143,7 +143,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('If server Running and we wait Initializing, return server')
             if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:
                 LOG.info('We wait Initializing but server already Running')
-                status == ServerStatus.RUNNING
+                status = ServerStatus.RUNNING
 
             LOG.debug('Compare server status')
             if lookup_server.status == status:
@@ -238,15 +238,20 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                 if check_message_in_server(serv, message_name, message_type):
                     return serv
         else:
+            LOG.debug('Delivered servers = %s, servers = %s' % (delivered_servers, servers))
             if delivered_servers == servers:
-                LOG.info('All servers has delivered message: %s / %s' % (message_type, message_name))
+                LOG.info('All servers (%s) has delivered message: %s / %s' % (servers, message_type, message_name))
                 return True
+            LOG.debug('Find message in all servers')
             for serv in servers:
                 if serv in delivered_servers:
                     continue
                 result = check_message_in_server(serv, message_name, message_type)
                 if result:
+                    LOG.infoDa('Message %s delivered in server %s (in mass delivering mode)' % (message_name, serv.id))
                     delivered_servers.append(serv)
+                    LOG.debug('Message delivered to servers: %s' % [s.id for s in delivered_servers])
+        time.sleep(5)
     else:
         raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type,
                                                                             message_name,
