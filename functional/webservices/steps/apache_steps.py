@@ -49,8 +49,8 @@ def assert_check_http_get_answer(step, proto, revert, serv_as):
     apache_messages = ['It works!', 'Apache HTTP Server', 'Welcome to your Scalr application']
     if not revert and not any(message in msg for message in apache_messages):
         raise AssertionError('Not see default message, Received message: %s,  code: %s' % (msg, resp.status_code))
-    elif revert and any(message in msg for message in apache_messages):
-        raise AssertionError('See starting message in default apache https mode. Received message: %s' % msg)
+    elif revert and msg:
+        raise AssertionError('Error. The message in default apache https mode. Received message: %s' % msg)
 
 
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
