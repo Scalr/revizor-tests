@@ -9,7 +9,6 @@ Feature: Apache application server role
         And scalarizr version is last in A1
         And apache is running on A1
         And http get A1 contains default welcome message
-        And https not get A1 contains default welcome message
 
     @ec2 @cloudstack @rackspaceng @openstack
     Scenario: Apache start after scalarizr restart
@@ -19,7 +18,6 @@ Feature: Apache application server role
         Then I restart service scalarizr and pid has been changed on A1
         And apache is running on A1
         And http get A1 contains default welcome message
-        And https not get A1 contains default welcome message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding virtual host
@@ -32,8 +30,7 @@ Feature: Apache application server role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding ssl virtual host
-        When https not get A1 contains default welcome message
-        Then I create domain D2 to app role
+        When I create domain D2 to app role
         And I add ssl virtual host H2 with key revizor-key to app role and domain D2
         Then Scalr sends VhostReconfigure to A1
         And D2 resolves into A1 ip address
