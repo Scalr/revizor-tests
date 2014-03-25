@@ -88,7 +88,7 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
     connection = db_role.db.get_connection(server, credentials=credentials if len(credentials) else None)
     LOG.info('Checking data on %s. Connected with %s options.' % (serv_as, credentials))
     #Get randomom collection
-    id = dict(sample(world.data_id.items(), 3))
+    id = dict(sample(world.data_insert_result.items(), 3))
     #Get document from random collection
     id = dict([(key, sample(value, 10)) for key, value in id.iteritems()])
     #Check inserted data in database

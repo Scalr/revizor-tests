@@ -283,10 +283,10 @@ def having_small_database(step, db_name, serv_as, username=None):
     db_role = world.get_role()
     if username:
         LOG.info("Create database %s in server %s by user %s" % (db_name, server, username))
-        db_role.db.insert_data_to_database(db_name, server, (username, db_role.db.credentials[username]))
+        setattr(world, 'data_insert_result', db_role.db.insert_data_to_database(db_name, server, (username, db_role.db.credentials[username])))
     else:
         LOG.info("Create database %s in server %s" % (db_name, server))
-        db_role.db.insert_data_to_database(db_name, server)
+        setattr(world, 'data_insert_result', db_role.db.insert_data_to_database(db_name, server))
 
 
 @step("I create (\d+) databases on ([\w]+)(?: by user '([\w\d]+)')?$")
