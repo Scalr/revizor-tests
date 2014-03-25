@@ -30,19 +30,30 @@ def create_vhost_to_role(step, ssl, vhost_as, key_name, role_type, domain_as):
     setattr(world, vhost_as, vhost)
 
 
-@step(r'(https|http) get (.+) contains default welcome message')
-def assert_check_http_get_answer(step, proto, serv_as):
+@step(r'(https|http)(?: (not))? get (.+) contains default welcome message')
+def assert_check_http_get_answer(step, proto, revert, serv_as):
     server = getattr(world, serv_as)
     verify = False if proto == 'https' else None
+    revert = False if not revert else True
     try:
         resp = requests.get('%s://%s' % (proto, server.public_ip), timeout=15, verify=verify)
         msg = resp.text
     except (HTTPError, ConnectionError, SSLError), e:
-        LOG.error('Apache error: %s' % e.message)
-        raise AssertionError('Apache error: %s' % e.message)
-    LOG.debug('Apache message: %s' % msg)
-    if not ('It works!' in msg or 'Apache HTTP Server' in msg or 'Welcome to your Scalr application' in msg):
+        if not revert:
+            LOG.error('Apache error: %s' % e.message)
+            raise AssertionError('Apache error: %s' % e.message)
+        else:
+            msg = None
+
+    LOG.debug('Step mode: %s. Apache message: %s' % ('not contains message' if revert else 'contains message', msg))
+    apache_messages = ['It works!',
+                       'Apache HTTP Server',
+                       'Welcome to your Scalr application',
+                       'Scalr farm configured succesfully']
+    if not revert and not any(message in msg for message in apache_messages):
         raise AssertionError('Not see default message, Received message: %s,  code: %s' % (msg, resp.status_code))
+    elif revert and msg:
+        raise AssertionError('Error. The message in default apache https mode. Received message: %s' % msg)
 
 
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
@@ -67,7 +78,7 @@ def check_deleted_vhost(step, serv_as, vhost_as):
     raise AssertionError('VHost %s in apache config' % vhost.name)
 
 
-@step(r'I remove virtual host (.+)')
+@step(r'I remove from web interface virtual host (.+)')
 def remove_vhost(step, vhost_as):
     LOG.info('Remove vhost %s' % vhost_as)
     vhost = getattr(world, vhost_as)
