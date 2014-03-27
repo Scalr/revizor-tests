@@ -92,8 +92,9 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
     #Get document from random collection
     id = dict([(key, sample(value, 10)) for key, value in id.iteritems()])
     #Check inserted data in database
+    LOG.info('Random data requested with a replica: ' % id)
     start_time = time.time()
-    while (time.time() - start_time) >= 600:
+    while (time.time() - start_time) <= 600:
         collection_count = len(id)
         for collection, objects in id.iteritems():
             try:
