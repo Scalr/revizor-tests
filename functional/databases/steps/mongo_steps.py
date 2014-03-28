@@ -68,7 +68,7 @@ def replicaset_control(step, action):
 def check_master(step, serv_as):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    credentials = {'ssl': True} if CONF.feature.ssl_on else None
+    credentials = {'ssl': CONF.feature.ssl_on}
     res = db_role.db.check_master(server, credentials=credentials)
     world.assert_not_exist(res, '%s is not master' % server.id)
     LOG.info('Master checked. %s is master. ' % serv_as)
@@ -78,14 +78,12 @@ def check_master(step, serv_as):
 def wait_data_in_mongodb(step, serv_as, replica, db_name):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    credentials = {}
+    credentials = {'ssl': CONF.feature.ssl_on}
     #Set credentials
-    if CONF.feature.ssl_on:
-        credentials.update({'ssl': True})
     if replica:
         credentials.update({'replicaSet': serv_as, 'readPreference': 'secondary'})
     #Get connection
-    connection = db_role.db.get_connection(server, credentials=credentials if len(credentials) else None)
+    connection = db_role.db.get_connection(server, credentials=credentials)
     LOG.info('Checking data on %s. Connected with %s options.' % (serv_as, credentials))
     #Get randomom collection
     id = dict(sample(world.data_insert_result.items(), 3))
