@@ -61,10 +61,10 @@ def assert_check_vhost(step, serv_as, vhost_as):
     node = world.cloud.get_node(getattr(world, serv_as))
     vhost = getattr(world, vhost_as)
     out = node.run('ls /etc/scalr/private.d/vhosts/')
-    if vhost.name in out[0]:
-        return True
-    LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
-    raise AssertionError('VHost "%s" not in apache config, in out: %s' % (vhost.name, out))
+    if vhost.name not in out[0]:
+        LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
+        raise AssertionError('VHost "%s" not in apache config, in out: %s' % (vhost.name, out))
+    return True
 
 
 @step(r'([\w]+) has not (.+) in virtual host configuration')
@@ -74,8 +74,10 @@ def check_deleted_vhost(step, serv_as, vhost_as):
     out = node.run('ls -la /etc/scalr/private.d/vhosts/%s' % vhost.name)
     for line in out[0].splitlines()+out[1].splitlines():
         if 'No such file or directory' in line:
-            return True
-    raise AssertionError('VHost %s in apache config' % vhost.name)
+            break
+    else:
+        raise AssertionError('VHost %s in apache config' % vhost.name)
+    return True
 
 
 @step(r'I remove from web interface virtual host (.+)')
