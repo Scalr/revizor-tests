@@ -117,6 +117,31 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
     LOG.info('Random data checked successfully on %s' % serv_as)
 
 
+@step('replicaset status is valid on ([\w]+) port ([\d]+)$')
+def check_status(step, serv_as, port):
+    server = getattr(world, serv_as)
+    db_role = world.get_role()
+    #Set credentials
+    credentials = {'ssl': CONF.feature.ssl_on, 'port': int(port)}
+    #mongod replicaSet status command
+    command = {'replSetGetStatus': 1}
+    #Get status
+    res = db_role.db.run_admin_command(server, command, credentials=credentials)
+    LOG.info('Obtained replica set status from: %s\n%s' % (serv_as, res))
+    #Check status
+    for replica_member in res['members']:
+        if replica_member.get('self', False):
+            master_name = [member['name'] for member in res['members'] if member['state'] == 1][0]
+            if (replica_member['state'] != 2) or (res.get('syncingTo', False) != master_name):
+                AssertionError('An error occurred while trying to check data.\n'
+                               'ReplicaSet status in Error states: %s or not synced with master: %s.'
+                               % (replica_member['stateStr'], master_name))
+            break
+    else:
+        AssertionError("An error occurred while trying to check data. Can't get replica member.")
+    LOG.info('ReplicaSet status checked successfully on %s' % serv_as)
+
+
 @step('(\w+) log rotated on ([\w\d]+) and new created with ([\d]+) rights')
 def is_log_rotated(step, service, serv_as, rights):
     server = getattr(world, serv_as)

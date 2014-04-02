@@ -39,10 +39,11 @@ Feature: MongoDB replica set
         When I add replicaset
         Then I expect server bootstrapping as M4
         And scalarizr version is last in M4
-        And wait M4 as replica have data in database D1
         And port 27017 is not listen in M4
+        And port 27018 is listen in M4
         And port 27019 is not listen in M4
         And port 27020 is not listen in all
+        And replicaset status is valid on M4 port 27018
         When I delete replicaset
         And M1 is master
         And port 27020 is listen only in M1
