@@ -127,18 +127,18 @@ def check_status(step, serv_as, port):
     command = {'replSetGetStatus': 1}
     #Get status
     res = db_role.db.run_admin_command(server, command, credentials=credentials)
+    master_name = [member['name'] for member in res['members'] if member['state'] == 1][0]
     LOG.info('Obtained replica set status from: %s\n%s' % (serv_as, res))
     #Check status
     for replica_member in res['members']:
         if replica_member.get('self', False):
-            master_name = [member['name'] for member in res['members'] if member['state'] == 1][0]
             if (replica_member['state'] != 2) or (res.get('syncingTo', False) != master_name):
                 AssertionError('An error occurred while trying to check data.\n'
                                'ReplicaSet status in Error states: %s or not synced with master: %s.'
                                % (replica_member['stateStr'], master_name))
             break
     else:
-        AssertionError("An error occurred while trying to check data. Can't get replica member.")
+        AssertionError("An error occurred while trying to check data. Can't get replica member %s." % serv_as)
     LOG.info('ReplicaSet status checked successfully on %s' % serv_as)
 
 
