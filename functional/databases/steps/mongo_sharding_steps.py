@@ -7,6 +7,7 @@ import pymongo
 from lettuce import world, step
 
 from revizor2.utils import wait_until
+from revizor2.conf import CONF
 
 LOG = logging.getLogger('mongoshards')
 
@@ -25,52 +26,63 @@ def assert_wait_servers(step, serv_count):
     timeout = 60 * 15 * serv_count
     LOG.info('Wait %s servers, timeout %s seconds' % (serv_count, timeout))
     wait_until(world.wait_servers_running, args=(role, serv_count), timeout=timeout,
-                    error_text='Not see %s servers running' % serv_count)
+               error_text='Not see %s servers running' % serv_count)
 
 
-@step('servers \[([\w\d,-]+)\] in replicaset R([\d]+)')
-def assert_check_replicaset(step, slaves, serv_ind):
+@step('servers \[([\w\d,-]+)\] in replicaset R([\d]+) on port ([\d]+)$')
+def assert_check_replicaset(step, slaves, shard_index, port):
     world.farm.servers.reload()
-    role = world.get_role()
-    server = None
-    serv_ind = int(serv_ind) - 1
-    for serv in world.farm.servers:
-        if serv.status == 'Running' and serv.role_id == role.role_id:
-            if int(serv.cluster_position[0]) == serv_ind:
-                server = serv
-                LOG.info('Found server %s with cluster position %s' % (server.id, serv.cluster_position))
+    db_role = world.get_role()
+    shard_index = int(shard_index) - 1
+    # Set credentials
+    credentials = {'ssl': CONF.feature.ssl_on, 'port': int(port), 'readPreference': 'secondary'}
+    # mongod replicaSet status command
+    command = {'replSetGetStatus': 1}
+    # Get random server from shard
+    for server in world.farm.servers:
+        if server.status == 'Running' and server.role_id == db_role.role_id:
+            if int(server.cluster_position[0]) == shard_index:
+                server = server
+                LOG.info('Found server %s with cluster position %s' % (server.id, server.cluster_position))
                 break
-    world.assert_not_exist(server, 'Not find shard server %s' % serv_ind)
-    slaves = slaves.split(',')
-    mongo = pymongo.Connection(server.public_ip, 27018, read_preference=pymongo.ReadPreference.SECONDARY)
-    mongo.admin.authenticate('scalr', world.farm.db_info('mongodb')['password'])
-    members = [member['name'].split('mongo')[1].split(':')[0][1:] for member in mongo.admin.command('replSetGetStatus')['members']]
-    LOG.info('Members in replicaset %s are %s' % (serv_ind, ','.join(members)))
-    for s in slaves:
-        world.assert_not_in(s, members, 'Member %s not in replicaset, all members: %s' % (s, members))
+    else:
+        raise AssertionError('No servers found in shard: #%s' % shard_index)
+    shard_members = slaves.split(',')
+    # Run command
+    res = db_role.db.run_admin_command(server, command, credentials=credentials)
+    LOG.info('Obtained replica set status from: %s\n%s' % (server.id, res))
+    # Check result
+    members = set([member['name'].split('mongo')[1].split(':')[0][1:] for member in res['members']])
+    LOG.info('Members in replicaSet %s are %s' % (shard_index, ','.join(members)))
+    for shard_member in shard_members:
+        world.assert_not_in(shard_member, members, 'Member %s not in replicaset. Members: %s' % (shard_member, members))
 
 
-@step('shard status have ([\d]+) replicaset')
+@step('cluster map has ([\d]+) shards')
 def assert_shard_status(step, serv_count):
-    role = world.get_role()
     serv_count = int(serv_count)
     db_role = world.get_role()
     world.farm.servers.reload()
-    server = None
-    for serv in world.farm.servers:
-        if serv.status == 'Running' and serv.role_id == role.role_id:
-            if serv.cluster_position == '0-0':
-                server = serv
-                LOG.info('Found server %s with cluster position %s' % (server.id, serv.cluster_position))
+    # mongod Shard list command
+    command = {'listShards': 1}
+    # Set credentials
+    credentials = {'ssl': CONF.feature.ssl_on, 'port': 27017, 'readPreference': 'primary'}
+    # Get random server from shard
+    for server in world.farm.servers:
+        if server.status == 'Running' and server.role_id == db_role.role_id:
+            if server.cluster_position == '0-0':
+                server = server
+                LOG.info('Found server %s with cluster position %s' % (server.id, server.cluster_position))
                 break
-    world.assert_not_exist(server, 'Not find server with index 0-0')
+    else:
+        raise AssertionError('No servers found with index 0-0')
+    # Run command
+    res = db_role.db.run_admin_command(server, command, credentials=credentials)
+    LOG.info('Obtained Shards list from: %s\n%s' % (server.id, res))
+    # Check result
+    world.assert_not_equal(serv_count, len(res['shards']), 'Cluster map has not %s shards. Found %s shard' % (len(res['shards']), serv_count))
+    LOG.info('Cluster map has %s shards. Checked successfully.' % len(res['shards']))
 
-    conn = db_role.db.get_connection(server, 27017)
-    LOG.info('Create mongo connection to %s' % server.id)
-    cur = conn.config.shards.find()
-    rs_list = set([rs['host'].split('/')[0][-1] for rs in cur])
-    LOG.info('Get replicaset status and it %s' % rs_list)
-    world.assert_not_equal(serv_count, len(rs_list), 'Replicaset count is not equal, see %s, but need %s' % (len(rs_list), serv_count))
 
 
 @step('I random terminate ([\d]+) servers')
