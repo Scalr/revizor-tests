@@ -97,9 +97,8 @@ Feature: Linux server lifecycle
     @ec2 @openstack @stopresume
     Scenario: Stop/resume on init policy
         When I suspend server M1
-        Then I wait server M1 in suspended state
-        And Scalr sends BeforeHostTerminate to M1
-        And Scalr receives HostDown from M1
+        Then Scalr sends BeforeHostTerminate to M1
+        And I wait server M1 in suspended state
         Then I expect server bootstrapping as M2
         When I resume server M1
         Then I wait server M1 in running state
@@ -108,10 +107,9 @@ Feature: Linux server lifecycle
     @ec2 @openstack @stopresume
     Scenario: Stop/resume on reboot policy
         When I change suspend policy in role to reboot
-        And I suspend server M1
-        Then I wait server M1 in suspended state
-        And Scalr receives HostDown from M1
-        And I wait 5 minutes
+        Then I suspend server M1
+        And I wait server M1 in suspended state
+        Then I expect server bootstrapping as M3
         When I resume server M1
         Then I wait server M1 in running state
         And Scalr receives RebootFinish from M1

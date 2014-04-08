@@ -231,6 +231,7 @@ def service_control(step, action, service, serv_as):
 
 
 @step('scalarizr version from (\w+) repo is last in (.+)$')
+@world.passed_by_version_scalarizr('2.5.14')
 def assert_scalarizr_version(step, repo, serv_as):
     """
     Argument repo can be system or role.

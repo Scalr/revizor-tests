@@ -248,7 +248,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                     continue
                 result = check_message_in_server(serv, message_name, message_type)
                 if result:
-                    LOG.infoDa('Message %s delivered in server %s (in mass delivering mode)' % (message_name, serv.id))
+                    LOG.info('Message %s delivered in server %s (in mass delivering mode)' % (message_name, serv.id))
                     delivered_servers.append(serv)
                     LOG.debug('Message delivered to servers: %s' % [s.id for s in delivered_servers])
         time.sleep(5)
