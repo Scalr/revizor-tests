@@ -67,7 +67,7 @@ def check_resolving(domain):
 
 @world.absorb
 def check_open_port(server, port):
-    LOG.debug('Check open port %s:%s' % (server, port))
+    LOG.debug('Check open port %s:%s' % (server.public_ip, port))
     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     s.settimeout(5.0)
     try:

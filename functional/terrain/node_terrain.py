@@ -80,6 +80,8 @@ class VerifyProcessWork(object):
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
+        if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+            port = server.details['scalarizr.ctrl_port']
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
                    VerifyProcessWork._verify_open_port(server, port)]
@@ -210,6 +212,7 @@ def assert_check_service(step, service, closed, serv_as):
     if not CONF.feature.dist.startswith('win'):
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        #TODO: Change login on this behavior
         port = world.cloud.open_port(node, port, ip=server.public_ip)
     if service in BEHAVIORS_ALIASES.values():
         behavior = [x[0] for x in BEHAVIORS_ALIASES.items() if service in x][0]
@@ -219,7 +222,7 @@ def assert_check_service(step, service, closed, serv_as):
     if closed and check_result:
         raise AssertionError("Service %s must be don't work but it work!" % service)
     if not closed and not check_result:
-        raise AssertionError("Service %s must be work but it doesn't work!" % service)
+        raise AssertionError("Service %s must be work but it doesn't work! (results: %s)" % (service, check_result))
 
 
 @step(r'I (\w+) service ([\w\d]+) in ([\w\d]+)')
