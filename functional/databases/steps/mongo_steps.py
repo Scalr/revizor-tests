@@ -194,7 +194,7 @@ def check_state(step, states, revert, port, shard_index):
             break
     else:
         if not revert:
-            raise exceptions.TimeoutError('Timeout: 600 seconds reached. '
+            raise exceptions.TimeoutError('Timeout: 300 seconds reached. '
                                           'State %s is not checked in shard: #%s.' % (states.upper(), shard_index))
     LOG.info('Server %s state %s. Checked successfully' % (server.id, states.upper()))
 
