@@ -161,8 +161,6 @@ def check_state(step, states, revert, port, shard_index):
     revert = True if revert else False
     state = member_states[states.upper()]
     shard_index = int(shard_index)-1
-    # Set credentials
-    credentials = {'ssl': CONF.feature.ssl_on, 'port': 27018, 'readPreference': 'nearest'}
     # mongod replicaSet status command
     command = {'replSetGetStatus': 1}
     # Get random server from shard
@@ -179,6 +177,8 @@ def check_state(step, states, revert, port, shard_index):
     state_is_matched = False
     while (time.time() - start_time) <= 300:
         if not state_is_matched:
+            # Set credentials
+            credentials = {'ssl': CONF.feature.ssl_on, 'port': 27018, 'readPreference': 'nearest'}
             res = db_role.db.run_admin_command(server, command, credentials=credentials)
             LOG.info('Obtained replica set status from: %s\n%s' % (server.id, res))
             for member in res['members']:
