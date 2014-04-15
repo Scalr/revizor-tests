@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/mongo_steps, steps/mongo_sharding_steps, , steps/mongo_swebs
+Using step definitions from: steps/common_steps, steps/mongo_steps, steps/mongo_sharding_steps, steps/mongo_swebs
 Feature: MongoDB shard 3x3 test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
