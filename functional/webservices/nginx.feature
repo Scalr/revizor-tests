@@ -43,7 +43,7 @@ Feature: Nginx load balancer role test with apache backends
         But W1 upstream list should contain A1
         And Scalr sends HostDown to W1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume
     Scenario: Stop/resume app server
         Given I have remembered private_ip of A1
         When I suspend server A1
