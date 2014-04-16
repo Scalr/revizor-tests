@@ -44,11 +44,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
     def get_role(behavior, dist=None):
-        if dist is None:
-            if CONF.feature.dist in DIST_ALIASES:
-                dist = DIST_ALIASES[CONF.feature.dist]
-            else:
-                dist = CONF.feature.dist
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
             role = tables('roles-shared').filter({'dist': CONF.feature.dist,
@@ -68,6 +63,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
         return role
+    if CONF.feature.dist in DIST_ALIASES:
+        dist = DIST_ALIASES[CONF.feature.dist]
+    else:
+        dist = CONF.feature.dist
     if CONF.feature.role_id:
         role = IMPL.role.get(CONF.feature.role_id)
         if not behavior in role['behaviors']:
