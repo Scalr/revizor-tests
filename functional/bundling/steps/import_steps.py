@@ -15,7 +15,7 @@ LOG = logging.getLogger(__name__)
 #User data fixtures
 #ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
 USER_DATA = {
-                "ec2": {
+                Platform.EC2: {
                     "behaviors": "base,chef",
                     "farmid": "16674",
                     "message_format": "json",
@@ -40,7 +40,7 @@ USER_DATA = {
                     "cloud_storage_path": "s3://"
                 },
 
-                "gce": {
+                Platform.GCE: {
                     "p2p_producer_endpoint": "https://my.scalr.com/messaging",
                     "behaviors": "app",
                     "owner_email": "stunko@scalr.com",
@@ -64,7 +64,7 @@ USER_DATA = {
                     "server_index": "1"
                 },
 
-                "openstack": {
+                Platform.OPENSTACK: {
                     "p2p_producer_endpoint": "https://my.scalr.com/messaging",
                     "behaviors": "base,chef",
                     "owner_email": "stunko@scalr.com",
@@ -87,7 +87,7 @@ USER_DATA = {
                     "server_index": "1"
                 },
 
-                "cloudstack": {
+                Platform.CLOUDSTACK: {
                     "p2p_producer_endpoint": "https://my.scalr.com/messaging",
                     "behaviors": "base,chef",
                     "owner_email": "stunko@scalr.com",
