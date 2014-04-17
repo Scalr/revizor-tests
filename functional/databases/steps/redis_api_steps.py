@@ -6,12 +6,9 @@ from lettuce import step, world
 
 from revizor2.cloud import Cloud
 from revizor2.conf import CONF
-try:
-    #FIXME: Rewrite RPC (not use scalarizr!!!)
-    from revizor2.helpers.jsonrpc_http import HttpServiceProxy
-    from scalarizr.rpc import ServiceError
-except:
-    pass
+
+from revizor2.helpers.jsonrpc import SzrApiServiceProxy
+from revizor2.helpers.jsonrpc import ServiceError
 
 LOG = logging.getLogger(__name__)
 
@@ -19,11 +16,12 @@ LOG = logging.getLogger(__name__)
 @step('I add ([\d]+) redis ([\w]+) instance to ([\w]+)$')
 def upscale_redis_instances(step, instances_count, instance_type, serv_as):
     server = getattr(world, serv_as)
+    scalarizr_key = server.details.get('scalarizr.key')
+    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
     key = open('/tmp/%s_apikey' % server.id, 'w+')
-    key.write(server.details.get('scalarizr.key'))
+    key.write(scalarizr_key)
     key.close()
     LOG.info('Write key file from server %s to file %s' % (server.id, key.name))
-    api = HttpServiceProxy('http://%s:%s' % (server.public_ip, server.details['scalarizr.api_port']), '/tmp/%s_apikey' % server.id)
     ports = getattr(world, 'redis_instances', {})
     if instance_type == 'master':
         LOG.info('Run %s master instances' % instances_count)
@@ -33,9 +31,9 @@ def upscale_redis_instances(step, instances_count, instance_type, serv_as):
         setattr(world, 'redis_instances', ports)
     elif instance_type == 'slave':
         answer = api.redis.launch_processes(num=int(instances_count),
-                ports=ports.keys()[1:int(instances_count)+1],
-            passwords=ports.values()[1:int(instances_count)+1]
-        )
+                                            ports=ports.keys()[1:int(instances_count)+1],
+                                            passwords=ports.values()[1:int(instances_count)+1]
+                                            )
         LOG.debug('API response: %s' % answer)
     if not len(answer['ports']) == int(instances_count):
         raise AssertionError('Count of running instances %s, but must be: %s' % (len(answer['ports']), instances_count))
@@ -155,9 +153,10 @@ def delete_redis_instance(step, instances_count, serv_as):
     for port in ports:
         del(instances[port])
     key = open('/tmp/%s_apikey' % server.id, 'w+')
-    key.write(server.details.get('scalarizr.key'))
+    scalarizr_key = server.details.get('scalarizr.key')
+    key.write(scalarizr_key)
     key.close()
-    api = HttpServiceProxy('http://%s:%s' % (server.public_ip, server.details['scalarizr.api_port']), '/tmp/%s_apikey' % server.id)
+    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
     answer = api.redis.shutdown_processes(ports=ports, remove_data=True)
     LOG.debug('API response: %s' % answer)
     if not len(answer['ports']) == int(instances_count):
@@ -168,23 +167,19 @@ def delete_redis_instance(step, instances_count, serv_as):
 @step('And count of redis instance is ([\d]+) in ([\w]+)')
 def check_count_redis_instances(step, instances_count, serv_as):
     server = getattr(world, serv_as)
-    c = Cloud()
-    node = c.get_node(server)
-    out = node.run('ps -A | grep redis-server')
-    if not len(out[0].splitlines()) == int(instances_count):
-        LOG.error('Redis processes: %s' % out[0])
-        raise AssertionError('Invalid redis processes count, must be: %s but %s' % (instances_count, len(out[0].splitlines())))
-    #api = HttpServiceProxy('http://%s:%s' % (server.public_ip, server.details['scalarizr.api_port']), '/tmp/%s_apikey' % server.id)
-    #answer = api.redis.list_processes()
-    #LOG.debug('API response from list_processes: %s' % answer)
-    #if not len(answer['ports']) == int(instances_count):
-    #       raise AssertionError('Invalid redis processes count via API, must be: %s but get answer %s' %
-    #                            (instances_count, answer))
+    scalarizr_key = server.details.get('scalarizr.key')
+    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
+    answer = api.redis.list_processes()
+    LOG.debug('API response from list_processes: %s' % answer)
+    if not len(answer['ports']) == int(instances_count):
+        raise AssertionError('Invalid redis processes count via API, must be: %s but get answer %s' %
+                             (instances_count, answer))
 
 @step('And redis not started in ([\w]+) port ([\d]+)')
 def check_busy_port(step, serv_as, port):
     server = getattr(world, serv_as)
-    api = HttpServiceProxy('http://%s:%s' % (server.public_ip, server.details['scalarizr.api_port']), '/tmp/%s_apikey' % server.id)
+    scalarizr_key = server.details.get('scalarizr.key')
+    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
     try:
         answer = api.redis.launch_processes(num=1, ports=[port,])
     except ServiceError, e:
