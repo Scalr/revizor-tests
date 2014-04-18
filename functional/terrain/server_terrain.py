@@ -50,7 +50,7 @@ def server_state_action(step, action, reboot_type, serv_as):
     LOG.info('%s server %s' % (action.capitalize(), server.id))
     args = {'method': reboot_type.strip() if reboot_type else 'soft'}
     meth = getattr(server, action)
-    if meth(**args if action == 'reboot' else None):
+    if not meth(**args if action == 'reboot' else None):
         raise AssertionError('Server %s was not properly %s' % (server.id, action))
     LOG.info('Server %s was %sed' % (server.id, action))
 
