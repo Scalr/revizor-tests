@@ -46,14 +46,13 @@ def terminate_server_decrease(step, force, serv_as, decrease=False):
 
 @step('I (reboot|suspend|resume)(?: (soft|hard))? server ([\w\d]+)$')
 def server_state_action(step, action, reboot_type, serv_as):
-    #TODO: Change default policy for reboot type by clouds. If cloud not know hard, use soft
     server = getattr(world, serv_as)
     LOG.info('%s server %s' % (action.capitalize(), server.id))
     args = {'method': reboot_type.strip() if reboot_type else 'soft'}
     meth = getattr(server, action)
-    #if not meth(**args if action == 'reboot' else None):
-    #    raise AssertionError('Server %s was not properly %s' % (server.id, action))
-    meth(**args if action == 'reboot' else None)
+    res = meth(**args) if action == 'reboot' else meth()
+    if not res:
+        raise AssertionError('Server %s was not properly %s' % (server.id, action))
     LOG.info('Server %s was %sed' % (server.id, action))
 
 
