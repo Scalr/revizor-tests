@@ -1,5 +1,21 @@
-Using step definitions from: steps/common_steps, steps/new_szr_upd_system
+Using step definitions from: steps/common_steps, steps/new_szr_upd_system, steps/import_steps
 Feature: New scalarizr update policy test for broke the system with postinstall/fatal error
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @import
+    Scenario: Import server with scalarizr installed from branch
+        Given I have a server running in cloud
+        Then I initiate the installation behaviors on the server
+        Then I trigger the Start building and run scalarizr
+        And connection with scalarizr was established
+        Then I trigger the Create role
+        And Role has successfully been created
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @import
+    Scenario: Using new role
+        Given I have a an empty running farm
+        When I add to farm imported role
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrap old scalarizr

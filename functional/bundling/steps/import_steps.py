@@ -157,7 +157,7 @@ def install_behaviors(step):
         if behavior in cookbooks:
             continue
         cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
-    install_behaviors_on_node(world.cloud_server, cookbooks, CONF.feature.platform.lower(), branch=CONF.feature.branch)
+    install_behaviors_on_node(world.cloud_server, cookbooks, CONF.feature.driver.cloud_family.lower(), branch=CONF.feature.branch)
 
 @step('I trigger the Start building and run scalarizr')
 def start_building(step):
@@ -170,7 +170,7 @@ def start_building(step):
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
-    res = IMPL.bundle.import_start(platform=CONF.feature.platform,
+    res = IMPL.bundle.import_start(platform=CONF.feature.driver.scalr_cloud,
                                    location=CONF.platforms[CONF.feature.platform]['location'],
                                    cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
