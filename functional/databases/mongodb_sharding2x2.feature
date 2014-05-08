@@ -7,13 +7,13 @@ Feature: MongoDB shard 2x2 test
         When I add mongodb role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And hostname in M1 is valid
         And port 27018 is listen in M1
         And port 27017 is listen in M1
         And port 27019 is listen in M1
         And port 27020 is not listen in M1
         And port 27021 is listen in M1
         And port 27022 is listen in M1
+        And hostname in M1 is valid
         And mongodb log rotated on M1 and new created with 644 rights
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
@@ -28,13 +28,13 @@ Feature: MongoDB shard 2x2 test
         When I add shard
         Then I expect server bootstrapping as M2
         And scalarizr version is last in M2
-        And hostname in M2 is valid
         And wait 4 servers is running
         And cluster map has 2 shards
         And servers [0-0,0-1] in replicaset R1 on port 27018
         And servers [1-0,1-1] in replicaset R2 on port 27018
         And arbiter is running on port 27020 in shard S1
         And arbiter is running on port 27020 in shard S2
+        And hostname in M2 is valid
 
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

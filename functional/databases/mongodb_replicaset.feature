@@ -7,7 +7,6 @@ Feature: MongoDB replica set
         When I add mongodb role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And hostname in M1 is valid
         And port 27018 is listen in M1
         And port 27017 is listen in M1
         And port 27019 is listen in M1
@@ -15,18 +14,19 @@ Feature: MongoDB replica set
         And port 27021 is listen in M1
         And port 27022 is listen in M1
         And mongodb log rotated on M1 and new created with 644 rights
+        And hostname in M1 is valid
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Upscale replica-set
         When I add replicaset
         Then I expect server bootstrapping as M2
         And scalarizr version is last in M2
-        And hostname in M2 is valid
         And arbiter is running on port 27020 in shard S1
         And port 27018 is listen in M2
         And port 27017 is listen in M2
         And port 27019 is not listen in M2
         And port 27020 is listen in M1
+        And hostname in M2 is valid
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Downscale replica-set
