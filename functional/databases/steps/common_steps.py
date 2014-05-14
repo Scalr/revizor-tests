@@ -432,8 +432,12 @@ def get_last_backup_url(step):
     last_backup = last_backup - timedelta(seconds=last_backup.second)
     LOG.info('Last backup date is: %s' % last_backup)
     all_backups = IMPL.services.list_backups(world.farm.id)
-    last_backup_url = IMPL.services.backup_details(all_backups[last_backup]['backupId'])['links']['1']['path']['dirname']
-    last_backup_url = 's3://%s/manifest.json' % last_backup_url
+    LOG.info('All backups is: %s' % all_backups)
+    links = IMPL.services.backup_details(all_backups[last_backup]['backupId'])['links']
+    LOG.info('Backups liks is: %s' % links)
+    if not len(links):
+        raise AssertionError('DB backup details is empty, no links found.')
+    last_backup_url = 's3://%s/manifest.json' % links['1']['path']['dirname']
     LOG.info('Last backup URL: %s' % last_backup_url)
     setattr(world, 'last_backup_url', last_backup_url)
 
