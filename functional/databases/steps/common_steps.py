@@ -432,6 +432,7 @@ def get_last_backup_url(step):
     last_backup = last_backup - timedelta(seconds=last_backup.second)
     LOG.info('Last backup date is: %s' % last_backup)
     all_backups = IMPL.services.list_backups(world.farm.id)
+    LOG.info('All backups is: %s' % all_backups)
     last_backup_url = IMPL.services.backup_details(all_backups[last_backup]['backupId'])['links']['1']['path']['dirname']
     last_backup_url = 's3://%s/manifest.json' % last_backup_url
     LOG.info('Last backup URL: %s' % last_backup_url)
