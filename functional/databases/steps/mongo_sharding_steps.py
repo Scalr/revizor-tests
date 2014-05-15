@@ -1,13 +1,9 @@
-import re
 import time
 import logging
 import random
 
-import pymongo
 from lettuce import world, step
-
 from revizor2.utils import wait_until
-from revizor2.conf import CONF
 
 LOG = logging.getLogger('mongoshards')
 
@@ -35,7 +31,7 @@ def assert_check_replicaset(step, slaves, shard_index, port):
     db_role = world.get_role()
     shard_index = int(shard_index) - 1
     # Set credentials
-    credentials = {'ssl': CONF.feature.ssl_on, 'port': int(port), 'readPreference': 'secondary'}
+    credentials = {'port': int(port), 'readPreference': 'secondary'}
     # mongod replicaSet status command
     command = {'replSetGetStatus': 1}
     # Get random server from shard
@@ -66,7 +62,7 @@ def assert_shard_status(step, serv_count):
     # mongod Shard list command
     command = {'listShards': 1}
     # Set credentials
-    credentials = {'ssl': CONF.feature.ssl_on, 'port': 27017, 'readPreference': 'primary'}
+    credentials = {'port': 27017, 'readPreference': 'primary'}
     # Get random server from shard
     for server in world.farm.servers:
         if server.status == 'Running' and server.role_id == db_role.role_id:

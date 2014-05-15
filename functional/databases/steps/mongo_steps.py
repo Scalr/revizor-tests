@@ -3,13 +3,10 @@ import sys
 import logging
 
 from lettuce import world, step
-from revizor2.cloud import Cloud
 from revizor2.utils import wait_until
-from revizor2.conf import CONF
 from random import sample
 from pymongo.errors import OperationFailure
 from revizor2 import exceptions
-from bson.objectid import ObjectId
 
 LOG = logging.getLogger('mongodb')
 
@@ -60,15 +57,14 @@ def listen_only(step, port, serv_as):
 @step('I (add|delete) replicaset')
 def replicaset_control(step, action):
     world.farm.mongodb_replicaset(action)
-    time.sleep(60)
+    time.sleep(300)
 
 
 @step('([\w]+) is master$')
 def check_master(step, serv_as):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    credentials = {'ssl': CONF.feature.ssl_on}
-    res = db_role.db.check_master(server, credentials=credentials)
+    res = db_role.db.check_master(server)
     world.assert_not_exist(res, '%s is not master' % server.id)
     LOG.info('Master checked. %s is master. ' % serv_as)
 
@@ -77,13 +73,7 @@ def check_master(step, serv_as):
 def wait_data_in_mongodb(step, serv_as, replica, db_name):
     server = getattr(world, serv_as)
     db_role = world.get_role()
-    credentials = {'ssl': CONF.feature.ssl_on}
-    # Set credentials
-    if replica:
-        credentials.update({'replicaSet': serv_as, 'readPreference': 'secondary'})
-    # Get connection
-    connection = db_role.db.get_connection(server, credentials=credentials)
-    LOG.info('Checking data on %s. Connected with %s options.' % (serv_as, credentials))
+    credentials = None
     # Get randomom collection
     id = dict(sample(world.data_insert_result.items(), 3))
     # Get document from random collection
@@ -92,6 +82,12 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
     LOG.info('Random data requested with a replica: ' % id)
     start_time = time.time()
     while (time.time() - start_time) <= 600:
+        # Set credentials
+        if replica:
+            credentials = {'readPreference': 'secondary', 'port': 27018}
+        # Get connection
+        connection = db_role.db.get_connection(server, credentials=credentials)
+        LOG.info('Checking data on %s. Connected with %s options.' % (serv_as, credentials))
         collection_count = len(id)
         for collection, objects in id.iteritems():
             try:
@@ -116,12 +112,12 @@ def wait_data_in_mongodb(step, serv_as, replica, db_name):
     LOG.info('Random data checked successfully on %s' % serv_as)
 
 
-@step('replicaset status is valid on ([\w]+) port ([\d]+)$')
-def check_status(step, serv_as, port):
+@step('replicaset status is valid on ([\w]+)$')
+def check_status(step, serv_as):
     server = getattr(world, serv_as)
     db_role = world.get_role()
     # Set credentials
-    credentials = {'ssl': CONF.feature.ssl_on, 'port': int(port)}
+    credentials = {'readPreference': 'secondary', 'port': 27018}
     # mongod replicaSet status command
     command = {'replSetGetStatus': 1}
     # Get status
@@ -178,7 +174,7 @@ def check_state(step, states, revert, port, shard_index):
     while (time.time() - start_time) <= 300:
         if not state_is_matched:
             # Set credentials
-            credentials = {'ssl': CONF.feature.ssl_on, 'port': 27018, 'readPreference': 'nearest'}
+            credentials = {'port': 27018}
             res = db_role.db.run_admin_command(server, command, credentials=credentials)
             LOG.info('Obtained replica set status from: %s\n%s' % (server.id, res))
             for member in res['members']:
