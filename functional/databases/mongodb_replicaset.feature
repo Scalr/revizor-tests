@@ -50,7 +50,7 @@ Feature: MongoDB replica set
         And port 27019 is not listen in M4
         And port 27020 is not listen in all
         And arbiter is not running on port 27020 in shard S1
-        And replicaset status is valid on M4 port 27018
+        And replicaset status is valid on M4
         When I delete replicaset
         And M1 is master
         And port 27020 is listen only in M1
