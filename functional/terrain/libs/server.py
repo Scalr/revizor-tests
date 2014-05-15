@@ -272,8 +272,12 @@ def wait_script_execute(server, message, state):
 @world.absorb
 def get_hostname(server):
     serv = world.cloud.get_node(server)
-    out = serv.run('/bin/hostname')
-    return out[0]
+    for i in range(3):
+        out = serv.run('/bin/hostname')
+        if out[0].strip():
+            return out[0].strip()
+        time.sleep(5)
+    raise AssertionError('Can\'t get hostname from server: %s' % server.id)
 
 
 @world.absorb

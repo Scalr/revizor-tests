@@ -10,6 +10,7 @@ from lettuce import world, step
 from revizor2 import consts
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
+from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
@@ -146,10 +147,10 @@ def update_scalarizr(step, serv_as):
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')
-        node.run('apt-get install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.cloud_family)
+        node.run('apt-get install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
     elif 'centos' in node.os[0].lower():
         LOG.info('Update scalarizr in CentOS')
-        node.run('yum install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.cloud_family)
+        node.run('yum install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
 
 
 
@@ -206,7 +207,12 @@ def assert_check_service(step, service, closed, serv_as):
         port, 'closed' if closed else 'open', server.id
     ))
     if service == 'scalarizr' and CONF.feature.dist.startswith('win'):
-        assert server.upd_api.status()['service_status'] == 'running', 'Scalarizr is not running in windows'
+        try:
+            status = server.upd_api.status()['service_status']
+        except ServiceError:
+            status = server.upd_api_old.status()['service_status']
+        if not status == 'running':
+            raise AssertionError('Scalarizr is not running in windows, status: %s' % status)
         return
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.startswith('win'):

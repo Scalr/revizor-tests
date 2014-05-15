@@ -14,10 +14,10 @@ def check_process_options(step, process, options, serv_as):
     out = node.run('ps aux | grep %s' % process)
     LOG.debug('Grep for ps aux: %s' % out[0])
     for line in out[0].splitlines():
-        if line.split()[10].startswith('grep'):
+        if 'grep' in line:
             continue
         LOG.info('Work with line: %s' % line)
-        if not options in ' '.join(line.split()[10:]):
+        if not options in line:
             raise AssertionError('Options %s not in process, %s' % (options, ' '.join(line.split()[10:])))
         else:
             return True
@@ -29,7 +29,7 @@ def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split()[1][1:-1]
-    hostname = node.run('hostname')[0].strip()
+    hostname = world.get_hostname(server)
     if not node_name == hostname:
-        raise AssertionError('Chef node_name %s != hostname on server %s' % (node_name, hostname))
+        raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
 
