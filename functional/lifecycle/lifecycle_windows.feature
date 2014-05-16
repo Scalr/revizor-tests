@@ -34,25 +34,25 @@ Feature: Windows server lifecycle
     Scenario: Execute sync cmd script on Windows
         When I execute script 'Windows ping-pong. CMD' synchronous on M1
         Then I see script result in M1
-        And last script output contains 'pong' in M1
+        And script output contains 'pong' in M1
 
     @ec2
     Scenario: Execute async cmd script on Windows
         When I execute script 'Windows ping-pong. CMD' asynchronous on M1
         Then I see script result in M1
-        And last script output contains 'pong' in M1
+        And script output contains 'pong' in M1
 
     @ec2
     Scenario: Execute sync ps script on Windows
         When I execute script 'Windows ping-pong. PS' synchronous on M1
         Then I see script result in M1
-        And last script output contains 'pong' in M1
+        And script output contains 'pong' in M1
 
     @ec2
     Scenario: Execute async ps script on Windows
         When I execute script 'Windows ping-pong. PS' asynchronous on M1
         Then I see script result in M1
-        And last script output contains 'pong' in M1
+        And script output contains 'pong' in M1
 
     @ec2
     Scenario: Restart farm
