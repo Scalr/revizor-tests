@@ -4,8 +4,8 @@
         "ec2": {"tags": ["ec2", "-slavedatabundle"], "default": true},
         "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle"],
         "idcf": ["cloudstack", "-grow", "-backup", "-slavedatabundle"],
-        "rackspaceng": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle"],
-        "enter": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
+        "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle"],
+        "ecs": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
     },
     "RV_STORAGE": {
         "persistent": {"tags": ["-lvm"], "default": true},

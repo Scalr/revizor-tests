@@ -4,7 +4,7 @@
         "ec2": {"tags": ["ec2"], "default": true},
         "gce": ["gce"],
         "idcf": ["cloudstack"],
-        "rackspaceng": ["rackspaceng"],
-        "enter": ["openstack"]
+        "rackspacengus": ["rackspaceng"],
+        "ecs": ["openstack"]
     }
 }

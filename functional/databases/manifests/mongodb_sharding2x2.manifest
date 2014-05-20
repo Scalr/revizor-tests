@@ -4,8 +4,8 @@
         "ec2": {"tags": ["ec2"], "default": true},
         "gce": ["gce", "-reboot"],
         "idcf": ["cloudstack", "-backup"],
-        "rackspaceng": ["rackspaceng"],
-        "enter": ["openstack"]
+        "rackspacengus": ["rackspaceng"],
+        "ecs": ["openstack"]
     },
     "RV_STORAGE": {
         "persistent": [],

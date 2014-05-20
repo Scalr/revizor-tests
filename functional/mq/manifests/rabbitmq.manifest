@@ -4,8 +4,8 @@
         "ec2": {"tags": [], "default": true},
         "gce": [],
         "idcf": [],
-        "rackspaceng": [],
-        "enter": []
+        "rackspacengus": [],
+        "ecs": []
     },
     "RV_STORAGE": {
         "persistent": {"tags": [], "default": true},
