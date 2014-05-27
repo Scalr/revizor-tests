@@ -181,9 +181,13 @@ class MySQL(object):
         path = os.path.join(src_path, db)
         if not path in backups_in_server:
             raise AssertionError('Database %s backup not exist in path %s' % (db, path))
+        #Create auth file for mysql
+        out = self.node.run("echo $'[client]\nuser=scalr\npassword=%s' > ~/.my.cnf" % self._role.db.password)
+        if out[1]:
+            raise AssertionError("Can't create ~/.my.cnf.\n%s" % out[1])
         LOG.info('Creating db: %s in server.' % db)
         self._role.db.database_create(db, self.server)
-        out = self.node.run('mysql -u scalr -p%s %s < %s' % (self._role.db.password, db, path))
+        out = self.node.run('mysql %s < %s' % (db, path))
         if out[1]:
             raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
         LOG.info('Data base: %s was successfully created in server.' % db)
