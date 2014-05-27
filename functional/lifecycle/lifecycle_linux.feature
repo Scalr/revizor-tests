@@ -69,6 +69,15 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/f1'
         And server M1 contain '/tmp/f2'
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @event
+    Scenario: Caching custom event parameters
+        Given I define event 'TestEvent'
+        And I attach a script 'TestingEventScript' on this event
+        When I execute 'szradm --fire-event TestEvent file1=/tmp/nocache1 file2=/tmp/nocache2' in M1
+        Then Scalr sends TestEvent to M1
+        And server M1 contain '/tmp/nocache1'
+        And server M1 contain '/tmp/nocache2'
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @deploy
     Scenario: Check deploy action
         Given I have running server M1

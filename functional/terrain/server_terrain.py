@@ -7,18 +7,21 @@ from datetime import datetime
 
 from lettuce import world, step
 
+from revizor2.conf import CONF
 from revizor2.api import Script
 from revizor2.utils import wait_until
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 
 
 LOG = logging.getLogger(__name__)
 
 
 @step('I expect server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
-def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=2000):
+def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
+    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK):
+        timeout = 3000
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as, role_type))
     server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
     setattr(world, serv_as, server)
