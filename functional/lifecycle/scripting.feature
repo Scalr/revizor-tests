@@ -11,13 +11,14 @@ Feature: Scalarizr scripting test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify script execution on bootstrapping
-        Then <message> event in script log for M1 from user <user> and exitcode <exitcode>
+        Then script <name> executed in <event> by user <user> with exitcode <exitcode> for M1
 
     Examples:
-      | message      | state         | user    | exitcode |
-      | HostInit     | bootstrapping | root    | 0        |
-      | BeforeHostUp | initializing  | revizor | 1        |
-      | HostUp       | running       | ubuntu  | 0        |
+      | event        | name            | user    | exitcode |
+      | HostInit     | Linux ping-pong | root    | 0        |
+      | BeforeHostUp | Linux ping-pong | revizor | 1        |
+      | HostUp       | Linux ping-pong | ubuntu  | 0        |
+      | HostInit     | /tmp/script.sh  | root    | 1        |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Execute 2 sync scripts
