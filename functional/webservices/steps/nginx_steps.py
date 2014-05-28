@@ -13,12 +13,15 @@ from revizor2.consts import ServerStatus
 LOG = logging.getLogger(__name__)
 
 
-@step(r"http get (.+) contains '(.+)'")
-def assert_check_http_get_answer(step, serv_as, mes):
+@step(r"http get (.+) contains default message")
+def assert_check_http_get_answer(step, serv_as):
     server = getattr(world, serv_as)
+    nginx_mes = ['No running app instances found',
+           'Backend server did not respond in time',
+           'the Amazon Linux AMI']
     resp = requests.get('http://%s' % server.public_ip, timeout=120).text
-    if not mes in resp:
-        raise AssertionError('http://%s response not contains: "%s", response: "%s"' % (server.public_ip, mes, resp))
+    if not any(message in resp for message in nginx_mes):
+        raise AssertionError('http://%s response not contains: "%s", Response is: "%s"' % (server.public_ip, nginx_mes, resp))
 
 
 @step(r'([\w]+) upstream list should contains (.+)$')
