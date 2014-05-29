@@ -8,7 +8,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then I expect server bootstrapping as W1
         And scalarizr version is last in W1
         And nginx is running on W1
-        And http get W1 contains 'No running app instances found'
+        And http get W1 contains default message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream

@@ -8,7 +8,7 @@ Feature: Nginx load balancer role test with apache backends
         Then I expect server bootstrapping as W1
         And scalarizr version is last in W1
         And nginx is running on W1
-        And http get W1 contains 'No running app instances found'
+        And http get W1 contains default message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding custom role to upstream
@@ -18,7 +18,7 @@ Feature: Nginx load balancer role test with apache backends
         Then I restart service scalarizr in W1
         And I wait 1 minutes
         And W1 upstream list should contain B1
-        And http get W1 contains 'Backend server did not respond in time'
+        And http get W1 contains default message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Clean up custom role
