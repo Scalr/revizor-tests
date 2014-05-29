@@ -54,10 +54,12 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if behavior in BEHAVIORS_ALIASES:
                 behavior = BEHAVIORS_ALIASES[behavior]
             mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
+            LOG.info('Get role versions by mask: %s' % mask)
             versions = get_role_versions(mask)
             #TODO: Return RV_ROLE_VERSION
             role_name = '%s%s-%s-%s' % (behavior, versions[0],
                                         dist, CONF.feature.role_type)
+            LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)

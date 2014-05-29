@@ -27,7 +27,7 @@ def verify_scalarizr_log(node):
         node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
-        log_out = node.run('grep "ERROR\|Traceback" /var/log/scalarizr_debug.log ')
+        log_out = node.run('grep "ERROR" /var/log/scalarizr_debug.log ')
         LOG.debug('Grep result: %s' % log_out[0])
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
