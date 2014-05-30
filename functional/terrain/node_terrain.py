@@ -239,6 +239,15 @@ def service_control(step, action, service, serv_as):
     node.run('/etc/init.d/%s %s' % (service, action))
 
 
+@step(r'scalarizr debug log in ([\w\d]+) contains \'(.+)\'')
+def find_string_in_debug_log(step, serv_as, string):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    out = node.run('grep "%s" /var/log/scalarizr_debug.log' % string)
+    if not string in out[0]:
+        raise AssertionError('String "%s" not found in scalarizr_debug.log. Grep result: %s' % (string, out))
+
+
 @step('scalarizr version from (\w+) repo is last in (.+)$')
 @world.passed_by_version_scalarizr('2.5.14')
 def assert_scalarizr_version(step, repo, serv_as):
