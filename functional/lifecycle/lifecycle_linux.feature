@@ -4,6 +4,7 @@ Feature: Linux server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
 
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
