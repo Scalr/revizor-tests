@@ -17,7 +17,7 @@ def assert_check_script(step, message, state, serv_as):
                error_text='I\'m not see %s scripts execution for server %s' % (message, serv.id))
 
 
-@step("script ([\w\d -]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+) for ([\w\d]+)")
+@step("script ([\w\d -/]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+) for ([\w\d]+)")
 def assert_check_script_in_log(step, name, message, user, exitcode, serv_as):
     time.sleep(5)
     server = getattr(world, serv_as)

@@ -13,6 +13,7 @@ class States(object):
     SUCCESS = 'SUCCESS'
     FAILED = 'FAILED'
     NOTRUNNING = 'NOT RUNNING'
+    OUTLINE = 'OUTLINE'
 
 
 def wrt(what):
@@ -53,19 +54,25 @@ def after_scenario(scenario):
 
 @before.each_step
 def before_step(step):
-    sc = etree.Element('step', name=step.sentence, state=States.PENDING)
+    state = States.PENDING
+    if step.scenario and step.scenario.outlines:
+        state = States.OUTLINE
+    sc = etree.Element('step', name=step.original_sentence, state=state)
     wrt(sc)
 
 
 @after.each_step
 def after_step(step):
+    if step.scenario and step.scenario.outlines:
+        return
     if step.ran:
         state = States.SUCCESS if step.passed else States.FAILED
         if step.scenario and step.scenario.outlines:
-            state = States.SUCCESS
+            state = States.NOTRUNNING
     else:
         state = States.NOTRUNNING
-    sc = etree.Element('step', name=step.sentence, state=state)
+
+    sc = etree.Element('step', name=step.original_sentence, state=state)
     if step.failed:
         trace = etree.SubElement(sc, 'traceback')
         trace.text = step.why.traceback
@@ -81,7 +88,8 @@ def print_outline(scenario, order, outline, reasons_to_fail):
         head.text = ','.join(scenario.keys)
         wrt(sc)
     state = States.FAILED if reasons_to_fail else States.SUCCESS
-    sc = etree.Element('outlinestep', state=state, keys=','.join(scenario.outlines[order].values()))
+    sc = etree.Element('outlinestep', state=state,
+                       keys=','.join(['%s=%s' % (x[0], x[1]) for x in scenario.outlines[order].items()]))
     if state == States.FAILED:
         trace = etree.SubElement(sc, 'traceback')
         trace.text = reasons_to_fail[0].traceback
