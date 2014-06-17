@@ -24,7 +24,7 @@ def assert_check_script_in_log(step, name, message, user, exitcode, serv_as):
     server.scriptlogs.reload()
     # Convert script name, because scalr convert name to:
     # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
-    name = re.sub('[^A-Za-z0-9]+', '_', name)[:50] if name else name
+    name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50] if name else name
     for log in server.scriptlogs:
         LOG.debug('Check script log:\nname: %s\nevent: %s\nmessage: %s\nrun as: %s\nexitcode: %s\n' %
                   (log.name, log.event, log.message, log.run_as, log.exitcode))
