@@ -18,7 +18,8 @@ def assert_check_http_get_answer(step, serv_as):
     server = getattr(world, serv_as)
     nginx_mes = ['No running app instances found',
            'Backend server did not respond in time',
-           'the Amazon Linux AMI']
+           'the Amazon Linux AMI',
+           'Welcome to <strong>nginx</strong> on EPEL!']
     resp = requests.get('http://%s' % server.public_ip, timeout=120).text
     if not any(message in resp for message in nginx_mes):
         raise AssertionError('http://%s response not contains: "%s", Response is: "%s"' % (server.public_ip, nginx_mes, resp))

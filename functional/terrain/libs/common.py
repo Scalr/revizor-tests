@@ -1,15 +1,25 @@
+import sys
 import socket
 import logging
-import functools
 from distutils.version import LooseVersion
 
 import requests
 from lettuce import world
 
+from lxml import etree
+
 from revizor2.api import Server
 from revizor2.consts import ServerStatus
 
 LOG = logging.getLogger(__name__)
+
+
+@world.absorb
+def wrt(what):
+    what = etree.tostring(what)
+    if isinstance(what, unicode):
+        what = what.encode('utf-8')
+    sys.stdout.write(what+'\n')
 
 
 @world.absorb

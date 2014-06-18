@@ -12,6 +12,8 @@ from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
 
+from lxml import etree
+
 LOG = logging.getLogger(__name__)
 
 
@@ -78,6 +80,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
         role = get_role(behavior, dist)
+    world.wrt(etree.Element('meta', name='role', value=role['name']))
+    world.wrt(etree.Element('meta', name='dist', value=role['dist']))
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
