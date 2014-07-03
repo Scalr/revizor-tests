@@ -140,17 +140,18 @@ def attach_script(step, script_name):
     res = filter(lambda x: x['name'] == script_name, scripts)[0]
     LOG.info('Add script %s to custom event %s' % (res['name'], world.last_event['name']))
     IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[{
-                          "script_id": str(res['id']),
-                          "script": res['name'],
-                          "params": [],
-                          "target": "instance",
-                          "version": "1",
-                          "timeout": "1200",
-                          "issync": "1",
-                          "order_index": "1",
-                          "event": world.last_event['name']
-                        }]
-                    )
+        "script_type": "scalr",
+        "script_id": str(res['id']),
+        "script": res['name'],
+        "event": world.last_event['name'],
+        "params": [],
+        "target": "instance",
+        "version": "-1",
+        "timeout": "1200",
+        "issync": "1",
+        "order_index": "1",
+        }]
+    )
 
 
 @step('I execute \'(.+)\' in (.+)$')

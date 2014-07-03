@@ -72,7 +72,12 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     else:
         dist = CONF.feature.dist
     if CONF.feature.role_id:
-        role = IMPL.role.get(CONF.feature.role_id)
+        if CONF.feature.role_id.isdigit():
+            role = IMPL.role.get(CONF.feature.role_id)
+        else:
+            roles = IMPL.role.list(query=CONF.feature.role_id)
+            if roles:
+                role = roles[0]
         if not behavior in role['behaviors']:
             LOG.warning('Behavior %s not in role behaviors %s' % (behavior, role['behaviors']))
             role = get_role(behavior, role['dist'])
