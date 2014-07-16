@@ -57,7 +57,7 @@ def listen_only(step, port, serv_as):
 @step('I (add|delete) replicaset')
 def replicaset_control(step, action):
     world.farm.mongodb_replicaset(action)
-    time.sleep(300)
+    time.sleep(60)
 
 
 @step('([\w]+) is master$')

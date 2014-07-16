@@ -11,7 +11,7 @@ from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.api import Script, Farm
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
-from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_SCRIPTING
+from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS
 
 
 LOG = logging.getLogger(__name__)
@@ -52,10 +52,12 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
                 redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
                 LOG.info('Setup %s redis processes' % redis_count)
                 role_options.update({'db.msr.redis.num_processes': int(redis_count)})
-            elif opt == 'scripts':
+            elif opt == 'orchestration':
                 LOG.info('Setup scripting options')
-                script_id = Script.get_id('Linux ping-pong')['id']
-                scripting = json.loads(DEFAULT_SCRIPTING % {'SCRIPT_ID': script_id})
+                script_pong_id = Script.get_id('Linux ping-pong')['id']
+                script_init_id = Script.get_id('Revizor orchestration init')['id']
+                scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % {'SCRIPT_PONG_ID': script_pong_id,
+                                                                         'SCRIPT_INIT_ID': script_init_id})
             elif opt == 'storages':
                 LOG.info('Insert additional storages config')
                 additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}

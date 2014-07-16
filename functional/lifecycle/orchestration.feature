@@ -1,10 +1,10 @@
-Using step definitions from: steps/common_steps, steps/scripting_steps
-Feature: Scalarizr scripting test
+Using step definitions from: steps/common_steps, steps/scripting_steps, steps/chef_boot_steps
+Feature: Orchestration features test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role
         Given I have a clean and stopped farm
-        When I add role to this farm with scripts
+        When I add role to this farm with orchestration
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -14,11 +14,18 @@ Feature: Scalarizr scripting test
         Then script <name> executed in <event> by user <user> with exitcode <exitcode> for M1
 
     Examples:
-      | event        | name            | user    | exitcode |
-      | HostInit     | Linux ping-pong | root    | 0        |
-      | BeforeHostUp | Linux ping-pong | revizor | 1        |
-      | HostUp       | Linux ping-pong | ubuntu  | 0        |
-      | HostInit     | /tmp/script.sh  | root    | 1        |
+      | event        | name                          | user     | exitcode |
+      | HostInit     | Revizor orchestration init    | root     | 0        |
+      | HostInit     | /tmp/script.sh                | root     | 1        |
+      | BeforeHostUp | Linux ping-pong               | root     | 0        |
+      | BeforeHostUp | Linux ping-pong               | revizor  | 0        |
+      | HostUp       | Linux ping-pong               | revizor2 | 1        |
+      | HostUp       | /home/revizor/local_script.sh | revizor  | 0        |
+      | HostUp       | chef                          | root     | 0        |
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Verify chef-solo execute normally
+        Given file '/root/chef_solo_result' exist in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Execute 2 sync scripts

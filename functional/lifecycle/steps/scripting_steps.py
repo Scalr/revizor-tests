@@ -18,7 +18,7 @@ def assert_check_script(step, message, state, serv_as):
 
 
 @step("script ([\w\d -/]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+) for ([\w\d]+)")
-def assert_check_script_in_log(step, name, message, user, exitcode, serv_as):
+def assert_check_script_in_log(step, name, event, user, exitcode, serv_as):
     time.sleep(5)
     server = getattr(world, serv_as)
     server.scriptlogs.reload()
@@ -28,17 +28,20 @@ def assert_check_script_in_log(step, name, message, user, exitcode, serv_as):
     for log in server.scriptlogs:
         LOG.debug('Check script log:\nname: %s\nevent: %s\nmessage: %s\nrun as: %s\nexitcode: %s\n' %
                   (log.name, log.event, log.message, log.run_as, log.exitcode))
-        LOG.debug('Comparison result:\nevent:(%s=%s)\nuser: (%s=%s)\nname: (%s=%s)' %
-                  (log.event.strip(), message.strip(), log.run_as, user, log.name.strip(), name))
-        if log.event.strip() == message.strip() and log.run_as == user and log.name.strip() == name:
+
+        if log.event.strip() == event.strip() \
+                and log.run_as == user \
+                and ((name == 'chef' and log.name.strip().startswith(name))
+                     or log.name.strip() == name):
+
             LOG.debug('We found event \'%s\' run from user %s' % (log.event, log.run_as))
             if log.exitcode == int(exitcode):
-                LOG.debug('This message exitcode: %s' % log.exitcode)
+                LOG.debug('This event exitcode: %s' % log.exitcode)
                 return True
             else:
                 raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
-                                     % (message, user, log.exitcode, exitcode))
-    raise AssertionError('I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (message, user, server.id))
+                                     % (event, user, log.exitcode, exitcode))
+    raise AssertionError('I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (event, user, server.id))
 
 
 @step('I see script result in (.+)')
