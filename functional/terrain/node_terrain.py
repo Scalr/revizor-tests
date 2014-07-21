@@ -298,7 +298,7 @@ def assert_scalarizr_version(step, serv_as):
             elif line.strip().startswith('Candidate'):
                 candidate_version = line.split()[-1].split('-')[0].split('.')[-1]
                 LOG.info('Candidate version: %s' % candidate_version)
-    elif ('centos' or 'redhat') in server.role.os.lower():
+    elif 'centos' in server.role.os.lower() or 'redhat' in server.role.os.lower():
         LOG.info('Check ubuntu installed scalarizr')
         out = node.run('yum list --showduplicates scalarizr-base')
         LOG.debug('Installed information: %s' % out[0])
@@ -309,6 +309,9 @@ def assert_scalarizr_version(step, serv_as):
             elif line.strip().startswith('scalarizr-base'):
                 candidate_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
                 LOG.info('Candidate version: %s' % candidate_version)
+    else:
+        LOG.warning('Undefined OS can\'t verify scalarizr version: %s' % server.role.os)
+        return
     if candidate_version and not installed_version == candidate_version:
         raise AssertionError('Installed scalarizr is not last! Installed: %s, '
                              'candidate: %s' % (installed_version, candidate_version))

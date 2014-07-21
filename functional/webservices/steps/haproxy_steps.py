@@ -22,7 +22,7 @@ def parse_haproxy_config(node):
     tmp_section = None
     tmp_opts = []
     for line in config:
-        if line.strip().startswith('listen') or line.strip().startswith('backend') and 'scalr' in line:
+        if (line.strip().startswith('listen') or line.strip().startswith('backend')) and 'scalr' in line:
             if tmp_section:
                 parameters[tmp_section.split()[0]+'s'][int(tmp_section.split()[1].split(':')[-1])] = tmp_opts
                 tmp_section = None

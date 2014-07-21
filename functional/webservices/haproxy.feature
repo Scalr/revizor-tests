@@ -3,10 +3,22 @@ Feature: HAProxy load balancer role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping haproxy role
-        Given I have a an empty running farm
+        Given I have a clean and stopped farm
         When I add haproxy role to this farm
+        When I add proxy P1 to haproxy role for 80 port with backends: 'example.com default' and healthcheck: 16, 21, 10
+        And I start farm
         Then I expect server bootstrapping as W1
+        And W1 backend list for 80 port should contains 'example.com default'
         And scalarizr version is last in W1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Testing proxy delete
+        When I delete proxy P1 in haproxy role
+        Then I reboot server W1
+        And Scalr receives RebootFinish from W1
+        Then W1 config should not contains P1
+        And process haproxy is running in W1
+        And 80 port is listen on W1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream
@@ -62,12 +74,3 @@ Feature: HAProxy load balancer role
         When I start BaseHttpServer on 8002 port in A1
         Then 8000 port is listen on W1
         And 8000 get domain D1 matches 'It works!'
-
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Testing proxy delete
-        When I delete proxy P1 in haproxy role
-        Then I reboot server W1
-        And Scalr receives RebootFinish from W1
-        Then W1 config should not contains P1
-        And process haproxy is running in W1
-        And 80 port is listen on W1

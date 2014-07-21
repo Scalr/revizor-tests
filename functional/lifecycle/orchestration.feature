@@ -1,10 +1,10 @@
-Using step definitions from: steps/common_steps, steps/scripting_steps, steps/chef_boot_steps
+Using step definitions from: steps/common_steps, steps/scripting_steps, steps/lifecycle_steps, steps/chef_boot_steps
 Feature: Orchestration features test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role
         Given I have a clean and stopped farm
-        When I add role to this farm with orchestration
+        When I add role to this farm with orchestration,chef
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -22,10 +22,13 @@ Feature: Orchestration features test
       | HostUp       | Linux ping-pong               | revizor2 | 1        |
       | HostUp       | /home/revizor/local_script.sh | revizor  | 0        |
       | HostUp       | chef                          | root     | 0        |
+      | HostUp       | chef                          | root     | 0        |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Verify chef-solo execute normally
+    Scenario: Verify chef executed normally
         Given file '/root/chef_solo_result' exist in M1
+        Given file '/root/chef_hostup_result' exist in M1
+        And process 'memcached' has options '-m 1024' in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Execute 2 sync scripts
