@@ -168,3 +168,52 @@ def check_file(step, serv_as, path):
     LOG.info('Check exist path: %s' % path)
     if not out[2] == 0:
         raise AssertionError('File \'%s\' not exist: %s' % (path, out))
+
+
+@step("I save device for '(.+)' for role")
+def save_device_for_additional_storage(step, mount_point):
+    role = world.get_role()
+    devices = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
+    device = filter(lambda x: x['mountPoint'] == mount_point, devices['configs'])
+    if device:
+        device = device[0]['id']
+    else:
+        raise AssertionError('Can\'t found device for mount point: %s' % mount_point)
+    device_id = devices['devices'][device][0]['storageId']
+    LOG.info('Volume Id for mount point "%s" is "%s"' % (mount_point, device_id))
+    setattr(world, 'device_%s' % mount_point.replace('/', '_'), device_id)
+
+
+@step("I delete saved device '(.+)'")
+def delete_volume(step, mount_point):
+    device_id = getattr(world, 'device_%s' % mount_point.replace('/', '_'))
+    LOG.info('Delete volume: %s' % device_id)
+    volume = filter(lambda x: x.id == device_id, world.cloud.list_volumes())
+    if volume:
+        volume = volume[0]
+    else:
+        raise AssertionError('Can\'t found Volume in cloud with ID: %s' % device_id)
+
+    for i in range(10):
+        try:
+            world.cloud._driver._conn.destroy_volume(volume)
+            break
+        except Exception, e:
+            if 'attached' in e.message:
+                LOG.warning('Volume %s currently attached to server' % device_id)
+                time.sleep(60)
+
+
+@step("saved device for '(.+)' for role is another")
+def verify_saved_and_new_volumes(step, mount_point):
+    role = world.get_role()
+    devices = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
+    device = filter(lambda x: x['mountPoint'] == mount_point, devices['configs'])
+    if device:
+        device = device[0]['id']
+    else:
+        raise AssertionError('Can\'t found device for mount point: %s' % mount_point)
+    device_id = devices['devices'][device][0]['storageId']
+    old_device_id = getattr(world, 'device_%s' % mount_point.replace('/', '_'))
+    if device_id == old_device_id:
+        raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))

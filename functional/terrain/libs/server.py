@@ -34,6 +34,7 @@ def verify_scalarizr_log(node):
         LOG.error(traceback.format_exc())
         return
     for line in log_out[0].splitlines():
+        ignore = False
         LOG.debug('Verify line "%s" for errors' % line)
         log_date = None
         log_level = None
@@ -51,12 +52,16 @@ def verify_scalarizr_log(node):
                 continue
 
         for error in SCALARIZR_LOG_IGNORE_ERRORS:
+            LOG.debug('Check ignore error word in error line: %s' % error)
             if error in line:
-                continue
-
+                LOG.debug('Ignore this error line: %s' % line)
+                ignore = True
+        if ignore:
+            continue
+            
         if log_level == 'ERROR':
-            LOG.error('Found ERROR in scalarizr_debug.log: %s' % log_out[0])
-            raise ScalarizrLogError('Error in scalarizr_debug.log on server %s' % node.id)
+            LOG.error('Found ERROR in scalarizr_debug.log:\n %s' % line)
+            raise ScalarizrLogError('Error in scalarizr_debug.log on server %s\nErrors: %s' % (node.id, log_out[0]))
 
 
 @world.absorb
