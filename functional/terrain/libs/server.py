@@ -58,7 +58,7 @@ def verify_scalarizr_log(node):
                 ignore = True
         if ignore:
             continue
-            
+
         if log_level == 'ERROR':
             LOG.error('Found ERROR in scalarizr_debug.log:\n %s' % line)
             raise ScalarizrLogError('Error in scalarizr_debug.log on server %s\nErrors: %s' % (node.id, log_out[0]))
