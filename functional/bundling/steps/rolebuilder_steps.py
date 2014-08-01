@@ -48,7 +48,7 @@ def start_rolebuild(step, behaviors):
         location = 'all'
     platform = CONF.feature.driver.scalr_cloud
     os_dist, os_ver = Dist.get_scalr_dist_info(CONF.feature.dist)
-    if CONF.feature.driver.current_cloud == Platform.GCE:
+    if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
         image = filter(lambda x: x['os_family']==os_dist and x['os_version'].startswith(os_ver),
                        images(Platform.to_scalr(CONF.feature.driver.current_cloud)).all()['images'])[0]
     else:
