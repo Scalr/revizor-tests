@@ -16,6 +16,9 @@ class States(object):
     OUTLINE = 'OUTLINE'
 
 
+FAILED_OUTLINES = {}
+
+
 def wrt(what):
     what = etree.tostring(what)
     if isinstance(what, unicode):
@@ -47,7 +50,11 @@ def before_scenario(scenario):
 
 @after.each_scenario
 def after_scenario(scenario):
-    state = States.SUCCESS if scenario.passed else States.FAILED
+    if scenario.outlines:
+        failed = FAILED_OUTLINES.get(scenario.name, False)
+        state = States.FAILED if failed else States.SUCCESS
+    else:
+        state = States.SUCCESS if scenario.passed else States.FAILED
     sc = etree.Element('scenario', name=scenario.name, state=state)
     wrt(sc)
 
@@ -88,6 +95,8 @@ def print_outline(scenario, order, outline, reasons_to_fail):
         head.text = ','.join(scenario.keys)
         wrt(sc)
     state = States.FAILED if reasons_to_fail else States.SUCCESS
+    if state == States.FAILED:
+        FAILED_OUTLINES[scenario.name] = True
     sc = etree.Element('outlinestep', state=state,
                        keys=';'.join(['%s=%s' % (x[0], x[1]) for x in scenario.outlines[order].items()]))
     if state == States.FAILED:
