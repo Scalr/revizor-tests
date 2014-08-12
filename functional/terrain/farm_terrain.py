@@ -66,8 +66,6 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
     if behavior == 'rabbitmq':
         del(role_options['base.hostname_format'])
-    if behavior == 'tomcat6' and CONF.feature.dist.startswith('ubuntu'):
-        behavior = 'tomcat7'
     if behavior == 'redis':
         LOG.info('Insert redis settings')
         role_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),

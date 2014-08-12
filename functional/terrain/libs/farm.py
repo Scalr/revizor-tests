@@ -84,7 +84,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         if not role:
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
-        print "add role without id"
         role = get_role(behavior, dist)
     world.wrt(etree.Element('meta', name='role', value=role['name']))
     world.wrt(etree.Element('meta', name='dist', value=role['dist']))
