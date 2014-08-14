@@ -27,10 +27,10 @@ Feature: Postgresql preset test
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify scalarizr save new field
         Given "postgresql.conf" file from postgresql presets config
-        Then I add keys in "postgresql.conf" file from postgresql to {temp_buffers:10M}
+        Then I add keys in "postgresql.conf" file from postgresql to {temp_buffers:10MB}
         When I save "postgresql.conf" content for postgresql presets
         Given "postgresql.conf" file from postgresql presets config
-        And "postgresql.conf" file from postgresql contains values {temp_buffers:10M}
+        And "postgresql.conf" file from postgresql contains values {temp_buffers:10MB}
         And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
@@ -48,5 +48,5 @@ Feature: Postgresql preset test
         Then I add keys in "postgresql.conf" file from postgresql to {max_connections:150W}
         When I save "postgresql.conf" content for postgresql presets I get error
         Given "postgresql.conf" file from postgresql presets config
-        And "postgresql.conf" file from postgresql contains values {max_connections:150W}
+        And "postgresql.conf" file from postgresql contains values {max_connections:150}
         And not ERROR in M1 scalarizr log

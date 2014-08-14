@@ -45,8 +45,8 @@ Feature: Redis preset test
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify scalarizr revert bad value
         Given "redis.conf" file from redis presets config
-        Then I add keys in "redis.conf" file from redis to {databases:48M}
+        Then I add keys in "redis.conf" file from redis to {databases:wat}
         When I save "redis.conf" content for redis presets I get error
         Given "redis.conf" file from redis presets config
-        And "redis.conf" file from redis contains values {databases:48M}
+        And "redis.conf" file from redis contains values {databases:12}
         And not ERROR in M1 scalarizr log
