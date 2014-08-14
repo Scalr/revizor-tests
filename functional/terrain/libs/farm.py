@@ -95,5 +95,5 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
     if not new_role:
-        raise AssertionError('Added role "%s" not found in farm' % role.name)
+        raise AssertionError('Added role "%s" not found in farm' % role['name'])
     return new_role[0]
