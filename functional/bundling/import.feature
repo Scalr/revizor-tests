@@ -27,7 +27,7 @@ Feature: Import server to scalr and use this role
         And Role has successfully been created
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Using new role
+    Scenario: Using new role 2
         Given I have a an empty running farm
         When I add to farm imported role
         Then I expect server bootstrapping as M2
