@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_api_steps
+Using step definitions from: steps/common_api_steps, apache_api_steps
 Feature: Apache application server role, api tests
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
@@ -8,13 +8,13 @@ Feature: Apache application server role, api tests
         Then I expect server bootstrapping as A1
         And scalarizr version is last in A1
         And apache is running on A1
-        And http get a1 contains default welcome message
+        And http get A1 contains default welcome message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Creates a name-based apache virtual host without ssl support
         Given I run ApacheApi command create_vhost on A1 with arguments:
-            | hostname        | port | template            | ssl   | reload |
-            | www.example.com | 80   | NAME-BASED-TEMPLATE | false | true   |
+            | hostname        | port | template            | ssl    | reload |
+            | www.example.com | 80   | NAME-BASED-TEMPLATE | FALSE  | TRUE   |
         And api result "create_vhost" has argument hostname
         When I run ApacheApi command list_served_virtual_hosts on A1
         And api result "list_served_virtual_hosts" has argument hostname

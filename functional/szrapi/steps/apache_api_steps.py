@@ -7,6 +7,6 @@ Created on 08.18.2014
 
 import logging
 from lettuce import world, step
-from revizor2.defaults import DEFAULT_API_TEMPLATES
+from revizor2.defaults import DEFAULT_API_TEMPLATES as template
 
-LOG = logging.getLogger(__name__)
+LOG = logging.getLogger('Apache api steps')
