@@ -55,6 +55,12 @@ Feature: Windows server lifecycle
         And script output contains 'pong' in M1
 
     @ec2
+    Scenario: Execute sync ps script on Windows from URL
+        When I execute local script 'https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt' asynchronous on M1
+        Then I see script result in M1
+        And script output contains 'Script runned from URL' in M1
+
+    @ec2
     Scenario: Restart farm
         When I stop farm
         And wait all servers are terminated
