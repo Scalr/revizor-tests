@@ -1,0 +1,10 @@
+{
+    "BEHAVIOR": "app",
+    "RV_PLATFORM": {
+        "ec2": {"tags": ["ec2"], "default": true},
+        "gce": ["gce"],
+        "idcf": ["cloudstack"],
+        "rackspacengus": ["rackspaceng"],
+        "ecs": ["openstack"]
+    }
+}
