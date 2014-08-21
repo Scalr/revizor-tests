@@ -30,14 +30,15 @@ def run_api_command(step, service_api, command, serv_as, isset_args=None):
 
     # Get service api
     api = getattr(getattr(szrapi, service_api)(server), command)
-    LOG.debug('Obtained %s instance %s for server %s' % (service_api, api, server.id))
+    LOG.debug('Set %s instance %s for server %s' % (service_api, api, server.id))
     # Get api arguments
     args = None
     if isset_args:
         args = dict([key, templates[service_api][value.lower()] if value.isupper() else value] \
             for key,value in step.hashes[0].iteritems())
-        setattr(world, 'api_args', args)
-        LOG.debug('Obtained {0}.{1} extended arguments: {2}'.format(
+        # Save api args to world [command_name]_args
+        setattr(world, ''.join((command, '_args')), args)
+        LOG.debug('Save {0}.{1} extended arguments: {2}'.format(
             service_api,
             command,
             args
@@ -46,12 +47,12 @@ def run_api_command(step, service_api, command, serv_as, isset_args=None):
     try:
         api_result = api(**args) if args else api()
         LOG.debug('Run %s instance method %s.' % (service_api, command))
-        if api_result:
-            setattr(world, command, api_result)
-            LOG.debug('Obtained {0} instance method {1} result: {2}'.format(
-                service_api,
-                command,
-                api_result))
+        # Save api command result to world [command_name]_res
+        setattr(world, ''.join((command, '_res')), api_result)
+        LOG.debug('Save {0} instance method {1} result: {2}'.format(
+            service_api,
+            command,
+            api_result))
     except Exception as e:
         raise Exception('An error occurred while try to run: {0}.\nScalarizr api Error: {1}'.format(
             command,
@@ -59,48 +60,54 @@ def run_api_command(step, service_api, command, serv_as, isset_args=None):
         )
 
 
-@step(r'And api result (.+) has(?: (.+))? argument (.+)')
-def assert_api_result(step, res_storage_name, negation, input_arg_name):
+@step(r'api result (\"\w+\") has(?: (.+))? argument (\"\w+\")(?:(\s+\w+\s+\w+\s+\"\w+\"))?')
+def assert_api_result(step, res_storage_name, negation, input_arg_name, args_storage_name):
 
     """
         :param res_storage_name: attribute name in world stored api result
         :param negation: negation
         :param input_arg_name: attribute name in world stored api input arguments
+        :param args_storage_name:
     """
+
+    # Get api command input args storage
+    storage_name = ''.join((args_storage_name.split(' ')[-1].replace('"', ''), '_args')) if args_storage_name \
+        else ''.join((res_storage_name.strip().replace('"', ''), '_args'))
+
+    # Get api command input argument
+    input_arg = getattr(world, storage_name)[input_arg_name.strip().replace('"', '')]
+    LOG.debug('Obtained api command {0} input argument {1}: {2}'.format(
+        res_storage_name if not args_storage_name else args_storage_name.split(' ')[-1],
+        input_arg_name,
+        input_arg))
+
+    # Get api command result
+    api_result = getattr(world, ''.join((res_storage_name.strip().replace('"', ''), '_res')))
+    LOG.debug('Obtained api command {0} result: {1}'.format(
+        res_storage_name,
+        api_result))
+
+    # Check api command result
     try:
-        # Get api command result
-        result = getattr(world, res_storage_name.strip().replace('"', ''))
-        LOG.debug('Obtained api command {0} result: {1}'.format(
-            res_storage_name,
-            result))
-
-        # Get api input argument
-        input_arg = getattr(world, 'api_args')[input_arg_name.strip().replace('"', '')]
-        LOG.debug('Obtained api command {0} input argument {1}: {2}'.format(
-            res_storage_name,
-            input_arg_name,
-            input_arg))
-
-        # Check api result
-        if isinstance(result, (list, tuple)):
-            assert all(input_arg not in res for res in result) if negation \
-                else any(input_arg in res for res in result)
-        elif isinstance(result, str):
-            assert (input_arg not in result) if negation \
-                else (input_arg in result)
+        if isinstance(api_result, (list, tuple)):
+            assert all(input_arg not in res for res in api_result) if negation \
+                else any(input_arg in res for res in api_result)
+        elif isinstance(api_result, str):
+            assert (input_arg not in api_result) if negation \
+                else (input_arg in api_result)
         LOG.debug('Result of the command: {0}:{1} {2}contains '
                   'the value of the input argument: {3}:{4}'.format(
-            res_storage_name,
-            result,
-            'not ' if negation else '',
-            input_arg_name,
-            input_arg))
+                  res_storage_name,
+                  api_result,
+                  'not ' if negation else '',
+                  input_arg_name,
+                  input_arg))
 
     except AssertionError:
         raise AssertionError('Result of the command: {0}:{1} {2}contains '
                              'the value of the input argument: {3}:{4}'.format(
             res_storage_name,
-            result,
+            api_result,
             '' if negation else 'not ',
             input_arg_name,
             input_arg))

@@ -43,17 +43,17 @@ Feature: Apache application server role, api tests
             | vhosts            | reload | rollback_on_error | async |
             | RECONFIGURE-VHOST | TRUE   | TRUE              | TRUE  |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname"
+        And api result "list_served_virtual_hosts" has argument "hostname" from command "create_vhost"
         When I run "ApacheApi" command "update_vhost" on A1 with arguments:
             | signature              | hostname                | port |
             | VHOST-UPDATE-SIGNATURE | www.example-updated.com | 80   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname"
+        And api result "list_served_virtual_hosts" has argument "hostname" from command "update_vhost"
         When I run "ApacheApi" command "delete_vhosts" on A1 with arguments:
             | vhosts                 | reload |
             | VHOST-DELETE-SIGNATURE | TRUE   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has not argument "vhosts"
+        And api result "list_served_virtual_hosts" not contain argument "vhosts" from command "delete_vhosts"
         And not ERROR in A1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
@@ -66,15 +66,15 @@ Feature: Apache application server role, api tests
             | vhosts                | reload | rollback_on_error | async |
             | RECONFIGURE-SSL-VHOST | TRUE   | TRUE              | TRUE  |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname"
+        And api result "list_served_virtual_hosts" has argument "hostname" from command "create_vhost"
         When I run "ApacheApi" command "update_vhost" on A1 with arguments:
             | signature                  | hostname                       | port  |
             | VHOST-SSL-UPDATE-SIGNATURE | www.secure.example-updated.com | 443   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname"
+        And api result "list_served_virtual_hosts" has argument "hostname" from command "update_vhost"
         When I run "ApacheApi" command "delete_vhosts" on A1 with arguments:
             | vhosts                     | reload |
             | VHOST-SSL-DELETE-SIGNATURE | TRUE   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has not argument "vhosts"
+        And api result "list_served_virtual_hosts" not contain argument "vhosts" from command "delete_vhosts"
         And not ERROR in A1 scalarizr log
