@@ -88,13 +88,19 @@ Feature: Linux server lifecycle
         And deploy task deployed
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
-    Scenario: Restart farm
+    Scenario: Stop farm
         When I stop farm
         And wait all servers are terminated
+
+    @ec2 @storages
+    Scenario: Delete attached storage
         When I save device for '/media/ebsmount' for role
         And I delete saved device '/media/ebsmount'
-        Then I start farm with delay
-        And I expect server bootstrapping as M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
+    Scenario: Start farm
+        When I start farm with delay
+        Then I expect server bootstrapping as M1
         And scalarizr version from system repo is last in M1
 
     @ec2 @openstack @storages
@@ -103,8 +109,8 @@ Feature: Linux server lifecycle
         Then volumes configuration in 'HostInitResponse' message in M1 is old
         And directory '/media/ebsmount' exist in M1
         And directory '/media/raidmount' exist in M1
-        And saved device for '/media/ebsmount' for role is another
         And count of files in directory '/media/raidmount' is 100 in M1
+        And saved device for '/media/ebsmount' for role is another
 
     @ec2 @openstack @stopresume
     Scenario: Stop/resume on init policy
