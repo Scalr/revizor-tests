@@ -13,21 +13,18 @@ Feature: Apache application server role, api tests
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Launch base apache api method
         Given apache is running on A1
-        When I run "ApacheApi" command "configtest" on A1
-        When I run "ApacheApi" command "reload_service" on A1 with arguments:
+        Then I run "ApacheApi" command "configtest" on A1
+        Then I run "ApacheApi" command "reload_service" on A1 with arguments:
             | reason                                  |
             | Apache api method "reload_service" test |
-        When I run "ApacheApi" command "restart_service" on A1 with arguments:
+        Then I run "ApacheApi" command "restart_service" and pid has been changed on A1 with arguments :
             | reason                                   |
             | Apache api method "restart_service" test |
-        When I run "ApacheApi" command "stop_service" on A1 with arguments:
+        Then I run "ApacheApi" command "stop_service" and pid has been changed on A1 with arguments :
             | reason                                |
             | Apache api method "stop_service" test |
-        When I run "ApacheApi" command "start_service" on A1 with arguments:
-            | reason                                 |
-            | Apache api method "start_service" test |
-        Then apache is running on A1
-        When I run "ApacheApi" command "set_default_ssl_certificate" on A1 with arguments:
+        Then I run "ApacheApi" command "start_service" and pid has been changed on A1:
+        Then I run "ApacheApi" command "set_default_ssl_certificate" on A1 with arguments:
             | id  |
             | 801 |
         When I run "ApacheApi" command "get_webserver_statistics" on A1

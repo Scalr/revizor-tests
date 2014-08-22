@@ -12,9 +12,9 @@ from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository
-from revizor2.defaults import DEFAULT_SERVICES_CONFIG
+from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
-
+from revizor2 import szrapi
 
 LOG = logging.getLogger(__name__)
 
@@ -448,3 +448,73 @@ def change_branch_in_sources(step, serv_as, branch):
                           'C:\Program Files\Scalarizr\etc\scalr-stable.winrepo']:
             # LOG.info("Change branch in %s to %s" % (repo_file, branch))
             console.run_cmd('echo http://buildbot.scalr-labs.com/win/%s/x86_64/ > "%s"' % (branch, repo_file))
+
+
+# Step used revizor2.szrapi classes functional
+@step(r'I run (.+) command (.+) and pid has been changed on (\w+)(?: (.+))?:')
+def change_service_pib_by_api(step, service_api, command, serv_as, isset_args=None):
+    """
+        :param service_api: Service Api class name
+        :param command: Api command
+        :param isset_args: Is api command has extended arguments
+        :param serv_as: Server name
+    """
+    #Get process pid
+    def get_pid(service_name):
+        if not service_name:
+            raise Exception("Can't get service pid, service name not found.")
+        return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
+                        {'process': service_name})[0].rstrip('\n').split('\n')
+
+    # Set attributes
+    server = getattr(world, serv_as)
+    service_api = service_api.strip().replace('"', '')
+    command = command.strip().replace('"', '')
+    node = world.cloud.get_node(server)
+
+    #Get behavior from role
+    behavior = server.role.behaviors[0]
+    common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
+    service_name = common_config.get('service_name')
+    if not service_name:
+        service_name = common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')
+
+
+    # Get service api
+    api = getattr(getattr(szrapi, service_api)(server), command)
+    LOG.debug('Set %s instance %s for server %s' % (service_api, api, server.id))
+    # Get api arguments
+    args = None
+    if isset_args:
+        args = dict([key, templates[service_api][value.lower()] if value.isupper() else value] \
+            for key,value in step.hashes[0].iteritems())
+        # Save api args to world [command_name]_args
+        setattr(world, ''.join((command, '_args')), args)
+        LOG.debug('Save {0}.{1} extended arguments: {2}'.format(
+            service_api,
+            command,
+            args
+        ))
+    # Run api command
+    try:
+        pid_before = get_pid(service_name)
+        LOG.debug('Obtained service:%s pid list %s before api call.' % (service_name, pid_before))
+        api_result = api(**args) if args else api()
+        LOG.debug('Run %s instance method %s.' % (service_api, command))
+        # Save api command result to world [command_name]_res
+        setattr(world, ''.join((command, '_res')), api_result)
+        LOG.debug('Save {0} instance method {1} result: {2}'.format(
+            service_api,
+            command,
+            api_result))
+        pid_after = get_pid(service_name)
+        LOG.debug('Obtained service:%s pid list %s after api call.' % (service_name, pid_after))
+        try:
+            assert not any(pid in pid_before for pid in pid_after)
+        except:
+            raise AssertionError('Some pid was not be changed. pid before api call: %s after: %s'(pid_before, pid_after))
+    except Exception as e:
+        raise Exception('An error occurred while try to run: {0}.\nScalarizr api Error: {1}'.format(
+            command,
+            e.message)
+        )
