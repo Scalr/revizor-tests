@@ -106,8 +106,41 @@ def assert_api_result(step, res_storage_name, negation, input_arg_name, args_sto
     except AssertionError:
         raise AssertionError('Result of the command: {0}:{1} {2}contains '
                              'the value of the input argument: {3}:{4}'.format(
-            res_storage_name,
-            api_result,
-            '' if negation else 'not ',
-            input_arg_name,
-            input_arg))
+                             res_storage_name,
+                             api_result,
+                             '' if negation else 'not ',
+                             input_arg_name,
+                             input_arg))
+
+
+@step(r'api result (\"\w+\") has (\"\w+\") data')
+def assert_api_result_data(step, res_storage_name, data):
+
+     # Get api command result
+    api_result = getattr(world, ''.join((res_storage_name.strip().replace('"', ''), '_res')))
+    LOG.debug('Obtained api command {0} result: {1}'.format(
+        res_storage_name,
+        api_result))
+    # Assert api result
+    data = data.strip().replace('"', '')
+    try:
+        if isinstance(api_result, dict):
+            assertion_data = api_result.get(data, False)
+            LOG.debug('Obtained api command {0} assertion data: {1}'.format(
+                res_storage_name,
+                assertion_data))
+            assert assertion_data
+            LOG.debug('Api command {0} result has assertion key: {1} data: {2}'.format(
+                res_storage_name,
+                data,
+                assertion_data
+            ))
+        elif isinstance(api_result, (list, tuple)):
+            pass
+        elif isinstance(api_result, str):
+            pass
+    except AssertionError:
+        raise AssertionError('Api command {0} result has not assertion data: {1}'.format(
+                res_storage_name,
+                data
+            ))

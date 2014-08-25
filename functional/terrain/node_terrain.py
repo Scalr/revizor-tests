@@ -452,7 +452,7 @@ def change_branch_in_sources(step, serv_as, branch):
 
 # Step used revizor2.szrapi classes functional
 @step(r'I run (.+) command (.+) and pid has been changed on (\w+)(?: (.+))?:')
-def change_service_pib_by_api(step, service_api, command, serv_as, isset_args=None):
+def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=None):
     """
         :param service_api: Service Api class name
         :param command: Api command
