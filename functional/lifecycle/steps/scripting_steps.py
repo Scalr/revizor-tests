@@ -79,4 +79,4 @@ def assert_check_message_in_log(step, message, serv_as):
         LOG.debug('Server %s log content: %s' % (server.id, log.message))
         if message.strip()[1:-1] in log.message:
             return True
-    raise AssertionError("Not see message %s in scripts logs" % message)
+    raise AssertionError("Not see message %s in scripts logs (message: %s)" % (message, log.message))
