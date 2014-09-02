@@ -47,6 +47,16 @@ def terminate_server_decrease(step, force, serv_as, decrease=False):
     server.terminate(force=force, decrease=decrease)
 
 
+@step('I create server snapshot for ([\w]+)$')
+def rebundle_server(step, serv_as):
+    """Start rebundle for server"""
+    server = getattr(world, serv_as)
+    name = 'tmp-%s-%s' % (server.role.name, datetime.now().strftime('%m%d%H%M'))
+    bundle_id = server.create_snapshot('no_replace', name)
+    if bundle_id:
+        world.bundle_id = bundle_id
+
+
 @step('I (reboot|suspend|resume)(?: (soft|hard))? server ([\w\d]+)$')
 def server_state_action(step, action, reboot_type, serv_as):
     server = getattr(world, serv_as)

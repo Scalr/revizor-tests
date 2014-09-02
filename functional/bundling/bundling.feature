@@ -10,10 +10,9 @@ Feature: Bundling server test
 
     @scalr
     Scenario: Create new role
-        Given I have running server
-        When I create server snapshot
-        Then Bundle task created
-        And Bundle task becomes completed
+        When I create server snapshot for M1
+        Then Bundle task created for M1
+        And Bundle task becomes completed for M1
 
     @scalr
     Scenario: Role should be usable
@@ -25,19 +24,18 @@ Feature: Bundling server test
 
     @api
     Scenario: Create role via scalarizr api
-        Given I have running server
-        Then I create server snapshot via scalarizr api
+        Then I create server snapshot for M2 via scalarizr api
         And not ERROR in M2 scalarizr log
 
     @api
     Scenario: Save new image in role
         Given I have a new image id
-        Then I create new role with this image id
+        Then I create new role with this image id as R1
 
     @api
     Scenario: Role created by api should be usable
         Given I have a an empty running farm
-        When I add to farm role created by last api bundle task
+        When I add to role R1 to this farm
         Then I expect server bootstrapping as M3
         And scalarizr version is last in M3
         And not ERROR in M3 scalarizr log

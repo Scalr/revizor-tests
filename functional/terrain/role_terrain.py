@@ -59,16 +59,6 @@ def bootstrap_many_servers(step, serv_count, serv_names, role_type, timeout=1400
         setattr(world, serv_names[i], server)
 
 
-@step('I create server snapshot for ([\w]+)$')
-def rebundle_server(step, serv_as):
-    """Start rebundle for server"""
-    server = getattr(world, serv_as)
-    name = 'tmp-%s-%s' % (server.role.name, datetime.now().strftime('%m%d%H%M'))
-    bundle_id = server.create_snapshot('no_replace', name)
-    if bundle_id:
-        world.bundle_id = bundle_id
-
-
 @step('Bundle task created for ([\w]+)')
 def assert_bundletask_created(step, serv_as):
     """Check bundle task status"""

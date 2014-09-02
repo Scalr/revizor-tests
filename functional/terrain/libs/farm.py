@@ -78,9 +78,9 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             roles = IMPL.role.list(query=CONF.feature.role_id)
             if roles:
                 role = roles[0]
-        # if not behavior in role['behaviors']: #TODO: Think about role id and behavior
-        #     LOG.warning('Behavior %s not in role behaviors %s' % (behavior, role['behaviors']))
-        #     role = get_role(behavior, role['dist'])
+        if not behavior in role['behaviors']: #TODO: Think about role id and behavior
+            LOG.warning('Behavior %s not in role behaviors %s' % (behavior, role['behaviors']))
+            role = get_role(behavior, role['dist'])
         if not role:
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
