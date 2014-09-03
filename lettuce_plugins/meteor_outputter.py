@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 __author__ = 'gigimon'
 
 import sys
@@ -24,6 +25,33 @@ def wrt(what):
     if isinstance(what, unicode):
         what = what.encode('utf-8')
     sys.stdout.write(what+'\n')
+
+
+def is_valid_xml_char_ordinal(i):
+    """
+    Defines whether char is valid to use in xml document
+
+    XML standard defines a valid char as::
+
+    Char ::= #x9 | #xA | #xD | [#x20-#xD7FF] | [#xE000-#xFFFD] | [#x10000-#x10FFFF]
+    """
+    return ( # conditions ordered by presumed frequency
+             0x20 <= i <= 0xD7FF
+             or i in (0x9, 0xA, 0xD)
+             or 0xE000 <= i <= 0xFFFD
+             or 0x10000 <= i <= 0x10FFFF
+    )
+
+
+def clean_xml_string(s):
+    """
+    Cleans string from invalid xml chars
+
+    Solution was found there::
+
+    http://stackoverflow.com/questions/8733233/filtering-out-certain-bytes-in-python
+    """
+    return ''.join(c for c in s if is_valid_xml_char_ordinal(ord(c)))
 
 
 @before.each_feature
@@ -82,7 +110,7 @@ def after_step(step):
     sc = etree.Element('step', name=step.original_sentence, state=state)
     if step.failed:
         trace = etree.SubElement(sc, 'traceback')
-        trace.text = step.why.traceback
+        trace.text = clean_xml_string(step.why.traceback)
         step.scenario.feature._failed = True
     wrt(sc)
 
