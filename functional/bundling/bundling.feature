@@ -35,7 +35,7 @@ Feature: Bundling server test
     @api
     Scenario: Role created by api should be usable
         Given I have a an empty running farm
-        When I add to role R1 to this farm
+        When I add role R1 to this farm
         Then I expect server bootstrapping as M3
         And scalarizr version is last in M3
         And not ERROR in M3 scalarizr log

@@ -34,13 +34,17 @@ def having_a_stopped_farm(step):
         world.farm.terminate()
 
 
-@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
-def add_role_to_farm(step, behavior=None, options=None, alias=None):
+@step(r"I add(?P<behavior> \w+)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[\w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
+def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=None):
     additional_storages = None
     scripting = None
+    role_id = None
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
+
+    if saved_role:
+        role_id = getattr(world, '%s_id' % saved_role.strip())
     if not behavior:
         behavior = os.environ.get('RV_BEHAVIOR', 'base')
     else:
@@ -77,7 +81,7 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
             role_options.update(storages.get(CONF.feature.storage, {}))
     LOG.debug('All farm settings: %s' % role_options)
     role = world.add_role_to_farm(behavior, options=role_options, scripting=scripting,
-                                  storages=additional_storages, alias=alias)
+                                  storages=additional_storages, alias=alias, role_id=role_id)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
 

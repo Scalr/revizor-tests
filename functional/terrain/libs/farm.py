@@ -38,7 +38,7 @@ def give_empty_running_farm():
 
 
 @world.absorb
-def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None):
+def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None):
     """
     Insert role to farm by behavior and find role in Scalr by generated name.
     Role name generate by the following format:
@@ -84,7 +84,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         if not role:
             raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
     else:
-        role = get_role(behavior, dist)
+        if not role_id:
+            role = get_role(behavior, dist)
+        else:
+            role = IMPL.role.get(role_id)
     world.wrt(etree.Element('meta', name='role', value=role['name']))
     world.wrt(etree.Element('meta', name='dist', value=role['dist']))
     old_roles_id = [r.id for r in world.farm.roles]
