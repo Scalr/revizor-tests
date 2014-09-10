@@ -19,8 +19,8 @@ def get_nginx_default_server_template():
     return template
 
 
-@step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?")
-def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash):
+@step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
+def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash, network_type='private'):
     """This step add to nginx new proxy to any role with http/https and ip_hash
     :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
     :type proto: str
@@ -57,7 +57,12 @@ def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, ba
         opts['ip_hash'] = True
     template = get_nginx_default_server_template()
     LOG.info('Add proxy to app role for domain %s' % vhost.name)
-    backends = [{"farm_role_id": backend_role.id, "port": "80", "backup": "0", "down": "0", "location": "/"}]
+    backends = [{"farm_role_id": backend_role.id,
+                 "port": "80",
+                 "backup": "0",
+                 "down": "0",
+                 "location": "/",
+                 "network": network_type}]
     proxy_role.add_nginx_proxy(vhost.name, port, templates=[template], backends=backends, **opts)
     setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 

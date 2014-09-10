@@ -35,10 +35,16 @@ def assert_check_upstream(step, www_serv, app_servers):
     app_servers = [s.strip() for s in app_servers.split(',')]
     LOG.info('Check upstream list')
     for serv in app_servers:
-        server = getattr(world, serv)
+        network_type = 'private'
+        if ':' in serv:
+            serv_as, network_type = serv.split(':')
+        else:
+            serv_as = serv
+        server = getattr(world, serv_as)
         LOG.info('Validate server %s in upstream list' % server.id)
-        if not server.private_ip in out:
-            raise AssertionError('Private IP from server %s not found in upstream' % server.id)
+        server_ip = getattr(server, '%s_ip' % network_type)
+        if not server_ip in out:
+            raise AssertionError('IP address %s from server %s not found in upstream' % (server_ip, server.id))
 
 
 @step(r'([\w]+) upstream list should(?: (not))? contain ([\w\d]+)( remembered private_ip)?')

@@ -32,14 +32,14 @@ def rebundle_server_via_api(step, serv_as):
 
     if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE):
         LOG.info('Image creation in this platform doing in one step')
-        operation_id = server.api.image.create(name, async=True)
+        operation_id = server.api.image.create(name=name, async=True)
         LOG.info('Image creation operation_id - %s' % operation_id)
 
         if not operation_id:
             raise AssertionError('Api doesn\'t return operation id for this api call!')
 
         LOG.info('Wait up to 1 hour before image will be created')
-        rebundle_result = wait_until(check_rebundle_api_finished, args=(server, operation_id), timeout=3600, logger=LOG)['result']
+        rebundle_result = wait_until(check_rebundle_api_finished, args=(server, operation_id), timeout=3600, logger=LOG)
         LOG.info('Rebundle is finished, api return: %s' % rebundle_result)
         setattr(world, 'api_image_id', rebundle_result['image_id'])
 
@@ -69,7 +69,15 @@ def create_new_role(step, role_as):
     role_name = getattr(world, 'last_bundle_role_name')
     behaviors = CONF.feature.behaviors
     image_id = getattr(world, 'api_image_id', None)
+    images = [{
+        'platform': CONF.feature.driver.scalr_cloud,
+        'location': CONF.platforms[CONF.feature.platform]['location'],
+        'image_id': image_id,
+        'architecture': 'x86_64',
+        'errors': '',
+        'isEmpty': ''
+    }]
     LOG.info('Create new role %s with behaviors %s and image_id %s' % (role_name, behaviors, image_id))
-    result = IMPL.role.create(name=role_name, behaviors=behaviors, images=[image_id])
+    result = IMPL.role.create(name=role_name, behaviors=behaviors, images=images)
     LOG.info('New role id: %s' % result['role']['id'])
     setattr(world, '%s_id' % role_as, result['role']['id'])
