@@ -1,17 +1,39 @@
 import logging
+from lettuce import step, world
 
 import redis
 
-from lettuce import step, world
 
-from revizor2.cloud import Cloud
-from revizor2.conf import CONF
+LOG = logging.getLogger('Redis api steps')
 
-from revizor2.helpers.jsonrpc import SzrApiServiceProxy
-from revizor2.helpers.jsonrpc import ServiceError
 
-LOG = logging.getLogger(__name__)
+@step(r'I see what number of redis processes is ([\d]+)')
+def check_count_redis_instances(step, instances_count):
+    pass
 
+@step(r'redis processes runs on ports: 6379,6380')
+def check_redis_instances_ports(step, instances_ports):
+    pass
+
+
+
+
+"""
+    server = getattr(world, serv_as)
+    # Get service api
+    api = getattr(getattr(szrapi, service_api)(server), command)
+    LOG.debug('Set %s instance %s for server %s' % (service_api, api, server.id))
+
+    scalarizr_key = server.details.get('scalarizr.key')
+    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
+
+    answer = api.redis.list_processes()
+
+    LOG.debug('API response from list_processes: %s' % answer)
+
+    if not len(answer['ports']) == int(instances_count):
+        raise AssertionError('Invalid redis processes count via API, must be: %s but get answer %s' %
+                             (instances_count, answer))
 
 @step('I add ([\d]+) redis ([\w]+) instance to ([\w]+)$')
 def upscale_redis_instances(step, instances_count, instance_type, serv_as):
@@ -164,16 +186,6 @@ def delete_redis_instance(step, instances_count, serv_as):
                                                                                  instances_count))
 
 
-@step('And count of redis instance is ([\d]+) in ([\w]+)')
-def check_count_redis_instances(step, instances_count, serv_as):
-    server = getattr(world, serv_as)
-    scalarizr_key = server.details.get('scalarizr.key')
-    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
-    answer = api.redis.list_processes()
-    LOG.debug('API response from list_processes: %s' % answer)
-    if not len(answer['ports']) == int(instances_count):
-        raise AssertionError('Invalid redis processes count via API, must be: %s but get answer %s' %
-                             (instances_count, answer))
 
 @step('And redis not started in ([\w]+) port ([\d]+)')
 def check_busy_port(step, serv_as, port):
@@ -187,3 +199,4 @@ def check_busy_port(step, serv_as, port):
             return
         else:
             raise AssertionError('Not standart api error message: "%s"' % e)
+"""

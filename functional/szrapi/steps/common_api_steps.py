@@ -32,10 +32,17 @@ def run_api_command(step, service_api, command, serv_as, isset_args=None):
     api = getattr(getattr(szrapi, service_api)(server), command)
     LOG.debug('Set %s instance %s for server %s' % (service_api, api, server.id))
     # Get api arguments
-    args = None
+    args = {}
     if isset_args:
-        args = dict([key, templates[service_api][value.lower()] if value.isupper() else value] \
-            for key,value in step.hashes[0].iteritems())
+        for key, value in step.hashes[0].iteritems():
+            try:
+                if value.isupper():
+                    args.update({key: templates[service_api][value.lower()]})
+                else:
+                    args.update({key: eval(value)})
+            except Exception:
+                args.update({key: value})
+
         # Save api args to world [command_name]_args
         setattr(world, ''.join((command, '_args')), args)
         LOG.debug('Save {0}.{1} extended arguments: {2}'.format(
