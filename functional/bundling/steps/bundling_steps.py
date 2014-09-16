@@ -5,7 +5,7 @@ from lettuce import world, step
 
 from revizor2.conf import CONF
 from revizor2.api import Farm, Role, IMPL
-from revizor2.consts import Platform
+from revizor2.consts import Platform, Dist
 from revizor2.utils import wait_until
 
 
@@ -30,7 +30,9 @@ def rebundle_server_via_api(step, serv_as):
     setattr(world, 'last_bundle_role_name', name)
     LOG.info('Create image via scalarizr api from server %s and image name %s' % (server.id, name))
 
-    if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE):
+    if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE)\
+            and not Dist.is_windows_family(CONF.feature.dist)\
+            and not CONF.feature.dist.startswith('rhel'):
         LOG.info('Image creation in this platform doing in one step')
         operation_id = server.api.image.create(name=name, async=True)
         LOG.info('Image creation operation_id - %s' % operation_id)
@@ -42,6 +44,17 @@ def rebundle_server_via_api(step, serv_as):
         rebundle_result = wait_until(check_rebundle_api_finished, args=(server, operation_id), timeout=3600, logger=LOG)
         LOG.info('Rebundle is finished, api return: %s' % rebundle_result)
         setattr(world, 'api_image_id', rebundle_result['image_id'])
+    else:
+        LOG.info('Prepare server for image creation')
+        prepare = server.api.image.prepare()
+        LOG.debug('Prepare operation result: %s' % prepare)
+
+        image_id = world.cloud.create_template(world.cloud.get_node(server), name).id
+        LOG.info('New image_id: %s' % image_id)
+        setattr(world, 'api_image_id', image_id)
+
+        LOG.info('Finalize server after rebundle')
+        server.api.image.finalize()
 
 
 def check_rebundle_api_finished(server, operation_id):
