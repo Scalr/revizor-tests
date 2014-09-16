@@ -73,12 +73,12 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Testing proxy for role via public ip
         When I create domain D2 to www role
-        And I add virtual host H2 to app role and domain D1
+        And I add virtual host H2 to app role and domain D2
         And I add http proxy P2 to www role with H2 host to app role with ip_hash with public network
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         And W1 upstream list should contains A1:public, A2:public
-        And W1 proxies list should contains H1
+        And W1 proxies list should contains H2
         And 'ip_hash' in W1 upstream file
         And nginx is running on W1
         Then D1 resolves into W1 ip address
