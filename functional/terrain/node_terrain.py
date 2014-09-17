@@ -451,13 +451,12 @@ def change_branch_in_sources(step, serv_as, branch):
 
 
 # Step used revizor2.szrapi classes functional
-@step(r'I run (.+) command (.+) and pid has been changed on (\w+)(?:\:([\d,]+))?(?:(.+))?')
-def change_service_pid_by_api(step, service_api, command, serv_as, ports=None, isset_args=None):
+@step(r'I run (.+) command (.+) and pid has been changed on (\w+)(?:(.+))?')
+def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=None):
     """
         :param service_api: Service Api class name
         :param command: Api command
         :param serv_as: Server name
-        :param ports: service ports like 80 or 80,8080
         :param isset_args: Is api command has extended arguments
     """
     #Get process pid
@@ -473,17 +472,6 @@ def change_service_pid_by_api(step, service_api, command, serv_as, ports=None, i
     service_api = service_api.strip().replace('"', '')
     command = command.strip().replace('"', '')
     node = world.cloud.get_node(server)
-
-    # Get service search pattern
-    if not ports:
-        # Get behavior from role
-        behavior = server.role.behaviors[0]
-        common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
-        pattern = common_config.get('service_name', None)
-        if not pattern:
-            pattern = common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')
-    else:
-        pattern = ports
 
     # Get service api
     api = getattr(getattr(szrapi, service_api)(server), command)
@@ -504,6 +492,16 @@ def change_service_pid_by_api(step, service_api, command, serv_as, ports=None, i
             command,
             args
         ))
+
+    # Get service search pattern
+    pattern = args.get('ports', None)
+    if not pattern:
+        # Get behavior from role
+        behavior = server.role.behaviors[0]
+        common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
+        pattern = common_config.get('service_name',
+                                    common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name'))
+
     # Run api command
     try:
         pid_before = get_pid(pattern)

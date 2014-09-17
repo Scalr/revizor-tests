@@ -59,4 +59,3 @@ Feature: Redis database server role, api tests
         And not ERROR in M1 scalarizr log
 
 
-        
