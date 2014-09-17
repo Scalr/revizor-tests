@@ -451,20 +451,22 @@ def change_branch_in_sources(step, serv_as, branch):
 
 
 # Step used revizor2.szrapi classes functional
-@step(r'I run (.+) command (.+) and pid has been changed on (\w+)(?: (.+))?:')
-def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=None):
+@step(r'I run (.+) command (.+) and pid has been changed on (\w+)(?:\:([\d,]+))?(?:(.+))?')
+def change_service_pid_by_api(step, service_api, command, serv_as, ports=None, isset_args=None):
     """
         :param service_api: Service Api class name
         :param command: Api command
-        :param isset_args: Is api command has extended arguments
         :param serv_as: Server name
+        :param ports: service ports like 80 or 80,8080
+        :param isset_args: Is api command has extended arguments
     """
     #Get process pid
-    def get_pid(service_name):
-        if not service_name:
-            raise Exception("Can't get service pid, service name not found.")
-        return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
-                        {'process': service_name})[0].rstrip('\n').split('\n')
+    def get_pid(pattern):
+        if not pattern:
+            raise Exception("Can't get service pid, service search condition is empty.")
+
+        cmd = "ps aux | grep {pattern} | grep -v grep | awk {print'$2'}".format(pattern='\|'.join(pattern.split(',').strip()))
+        return node.run(cmd)[0].rstrip('\n').split('\n')
 
     # Set attributes
     server = getattr(world, serv_as)
@@ -472,24 +474,31 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
     command = command.strip().replace('"', '')
     node = world.cloud.get_node(server)
 
-    #Get behavior from role
-    behavior = server.role.behaviors[0]
-    common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
-    service_name = common_config.get('service_name')
-    if not service_name:
-        service_name = common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')
-
+    # Get service search pattern
+    if not ports:
+        # Get behavior from role
+        behavior = server.role.behaviors[0]
+        common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
+        pattern = common_config.get('service_name', None)
+        if not pattern:
+            pattern = common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')
+    else:
+        pattern = ports
 
     # Get service api
     api = getattr(getattr(szrapi, service_api)(server), command)
     LOG.debug('Set %s instance %s for server %s' % (service_api, api, server.id))
     # Get api arguments
-    args = None
+    args = {}
     if isset_args:
-        args = dict([key, templates[service_api][value.lower()] if value.isupper() else value] \
-            for key,value in step.hashes[0].iteritems())
-        # Save api args to world [command_name]_args
-        setattr(world, ''.join((command, '_args')), args)
+        for key, value in step.hashes[0].iteritems():
+            try:
+                if value.isupper():
+                    args.update({key: templates[service_api][value.lower()]})
+                else:
+                    args.update({key: eval(value)})
+            except Exception:
+                args.update({key: value})
         LOG.debug('Save {0}.{1} extended arguments: {2}'.format(
             service_api,
             command,
@@ -497,8 +506,8 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         ))
     # Run api command
     try:
-        pid_before = get_pid(service_name)
-        LOG.debug('Obtained service:%s pid list %s before api call.' % (service_name, pid_before))
+        pid_before = get_pid(pattern)
+        LOG.debug('Obtained service:%s pid list %s before api call.' % (pattern, pid_before))
         api_result = api(**args) if args else api()
         LOG.debug('Run %s instance method %s.' % (service_api, command))
         # Save api command result to world [command_name]_res
@@ -507,8 +516,8 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
             service_api,
             command,
             api_result))
-        pid_after = get_pid(service_name)
-        LOG.debug('Obtained service:%s pid list %s after api call.' % (service_name, pid_after))
+        pid_after = get_pid(pattern)
+        LOG.debug('Obtained service:%s pid list %s after api call.' % (pattern, pid_after))
         try:
             assert not any(pid in pid_before for pid in pid_after)
         except:
