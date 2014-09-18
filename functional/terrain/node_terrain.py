@@ -463,8 +463,11 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
     def get_pid(pattern):
         if not pattern:
             raise Exception("Can't get service pid, service search condition is empty.")
-
-        cmd = "ps aux | grep {pattern} | grep -v grep | awk {print'$2'}".format(pattern='\|'.join(pattern.split(',').strip()))
+        if isinstance(pattern, (list, tuple)):
+            pattern = [str(element).strip() for element in pattern]
+        else:
+            pattern = [element.strip() for element in str(pattern).split(',')]
+        cmd = "ps aux | grep {pattern} | grep -v grep | awk {{print'$2'}}".format(pattern='\|'.join(pattern))
         return node.run(cmd)[0].rstrip('\n').split('\n')
 
     # Set attributes
@@ -479,6 +482,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
     # Get api arguments
     args = {}
     if isset_args:
+        LOG.debug('Api method: (%s) extended arguments: %s' % (command, step.hashes))
         for key, value in step.hashes[0].iteritems():
             try:
                 if value.isupper():
@@ -501,7 +505,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
         pattern = common_config.get('service_name',
                                     common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name'))
-
+    LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
     try:
         pid_before = get_pid(pattern)

@@ -8,44 +8,46 @@ Feature: Apache application server role, api tests
         Then I expect server bootstrapping as A1
         And scalarizr version is last in A1
         And apache is running on A1
-        And http get A1 contains default welcome message
+        And http get A1 contain default welcome message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Launch base apache api method
+    Scenario: Running methods of changing the status of the service
         Given apache is running on A1
         Then I run "ApacheApi" command "configtest" on A1
-        Then I run "ApacheApi" command "stop_service" and pid has been changed on A1 with arguments :
+        Then I run "ApacheApi" command "stop_service" and pid has been changed on A1 with arguments:
             | reason                                |
             | Apache api method "stop_service" test |
-        Then I run "ApacheApi" command "start_service" and pid has been changed on A1:
+        Then I run "ApacheApi" command "start_service" and pid has been changed on A1
         When I run "ApacheApi" command "get_webserver_statistics" on A1
         And api result "get_webserver_statistics" has "Uptime" data
         And not ERROR in A1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Creates a name-based apache virtual host without ssl support
+    Scenario: Creates a name-based plain-text apache virtual host
         Given I run "ApacheApi" command "create_vhost" on A1 with arguments:
             | hostname        | port | template            | ssl    | reload |
             | www.example.com | 80   | NAME-BASED-TEMPLATE | False  | True   |
-        And api result "create_vhost" has argument "hostname"
+        And api result "create_vhost" contain argument "hostname"
+        Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
+        And api result "list_served_virtual_hosts" contain argument "hostname" from command "create_vhost"
         When I run "ApacheApi" command "reconfigure" on A1 with arguments:
             | vhosts            | reload | rollback_on_error | async |
             | RECONFIGURE-VHOST | True   | True              | True  |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname" from command "create_vhost"
+        And api result "list_served_virtual_hosts" does not contain argument "hostname" from command "create_vhost"
         Then I run "ApacheApi" command "reload_service" on A1 with arguments:
             | reason                                  |
             | Apache api method "reload_service" test |
         When I run "ApacheApi" command "update_vhost" on A1 with arguments:
-            | signature               | hostname                | port |
-            | ("www.example.com", 80) | www.example-updated.com | 80   |
+            | signature                           | hostname                | port |
+            | ("www.reconfigure-example.com", 80) | www.example-updated.com | 80   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname" from command "update_vhost"
+        And api result "list_served_virtual_hosts" contain argument "hostname" from command "update_vhost"
         When I run "ApacheApi" command "delete_vhosts" on A1 with arguments:
             | vhosts                             | reload |
             | [("www.example-updated.com", 80),] | True   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" not contain argument "vhosts" from command "delete_vhosts"
+        And api result "list_served_virtual_hosts" does not contain argument "vhosts" from command "delete_vhosts"
         Then I run "ApacheApi" command "restart_service" and pid has been changed on A1 with arguments :
             | reason                                   |
             | Apache api method "restart_service" test |
@@ -57,30 +59,32 @@ Feature: Apache application server role, api tests
         Given I run "ApacheApi" command "create_vhost" on A1 with arguments:
             | hostname                   | port  | template                | ssl    | ssl_certificate_id | reload |
             | www.secure.example.com     | 443   | SSL-NAME-BASED-TEMPLATE | True   | 801                | True   |
-        And api result "create_vhost" has argument "hostname"
+        And api result "create_vhost" contain argument "hostname"
         Then I run "ApacheApi" command "set_default_ssl_certificate" on A1 with arguments:
             | id  |
             | 801 |
+        Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
+        And api result "list_served_virtual_hosts" contain argument "hostname" from command "create_vhost"
         When I run "ApacheApi" command "reconfigure" on A1 with arguments:
             | vhosts                | reload | rollback_on_error | async |
             | RECONFIGURE-SSL-VHOST | True   | True              | True  |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname" from command "create_vhost"
+        And api result "list_served_virtual_hosts" does not contain argument "hostname" from command "create_vhost"
         Then I run "ApacheApi" command "reload_service" on A1 with arguments:
             | reason                                  |
-            | Apache api method "reload_service" test |
+            | Apache api method "reload_service" ssl test |
         When I run "ApacheApi" command "update_vhost" on A1 with arguments:
             | signature                       | hostname                       | port  |
             | ("www.secure.example.com", 443) | www.secure.example-updated.com | 443   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" has argument "hostname" from command "update_vhost"
+        And api result "list_served_virtual_hosts" contain argument "hostname" from command "update_vhost"
         When I run "ApacheApi" command "delete_vhosts" on A1 with arguments:
             | vhosts                                     | reload |
             | [("www.secure.example-updated.com", 443),] | True   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
-        And api result "list_served_virtual_hosts" not contain argument "vhosts" from command "delete_vhosts"
+        And api result "list_served_virtual_hosts" does not contain argument "vhosts" from command "delete_vhosts"
         Then I run "ApacheApi" command "restart_service" and pid has been changed on A1 with arguments :
             | reason                                   |
-            | Apache api method "restart_service" test |
+            | Apache api method "restart_service" ssl test |
         And apache is running on A1
         And not ERROR in A1 scalarizr log

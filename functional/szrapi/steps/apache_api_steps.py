@@ -11,7 +11,7 @@ from lettuce import world, step
 LOG = logging.getLogger('Apache api steps')
 
 
-@step(r'api result (\"\w+\") not contain argument (\"\w+\") from command (\"\w+\")')
+@step(r'api result (\"\w+\") does not contain argument (\"\w+\") from command ("delete_vhosts")')
 def assert_vhost_delete(step, res_storage_name, input_arg_name, args_storage_name):
     """
         :param res_storage_name: attribute name in world stored api result

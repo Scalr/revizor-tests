@@ -2,8 +2,8 @@ Using step definitions from: steps/common_api_steps, steps/redis_api_steps
 Feature: Redis database server role, api tests
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @bootstrap
-    Scenario: Bootstraping Redis role with multi instance
-        Given I have a an empty running farm
+    Scenario: Bootstraping Redis role with multiple instances
+        Given I have an empty running farm
         When I add redis role to this farm with 2 redis processes
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -29,10 +29,10 @@ Feature: Redis database server role, api tests
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Change redis-server instances status (stop, shutdown)
         Given I write test data to 6380 redis instance on M1
-        When I run "RedisApi" command "stop_service" and pid has been changed on M1:6379 with arguments:
+        When I run "RedisApi" command "stop_service" and pid has been changed on M1 with arguments:
             | ports |
             | 6379  |
-        Then I run "RedisApi" command "shutdown_processes" on M1 with arguments:
+        Then I run "RedisApi" command "shutdown_processes" and pid has been changed on M1 with arguments:
             | ports  | remove_data | async |
             | [6380] | False       | False |
         And data from 6380 was not removed on M1

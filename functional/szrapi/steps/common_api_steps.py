@@ -67,7 +67,7 @@ def run_api_command(step, service_api, command, serv_as, isset_args=None):
         )
 
 
-@step(r'api result (\"\w+\") has(?: (.+))? argument (\"\w+\")(?:(\s+\w+\s+\w+\s+\"\w+\"))?')
+@step(r'api result (\"\w+\") (does not\s)?contain argument (\"\w+\")(?:\sfrom command\s("\w+\"))?')
 def assert_api_result(step, res_storage_name, negation, input_arg_name, args_storage_name):
 
     """
@@ -78,7 +78,7 @@ def assert_api_result(step, res_storage_name, negation, input_arg_name, args_sto
     """
 
     # Get api command input args storage
-    storage_name = ''.join((args_storage_name.split(' ')[-1].replace('"', ''), '_args')) if args_storage_name \
+    storage_name = ''.join((args_storage_name.replace('"', ''), '_args')) if args_storage_name \
         else ''.join((res_storage_name.strip().replace('"', ''), '_args'))
 
     # Get api command input argument
@@ -145,7 +145,14 @@ def assert_api_result_data(step, res_storage_name, data):
         elif isinstance(api_result, (list, tuple)):
             pass
         elif isinstance(api_result, str):
-            pass
+            LOG.debug('Obtained api command {0} assertion data: {1}'.format(
+                res_storage_name,
+                data))
+            assert data in api_result
+            LOG.debug('Api command {0} result has assertion data: {1}'.format(
+                res_storage_name,
+                data
+            ))
     except AssertionError:
         raise AssertionError('Api command {0} result has not assertion data: {1}'.format(
                 res_storage_name,
