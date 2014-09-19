@@ -1,22 +1,70 @@
+# coding: utf-8
+
+"""
+Created on 09.19.2014
+@author: Eugeny Kurkovich
+"""
+
 import logging
 from lettuce import step, world
-
-import redis
-
 
 LOG = logging.getLogger('Redis api steps')
 
 
-@step(r'I see what number of redis processes is ([\d]+)')
-def check_count_redis_instances(step, instances_count):
-    pass
+def get_api_command_result(command):
 
-@step(r'redis processes runs on ports: 6379,6380')
+ # Get api command result
+    api_result = getattr(world, ''.join((command, '_res')))
+    LOG.debug('Obtained api command {0} result: {1}'.format(
+        command,
+        api_result))
+    return api_result
+
+
+@step(r'number of redis instance is ([\d]+)')
+def check_redis_instances_count(step, instances_count):
+    api_result = get_api_command_result('list_processes')
+    try:
+        assertion_data = len(api_result.get('ports', []))
+        assert (assertion_data == int(instances_count))
+        LOG.debug('Number of running processes: ({0}), and expected:({1}) the same.'.format(
+            assertion_data,
+            instances_count
+        ))
+    except AssertionError:
+        raise AssertionError('Number of running processes: ({0}), and expected:({1}) is not equal.'.format(
+            assertion_data,
+            instances_count
+        ))
+
+
+@step(r'redis instance ports is ([\d\,]+)')
 def check_redis_instances_ports(step, instances_ports):
-    pass
+    api_result = get_api_command_result('list_processes')
+    try:
+        tested_instances_ports = [int(port.strip()) for port in instances_ports.split(',')]
+        running_instances_ports = api_result.get('ports', [])
+        assert all(port in tested_instances_ports for port in running_instances_ports)
+        LOG.debug('Running redis processes: {0} listening to specific ports: {1}'.format(
+            running_instances_ports,
+            tested_instances_ports
+        ))
+    except AssertionError:
+        raise AssertionError('Running redis processes: {0} listening to not specific ports: {1}'.format(
+            running_instances_ports,
+            tested_instances_ports
+        ))
 
 
-
+@step(r'([\d\,]+) redis instance is running')
+def check_redis_instances_state(step, instances_ports):
+    redis_processes_states = get_api_command_result('get_service_status')
+    try:
+        tested_redis_processes = instances_ports.split(',')
+        assert all(redis_processes_states[port] == 0 for port in tested_redis_processes)
+        LOG.debug('All redis processes: {0} is running'.format(tested_redis_processes))
+    except AssertionError:
+        raise AssertionError('Not all processes have the status: running - (0): {} .'.format(redis_processes_states))
 
 """
     server = getattr(world, serv_as)

@@ -8,15 +8,15 @@ Feature: Apache application server role, api tests
         Then I expect server bootstrapping as A1
         And scalarizr version is last in A1
         And apache is running on A1
-        And http get A1 contain default welcome message
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Running methods of changing the status of the service
         Given apache is running on A1
         Then I run "ApacheApi" command "configtest" on A1
         Then I run "ApacheApi" command "stop_service" and pid has been changed on A1 with arguments:
-            | reason                                |
-            | Apache api method "stop_service" test |
+            | reason                               |
+            | Apache api method: stop_service test |
+        And scalarizr debug log in A1 contains 'Apache api method: stop_service test'
         Then I run "ApacheApi" command "start_service" and pid has been changed on A1
         When I run "ApacheApi" command "get_webserver_statistics" on A1
         And api result "get_webserver_statistics" has "Uptime" data
@@ -31,26 +31,28 @@ Feature: Apache application server role, api tests
         Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "create_vhost"
         When I run "ApacheApi" command "reconfigure" on A1 with arguments:
-            | vhosts            | reload | rollback_on_error | async |
-            | RECONFIGURE-VHOST | True   | True              | True  |
+            | vhosts            | reload | rollback_on_error |
+            | RECONFIGURE-VHOST | True   | False             |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" does not contain argument "hostname" from command "create_vhost"
         Then I run "ApacheApi" command "reload_service" on A1 with arguments:
-            | reason                                  |
-            | Apache api method "reload_service" test |
+            | reason                                 |
+            | Apache api method: reload_service test |
+        And scalarizr debug log in A1 contains 'Apache api method: reload_service test'
         When I run "ApacheApi" command "update_vhost" on A1 with arguments:
             | signature                           | hostname                | port |
-            | ("www.reconfigure-example.com", 80) | www.example-updated.com | 80   |
+            | ("www.reconfigure-example.com", 80) | www.updated-example.com | 80   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "update_vhost"
         When I run "ApacheApi" command "delete_vhosts" on A1 with arguments:
             | vhosts                             | reload |
-            | [("www.example-updated.com", 80),] | True   |
+            | [("www.updated-example.com", 80),] | True   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" does not contain argument "vhosts" from command "delete_vhosts"
         Then I run "ApacheApi" command "restart_service" and pid has been changed on A1 with arguments :
-            | reason                                   |
-            | Apache api method "restart_service" test |
+            | reason                                  |
+            | Apache api method: restart_service test |
+        And scalarizr debug log in A1 contains 'Apache api method: restart_service test'
         And apache is running on A1
         And not ERROR in A1 scalarizr log
 
@@ -66,25 +68,27 @@ Feature: Apache application server role, api tests
         Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "create_vhost"
         When I run "ApacheApi" command "reconfigure" on A1 with arguments:
-            | vhosts                | reload | rollback_on_error | async |
-            | RECONFIGURE-SSL-VHOST | True   | True              | True  |
+            | vhosts                | reload | rollback_on_error |
+            | RECONFIGURE-SSL-VHOST | True   | False             |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" does not contain argument "hostname" from command "create_vhost"
         Then I run "ApacheApi" command "reload_service" on A1 with arguments:
-            | reason                                  |
-            | Apache api method "reload_service" ssl test |
+            | reason                                     |
+            | Apache api method: reload_service ssl test |
+        And scalarizr debug log in A1 contains 'Apache api method: reload_service ssl test'
         When I run "ApacheApi" command "update_vhost" on A1 with arguments:
-            | signature                       | hostname                       | port  |
-            | ("www.secure.example.com", 443) | www.secure.example-updated.com | 443   |
+            | signature                                   | hostname                       | port |
+            | ("www.reconfigure-secure.example.com", 443) | www.updated-secure.example.com | 443  |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "update_vhost"
         When I run "ApacheApi" command "delete_vhosts" on A1 with arguments:
             | vhosts                                     | reload |
-            | [("www.secure.example-updated.com", 443),] | True   |
+            | [("www.updated-secure.example.com", 443),] | True   |
         When I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" does not contain argument "vhosts" from command "delete_vhosts"
         Then I run "ApacheApi" command "restart_service" and pid has been changed on A1 with arguments :
-            | reason                                   |
-            | Apache api method "restart_service" ssl test |
+            | reason                                      |
+            | Apache api method: restart_service ssl test |
+        And scalarizr debug log in A1 contains 'Apache api method: restart_service ssl test'
         And apache is running on A1
         And not ERROR in A1 scalarizr log
