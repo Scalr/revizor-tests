@@ -48,8 +48,14 @@ def rebundle_server_via_api(step, serv_as):
         LOG.info('Prepare server for image creation')
         prepare = server.api.image.prepare()
         LOG.debug('Prepare operation result: %s' % prepare)
-
-        image_id = world.cloud.create_template(world.cloud.get_node(server), name).id
+        if CONF.feature.driver.current_cloud in (Platform.IDCF, Platform.CLOUDSTACK):
+            node = world.cloud.get_node(server)
+            volume = filter(lambda x: x.extra['instance_id'] == node.id, world.cloud.list_volumes())
+            snapshot = world.cloud._driver._conn.create_volume_snapshot(volume[0])
+            # 99 because this is Other Linux 64-bit in default cloudstack
+            image_id = world.cloud._driver._conn.ex_create_snapshot_template(snapshot, name[:32], 99).id
+        else:
+            image_id = world.cloud.create_template(world.cloud.get_node(server), name).id
         LOG.info('New image_id: %s' % image_id)
         setattr(world, 'api_image_id', image_id)
 

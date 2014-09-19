@@ -45,6 +45,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
@@ -55,12 +56,19 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         else:
             if behavior in BEHAVIORS_ALIASES:
                 behavior = BEHAVIORS_ALIASES[behavior]
-            mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
+            if CONF.feature.role_type == 'instance':
+                mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
+            else:
+                mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
             versions = get_role_versions(mask)
             #TODO: Return RV_ROLE_VERSION
-            role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                        dist, CONF.feature.role_type)
+            if CONF.feature.role_type == 'instance':
+                role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
+            else:
+                role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
             LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:

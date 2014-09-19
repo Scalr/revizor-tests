@@ -132,7 +132,6 @@ def given_server_in_cloud(step, user_data):
     node = world.cloud.create_node(userdata=user_data)
     setattr(world, 'cloud_server', node)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
-        #Get node external ip
         #Run command
         out = node.run('wget -qO- ifconfig.me/ip')
         if not out[1]:
