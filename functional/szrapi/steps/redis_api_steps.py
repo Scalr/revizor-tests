@@ -4,9 +4,10 @@
 Created on 09.19.2014
 @author: Eugeny Kurkovich
 """
-
+import os
 import logging
 from lettuce import step, world
+from revizor2.consts import Dist
 
 LOG = logging.getLogger('Redis api steps')
 
@@ -56,195 +57,119 @@ def check_redis_instances_ports(step, instances_ports):
         ))
 
 
-@step(r'([\d\,]+) redis instance is running')
-def check_redis_instances_state(step, instances_ports):
+@step(r'([\d\,]+) redis instance is(?:\s([\w]+))? running')
+def check_redis_instances_state(step, instances_ports, negation=None):
     redis_processes_states = get_api_command_result('get_service_status')
     try:
         tested_redis_processes = instances_ports.split(',')
-        assert all(redis_processes_states[port] == 0 for port in tested_redis_processes)
-        LOG.debug('All redis processes: {0} is running'.format(tested_redis_processes))
+        if not negation:
+            assert all(redis_processes_states[port] == 0 for port in tested_redis_processes)
+            LOG.debug('All redis processes: {0} is running'.format(tested_redis_processes))
+        else:
+            assert all(redis_processes_states[port] != 0 for port in tested_redis_processes)
+            LOG.debug('All redis processes: {0} is not running'.format(tested_redis_processes))
     except AssertionError:
-        raise AssertionError('Not all processes have the status: running - (0): {} .'.format(redis_processes_states))
+        raise AssertionError('Not all processes have the status: {0}: {1} .'.format(
+            'running - (0)' if not negation else 'stoped - (3)',
+            redis_processes_states))
 
-"""
-    server = getattr(world, serv_as)
-    # Get service api
-    api = getattr(getattr(szrapi, service_api)(server), command)
-    LOG.debug('Set %s instance %s for server %s' % (service_api, api, server.id))
-
-    scalarizr_key = server.details.get('scalarizr.key')
-    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
-
-    answer = api.redis.list_processes()
-
-    LOG.debug('API response from list_processes: %s' % answer)
-
-    if not len(answer['ports']) == int(instances_count):
-        raise AssertionError('Invalid redis processes count via API, must be: %s but get answer %s' %
-                             (instances_count, answer))
-
-@step('I add ([\d]+) redis ([\w]+) instance to ([\w]+)$')
-def upscale_redis_instances(step, instances_count, instance_type, serv_as):
-    server = getattr(world, serv_as)
-    scalarizr_key = server.details.get('scalarizr.key')
-    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
-    key = open('/tmp/%s_apikey' % server.id, 'w+')
-    key.write(scalarizr_key)
-    key.close()
-    LOG.info('Write key file from server %s to file %s' % (server.id, key.name))
-    ports = getattr(world, 'redis_instances', {})
-    if instance_type == 'master':
-        LOG.info('Run %s master instances' % instances_count)
-        answer = api.redis.launch_processes(num=int(instances_count))
-        LOG.debug('API response: %s' % answer)
-        ports.update(zip(answer['ports'], answer['passwords']))
-        setattr(world, 'redis_instances', ports)
-    elif instance_type == 'slave':
-        answer = api.redis.launch_processes(num=int(instances_count),
-                                            ports=ports.keys()[1:int(instances_count)+1],
-                                            passwords=ports.values()[1:int(instances_count)+1]
-                                            )
-        LOG.debug('API response: %s' % answer)
-    if not len(answer['ports']) == int(instances_count):
-        raise AssertionError('Count of running instances %s, but must be: %s' % (len(answer['ports']), instances_count))
-
-
-@step('([\d]+) redis instances work in ([\w]+)$')
-def check_redis_instances(step, instances_count, serv_as):
-    server = getattr(world, serv_as)
-    instances = getattr(world, 'redis_instances', {})
-    count = 0
-    LOG.info('Check working redis ports')
-    #TODO: Rewrite this
-    for instance in instances:
-        if CONF.feature.platform in ['cloudstack', 'idcf']:
-            cloud = Cloud()
-            node = cloud.get_node(server)
-            ip = filter(lambda x: x.address == server.public_ip, node.driver.ex_list_public_ip())[0]
-            try:
-                rule = node.driver.ex_add_port_forwarding_rule(node, ip, 'TCP', instance, instance)
-            except:
-                rules = node.driver.ex_list_port_forwarding_rule()
-                rule = filter(lambda x: x.public_port == instance and x.address == ip, rules)[0]
-            LOG.info('Rule for open port add: %s %s - %s' % (ip, instance, instance))
-        try:
-            LOG.debug('Try connect to redis instance: %s:%s:%s' % (server.public_ip, instance, instances[instance]))
-            r = redis.Redis(host=server.public_ip, port=instance, password=instances[instance], socket_timeout=5)
-            r.ping()
-            count += 1
-        except redis.ConnectionError, e:
-            LOG.error('Connection to redis: %s:%s with password %s is FAILED' % (server.public_ip, instance,
-                                                                               instances[instance]))
-            raise redis.ConnectionError('Connection to redis: %s:%s with password %s is FAILED' % (server.public_ip, instance,
-                                                                                                   instances[instance]))
-        finally:
-            if CONF.feature.platform in ['cloudstack', 'idcf']:
-                node.driver.ex_delete_port_forwarding_rule(node, rule)
-                LOG.info('Rule for open port was delete')
-    if not count == int(instances_count):
-        LOG.error('Working instance count is %s, but must %s' % (count, instances_count))
-
-
-@step('([\d]+) redis instances is ([\w]+) in ([\w]+)$')
-def check_redis_instances(step, instances_count, instance_type, serv_as):
-    server = getattr(world, serv_as)
-    instances = getattr(world, 'redis_instances', {})
-    count = 0
-    for instance in instances:
-        if CONF.feature.platform in ['cloudstack', 'idcf']:
-            cloud = Cloud()
-            node = cloud.get_node(server)
-            ip = filter(lambda x: x.address == server.public_ip, node.driver.ex_list_public_ip())[0]
-            try:
-                rule = node.driver.ex_add_port_forwarding_rule(node, ip, 'TCP', instance, instance)
-            except:
-                rules = node.driver.ex_list_port_forwarding_rule()
-                rule = filter(lambda x: x.public_port == instance and x.address == ip, rules)[0]
-            LOG.info('Rule for open port add: %s %s - %s' % (ip, instance, instance))
-        info = {}
-        try:
-            LOG.debug('Try connect to redis instance: %s:%s:%s' % (server.public_ip, instance, instances[instance]))
-            r = redis.Redis(host=server.public_ip, port=instance, password=instances[instance], socket_timeout=5)
-            info = r.info()
-        except redis.ConnectionError, e:
-            LOG.error('Connection to redis: %s:%s with password %s is FAILED' % (server.public_ip, instance,
-                                                                                 instances[instance]))
-            raise redis.ConnectionError('Connection to redis: %s:%s with password %s is FAILED' % (server.public_ip, instance,
-                                                                                                   instances[instance]))
-        finally:
-            if CONF.feature.platform in ['cloudstack', 'idcf']:
-                node.driver.ex_delete_port_forwarding_rule(node, rule)
-                LOG.info('Rule for open port was delete')
-        if info['role'] == instance_type:
-            count += 1
-        else:
-            LOG.error('Redis instance: %s:%s is not %s' % (server.public_ip, instance, instance_type))
-            raise AssertionError('Redis instance: %s:%s is not %s' % (server.public_ip, instance, instance_type))
-    if not count == int(instances_count):
-        LOG.error('%s instance count is %s, but must %s' % (instance_type, count, instances_count))
-
-
-@step('I ([\w]+) data (?:to|from) redis ([\d]+) in ([\w]+)')
-def action_on_redis(step, action, instance_number, serv_as):
-    server = getattr(world, serv_as)
-    instances = getattr(world, 'redis_instances', {})
-    instance = sorted(instances.items())[int(instance_number)-1]
-    if CONF.feature.platform in ['cloudstack', 'idcf']:
-        cloud = Cloud()
-        node = cloud.get_node(server)
-        ip = filter(lambda x: x.address == server.public_ip, node.driver.ex_list_public_ip())[0]
-        try:
-            rule = node.driver.ex_add_port_forwarding_rule(node, ip, 'TCP', instance[0], instance[0])
-        except:
-            rules = node.driver.ex_list_port_forwarding_rule()
-            rule = filter(lambda x: x.public_port == instance[0] and x.address == ip, rules)[0]
-        LOG.info('Rule for open port add: %s %s - %s' % (ip, instance[0], instance[0]))
-    r = redis.Redis(host=server.public_ip, port=instance[0], password=instance[1], socket_timeout=5, db=0)
-    if action == 'write':
-        LOG.info('Insert test key to %s:%s' % (server.public_ip, instance[0]))
-        r.set('test_key', 'test_value')
-    elif action == 'read':
-        LOG.info('Read test key from %s:%s' % (server.public_ip, instance[0]))
-        data = r.get('test_key')
-        if not data == 'test_value':
-            LOG.error('Receive bad key value from redis instance: %s:%s' % (server.public_ip, instance[0]))
-            raise AssertionError('Receive bad key value from redis instance: %s:%s' % (server.public_ip, instance[0]))
-    if CONF.feature.platform in ['cloudstack', 'idcf']:
-        node.driver.ex_delete_port_forwarding_rule(node, rule)
-        LOG.info('Rule for open port was delete')
-
-
-@step('I delete ([\d]+) redis instance in ([\w]+)')
-def delete_redis_instance(step, instances_count, serv_as):
-    server = getattr(world, serv_as)
-    instances = getattr(world, 'redis_instances', {})
-    ports = sorted(instances.keys())[:int(instances_count)]
-    LOG.debug('Delete %s redis instances from %s' % (instances_count, server.id))
-    for port in ports:
-        del(instances[port])
-    key = open('/tmp/%s_apikey' % server.id, 'w+')
-    scalarizr_key = server.details.get('scalarizr.key')
-    key.write(scalarizr_key)
-    key.close()
-    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
-    answer = api.redis.shutdown_processes(ports=ports, remove_data=True)
-    LOG.debug('API response: %s' % answer)
-    if not len(answer['ports']) == int(instances_count):
-        raise AssertionError('Count of deleted instances %s, but must be: %s' % (len(answer['ports']),
-                                                                                 instances_count))
-
-
-
-@step('And redis not started in ([\w]+) port ([\d]+)')
-def check_busy_port(step, serv_as, port):
-    server = getattr(world, serv_as)
-    scalarizr_key = server.details.get('scalarizr.key')
-    api = SzrApiServiceProxy(server.public_ip, scalarizr_key)
+@step(r'password for instance ([\d]+) was changed on ([\w\d]+)')
+def check_instance_password(step, instance_port, serv_as):
+    changed_password = get_api_command_result('reset_password')
+    LOG.debug('Obtained redis instance: {0} changed_password: {1}'.format(
+        instance_port,
+        changed_password))
+    list_processes_res = get_api_command_result('list_processes')
+    stored_password = list_processes_res['passwords'][list_processes_res['ports'].index(int(instance_port))]
+    LOG.debug('Obtained redis instance: {0} stored password: {1}'.format(
+        instance_port,
+        stored_password))
     try:
-        answer = api.redis.launch_processes(num=1, ports=[port,])
-    except ServiceError, e:
-        if 'Cannot launch Redis process on port %s: Already running' % port in e:
-            return
-        else:
-            raise AssertionError('Not standart api error message: "%s"' % e)
-"""
+        assert (changed_password == stored_password)
+        LOG.debug('Password was successfully changed for redis instance: {0}'.format(instance_port))
+    except AssertionError:
+        raise AssertionError('Password was not properly changed for redis instance: {0}\n'
+                             'Changed password: {1} not equal stored {2}'.format(
+                             instance_port,
+                             changed_password,
+                             stored_password))
+
+
+@step(r'I write test data to ([\d]+) redis instance on ([\w\d]+)')
+def write_data_to_instance(step, instance_port, serv_as):
+    server = getattr(world, serv_as)
+    # Get instance password
+    list_processes_res = get_api_command_result('list_processes')
+    password = list_processes_res['passwords'][list_processes_res['ports'].index(int(instance_port))]
+
+    db_role = world.get_role()
+    # Set credentials
+    credentials = (int(instance_port), password)
+    # Get connection to redis
+    connection = db_role.db.get_connection(server, credentials, db=0)
+    # Write data to redis instance
+    try:
+        connection.set(instance_port, password)
+        connection.save()
+        LOG.debug('Key:Value ({0}:{1}) pair was successfully set to redis instance {1} '.format(instance_port, password))
+    except Exception as e:
+        raise Exception(e.message)
+
+
+@step(r'redis instance with port ([\d]+) has not ([\w]+) on ([\w\d]+)')
+def check_instance_configs(step, instance_port, search_condition, serv_as):
+    redis_path = {
+        'debian':  {'conf': '/etc/redis',
+                    'data': '/mnt/redisstorage'},
+        'centos':  {'conf': '/etc',
+                    'data': '/mnt/redisstorage'},
+    }
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    # Get redis instance search condition
+    if search_condition == 'configuration':
+        path = redis_path.get(Dist.get_os_family(node.os[0]))['conf']
+        file = 'redis.{0}.conf'.format(instance_port)
+    else:
+        path = redis_path.get(Dist.get_os_family(node.os[0]))['data']
+        file = 'appendonly.{0}.aof'.format(instance_port)
+    command = 'find {0} -name {1}'.format(path, file)
+    LOG.debug('Search condition: ({0}/{1}) to find config for redis instance {2}'.format(path, file, instance_port))
+    try:
+        res = node.run(command)
+        LOG.debug('The result: ({0}) of the find command for redis instance {1}'.format(res[0], instance_port))
+        assert not (res[0])
+    except AssertionError:
+        raise AssertionError('Redis instance {0} config file ({1}/{2}) was not deleted.'.format(
+            instance_port,
+            path,
+            file))
+    LOG.debug('Redis instance {0} config file ({1}/{2}) was successfully deleted.'.format(
+        instance_port,
+        path,
+        file))
+
+@step(r'I read from ([\d]+) redis instance, and test data exists on ([\w\d]+)')
+def read_data_from_instance(step, instance_port, serv_as):
+    server = getattr(world, serv_as)
+    # Get instance password
+    list_processes_res = get_api_command_result('list_processes')
+    password = list_processes_res['passwords'][list_processes_res['ports'].index(int(instance_port))]
+
+    db_role = world.get_role()
+    # Set credentials
+    credentials = (int(instance_port), password)
+    # Get connection to redis
+    connection = db_role.db.get_connection(server, credentials, db=0)
+    # Write data to redis instance
+    try:
+        res = connection.get(instance_port)
+        LOG.debug('Test data: ({0}) was successfully get from redis instance {1}'.format(res, instance_port))
+        assert (res == password)
+    except Exception as e:
+        if isinstance(e, AssertionError):
+            e.message = 'Test data received from the server: ({0}) do not match written: ({1})'.format(
+                res,
+                instance_port)
+        raise type(e)(e.message)
+    LOG.debug('The data obtained from redis instance: ({1}) and are relevant: ({0}).'.format(res, instance_port))

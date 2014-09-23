@@ -34,7 +34,7 @@ def having_a_stopped_farm(step):
         world.farm.terminate()
 
 
-@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[\w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
+@step(r"I add(?P<behavior> \w+)? role to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
 def add_role_to_farm(step, behavior=None, options=None, alias=None):
     additional_storages = None
     scripting = None
@@ -45,6 +45,8 @@ def add_role_to_farm(step, behavior=None, options=None, alias=None):
         behavior = os.environ.get('RV_BEHAVIOR', 'base')
     else:
         behavior = behavior.strip()
+
+    LOG.info('Debug optios: %s' % options)
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
