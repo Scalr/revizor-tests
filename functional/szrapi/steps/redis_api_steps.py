@@ -98,14 +98,11 @@ def write_data_to_instance(step, instance_port, serv_as):
     # Get connection to redis
     connection = db_role.db.get_connection(server, credentials, db=0)
     # Write data to redis instance
-    try:
-        connection.set(instance_port, password)
-        connection.save()
-        LOG.debug('Key:Value ({0}:{1}) pair was successfully set to redis instance {1} '.format(
-            instance_port,
-            password))
-    except:
-        raise
+    connection.set(instance_port, password)
+    connection.save()
+    LOG.debug('Key:Value ({0}:{1}) pair was successfully set to redis instance {1} '.format(
+        instance_port,
+        password))
 
 
 @step(r'redis instance with port ([\d]+) has not ([\w]+) on ([\w\d]+)')
@@ -153,13 +150,10 @@ def read_data_from_instance(step, instance_port, serv_as):
     # Get connection to redis
     connection = db_role.db.get_connection(server, credentials, db=0)
     # Write data to redis instance
-    try:
-        res = connection.get(instance_port)
-        LOG.debug('Test data: ({0}) was successfully get from redis instance {1}'.format(res, instance_port))
-        assertion_message = 'Test data received from the server: ({0}) do not match written: ({1})'.format(
-            res,
-            password)
-        assert res == password, assertion_message
-        LOG.debug('The data obtained from redis instance: ({1}) and are relevant: ({0}).'.format(res, instance_port))
-    except:
-        raise
+    res = connection.get(instance_port)
+    LOG.debug('Test data: ({0}) was successfully get from redis instance {1}'.format(res, instance_port))
+    assertion_message = 'Test data received from the server: ({0}) do not match written: ({1})'.format(
+        res,
+        password)
+    assert res == password, assertion_message
+    LOG.debug('The data obtained from redis instance: ({1}) and are relevant: ({0}).'.format(res, instance_port))
