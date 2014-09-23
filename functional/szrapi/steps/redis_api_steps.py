@@ -170,6 +170,6 @@ def read_data_from_instance(step, instance_port, serv_as):
         if isinstance(e, AssertionError):
             e.message = 'Test data received from the server: ({0}) do not match written: ({1})'.format(
                 res,
-                instance_port)
+                password)
         raise type(e)(e.message)
     LOG.debug('The data obtained from redis instance: ({1}) and are relevant: ({0}).'.format(res, instance_port))
