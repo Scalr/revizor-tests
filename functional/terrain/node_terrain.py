@@ -1,6 +1,7 @@
 __author__ = 'gigimon'
 
 import os
+import sys
 import time
 import logging
 import collections
@@ -507,23 +508,19 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
                                     common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name'))
     LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
-    try:
-        pid_before = get_pid(pattern)
-        LOG.debug('Obtained service:%s pid list %s before api call.' % (pattern, pid_before))
-        api_result = api(**args) if args else api()
-        LOG.debug('Run %s instance method %s.' % (service_api, command))
-        # Save api command result to world [command_name]_res
-        setattr(world, ''.join((command, '_res')), api_result)
-        LOG.debug('Save {0} instance method {1} result: {2}'.format(
-            service_api,
-            command,
-            api_result))
-        pid_after = get_pid(pattern)
-        LOG.debug('Obtained service:%s pid list %s after api call.' % (pattern, pid_after))
-        assertion_message = 'Some pid was not be changed. pid before api call: %s after: %s'(pid_before, pid_after)
-        assert not any(pid in pid_before for pid in pid_after), assertion_message
-    except Exception as e:
-        raise Exception('An error occurred while try to run: {0}.\nScalarizr api Error: {1}'.format(
-            command,
-            e.message)
-        )
+    pid_before = get_pid(pattern)
+    LOG.debug('Obtained service:%s pid list %s before api call.' % (pattern, pid_before))
+    api_result = api(**args) if args else api()
+    LOG.debug('Run %s instance method %s.' % (service_api, command))
+    # Save api command result to world [command_name]_res
+    setattr(world, ''.join((command, '_res')), api_result)
+    LOG.debug('Save {0} instance method {1} result: {2}'.format(
+        service_api,
+        command,
+        api_result))
+    pid_after = get_pid(pattern)
+    LOG.debug('Obtained service:%s pid list %s after api call.' % (pattern, pid_after))
+    assertion_message = 'Some pid was not be changed. pid before api call: {0} after: {1}'.format(
+        pid_before,
+        pid_after)
+    assert not any(pid in pid_before for pid in pid_after), assertion_message

@@ -126,10 +126,9 @@ def check_instance_configs(step, instance_port, search_condition, serv_as):
     LOG.debug('Search condition: ({0}/{1}) to find config for redis instance {2}'.format(path, file, instance_port))
     res = node.run(command)
     LOG.debug('The result: ({0}) of the find command for redis instance {1}'.format(res[0], instance_port))
-    assertion_message = 'Redis instance {0} config file ({1}/{2}) was not deleted.'.format(
+    assertion_message = 'Redis instance {0} config file ({1}) was not deleted.'.format(
         instance_port,
-        path,
-        file)
+        res[0])
     assert not (res[0]), assertion_message
     LOG.debug('Redis instance {0} config file ({1}/{2}) was successfully deleted.'.format(
         instance_port,
