@@ -36,20 +36,19 @@ def assert_vhost_delete(step, res_storage_name, input_arg_name, args_storage_nam
         api_result))
 
     # Check api command result
-    try:
-        if not isinstance(api_result, (list, tuple)):
-            raise AssertionError('Mismatch api command result: {0} output format: {1}'.format(
-                res_storage_name,
-                type(api_result)
-            ))
-        assertion_list = [filter(lambda vhost: arg[0] in vhost, api_result) for arg in input_arg]
-        assert all(not len(vhost) for vhost in assertion_list)
-        LOG.debug('Obtained list virtual hosts {0} not contains any '
-                  'records from {1} arguments: {2}'.format(api_result, args_storage_name, input_arg))
-    except AssertionError:
-        raise AssertionError('Obtained list virtual hosts {0} contains '
-                             'some records: {1} from {2} arguments: {3}'.format(
-            api_result,
-            assertion_list,
-            args_storage_name,
-            input_arg))
+    if not isinstance(api_result, (list, tuple)):
+        raise Exception('Mismatch api command result: {0} output format: {1}'.format(
+            res_storage_name,
+            type(api_result)
+        ))
+    assertion_list = [filter(lambda vhost: arg[0] in vhost, api_result) for arg in input_arg]
+    assertion_message = 'Obtained list virtual hosts {0} contains some records: {1} from {2} arguments: {3}'.format(
+        api_result,
+        assertion_list,
+        args_storage_name,
+        input_arg)
+    assert all(not len(vhost) for vhost in assertion_list), assertion_message
+    LOG.debug('Obtained list virtual hosts {0} not contains any records from {1} arguments: {2}'.format(
+        api_result,
+        args_storage_name,
+        input_arg))

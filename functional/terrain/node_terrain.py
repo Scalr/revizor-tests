@@ -520,10 +520,8 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
             api_result))
         pid_after = get_pid(pattern)
         LOG.debug('Obtained service:%s pid list %s after api call.' % (pattern, pid_after))
-        try:
-            assert not any(pid in pid_before for pid in pid_after)
-        except:
-            raise AssertionError('Some pid was not be changed. pid before api call: %s after: %s'(pid_before, pid_after))
+        assertion_message = 'Some pid was not be changed. pid before api call: %s after: %s'(pid_before, pid_after)
+        assert not any(pid in pid_before for pid in pid_after), assertion_message
     except Exception as e:
         raise Exception('An error occurred while try to run: {0}.\nScalarizr api Error: {1}'.format(
             command,
