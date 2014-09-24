@@ -34,7 +34,7 @@ def having_a_stopped_farm(step):
         world.farm.terminate()
 
 
-@step(r"I add(?P<behavior> \w+)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[\w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
+@step(r"I add(?P<behavior> \w+)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
 def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=None):
     additional_storages = None
     scripting = None
