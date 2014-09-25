@@ -14,6 +14,14 @@ from revizor2.consts import ServerStatus
 LOG = logging.getLogger(__name__)
 
 
+IP_RESOLVER_SITES = (
+    'http://revizor2.scalr-labs.com/get_ext_ip/',
+    'http://ifconfig.me/ip',
+    'http://myexternalip.com/raw',
+    'http://ip-address.ru/show'
+)
+
+
 @world.absorb
 def wrt(what):
     what = etree.tostring(what)
@@ -90,7 +98,7 @@ def check_open_port(server, port):
 
 @world.absorb
 def get_external_local_ip():
-    for site in ('http://ifconfig.me/ip', 'http://myexternalip.com/raw', 'http://ip-address.ru/show'):
+    for site in IP_RESOLVER_SITES:
         try:
             LOG.debug('Try get external IP address from site %s' % site)
             my_ip = requests.get(site).text.strip()
