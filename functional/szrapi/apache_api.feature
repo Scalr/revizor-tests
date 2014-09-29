@@ -103,5 +103,5 @@ Feature: Apache application server role, api tests
         Then I update virtual host on domain D1 from ssl to plain-text on A1
         Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "update_vhost"
-        And domain D1 contain default web page
+        And domain D1 contain default web page on A1
         And not ERROR in A1 scalarizr log

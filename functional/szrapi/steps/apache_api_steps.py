@@ -13,6 +13,7 @@ from revizor2.utils import wait_until
 from revizor2 import szrapi
 from revizor2.defaults import DEFAULT_API_TEMPLATES as templates
 from revizor2.api import Certificate
+from revizor2.fixtures import resources
 
 
 
@@ -127,9 +128,22 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
         server.public_ip)
 
 
-@step(r'domain ([\w\d]+) contain default web page')
-def assert_default_page(step, domain_as,):
+@step(r'domain ([\w\d]+) contain default web page on ([\w\d]+)')
+def assert_default_page(step, domain_as, serv_as):
+    # Get domain name
     domain = getattr(world, domain_as)
+    # Get server
+    server = getattr(world, serv_as)
+    # Set assertion resource
+    index = resources('html/index_test.php')
+    index = index.get() % {'id': domain.name}
+    # Get node
+    node = world.cloud.get_node(server)
+    LOG.debug('Upload index page %s to server %s' % (domain.name, node.id))
+    node.run('rm -f /tmp/example/index.html')
+    # Put assertion resource
+    node.put_file(path='/tmp/example/index.php', content=index)
+    # Get assertion resource
     url = 'http://%s/' % domain.name
     for i in xrange(10):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
@@ -141,6 +155,7 @@ def assert_default_page(step, domain_as,):
             time.sleep(15)
     else:
         raise AssertionError("Can't domain {0} default page: {1}".format(domain.name, url))
-    assertion_text = 'If you can see this page, it means that your Scalr farm configured succesfully.'
+
     assertion_message = 'Default page not valid: {0}.\nStatus code: {1}'.format(resp.text, resp.status_code)
-    assert resp.text == assertion_text and resp.status_code == 200, assertion_message
+    assert 'VHost %s added' % domain.name in resp.text and resp.status_code == 200, assertion_message
+    LOG.debug('Server {0} contain default page on virtual host: {1}'.format(server.public_ip, url))
