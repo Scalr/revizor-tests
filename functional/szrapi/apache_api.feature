@@ -100,8 +100,9 @@ Feature: Apache application server role, api tests
         And D1 resolves into A1 ip address
         Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "create_vhost"
+        And domain D1 contain default https web page on A1
         Then I update virtual host on domain D1 from ssl to plain-text on A1
         Then I run "ApacheApi" command "list_served_virtual_hosts" on A1
         And api result "list_served_virtual_hosts" contain argument "hostname" from command "update_vhost"
-        And domain D1 contain default web page on A1
+        And domain D1 contain default http web page on A1
         And not ERROR in A1 scalarizr log
