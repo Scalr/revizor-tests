@@ -20,8 +20,7 @@ from revizor2.fixtures import resources
 LOG = logging.getLogger(__name__)
 
 
-def run_api(serv_as, command, api_args):
-    server = getattr(world, serv_as)
+def run_api(server, command, api_args):
     api = getattr(getattr(szrapi, 'ApacheApi')(server), command)
     # Set vhost args
     setattr(world, ''.join((command, '_args')), api_args)
@@ -95,7 +94,7 @@ def create_vhost(step, key_name, domain_as, serv_as):
         ssl=True,
         ssl_certificate_id=Certificate.get_by_name(key_name).id,
         reload=True)
-    res = run_api(serv_as, 'create_vhost', args)
+    res = run_api(server, 'create_vhost', args)
     LOG.info('Add new virtual hosts to domain {0} with key {1}:\n{2}'.format(
         domain.name,
         key_name,
@@ -113,6 +112,8 @@ def create_vhost(step, key_name, domain_as, serv_as):
 @step(r'I update virtual host on domain ([\w\d]+) from ssl to plain-text on ([\w\d]+)')
 def update_vhost(step, domain_as, serv_as):
     domain = getattr(world, domain_as)
+    # Get server
+    server = getattr(world, serv_as)
     # Set vhost args
     args = dict(
         signature=(domain.name, 443),
@@ -121,7 +122,7 @@ def update_vhost(step, domain_as, serv_as):
         template=templates['ApacheApi']['name-based-template'].replace('www.example.com', domain.name),
         ssl=False,
         reload=True)
-    res = run_api(serv_as, 'update_vhost', args)
+    res = run_api(server, 'update_vhost', args)
     LOG.info('Virtual hosts on domain {0} was updated:\n{1}'.format(domain.name, res))
 
 
