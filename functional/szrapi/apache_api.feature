@@ -94,7 +94,7 @@ Feature: Apache application server role, api tests
         And not ERROR in A1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Update ssl virtual host to plain-text
+    Scenario: Disable SSL on website
         Given I create domain D1
         And I add ssl virtual host with key revizor-key to domain D1 on A1
         And D1 resolves into A1 ip address
