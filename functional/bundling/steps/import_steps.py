@@ -160,6 +160,7 @@ def install_behaviors(step):
     LOG.info('Initiate the installation behaviors on the server: %s' % world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks, CONF.feature.driver.scalr_cloud.lower(), branch=CONF.feature.branch)
 
+
 @step('I trigger the Start building and run scalarizr')
 def start_building(step):
     time.sleep(180)
