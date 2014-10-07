@@ -131,6 +131,7 @@ def given_server_in_cloud(step, user_data):
     #Create node
     node = world.cloud.create_node(userdata=user_data)
     setattr(world, 'cloud_server', node)
+    LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         #Run command
         out = node.run('wget -qO- ifconfig.me/ip')
@@ -156,6 +157,7 @@ def install_behaviors(step):
         if behavior in cookbooks:
             continue
         cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
+    LOG.info('Initiate the installation behaviors on the server: %s' % world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks, CONF.feature.driver.scalr_cloud.lower(), branch=CONF.feature.branch)
 
 @step('I trigger the Start building and run scalarizr')

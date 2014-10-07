@@ -6,9 +6,27 @@ Created on 08.18.2014
 """
 
 import logging
+import requests
+from time import time
 from lettuce import world, step
+from revizor2.utils import wait_until
+from revizor2 import szrapi
+from revizor2.defaults import DEFAULT_API_TEMPLATES as templates
+from revizor2.api import Certificate
+from revizor2.fixtures import resources
 
-LOG = logging.getLogger('Apache api steps')
+
+
+LOG = logging.getLogger(__name__)
+
+
+def run_api(server, command, api_args):
+    api = getattr(getattr(szrapi, 'ApacheApi')(server), command)
+    # Set vhost args
+    setattr(world, ''.join((command, '_args')), api_args)
+    api_result = api(**api_args)
+    setattr(world, ''.join((command, '_res')), api_result)
+    return api_result
 
 
 @step(r'api result (\"\w+\") does not contain argument (\"\w+\") from command ("delete_vhosts")')
@@ -52,3 +70,94 @@ def assert_vhost_delete(step, res_storage_name, input_arg_name, args_storage_nam
         api_result,
         args_storage_name,
         input_arg))
+
+
+@step(r'I create domain ([\w\d]+)')
+def create_domain(step, domain_as):
+    LOG.info('Create domain as {0}'.format(domain_as))
+    role = world.get_role()
+    domain = role.create_domain()
+    LOG.info('New domain was successfully created as :{0}'.format(domain.name))
+    setattr(world, domain_as, domain)
+
+
+@step(r'I add ssl virtual host with key ([\w\d-]+) to domain ([\w\d]+) on ([\w\d]+)')
+def create_vhost(step, key_name, domain_as, serv_as):
+    domain = getattr(world, domain_as)
+    # Get server
+    server = getattr(world, serv_as)
+    # Set vhost args
+    args = dict(
+        hostname=domain.name,
+        port=443,
+        template=templates['ApacheApi']['ssl-name-based-template'].replace('www.secure.example.com', domain.name),
+        ssl=True,
+        ssl_certificate_id=Certificate.get_by_name(key_name).id,
+        reload=True)
+    res = run_api(server, 'create_vhost', args)
+    LOG.info('Add new virtual hosts to domain {0} with key {1}:\n{2}'.format(
+        domain.name,
+        key_name,
+        res))
+
+    index = resources('html/index_test.php')
+    index = index.get() % {'id': domain.name}
+    # Get node
+    node = world.cloud.get_node(server)
+    node.run('rm -f /tmp/example/index.html')
+    node.put_file(path='/tmp/example/index.php', content=index)
+    LOG.debug('Uploaded index page %s to server %s' % (domain.name, node.id))
+
+
+@step(r'I update virtual host on domain ([\w\d]+) from ssl to plain-text on ([\w\d]+)')
+def update_vhost(step, domain_as, serv_as):
+    domain = getattr(world, domain_as)
+    # Get server
+    server = getattr(world, serv_as)
+    # Set vhost args
+    args = dict(
+        signature=(domain.name, 443),
+        hostname=domain.name,
+        port=80,
+        template=templates['ApacheApi']['name-based-template'].replace('www.example.com', domain.name),
+        ssl=False,
+        reload=True)
+    res = run_api(server, 'update_vhost', args)
+    LOG.info('Virtual hosts on domain {0} was updated:\n{1}'.format(domain.name, res))
+
+
+@step(r'([\w]+) resolves into (.+) ip address')
+def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
+    domain = getattr(world, domain_as)
+    server = getattr(world, serv_as)
+    domain_ip = wait_until(world.check_resolving,
+                           args=(domain.name,),
+                           timeout=timeout,
+                           error_text='Domain: {0} not resolve'.format(domain.name))
+    assert domain_ip == server.public_ip, 'Domain IP {0} != server IP {1}'.format(
+        domain_ip,
+        server.public_ip)
+
+
+@step(r'domain ([\w\d]+) contain default ([\w]+) web page on ([\w\d]+)')
+def assert_default_page(step, domain_as, proto, serv_as):
+    # Get domain name
+    domain = getattr(world, domain_as)
+    # Get server
+    server = getattr(world, serv_as)
+    # Get assertion resource
+    url = '%s://%s/' % (proto, domain.name)
+    for i in xrange(10):
+        LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
+        try:
+            resp = requests.get(url, timeout=30, verify=False)
+            break
+        except Exception, e:
+            LOG.warning("Error in openning page '%s': %s" % (url, e))
+            time.sleep(15)
+    else:
+        raise AssertionError("Can't domain {0} default page: {1}".format(domain.name, url))
+    assertion_message = 'Default page not valid: {0}.\nStatus code: {1}'.format(resp.text, resp.status_code)
+
+    assert 'VHost %s added' % domain.name in resp.text and resp.status_code == 200, assertion_message
+    LOG.debug('Server {0} contain default page on virtual host: {1}'.format(server.public_ip, url))
