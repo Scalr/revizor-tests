@@ -1,20 +1,20 @@
 Using step definitions from: steps/bundling_steps
 Feature: Bundling server test
 
-    @scalr
+    @scalr @api
     Scenario: Add first role
         Given I have a an empty running farm
         When I add role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
 
-    @scalr
+    @scalr @api
     Scenario: Create new role
         When I create server snapshot for M1
         Then Bundle task created for M1
         And Bundle task becomes completed for M1
 
-    @scalr
+    @scalr @api
     Scenario: Role should be usable
         Given I have a an empty running farm
         When I add to farm role created by last bundle task

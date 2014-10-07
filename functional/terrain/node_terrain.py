@@ -339,7 +339,6 @@ def check_log(step, serv_as):
 @step('I ([\w\d]+) service ([\w\d]+)(?: and ([\w]+) has been changed)? on ([\w\d]+)(?: by ([\w]+))?')
 def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_api):
     """Change process status on remote host by his name. """
-
     #Init params
     service = {'node': None}
     server = getattr(world, serv_as)
@@ -386,6 +385,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         else '%s.%s() complete successfully' % (service['api'], status)))
     LOG.info("Service status was successfully changed : {0} {1} {2}".format(service['node'], status_as,
                                                                             'by api call' if is_api else ''))
+    time.sleep(15)
 
 
 @step('I know ([\w]+) storages$')
