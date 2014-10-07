@@ -177,11 +177,13 @@ Feature: MySQL database server with behavior mysql2
 	Scenario: Restart farm
 		When I stop farm
 		And wait all servers are terminated
+        Then I increase storage size to 7 Gb in farm settings for mysql2 role
 		Then I start farm with delay
 		And I expect server bootstrapping as M1
 		And mysql is running on M1
 		And M1 contains database D3 by user 'revizor'
 		And scalarizr version is last in M1
+        And attached volume in M1 has size 7 Gb
 		Then I expect server bootstrapping as M2
 		And mysql2 replication status is up
 		And M2 is slave of M1
@@ -192,3 +194,17 @@ Feature: MySQL database server with behavior mysql2
         When I trigger pmaaccess creation
         Then I launch pma session
         And pma is available, I see the phpMyAdmin in the title
+
+    @ec2
+    Scenario: Verify storage recreation
+        Given I have a M1 attached volume id as V1
+        When I stop farm
+        And wait all servers are terminated
+        Then I delete volume V1
+        Then I start farm with delay
+        And I expect server bootstrapping as M1
+        Then I expect server bootstrapping as M2
+        And attached storage in M1 has size 7 Gb
+        And M1 doesn't has any databases
+        And mysql2 replication status is up
+        And M2 is slave of M1

@@ -1,6 +1,7 @@
 import os
 import time
 import logging
+import json
 from datetime import timedelta
 
 from lettuce import world, step
@@ -568,3 +569,54 @@ def get_storage_id(step, action, db):
                                                              'saved before Slave -> Master promotion.' %
                                                              (storage_id, world.storage_id))
         LOG.info('New Master storage id %s matched with id %s saved before Slave -> Master promotion.' % (storage_id, world.storage_id))
+
+
+@step(r'I increase storage size to (\d+) Gb in farm settings for ([\w\d]+) role')
+def increase_storage_farm_size(step, size, role_type):
+    #TODO: Change this to decorator
+    if CONF.feature.driver.current_cloud in (Platform.EC2,):
+        LOG.info('Change storage size for "%s" role to "%s"' % (role_type, size))
+        role = world.get_role(role_type)
+        size = int(size)
+        role.edit(options={
+            "db.msr.storage.grow_config": json.dumps({"size": size})
+        })
+
+
+@step(r'attached volume in ([\w\d]+) has size (\d+) Gb')
+def verify_attached_volume_size(step, serv_as, size):
+    #TODO: Change this to decorator
+    if CONF.feature.driver.current_cloud in (Platform.EC2,):
+        LOG.info('Verify master volume has new size "%s"' % size)
+        size = int(size)
+        server = getattr(world, serv_as)
+        volumes = server.get_volumes()
+        if not volumes:
+            raise AssertionError('Server %s doesn\'t has attached volumes!' %
+                                 (server.id))
+        if not size == volumes[0].size:
+            raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
+                                 % (volumes[0].id, volumes[0].size, size))
+
+
+@step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
+def save_attached_volume_id(step, serv_as, volume_as):
+    server = getattr(world, serv_as)
+    volumes = server.get_volumes()
+    if not volumes:
+        raise AssertionError('Server %s doesn\'t has attached volumes!' %
+                             (server.id))
+    setattr(world, '%s_volume' % volume_as, volumes[0])
+
+
+@step(r'I delete volume ([\w\d]+)')
+def delete_attached_volume(step, volume_as):
+    volume = getattr(world, '%s_volume' % volume_as)
+    for i in range(10):
+        try:
+            world.cloud._driver._conn.destroy_volume(volume)
+            break
+        except Exception, e:
+            if 'attached' in e.message:
+                LOG.warning('Volume "%s" currently attached to server' % volume.id)
+                time.sleep(60)
