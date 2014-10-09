@@ -574,7 +574,8 @@ def get_storage_id(step, action, db):
 @step(r'I increase storage size to (\d+) Gb in farm settings for ([\w\d]+) role')
 def increase_storage_farm_size(step, size, role_type):
     #TODO: Change this to decorator
-    if CONF.feature.driver.current_cloud in (Platform.EC2,):
+    if CONF.feature.driver.current_cloud in (Platform.EC2,) \
+            and CONF.feature.storage == 'persistent':
         LOG.info('Change storage size for "%s" role to "%s"' % (role_type, size))
         role = world.get_role(role_type)
         size = int(size)
@@ -586,32 +587,46 @@ def increase_storage_farm_size(step, size, role_type):
 @step(r'attached volume in ([\w\d]+) has size (\d+) Gb')
 def verify_attached_volume_size(step, serv_as, size):
     #TODO: Change this to decorator
-    if CONF.feature.driver.current_cloud in (Platform.EC2,):
+    if CONF.feature.driver.current_cloud in (Platform.EC2,)\
+            and CONF.feature.storage == 'persistent':
         LOG.info('Verify master volume has new size "%s"' % size)
         size = int(size)
         server = getattr(world, serv_as)
+        node = world.cloud.get_node(server)
         volumes = server.get_volumes()
         if not volumes:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
                                  (server.id))
-        if not size == volumes[0].size:
+        attached_volume = filter(lambda x:
+                                 x.extra['device'] != node.extra['root_device_name'],
+                                 volumes)[0]
+        LOG.info('Attached volume for server "%s" is "%s"' %
+                 (server.id, attached_volume.id))
+        if not size == attached_volume.size:
             raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
-                                 % (volumes[0].id, volumes[0].size, size))
+                                 % (attached_volume.id, attached_volume.size, size))
 
 
 @step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
 def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
     volumes = server.get_volumes()
     if not volumes:
         raise AssertionError('Server %s doesn\'t has attached volumes!' %
                              (server.id))
-    setattr(world, '%s_volume' % volume_as, volumes[0])
+    attached_volume = filter(lambda x:
+                             x.extra['device'] != node.extra['root_device_name'],
+                             volumes)[0]
+    setattr(world, '%s_volume' % volume_as, attached_volume)
+    LOG.info('Attached volume for server "%s" is "%s"' %
+             (server.id, attached_volume.id))
 
 
 @step(r'I delete volume ([\w\d]+)')
 def delete_attached_volume(step, volume_as):
     volume = getattr(world, '%s_volume' % volume_as)
+    LOG.info('Delete volume "%s"' % volume.id)
     for i in range(10):
         try:
             world.cloud._driver._conn.destroy_volume(volume)
@@ -620,3 +635,23 @@ def delete_attached_volume(step, volume_as):
             if 'attached' in e.message:
                 LOG.warning('Volume "%s" currently attached to server' % volume.id)
                 time.sleep(60)
+            else:
+                raise
+
+
+@step(r"([\w\d]+) doesn't has any databases")
+def verify_db_not_exist(step, serv_as):
+    db_role = world.get_role()
+    databases = db_role.db.database_list()
+    if db_role.db.db_name in ['mysql2', 'percona']:
+        if len(databases) > 3:
+            raise AssertionError('%s role contains databases: "%s"' %
+                                 (db_role.db.db_name, databases))
+    elif db_role.db.db_name == 'redis':
+        if databases:
+            raise AssertionError('%s role contains databases: "%s"' %
+                                 (db_role.db.db_name, databases))
+    elif db_role.db.db_name == 'postgresql':
+        if len(databases) > 5:
+            raise AssertionError('%s role contains databases: "%s"' %
+                                 (db_role.db.db_name, databases))

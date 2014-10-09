@@ -197,14 +197,14 @@ Feature: MySQL database server with behavior mysql2
 
     @ec2
     Scenario: Verify storage recreation
-        Given I have a M1 attached volume id as V1
+        Given I have a M1 attached volume as V1
         When I stop farm
         And wait all servers are terminated
         Then I delete volume V1
         Then I start farm with delay
         And I expect server bootstrapping as M1
         Then I expect server bootstrapping as M2
-        And attached storage in M1 has size 7 Gb
+        And attached volume in M1 has size 7 Gb
         And M1 doesn't has any databases
         And mysql2 replication status is up
         And M2 is slave of M1
