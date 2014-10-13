@@ -600,8 +600,8 @@ def verify_attached_volume_size(step, serv_as, size):
         attached_volume = filter(lambda x:
                                  x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
-        LOG.info('Attached volume for server "%s" is "%s"' %
-                 (server.id, attached_volume.id))
+        LOG.info('Attached volume for server "%s" is "%s" with size "%s"' %
+                 (server.id, attached_volume.id, attached_volume.size))
         if not size == attached_volume.size:
             raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
                                  % (attached_volume.id, attached_volume.size, size))

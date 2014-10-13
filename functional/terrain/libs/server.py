@@ -121,13 +121,19 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                         previous_state))
 
             LOG.debug('Check lookup server launch failed')
-            if lookup_server.is_launch_failed and status != ServerStatus.FAILED:
+            if lookup_server.is_launch_failed:
+                if status == ServerStatus.FAILED:
+                    LOG.debug('Return server because we wait a failed state')
+                    return lookup_server
                 raise ServerFailed('Server %s failed in %s. Reason: %s'
                                    % (lookup_server.id, ServerStatus.PENDING_LAUNCH,
                                       lookup_server.get_failed_status_message()))
 
             LOG.debug('Check lookup server init failed')
-            if lookup_server.is_init_failed and status != ServerStatus.FAILED:
+            if lookup_server.is_init_failed:
+                if status == ServerStatus.FAILED:
+                    LOG.debug('Return server because we wait a failed state')
+                    return lookup_server
                 raise ServerFailed('Server %s failed in %s. Failed (Why?): %s' %
                                    (lookup_server.id, ServerStatus.INIT, lookup_server.get_failed_status_message()))
 
@@ -145,9 +151,11 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.PENDING_TERMINATE,
                                                             ServerStatus.TERMINATED,
                                                             ServerStatus.PENDING_SUSPEND,
-                                                            ServerStatus.SUSPENDED]:
+                                                            ServerStatus.SUSPENDED]\
+                    and not status == ServerStatus.FAILED:
                 if not Dist.is_windows_family(lookup_server.role.dist):
                     LOG.debug('Check scalarizr log in lookup server')
+                    #TODO: Add to windows check log
                     verify_scalarizr_log(lookup_node)
 
             LOG.debug('If server Running and we wait Initializing, return server')
