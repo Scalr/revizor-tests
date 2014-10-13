@@ -62,9 +62,50 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_init_id = Script.get_id('Revizor orchestration init')['id']
                 scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % {'SCRIPT_PONG_ID': script_pong_id,
                                                                          'SCRIPT_INIT_ID': script_init_id})
+            elif opt == 'failed_script':
+                script_id = Script.get_id('test_return_nonzero')['id']
+                scripting = [
+                    {
+                        "script_type": "scalr",
+                        "script_id": script_id,
+                        "script": "test_return_nonzero",
+                        "os": "linux",
+                        "event": "BeforeHostUp",
+                        "target": "instance",
+                        "isSync": "1",
+                        "timeout": "1200",
+                        "version": "-1",
+                        "params": {},
+                        "order_index": "10",
+                        "system": "",
+                        "script_path": "",
+                        "run_as": "root"
+                    }
+                ]
+                role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
             elif opt == 'storages':
                 LOG.info('Insert additional storages config')
-                additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
+                if CONF.feature.dist.startswith('win'):
+                    #FIXME: Think and move this to defaults
+                    additional_storages = {'configs': [
+                        {
+                            "type": "ebs",
+                            "fs": "",
+                            "settings": {
+                                "ebs.size": "1",
+                                "ebs.type": "standard",
+                                "ebs.snapshot": None,
+                                "ebs.encrypted": False
+                            },
+                            "mount": False,
+                            "mountPoint": "",
+                            "reUse": True,
+                            "status": "",
+                            "rebuild": False
+                        }
+                    ]}
+                else:
+                    additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))

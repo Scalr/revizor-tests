@@ -112,19 +112,22 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             lookup_server.reload()
 
             LOG.debug('Check lookup server terminated?')
-            if lookup_server.status in [ServerStatus.TERMINATED, ServerStatus.PENDING_TERMINATE] \
-                and not status in [ServerStatus.TERMINATED, ServerStatus.PENDING_TERMINATE]:
+            if lookup_server.status in [ServerStatus.TERMINATED,
+                                        ServerStatus.PENDING_TERMINATE] \
+                and not status in [ServerStatus.TERMINATED,
+                                   ServerStatus.PENDING_TERMINATE]:
                 raise ServerTerminated('Server %s change status to %s (was %s)' %
-                                       (lookup_server.id, lookup_server.status, previous_state))
+                                       (lookup_server.id, lookup_server.status,
+                                        previous_state))
 
             LOG.debug('Check lookup server launch failed')
-            if lookup_server.is_launch_failed:
+            if lookup_server.is_launch_failed and status != ServerStatus.FAILED:
                 raise ServerFailed('Server %s failed in %s. Reason: %s'
                                    % (lookup_server.id, ServerStatus.PENDING_LAUNCH,
                                       lookup_server.get_failed_status_message()))
 
             LOG.debug('Check lookup server init failed')
-            if lookup_server.is_init_failed:
+            if lookup_server.is_init_failed and status != ServerStatus.FAILED:
                 raise ServerFailed('Server %s failed in %s. Failed (Why?): %s' %
                                    (lookup_server.id, ServerStatus.INIT, lookup_server.get_failed_status_message()))
 

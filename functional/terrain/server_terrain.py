@@ -22,8 +22,10 @@ def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     role = world.get_role(role_type) if role_type else None
     if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK):
         timeout = 3000
-    LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as, role_type))
-    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING, timeout=timeout)
+    LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as,
+                                                                role_type))
+    server = world.wait_server_bootstrapping(role, ServerStatus.RUNNING,
+                                             timeout=timeout)
     setattr(world, serv_as, server)
 
 
@@ -32,9 +34,15 @@ def wait_server_state(step, serv_as, state):
     """
     Wait old server in selected state
     """
-    server = getattr(world, serv_as)
-    LOG.info('Wait server %s in state %s' % (server.id, state))
-    world.wait_server_bootstrapping(status=ServerStatus.from_code(state), server=server)
+    server = getattr(world, serv_as, None)
+    if not server:
+        LOG.info('Wait new server %s in state %s' % (serv_as, state))
+        server = world.wait_server_bootstrapping(status=ServerStatus.from_code(state))
+        setattr(world, serv_as, server)
+    else:
+        LOG.info('Wait server %s in state %s' % (server.id, state))
+        world.wait_server_bootstrapping(status=ServerStatus.from_code(state),
+                                        server=server)
 
 
 @step(r'I( force)? terminate(?: server)? ([\w\d]+)( with decrease)?$')

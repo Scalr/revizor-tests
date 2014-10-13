@@ -7,11 +7,12 @@ Feature: Windows server lifecycle
     @ec2
     Scenario: Bootstraping
         Given I have a clean and stopped farm
-        And I add role to this farm with winchef
+        And I add role to this farm with winchef,storages
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
+        And server M1 has disk with size 1Gb
 
     @ec2
     Scenario: Restart scalarizr

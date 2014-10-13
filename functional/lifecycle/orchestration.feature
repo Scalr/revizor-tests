@@ -56,3 +56,10 @@ Feature: Orchestration features test
         When I execute local script '/home/revizor/local_script.sh' synchronous on M1
         And I see script result in M1
         And script output contains 'Local script work!' in M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Bootstrapping role with failed script
+        Given I have a clean and stopped farm
+        When I add role to this farm with failed_script
+        When I start farm
+        Then I wait server M1 in failed state

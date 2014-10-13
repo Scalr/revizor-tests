@@ -9,7 +9,7 @@ except ImportError:
     raise ImportError("Please install WinRM")
 
 
-LOG = logging.getLogger('lifecycle-windows')
+LOG = logging.getLogger(__name__)
 
 
 @step(r"file '([\w\d\:\\/_]+)' exist in ([\w\d]+) windows$")
@@ -93,3 +93,26 @@ def assert_check_message_in_log(step, message, serv_as):
         return True
     LOG.error("Not find content in message: %s" % scriptlogs[last_count].message)
     raise AssertionError("Not see message %s in scripts logs" % message)
+
+
+@step('server ([\w\d]+) has disk with size (\d+)Gb')
+def check_attached_disk_size(step, serv_as, size):
+    time.sleep(60)
+    size = int(size)
+    server = getattr(world, serv_as)
+    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                            auth=("Administrator", server.windows_password))
+    LOG.info('Run command: "wmic logicaldisk get size,caption"')
+    out = console.run_cmd('wmic logicaldisk get size,caption').std_out
+    LOG.debug('Result of command:')
+    LOG.debug(out)
+    disks = filter(lambda x: x.strip(), out.splitlines()[1:])
+    disks = dict([(disk.split()[0],
+                   int(round(int(disk.split()[1])/1024/1024/1024.)))
+                  for disk in disks])
+    for disk in disks:
+        if disks[disk] == size:
+            return
+    else:
+        raise AssertionError('Any attached disk does\'nt has size "%s", all disks "%s"'
+                             % (size, disks))
