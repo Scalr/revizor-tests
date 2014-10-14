@@ -12,7 +12,8 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
-        And server M1 has disk with size 1Gb
+        And I have a M1 attached volume as V1
+        And attached volume in M1 has size 1 Gb
 
     @ec2
     Scenario: Restart scalarizr

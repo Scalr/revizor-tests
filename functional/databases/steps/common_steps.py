@@ -584,45 +584,6 @@ def increase_storage_farm_size(step, size, role_type):
         })
 
 
-@step(r'attached volume in ([\w\d]+) has size (\d+) Gb')
-def verify_attached_volume_size(step, serv_as, size):
-    #TODO: Change this to decorator
-    if CONF.feature.driver.current_cloud in (Platform.EC2,)\
-            and CONF.feature.storage == 'persistent':
-        LOG.info('Verify master volume has new size "%s"' % size)
-        size = int(size)
-        server = getattr(world, serv_as)
-        node = world.cloud.get_node(server)
-        volumes = server.get_volumes()
-        if not volumes:
-            raise AssertionError('Server %s doesn\'t has attached volumes!' %
-                                 (server.id))
-        attached_volume = filter(lambda x:
-                                 x.extra['device'] != node.extra['root_device_name'],
-                                 volumes)[0]
-        LOG.info('Attached volume for server "%s" is "%s" with size "%s"' %
-                 (server.id, attached_volume.id, attached_volume.size))
-        if not size == attached_volume.size:
-            raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
-                                 % (attached_volume.id, attached_volume.size, size))
-
-
-@step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
-def save_attached_volume_id(step, serv_as, volume_as):
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    volumes = server.get_volumes()
-    if not volumes:
-        raise AssertionError('Server %s doesn\'t has attached volumes!' %
-                             (server.id))
-    attached_volume = filter(lambda x:
-                             x.extra['device'] != node.extra['root_device_name'],
-                             volumes)[0]
-    setattr(world, '%s_volume' % volume_as, attached_volume)
-    LOG.info('Attached volume for server "%s" is "%s"' %
-             (server.id, attached_volume.id))
-
-
 @step(r'I delete volume ([\w\d]+)')
 def delete_attached_volume(step, volume_as):
     volume = getattr(world, '%s_volume' % volume_as)
