@@ -64,4 +64,4 @@ Feature: Orchestration features test
         Given I have a clean and stopped farm
         When I add role to this farm with failed_script
         When I start farm
-        Then I wait server M1 in failed state
+        Then I wait server M2 in failed state
