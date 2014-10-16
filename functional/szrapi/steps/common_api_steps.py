@@ -110,36 +110,34 @@ def assert_api_result(step, res_storage_name, negation, input_arg_name, args_sto
         input_arg))
 
 
-@step(r'api result (\"\w+\") has (\"\w+\") data')
-def assert_api_result_data(step, res_storage_name, data):
+@step(r'api result (\"[\w\S\s]+\") has (\"[\w\S\s]+\"\s)?data')
+def assert_api_result_data(step, res_storage_name, data=None):
+    def get_values_by_key(data, key):
+        if isinstance(data, (list, tuple)):
+            for i in data:
+                for x in get_values_by_key(i, key):
+                    yield x
+        elif isinstance(data, dict):
+            if key in data:
+                yield data[key]
+            for j in data.values():
+                for x in get_values_by_key(j, key):
+                    yield x
+
      # Get api command result
     api_result = getattr(world, ''.join((res_storage_name.strip().replace('"', ''), '_res')))
     LOG.debug('Obtained api command {0} result: {1}'.format(
         res_storage_name,
         api_result))
     # Assert api result
-    data = data.strip().replace('"', '')
-    assertion_message = 'Api command {0} result has not assertion data: {1}'.format(
+    data = data.strip().replace('"', '') if data else False
+    assertion_message = 'Api command {0} result has not assertion data {1}'.format(
         res_storage_name,
-        data)
-    if isinstance(api_result, dict):
-        assertion_data = api_result.get(data, False)
-        LOG.debug('Obtained api command {0} assertion data: {1}'.format(
-            res_storage_name,
-            assertion_data))
-        assert assertion_data, assertion_message
-        LOG.debug('Api command {0} result has assertion key: {1} data: {2}'.format(
-            res_storage_name,
-            data,
-            assertion_data))
-    elif isinstance(api_result, (list, tuple)):
-        pass
+        ''.join((': ', data)) if data else 'or is empty')
+    if isinstance(api_result, (dict, list, tuple)):
+        assert len(list(get_values_by_key(api_result, data)) if data else api_result), assertion_message
     elif isinstance(api_result, str):
-        LOG.debug('Obtained api command {0} assertion data: {1}'.format(
-            res_storage_name,
-            data))
-        assert data in api_result, assertion_message
-        LOG.debug('Api command {0} result has assertion data: {1}'.format(
-            res_storage_name,
-            data
-        ))
+        assert data in api_result if data else len(api_result), assertion_message
+    LOG.debug('Api command {0} result {1}'.format(
+        res_storage_name,
+        'contain data: %s'% data if data else 'not empty'))
