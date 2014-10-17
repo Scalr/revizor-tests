@@ -9,7 +9,7 @@ from lettuce import world, step
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
-from revizor2.api import Script, Farm
+from revizor2.api import Script, Farm, Metrics
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS
 
@@ -106,6 +106,12 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     ]}
                 else:
                     additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
+            elif opt == 'scaling':
+                LOG.info('Setup scaling metrics options')
+                metric = {"scaling": json.dumps({Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}),
+                          "scaling.enabled": "1"}
+                role_options.update(metric)
+                LOG.info('Added scaling metric to role: %s' % metric)
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))

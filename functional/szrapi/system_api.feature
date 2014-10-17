@@ -4,7 +4,7 @@ Feature: Base server role, api tests
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping base role
         Given I have a an empty running farm
-        When I add base role to this farm
+        When I add base role to this farm with scaling
         Then I expect server bootstrapping as B1
         And scalarizr version is last in B1
 
@@ -32,6 +32,8 @@ Feature: Base server role, api tests
         Then api result "cpu_stat" has "system" data
         When I run "SystemApi" command "mem_info" on B1
         Then api result "mem_info" has "total_swap" data
+        When I run "SystemApi" command "scaling_metrics" on B1
+        Then api result "scaling_metrics" has "name" data
         When I run "SystemApi" command "statvfs" on B1 with arguments:
             | mpoints |
             | ["/"]   |
