@@ -608,6 +608,10 @@ def verify_db_not_exist(step, serv_as):
         if len(databases) > 3:
             raise AssertionError('%s role contains databases: "%s"' %
                                  (db_role.db.db_name, databases))
+    if db_role.db.db_name in ['percona']:
+        if len(databases) > 4:
+            raise AssertionError('%s role contains databases: "%s"' %
+                                 (db_role.db.db_name, databases))
     elif db_role.db.db_name == 'redis':
         if databases:
             raise AssertionError('%s role contains databases: "%s"' %
