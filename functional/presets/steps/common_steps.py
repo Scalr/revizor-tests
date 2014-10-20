@@ -67,18 +67,22 @@ def verify_keys_in_preset_file(step, filename, behavior, values):
                                  (key, values[key], config[key], filename, behavior))
 
 
-@step('I save "([\w\.]+)" content for ([\w]+) presets( I get error)?')
-def save_config_file(step, filename, behavior, error):
+@step('I save "([\w\.]+)" content for ([\w]+) presets( I get error)?(?: with "([\w\d,/_-]+)")?')
+def save_config_file(step, filename, behavior, error=None, error_key=None):
     LOG.info('Save presets for %s' % behavior)
     config = getattr(world, '%s_presets' % behavior)[filename]
     config = json.dumps(convert_preset_config(config, filename))
     try:
         world.farm.save_presets(behavior, config)
-    except:
-        LOG.exception('Get error on save config "%s"' % filename)
+    except Exception, e:
         if error:
+            if error_key and not error_key in e.message:
+                LOG.error('Not found key "%s" in error message (%s)' %
+                          (error_key, e))
+                raise
             LOG.debug('Don\'t raise exception because we expect this error')
             return
+        LOG.exception('Get error on save config "%s"' % filename)
         raise
     if error:
         raise AssertionError('Expected error doesn\'t raised!')
