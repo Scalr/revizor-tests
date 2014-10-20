@@ -39,6 +39,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     additional_storages = None
     scripting = None
     role_id = None
+    scaling_metrics = None
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
@@ -107,11 +108,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 else:
                     additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
             elif opt == 'scaling':
-                LOG.info('Setup scaling metrics options')
-                metric = {"scaling": json.dumps({Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}),
-                          "scaling.enabled": "1"}
-                role_options.update(metric)
-                LOG.info('Added scaling metric to role: %s' % metric)
+                scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
+                LOG.info('Insert scaling metrics options %s' % scaling_metrics)
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
@@ -127,8 +125,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
             role_options.update(storages.get(CONF.feature.storage, {}))
     LOG.debug('All farm settings: %s' % role_options)
-    role = world.add_role_to_farm(behavior, options=role_options, scripting=scripting,
-                                  storages=additional_storages, alias=alias, role_id=role_id)
+    role = world.add_role_to_farm(behavior, options=role_options, scaling=scaling_metrics,
+                                  scripting=scripting, storages=additional_storages,
+                                  alias=alias, role_id=role_id)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
 

@@ -38,7 +38,7 @@ def give_empty_running_farm():
 
 
 @world.absorb
-def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None):
+def add_role_to_farm(behavior, options=None, scaling=None, scripting=None, storages=None, alias=None, role_id=None):
     """
     Insert role to farm by behavior and find role in Scalr by generated name.
     Role name generate by the following format:
@@ -101,7 +101,12 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    world.farm.add_role(role['id'], options=options, scripting=scripting, storages=storages, alias=alias)
+    world.farm.add_role(role['id'],
+                        options=options,
+                        scaling=scaling,
+                        scripting=scripting,
+                        storages=storages,
+                        alias=alias)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
