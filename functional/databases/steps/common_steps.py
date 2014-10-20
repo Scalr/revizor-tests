@@ -464,18 +464,22 @@ def save_timestamp(step, db, serv_as):
 
 @step('I download backup in ([\w\d]+)')
 def download_dump(step, serv_as):
+    #TODO: Add support for gce and openstack if Scalr support
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
     if CONF.feature.driver.current_cloud == Platform.EC2:
+        interpretator = 'python'
+        check_omnibus = node.run('ls /opt/scalarizr/embedded/bin/python')
+        if not check_omnibus[1].strip():
+            interpretator = '/opt/scalarizr/embedded/bin/python'
         if node.os[0] == 'redhat' and node.os[1].startswith('5'):
-            node.run('python26 /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
-                world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
-            ))
-        else:
-            node.run('python /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
-                world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
-            ))
+            interpretator = 'python26'
+        node.run('%s /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
+            interpretator, world.cloud.config.libcloud.key,
+            world.cloud.config.libcloud.secret,
+            world.last_backup_url
+        ))
     # elif CONF.feature.driver.current_cloud == Platform.GCE:
     #     with open(world.cloud.config.libcloud.key, 'r+') as key:
     #         node.put_file('/tmp/gcs_pk.p12', key.readall())
