@@ -9,7 +9,7 @@ from lettuce import world, step
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
-from revizor2.api import Script, Farm
+from revizor2.api import Script, Farm, Metrics
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS
 
@@ -39,6 +39,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     additional_storages = None
     scripting = None
     role_id = None
+    scaling_metrics = None
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
@@ -106,6 +107,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     ]}
                 else:
                     additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
+            elif opt == 'scaling':
+                scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
+                LOG.info('Insert scaling metrics options %s' % scaling_metrics)
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
@@ -122,7 +126,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             role_options.update(storages.get(CONF.feature.storage, {}))
     LOG.debug('All farm settings: %s' % role_options)
     role = world.add_role_to_farm(behavior, options=role_options, scripting=scripting,
-                                  storages=additional_storages, alias=alias, role_id=role_id)
+                                  storages=additional_storages, alias=alias,
+                                  role_id=role_id, scaling=scaling_metrics)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
 
