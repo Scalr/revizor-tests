@@ -1,13 +1,15 @@
+import re
 import time
 import logging
-import re
+
+import chef
 
 from lettuce import world, step
 
 from revizor2.utils import wait_until
 
 
-LOG = logging.getLogger('scripting')
+LOG = logging.getLogger(__name__)
 
 
 @step("([\w]+) script executed scalarizr is in '(.+)' state in (.+)")
@@ -80,3 +82,17 @@ def assert_check_message_in_log(step, message, serv_as):
         if message.strip()[1:-1] in log.message:
             return True
     raise AssertionError("Not see message %s in scripts logs (message: %s)" % (message, log.message))
+
+
+@step("([\w\d]+) chef runlist has only recipes \[([\w\d,.]+)\]")
+def verify_recipes_in_runlist(step, serv_as, recipes):
+    recipes = recipes.split(',')
+    server = getattr(world, serv_as)
+    chef_api = chef.autoconfigure()
+    run_list = chef.Node(server.details['hostname']).run_list
+    if len(run_list) != len(recipes):
+        raise AssertionError('Count of recipes in node is another that must be: "%s" != "%s" "%s"' %
+                             (len(run_list), len(recipes), run_list))
+    for recipe in recipes:
+        if not recipe in ','.join(run_list):
+            raise AssertionError('Recipe "%s" not exist in run list!' % run_list)

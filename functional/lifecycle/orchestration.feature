@@ -30,6 +30,7 @@ Feature: Orchestration features test
         Given file '/root/chef_solo_result' exist in M1
         Given file '/root/chef_hostup_result' exist in M1
         And process 'memcached' has options '-m 1024' in M1
+        And M1 chef runlist has only recipes [memcached,revizorenv]
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Execute 2 sync scripts
