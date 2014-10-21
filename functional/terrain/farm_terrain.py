@@ -125,9 +125,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
             role_options.update(storages.get(CONF.feature.storage, {}))
     LOG.debug('All farm settings: %s' % role_options)
-    role = world.add_role_to_farm(behavior, options=role_options, scaling=scaling_metrics,
-                                  scripting=scripting, storages=additional_storages,
-                                  alias=alias, role_id=role_id)
+    role = world.add_role_to_farm(behavior, options=role_options, scripting=scripting,
+                                  storages=additional_storages, alias=alias,
+                                  role_id=role_id, scaling=scaling_metrics)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
 

@@ -103,10 +103,10 @@ def add_role_to_farm(behavior, options=None, scaling=None, scripting=None, stora
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
     world.farm.add_role(role['id'],
                         options=options,
-                        scaling=scaling,
                         scripting=scripting,
                         storages=storages,
-                        alias=alias)
+                        alias=alias,
+                        scaling=scaling)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
