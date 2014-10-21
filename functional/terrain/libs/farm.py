@@ -38,7 +38,7 @@ def give_empty_running_farm():
 
 
 @world.absorb
-def add_role_to_farm(behavior, options=None, scaling=None, scripting=None, storages=None, alias=None, role_id=None):
+def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None, scaling=None):
     """
     Insert role to farm by behavior and find role in Scalr by generated name.
     Role name generate by the following format:
