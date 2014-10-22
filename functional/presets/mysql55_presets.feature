@@ -37,7 +37,7 @@ Feature: Mysql55 preset test
     Scenario: Verify scalarizr revert bad key
         Given "my.cnf" file from mysql2 presets config
         Then I add keys in "my.cnf" file from mysql2 to {mysqld/testbad_field:doown}
-        When I save "my.cnf" content for mysql2 presets I get error with "mysqld/testbad_field"
+        When I save "my.cnf" content for mysql2 presets I get error
         Given "my.cnf" file from mysql2 presets config
         And "my.cnf" file from mysql2 not contains keys [mysqld/testbad_field]
         And not ERROR in M1 scalarizr log
