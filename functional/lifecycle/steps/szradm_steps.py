@@ -175,7 +175,7 @@ def run_command(step, command, serv_as):
     LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
     result = node.run(command)
     if result[2]:
-        raise AssertionError("Сommand: %s, was not executed properly. An error has occurred:\n%s" %
+        raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %
                              (command, result[1]))
     LOG.debug('Parsing a command result on a remote host: %s' % server.id)
     result = SzrAdmResultsParser.parser(result[0])
