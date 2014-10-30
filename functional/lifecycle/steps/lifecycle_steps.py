@@ -217,3 +217,18 @@ def verify_saved_and_new_volumes(step, mount_point):
     old_device_id = getattr(world, 'device_%s' % mount_point.replace('/', '_'))
     if device_id == old_device_id:
         raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
+
+
+@step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
+def verify_ports_in_iptables(step, ports, serv_as):
+    LOG.info('Verify ports "%s" in iptables' % ports)
+    server = getattr(world, serv_as)
+    ports = ports.split(',')
+    node = world.cloud.get_node(server)
+    rules = node.run('iptables -L')[0]
+    LOG.debug('iptables rules:\n%s' % rules)
+
+    for port in ports:
+        LOG.debug('Check port "%s" in iptables rules' % port)
+        if port in rules:
+            raise AssertionError('Port "%s" in iptables rules!' % port)

@@ -8,7 +8,7 @@ Feature: Linux server lifecycle
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
-        And I add role to this farm with deploy,storages
+        And I add role to this farm with deploy,storages,noiptables
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
@@ -16,6 +16,7 @@ Feature: Linux server lifecycle
         Then Scalr receives DeployResult from M1
         And directory '/var/www/src' exist in M1
         And hostname in M1 is valid
+        And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
     @ec2 @openstack @storages
     Scenario: Check attached storages
