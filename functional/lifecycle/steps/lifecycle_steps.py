@@ -71,7 +71,13 @@ def check_message_config(step, config_group, message, serv_as):
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    out = node.run('/bin/ls %s' % path)
+    #FIXME: Add this to GCE
+    for attempt in range(3):
+        out = node.run('/bin/ls %s' % path)
+        if not out[0] and not out[1]:
+            time.sleep(5)
+            continue
+        break
     LOG.info('Check directory %s' % path)
     if 'No such file or directory' in out[0] or 'No such file or directory' in out[1] or not out[0]:
         LOG.error('Directory (file) not exist')
