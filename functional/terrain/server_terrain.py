@@ -60,7 +60,7 @@ def rebundle_server(step, serv_as):
     """Start rebundle for server"""
     server = getattr(world, serv_as)
     name = 'tmp-%s-%s' % (server.role.name, datetime.now().strftime('%m%d%H%M'))
-    bundle_id = server.create_snapshot('no_replace', name)
+    bundle_id = server.create_snapshot(name)
     if bundle_id:
         world.bundle_id = bundle_id
 
