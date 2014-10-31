@@ -609,7 +609,7 @@ def verify_db_not_exist(step, serv_as):
     db_role = world.get_role()
     databases = db_role.db.database_list()
     if db_role.db.db_name in ['mysql2', 'percona']:
-        map(lambda x: databases.remove(x) if x in a else None,
+        map(lambda x: databases.remove(x) if x in databases else None,
             ['information_schema', 'mysql', 'performance_schema', 'test'])
         if len(databases) > 0:
             raise AssertionError('%s role contains databases: "%s"' %
