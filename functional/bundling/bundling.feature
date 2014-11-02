@@ -1,20 +1,20 @@
 Using step definitions from: steps/bundling_steps
 Feature: Bundling server test
 
-    @scalr @api
+    @ec2 @gce @cloudstack @rackspaceng @openstack @scalr @api
     Scenario: Add first role
         Given I have a an empty running farm
         When I add role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
 
-    @scalr @api
+    @ec2 @gce @cloudstack @rackspaceng @openstack @scalr @api
     Scenario: Create new role
         When I create server snapshot for M1
         Then Bundle task created for M1
         And Bundle task becomes completed for M1
 
-    @scalr @api
+    @ec2 @gce @cloudstack @rackspaceng @openstack @scalr @api
     Scenario: Role should be usable
         Given I have a an empty running farm
         When I add to farm role created by last bundle task
@@ -22,17 +22,17 @@ Feature: Bundling server test
         And scalarizr version is last in M2
         And not ERROR in M2 scalarizr log
 
-    @api
+    @ec2 @gce @cloudstack @rackspaceng @openstack @api
     Scenario: Create role via scalarizr api
         Then I create server snapshot for M2 via scalarizr api
         And not ERROR in M2 scalarizr log
 
-    @api
+    @ec2 @gce @cloudstack @rackspaceng @openstack @api
     Scenario: Save new image in role
         Given I have a new image id
         Then I create new role with this image id as R1
 
-    @api
+    @ec2 @gce @cloudstack @rackspaceng @openstack @api
     Scenario: Role created by api should be usable
         Given I have a an empty running farm
         When I add role R1 to this farm
