@@ -79,8 +79,10 @@ def get_all_logs(scenario):
     test_name = scenario.described_at.file.split('/')[-1].split('.')[0]
     LOG.debug('Test name: %s' % test_name)
     start_time = world.test_start_time
-    path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr', test_name,
-                                         start_time.strftime('%m%d-%H:%M'), scenario.name.replace('/', '-')))
+    path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
+                                         test_name,
+                                         start_time.strftime('%m%d-%H:%M'),
+                                         scenario.name.replace('/', '-')))
     LOG.debug('Path to save log: %s' % path)
     if not os.path.exists(path):
         os.makedirs(path, 0755)
