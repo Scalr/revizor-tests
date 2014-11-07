@@ -19,11 +19,12 @@ Feature: Orchestration features test
       | HostInit     | /tmp/script.sh                | root     | 1        |        |
       | HostInit     | local                         | root     | 0        | Script runned from URL |
       | BeforeHostUp | Linux ping-pong               | root     | 0        | pong   |
-      | BeforeHostUp | Linux ping-pong               | revizor  | 0        | pong   |
+      | BeforeHostUp | chef                          | root     | 0        | "HOME"=>"/root"; "USER"=>"root" |
       | HostUp       | Linux ping-pong               | revizor2 | 1        |        |
-      | HostUp       | /home/revizor/local_script.sh | revizor  | 0        | Local script work! User: revizor |
+      | HostUp       | /home/revizor/local_script.sh | revizor  | 0        | Local script work! User: revizor; USER=revizor; HOME=/root |
+      | HostUp       | Linux ping-pong               | revizor  | 0        | pong   |
       | HostUp       | chef                          | root     | 0        |        |
-      | HostUp       | chef                          | root     | 0        |        |
+
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify chef executed normally
@@ -57,6 +58,8 @@ Feature: Orchestration features test
         When I execute local script '/home/revizor/local_script.sh' synchronous on M1
         And I see script result in M1
         And script output contains 'Local script work!' in M1
+        And script output contains 'USER=root' in M1
+        And script output contains 'HOME=/root' in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role with failed script
