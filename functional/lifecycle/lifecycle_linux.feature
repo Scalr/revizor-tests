@@ -27,6 +27,12 @@ Feature: Linux server lifecycle
         And I create 100 files in '/media/ebsmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
+    @ec2 @openstack @storages
+    Scenario: Verify attached storages in fstab
+        When I save mount table on M1
+        And disk from M1 mount points for '/media/ebsmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+
     @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
     Scenario: Linux reboot
         Given I have running server M1

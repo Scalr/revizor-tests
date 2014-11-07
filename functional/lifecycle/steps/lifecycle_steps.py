@@ -238,3 +238,35 @@ def verify_ports_in_iptables(step, ports, serv_as):
         LOG.debug('Check port "%s" in iptables rules' % port)
         if port in rules:
             raise AssertionError('Port "%s" in iptables rules!' % port)
+
+
+@step("I save mount table on ([\w\d]+)")
+def save_mount_table(step, serv_as):
+    server = getattr(world, serv_as)
+    LOG.info('Save mount table from server "%s"' % server.id)
+    node = world.cloud.get_node(server)
+    mount_table = node.run('mount')[0].splitlines()
+    mount_table = {x.split()[2]: x.split()[0] for x in mount_table if x}
+    LOG.debug('Mount table:\n %s' % mount_table)
+    setattr(world, '%s_mount_table' % serv_as, mount_table)
+
+
+@step("disk from ([\w\d]+) mount points for '([\w\d/]+)' exist in fstab on ([\w\d]+)")
+def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
+    to_server = getattr(world, to_serv_as)
+    LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
+             (mount_point, to_server.id))
+    node = world.cloud.get_node(to_server)
+    fstab = node.run('cat /etc/fstab')[0].splitlines()
+    fstab = {x.split()[1]: x.split()[0] for x in fstab if x}
+    LOG.debug('Fstab on server "%s" contains:\n %s' % (to_server.id, fstab))
+    mount_disks = getattr(world, '%s_mount_table' % from_serv_as)
+    if not mount_point in mount_disks:
+        raise AssertionError('Mount point "%s" not exist in mount table:\n%s' %
+                             (mount_point, mount_disks))
+    if not mount_point in fstab:
+        raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
+                             (mount_point, fstab))
+    if not mount_disks[mount_point] == fstab[mount_point]:
+        raise AssertionError('Disk from mount != disk in fstab: "%s" != "%s"' %
+                             (mount_disks[mount_point], fstab[mount_point]))
