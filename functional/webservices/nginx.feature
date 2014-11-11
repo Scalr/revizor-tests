@@ -76,20 +76,30 @@ Feature: Nginx load balancer role test with apache backends
         And my IP in A1 D2 ssl access logs
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
+    Scenario: Reconfigure apache mod_remoteip
+        When I terminate server W1
+        Then I wait server W1 in Terminated state
+        And not ERROR in A1 scalarizr log
+        Then I expect server bootstrapping as W2
+        When D1 resolves into W2 ip address
+        And http get domain D1 matches H1 index page
+        And my IP in A1 D1 access logs
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Rebundle nginx server
-        When I create server snapshot for W1
-        Then Bundle task created for W1
-        And Bundle task becomes completed for W1
+        When I create server snapshot for W2
+        Then Bundle task created for W2
+        And Bundle task becomes completed for W2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
     Scenario: Use new nginx role
         Given I have a an empty running farm
         Then I add to farm role created by last bundle task
-        And I expect server bootstrapping as W2
-        And W2 upstream list should not contain A1
+        And I expect server bootstrapping as W3
+        And W3 upstream list should not contain A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream after rebundle
         When I add app role to this farm
         And I expect server bootstrapping as A3
-        Then W2 upstream list should contain A3
+        Then W3 upstream list should contain A3
