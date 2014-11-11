@@ -39,6 +39,11 @@ Feature: Linux server lifecycle
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
+    @ec2 @openstack @storages
+    Scenario: Verify attached storages in fstab after reboot
+        And disk from M1 mount points for '/media/ebsmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
     Scenario: Execute script on Linux
         Given I have running server M1
