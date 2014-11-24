@@ -84,6 +84,27 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     }
                 ]
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
+
+            elif opt == 'apachefix':
+                script_id = Script.get_id('CentOS7 fix apache log')['id']
+                scripting = [
+                    {
+                        "script_type": "scalr",
+                        "script_id": script_id,
+                        "script": "CentOS7 fix apache log",
+                        "os": "linux",
+                        "event": "HostInit",
+                        "target": "instance",
+                        "isSync": "1",
+                        "timeout": "1200",
+                        "version": "-1",
+                        "params": {},
+                        "order_index": "20",
+                        "system": "",
+                        "script_path": "",
+                        "run_as": "root"
+                    }
+                ]
             elif opt == 'storages':
                 LOG.info('Insert additional storages config')
                 if CONF.feature.dist.startswith('win'):
