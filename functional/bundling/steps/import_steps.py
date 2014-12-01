@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 import logging
 
-from lettuce import world, step
+from lettuce import world, step, after
 
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
@@ -243,6 +243,7 @@ def assert_role_task_created(step,  timeout=1400):
     if not world.cloud_server.destroy():
         raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
     LOG.info('Virtual machine %s was successfully destroyed.' % world.cloud_server.id)
+    world.cloud_server = None
 
 
 @step('I add to farm imported role$')
@@ -251,3 +252,15 @@ def add_new_role_to_farm(step):
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
+
+
+@after.each_scenario
+def cleanup_cloud_server(total):
+    LOG.info('Cleanup cloud server after import')
+    cloud_node = getattr(world, 'cloud_server', None)
+    if cloud_node:
+        LOG.info('Destroy node in cloud')
+        try:
+            cloud_node.destroy()
+        except BaseException, e:
+            LOG.exception('Node %s can\'t be destroyed' % cloud_node.id)
