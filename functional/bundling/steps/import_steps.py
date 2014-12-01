@@ -124,10 +124,13 @@ def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
     LOG.info('Create node %s in cloud' % user_data)
     #Convert dict to formatted str
-    dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
-    #Get user data fixture for tested Cloud
-    user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family]) if user_data \
-        else None
+    if user_data:
+        dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
+        user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family])
+        if CONF.feature.driver.current_cloud == Platform.GCE:
+            user_data = {'scalr': user_data}
+    else:
+        user_data = None
     #Create node
     node = world.cloud.create_node(userdata=user_data)
     setattr(world, 'cloud_server', node)
