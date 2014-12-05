@@ -126,7 +126,7 @@ def print_outline(scenario, order, outline, reasons_to_fail):
     if state == States.FAILED:
         FAILED_OUTLINES[scenario.name] = True
     sc = etree.Element('outlinestep', state=state,
-                       keys=';'.join(['%s=%s' % (x[0], x[1]) for x in scenario.outlines[order].items()]))
+                       keys='|'.join(['%s=%s' % (x[0], x[1]) for x in scenario.outlines[order].items()]))
     if state == States.FAILED:
         trace = etree.SubElement(sc, 'traceback')
         trace.text = reasons_to_fail[0].traceback

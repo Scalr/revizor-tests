@@ -80,6 +80,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     else:
         dist = CONF.feature.dist
     if CONF.feature.role_id:
+        LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():
             role = IMPL.role.get(CONF.feature.role_id)
         else:
