@@ -45,7 +45,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
             if log.exitcode == int(exitcode):
                 LOG.debug('Log message output: %s' % log.message)
                 for cond in contain:
-                    cond = cond.replace('"', '&quot;').replace('>', '&gt;')
+                    cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
                     if not cond.strip() in log.message:
                         raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: "%s"'
                                              % (event, user, log.message, cond))
