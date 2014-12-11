@@ -3,6 +3,7 @@ from lettuce import world, step
 import os
 import logging
 from revizor2.consts import Dist
+from revizor2.defaults import DEFAULT_REDIS_PATH
 
 
 LOG = logging.getLogger(__name__)
@@ -48,24 +49,25 @@ def kill_process(step, process, serv_as):
 @step('Then I start (.+) on ([\w]+)')
 def start_redis_process(step, process, serv_as):
     """Start redis-server  process"""
-    redis_bin_path = {
-        'debian':  {'bin': '/usr/bin',
-                    'conf': '/etc/redis'},
-
-        'centos':  {'bin': '/usr/sbin',
-                    'conf': '/etc'}
-    }
+    # Setup attrs
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
+    # Get default redis attrs for OS family
+    os_info = DEFAULT_REDIS_PATH.get(Dist.get_os_family(node.os[0]), {})
+    # Get redis path by os version
+    if not os_info:
+        raise AssertionError("Cant' get %s details for %s os family" % (process, Dist.get_os_family(node.os[0])))
+    ver_info = os_info.get(node.os[1].split('.')[0], os_info['default'])
     LOG.info('Start %s on remote host: %s' % (process, server.public_ip))
-
-    node_result = node.run("/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" && sleep 5 &&  pgrep -l %(process)s | awk {print'$1'}" %
-                           {
-                               'bin': os.path.join(redis_bin_path.get(Dist.get_os_family(node.os[0]))['bin'], process),
-                               'process': process,
-                               'conf': os.path.join(redis_bin_path.get(Dist.get_os_family(node.os[0]))['conf'], 'redis.6379.conf')
-                           })
+    # Set run command
+    cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
+          "&& sleep 5 " \
+          "&&  pgrep -l %(process)s | awk {print'$1'}" % ({
+              'bin': os.path.join(ver_info.get('bin'), process),
+              'process': process,
+              'conf': os.path.join(ver_info.get('conf'), 'redis.6379.conf')})
+    # Run command
+    node_result = node.run(cmd)
     if node_result[2]:
-        raise AssertionError("%s was not properly started on remote host %s. Error is: %s %s"
-                             % (process, server.public_ip, node_result[0], node_result[1]))
+        raise AssertionError("%s was not started. Error: %s %s" % (process, node_result[0], node_result[1]))
     LOG.info('%s was successfully started on remote host: %s' % (process, server.public_ip))

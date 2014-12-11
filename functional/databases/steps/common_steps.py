@@ -13,6 +13,7 @@ from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.helpers import generate_random_string
 from revizor2.consts import Platform, ServerStatus, Dist
+from revizor2.defaults import DEFAULT_REDIS_PATH
 
 LOG = logging.getLogger(__name__)
 
@@ -99,17 +100,6 @@ class PostgreSQL(object):
 @dbhandler('redis')
 class Redis(object):
 
-    redis_path = {
-        'debian':  {
-            'bin': '/usr/bin',
-            'conf': '/etc/redis'
-        },
-        'centos':  {
-            'bin': '/usr/sbin',
-            'conf': '/etc'
-        }
-    }
-
     def __init__(self, server, db=0):
         #Get connection object
         self.server = server
@@ -125,12 +115,15 @@ class Redis(object):
     def restore(self, src_path, db=None):
         #Kill redis-server
         LOG.info('Stopping Redis server.')
-        out = self.node.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l redis-server | awk {print'$1'}")[0]
+        out = self.node.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} "
+                            "&& sleep 5 "
+                            "&& pgrep -l redis-server | awk {print'$1'}")[0]
         if out:
-            raise AssertionError('Redis server, pid:%s  was not properly killed on remote host %s' % (out, self.server.public_ip))
+            raise AssertionError('Redis server, pid:%s  was not killed on %s' % (out, self.server.public_ip))
         LOG.info('Redis server was successfully stopped. Getting backups and moving to redis storage.')
         #Move dump to redis storage
-        out = self.node.run("find %s -name '*%s*' -print0 | xargs -i{} -0 -r cp -v {} /mnt/redisstorage/" %
+        out = self.node.run("find %s -name '*%s*' -print0 | "
+                            "xargs -i{} -0 -r cp -v {} /mnt/redisstorage/" %
                             (src_path, self.snapshotting_type))
         if not out[0]:
             raise AssertionError("Can't move dump to redis-server storage.  Error is: %s %s" % (out[0], out[1]))
@@ -138,14 +131,25 @@ class Redis(object):
 
         #Run redis-server
         LOG.info('Running Redis server.')
-        out = self.node.run("/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" && sleep 5 &&  pgrep -l redis-server | awk {print'$1'}" %
-                            {
-                                 'bin': os.path.join(self.redis_path.get(Dist.get_os_family(self.node.os[0]))['bin'], 'redis-server'),
-                                 'conf': os.path.join(self.redis_path.get(Dist.get_os_family(self.node.os[0]))['conf'], 'redis.6379.conf')
-                            })
-        if out[2]:
-            raise AssertionError("Redis server was not properly started on remote host %s. Error is: %s %s"
-                                 % (self.server.public_ip, out[0], out[1]))
+        # Setup attrs
+        # Get default redis attrs for OS family
+        os_info = DEFAULT_REDIS_PATH.get(Dist.get_os_family(self.node.os[0]), {})
+        # Get redis path by os version
+        if not os_info:
+            raise AssertionError("Cant' get redis-server details for %s os family" % Dist.get_os_family(self.node.os[0]))
+        ver_info = os_info.get(self.node.os[1].split('.')[0], os_info['default'])
+        LOG.info('Start redis-server on remote host: %s' % self.server.public_ip)
+        # Set run command
+        cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
+              "&& sleep 5 " \
+              "&&  pgrep -l redis-server | awk {print'$1'}" % ({
+                  'bin': os.path.join(ver_info.get('bin'), 'redis-server'),
+                  'conf': os.path.join(ver_info.get('conf'), 'redis.6379.conf')})
+
+        # Run command
+        node_result = self.node.run(cmd)
+        if node_result[2]:
+            raise AssertionError("Redis-server was not started. Error: %s %s" % (node_result[0], node_result[1]))
         LOG.info('Redis server was successfully run.')
 
     def check_data(self, pattern):
