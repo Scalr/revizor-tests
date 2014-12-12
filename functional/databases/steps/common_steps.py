@@ -132,24 +132,26 @@ class Redis(object):
         #Run redis-server
         LOG.info('Running Redis server.')
         # Setup attrs
-        # Get default redis attrs for OS family
-        os_info = DEFAULT_REDIS_PATH.get(Dist.get_os_family(self.node.os[0]), {})
-        # Get redis path by os version
-        if not os_info:
+        # Get default redis path for OS family
+        os_family_info = DEFAULT_REDIS_PATH.get(Dist.get_os_family(self.node.os[0]), {})
+        #Get os version
+        os_ver = '.'.join((self.node.os[0].lower(), self.node.os[1].split('.')[0]))
+        if not os_family_info:
             raise AssertionError("Cant' get redis-server details for %s os family" % Dist.get_os_family(self.node.os[0]))
-        ver_info = os_info.get(self.node.os[1].split('.')[0], os_info['default'])
+        # Get redis path by os version
+        ver_path = os_family_info.get(os_ver, os_family_info['default'])
         LOG.info('Start redis-server on remote host: %s' % self.server.public_ip)
         # Set run command
         cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
               "&& sleep 5 " \
               "&&  pgrep -l redis-server | awk {print'$1'}" % ({
-                  'bin': os.path.join(ver_info.get('bin'), 'redis-server'),
-                  'conf': os.path.join(ver_info.get('conf'), 'redis.6379.conf')})
+                  'bin': os.path.join(ver_path.get('bin'), 'redis-server'),
+                  'conf': os.path.join(ver_path.get('conf'), 'redis.6379.conf')})
 
         # Run command
         node_result = self.node.run(cmd)
         if node_result[2]:
-            raise AssertionError("Redis-server was not started. Error: %s %s" % (node_result[0], node_result[1]))
+            raise AssertionError("Can't run redis-server on %s. Error: %s %s" % (os_ver, node_result[0], node_result[1]))
         LOG.info('Redis server was successfully run.')
 
     def check_data(self, pattern):
