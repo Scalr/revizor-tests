@@ -258,7 +258,7 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
              (mount_point, to_server.id))
     node = world.cloud.get_node(to_server)
     fstab = node.run('cat /etc/fstab')[0].splitlines()
-    fstab = {x.split()[1]: x.split()[0] for x in fstab if x}
+    fstab = {x.split()[1]: x.split()[0] for x in fstab if x and x.startswith('/')}
     LOG.debug('Fstab on server "%s" contains:\n %s' % (to_server.id, fstab))
     mount_disks = getattr(world, '%s_mount_table' % from_serv_as)
     if not mount_point in mount_disks:
