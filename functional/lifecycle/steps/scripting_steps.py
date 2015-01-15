@@ -63,12 +63,17 @@ def assert_check_message_in_log(step, message, serv_as):
     last_scripts = getattr(world, '_server_%s_last_scripts' % server.id)
     server.scriptlogs.reload()
     for log in server.scriptlogs:
+        LOG.debug('Check script "%s" is old' % log.name)
         if log in last_scripts:
             continue
-        LOG.debug('Server %s log content: %s' % (server.id, log.message))
-        if message.strip()[1:-1] in log.message:
+        LOG.debug('Server %s script name "%s" content: "%s"' % (server.id, log.name, log.message))
+        if message.strip() in log.message:
             return True
-    raise AssertionError("Not see message %s in scripts logs (message: %s)" % (message, log.message))
+        else:
+            raise AssertionError(
+                "Not see message '%s' in scripts logs (message: %s)" % (
+                    message, log.message))
+    raise AssertionError('Can\'t found script with text: "%s"' % message)
 
 
 @step("([\w\d]+) chef runlist has only recipes \[([\w\d,.]+)\]")
