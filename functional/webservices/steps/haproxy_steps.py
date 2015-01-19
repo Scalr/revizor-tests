@@ -145,13 +145,13 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
             if not server.startswith('server'):
                 continue
             if has_not and backend in server:
-                raise AssertionError("Backend %s in backends file (%s) for port %s" % (backend, server, port))
+                raise AssertionError("Backend '%s' in backends file (%s) for port '%s'" % (backend, server, port))
             elif not has_not:
                 if backend in server:
                     break
         else:
             if not has_not:
-                raise AssertionError("Backend %s not found in backends (%s) file for port %s" % (backend, config['backends'][port], port))
+                raise AssertionError("Backend '%s' not found in backends (%s) file for port '%s'" % (backend, config['backends'][port], port))
 
 
 @step(r'([\w\d]+) listen list should contains backend for (\d+) port')
