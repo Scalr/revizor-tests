@@ -28,7 +28,7 @@ def parse_haproxy_config(node):
                 tmp_section = None
                 tmp_opts = []
             tmp_section = line.strip()
-        elif tmp_section and line.startswith('\t'):
+        elif tmp_section and (line.startswith('\t') or line.startswith('    ')):
             tmp_opts.append(line.strip().replace('\t', ' '))
         else:
             if tmp_section:
@@ -162,8 +162,12 @@ def verify_listen_for_port(step, serv_as, port):
     LOG.info("Backend port: %s" % port)
     config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
     LOG.debug("HAProxy config : %s" % config)
-    if not 'default_backend scalr:backend:tcp:%s' % port in config['listens'][port]:
-        raise AssertionError("Listens sections not contain backend for %s port" % port)
+    for opt in config['listens'][port]:
+        if re.match('default_backend scalr(?:\:\d+)?:backend(?:\:\w+)?:%s' % port, opt):
+            LOG.info('Haproxy server "%s" has default_backend for "%s" port: "%s"' % (haproxy_server.id, port, opt))
+            break
+    else:
+        raise AssertionError("Listens sections not contain backend for '%s' port: %s" % (port, config['listens'][port]))
 
 
 @step(r'healthcheck parameters is (\d+), (\d+), (\d+) in ([\w\d]+) backend file for (\d+) port')
