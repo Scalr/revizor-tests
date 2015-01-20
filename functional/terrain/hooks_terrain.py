@@ -66,18 +66,19 @@ def exclude_scenarios_by_version(feature):
 @after.each_scenario
 def get_all_logs(scenario):
     """Give scalarizr_debug.log logs from servers"""
-    #Get path
-    if CONF.feature.dist.startswith('win'):
-        return
+    # Get Farm
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
     farm = getattr(world, 'farm', None)
     if not farm:
         LOG.error("Farm does not exists. Can't get logs. Exit from step.")
         return
     farm.servers.reload()
+    # Get servers
     servers = farm.servers
+    # Get test
     test_name = scenario.described_at.file.split('/')[-1].split('.')[0]
     LOG.debug('Test name: %s' % test_name)
+    # Get path
     start_time = world.test_start_time
     path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
                                          test_name,
@@ -86,23 +87,30 @@ def get_all_logs(scenario):
     LOG.debug('Path to save log: %s' % path)
     if not os.path.exists(path):
         os.makedirs(path, 0755)
-
+    # Get logs && configs
     for server in servers:
-        if Dist.is_windows_family(server.role.dist):
-            continue
+        logs = [
+            # debug log
+            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_debug.log'))),
+             'log_type': 'debug',
+             'compress': True},
+            # update log
+            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_update.log'))),
+             'log_type': 'update',
+             'compress': True}]
         if server.status == ServerStatus.RUNNING or \
-                        server.status == ServerStatus.INIT or \
-                        server.status == ServerStatus.PENDING:
+            server.status == ServerStatus.INIT or \
+            server.status == ServerStatus.PENDING:
             try:
                 #Get log from remote host
-                server.get_logs('scalarizr_debug.log', os.path.join(path, server.id + '_scalarizr_debug.log'))
-                LOG.info('Save scalarizr log from server %s to %s' \
-                         % (server.id, os.path.join(path, server.id + '_scalarizr_debug.log')))
-                LOG.info('Compressing /etc/scalr directory')
-                #Get configs and role behavior from remote host
-                server.get_configs(os.path.join(path, server.id + '_scalr_configs.tar.gz'), compress=True)
-                LOG.info('Download archive with scalr directory and behavior to: %s' \
-                         % os.path.join(path, server.id + '_scalr_configs.tar.gz'))
+                for log in logs:
+                    server.get_log_by_api(**log)
+                    LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
+                    #Get configs and role behavior from remote host only for linux family
+                    if not Dist.is_windows_family(server.role.dist):
+                        file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
+                        server.get_configs(file, compress=True)
+                        LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
             except BaseException, e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
