@@ -58,6 +58,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 behavior = BEHAVIORS_ALIASES[behavior]
             if CONF.feature.role_type == 'instance':
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
+            elif CONF.feature.use_vpc \
+                    and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409')\
+                    and CONF.feature.driver.scalr_cloud == 'ec2':
+                mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             else:
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -67,6 +71,11 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             #TODO: Return RV_ROLE_VERSION
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
+            elif CONF.feature.use_vpc \
+                    and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409') \
+                    and CONF.feature.driver.scalr_cloud == 'ec2':
+                role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             else:
                 role_name = '%s%s-%s-%s' % (behavior, versions[0],
@@ -111,7 +120,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         scripting=scripting,
                         storages=storages,
                         alias=alias,
-                        scaling=scaling)
+                        scaling=scaling,
+                        use_vpc=CONF.feature.use_vpc)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
