@@ -128,14 +128,14 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
             if not isinstance(hostname, (unicode, str)):
                 hostname = hostname.private_ip
             if new_back[1] == 'default':
-                backends.append('%s:%s' % (hostname, backend_port))
+                backends.append(re.compile('%s:%s' % (hostname, backend_port)))
             else:
-                backends.append('%s:%s %s' % (hostname, backend_port, new_back[1]))
+                backends.append(re.compile('%s:%s(?: check)? %s' % (hostname, backend_port, new_back[1])))
         else:
             hostname = getattr(world, back.strip(), back.strip())
             if not isinstance(hostname, (unicode, str)):
                 hostname = hostname.private_ip
-            backends.append('%s:%s' % (hostname, port))
+            backends.append(re.compile('%s:%s' % (hostname, port)))
     LOG.info("Will search backends: %s" % backends)
     config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
     LOG.debug("HAProxy config : %s" % config)
@@ -144,10 +144,10 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
         for server in config['backends'][port]:
             if not server.startswith('server'):
                 continue
-            if has_not and backend in server:
+            if has_not and backend.search(server):
                 raise AssertionError("Backend '%s' in backends file (%s) for port '%s'" % (backend, server, port))
             elif not has_not:
-                if backend in server:
+                if backend.search(server):
                     break
         else:
             if not has_not:
@@ -175,7 +175,7 @@ def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
     server = getattr(world, serv_as)
     LOG.info("Verify healthcheck parameters for %s %s" % (server.id, port))
     port = int(port)
-    healthcheck = [int(interval), int(fall), int(rise)]
+    healthcheck = {'inter': interval.strip(), 'fall': fall.strip(), 'rise': rise.strip()}
     LOG.info("Parameters must be: %s" % healthcheck)
     node = world.cloud.get_node(server)
     config = parse_haproxy_config(node)
@@ -183,7 +183,7 @@ def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
     config_healthcheck = [l for l in config['backends'][port] if l.startswith('default-server')]
     LOG.debug("Healthcheck in config: %s" % config_healthcheck)
     if config_healthcheck:
-        config_healthcheck = [int(p) for p in re.findall('(\d+)+', config_healthcheck[0])]
+        config_healthcheck = dict(re.findall('(fall|inter|rise) (\d+)', config_healthcheck[0]))
         if not healthcheck == config_healthcheck:
             raise AssertionError("Healtcheck parameters invalid, must be: %s but %s" % (healthcheck, config_healthcheck))
         return True
