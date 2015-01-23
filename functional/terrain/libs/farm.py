@@ -113,7 +113,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'rhel7':
+    if dist == 'rhel7' and not CONF.feature.use_vpc:
         CONF.feature.instance_type = 'm3.medium'
     world.farm.add_role(role['id'],
                         options=options,

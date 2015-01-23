@@ -74,6 +74,7 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 
 @step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
 def add_new_role_to_farm(step, alias=None):
+    #TODO: Add support for HVM (and VPC)
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
     options = getattr(world, 'role_options', {})
     scripting = getattr(world, 'role_scripting', [])

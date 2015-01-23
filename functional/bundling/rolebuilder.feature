@@ -12,9 +12,11 @@ Feature: Build all behaviors via rolebuilder and check server running
         Then I expect server bootstrapping as M1
 
     Examples:
-      | behaviors  |
-      | mysql2,app |
-      | percona,www |
-      | redis,haproxy |
+      | behaviors                     |
+      | redis,mongodb,haproxy         |
+      | mysql2,app                    |
+      | percona,www                   |
+      | redis,haproxy                 |
       | postgresql,memcached,rabbitmq |
-      | mongodb |
+      | mongodb                       |
+
