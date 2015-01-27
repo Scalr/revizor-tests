@@ -24,7 +24,7 @@ Feature: Memcached service standart port 11211 with behavior memcached
 
     @ec2 @gce @cloudstack @rackspaceng @memcached_client_verify
     Scenario: Set new items are at the top of the LRU.
-        I initialize instance memcache Client on M2
-        I run a "memcached_command" to "set key" for new item on M2
-        I run a "memcached_command" to "get key" from item on M2
+        When I initialize instance memcache Client on M2
+        Then I run a "memcached_command" to "set key" for new item on M2
+        And I run a "memcached_command" to "get key" from item on M2
 
