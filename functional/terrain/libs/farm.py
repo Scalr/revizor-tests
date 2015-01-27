@@ -45,6 +45,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    use_vpc = False
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
@@ -115,13 +116,17 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
     if dist == 'rhel7' and not CONF.feature.use_vpc:
         CONF.feature.instance_type = 'm3.medium'
+    if CONF.feature.use_vpc \
+            and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409') \
+            and CONF.feature.driver.scalr_cloud == 'ec2':
+        use_vpc = True
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=CONF.feature.use_vpc)
+                        use_vpc=use_vpc)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
