@@ -329,7 +329,7 @@ def assert_scalarizr_version(step, serv_as):
     candidate_version = None
     if 'ubuntu' in server.role.os.lower():
         LOG.info('Check ubuntu installed scalarizr')
-        out = node.run('apt-cache policy scalarizr-base')
+        out = node.run('apt-cache policy scalarizr')
         LOG.debug('Installed information: %s' % out[0])
         for line in out[0].splitlines():
             if line.strip().startswith('Installed'):
@@ -346,7 +346,7 @@ def assert_scalarizr_version(step, serv_as):
             if line.strip().endswith('installed'):
                 installed_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
                 LOG.info('Installed version: %s' % installed_version)
-            elif line.strip().startswith('scalarizr-base'):
+            elif line.strip().startswith('scalarizr'):
                 candidate_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
                 LOG.info('Candidate version: %s' % candidate_version)
     else:
