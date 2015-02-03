@@ -32,7 +32,9 @@ def rebundle_server_via_api(step, serv_as):
 
     if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE)\
             and not Dist.is_windows_family(CONF.feature.dist)\
-            and not CONF.feature.dist.startswith('rhel'):
+            and not CONF.feature.dist.startswith('rhel')\
+            or (CONF.feature.driver.current_cloud == Platform.GCE
+                and CONF.feature.dist.startswith('rhel')):
         LOG.info('Image creation in this platform doing in one step')
         operation_id = server.api.image.create(name=name, async=True)
         LOG.info('Image creation operation_id - %s' % operation_id)
@@ -84,7 +86,7 @@ def verify_have_image_id(step):
     assert image_id, 'Image id created via scalarizr api is empty'
 
 
-@step('I create new role with this image id as ([\w\d]+)')
+@step('I create new role with this image id as ([\w\d]+)') #TODO: Rename this
 def create_new_role(step, role_as):
     role_name = getattr(world, 'last_bundle_role_name')
     behaviors = CONF.feature.behaviors
@@ -104,9 +106,13 @@ def create_new_role(step, role_as):
         software=behaviors,
     )
 
+    cloud_location = CONF.platforms[CONF.feature.platform]['location']
+    if CONF.feature.driver.current_cloud == Platform.GCE:
+        cloud_location = ""
+
     images = [{
         'platform': CONF.feature.driver.scalr_cloud,
-        'cloudLocation': CONF.platforms[CONF.feature.platform]['location'],
+        'cloudLocation': cloud_location,
         'imageId': image_id,
     }]
 
