@@ -112,7 +112,7 @@ class Redis(object):
     def get_timestamp(self):
         return self.connection.get('revizor.timestamp')
 
-    def restore(self, src_path, db=None):
+    def restore(self, src_path, db=None): #TODO: Rewrite this and find binary path on server
         #Kill redis-server
         LOG.info('Stopping Redis server.')
         out = self.node.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} "
