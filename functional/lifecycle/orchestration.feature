@@ -25,7 +25,6 @@ Feature: Orchestration features test
       | HostUp       | Linux ping-pong               | revizor  | 0        | pong   |
       | HostUp       | chef                          | root     | 0        |        |
 
-
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify chef executed normally
         Given file '/root/chef_solo_result' exist in M1
