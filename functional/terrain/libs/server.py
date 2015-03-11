@@ -218,23 +218,26 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     """
     def check_message_in_server(server, message_name, message_type):
         server.messages.reload()
-        last_internal_message = getattr(world, '_server_%s_last_message' % server.id, None)
-        for message in server.messages:
+        lookup_messages = getattr(world,
+                                  '_server_%s_lookup_messages' % server.id, [])
+        for message in reversed(server.messages):
             LOG.debug('Work with message: %s / %s - %s (%s) on server %s ' %
-                      (message.type, message.name, message.delivered, int(message.id), server.id))
-            if last_internal_message and int(message.id) <= int(last_internal_message.id):
-                LOG.debug('This message <= when last internal message: %s <= %s' % (int(message.id), int(last_internal_message.id)))
+                      (message.type, message.name, message.delivered, message.id, server.id))
+            if message.id in lookup_messages:
+                LOG.debug('Message %s was already lookuped' % message.id)
                 continue
             if message.name == message_name and message.type == message_type:
                 LOG.info('This message matching the our pattern')
                 if message.delivered:
                     LOG.info('Lookup message delivered')
-                    setattr(world, '_server_%s_last_message' % server.id, message)
+                    lookup_messages.append(message.id)
+                    setattr(world, '_server_%s_lookup_messages' % server.id,
+                            lookup_messages)
                     return True
                 elif message.status == MessageStatus.FAILED:
-                    raise MessageFailed('Message %s / %s (%s) failed' % (message.type, message.name, message.messageid))
+                    raise MessageFailed('Message %s / %s (%s) failed' % (message.type, message.name, message.id))
                 elif message.status == MessageStatus.UNSUPPORTED:
-                    raise MessageFailed('Message %s / %s (%s) unsupported' % (message.type, message.name, message.messageid))
+                    raise MessageFailed('Message %s / %s (%s) unsupported' % (message.type, message.name, message.id))
         return False
 
     message_type = 'out' if message_type.strip() == 'sends' else 'in'
