@@ -21,15 +21,15 @@ def start_rolebuild(step):
         platform = 'rackspacengus'
     else:
         platform = CONF.feature.platform
-    os_dist, os_ver = Dist.get_scalr_dist_info(CONF.feature.dist)
-    image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.feature.platform]['location'] and
-                             x['os_family']==os_dist and x['os_version'].startswith(os_ver),
+    os_id = Dist.get_os_id(CONF.feature.dist)
+    image = filter(lambda x: x['cloud_location'] == CONF.platforms[CONF.feature.platform]['location']
+                             and x['os_id']==os_id,
                    images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
                                         behaviors=CONF.feature.behaviors,
-                                        os_family=image['os_family'],
+                                        os_id=image['os_id'],
                                         os_version=image['os_version'],
                                         name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
@@ -47,20 +47,19 @@ def start_rolebuild(step, behaviors):
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
     platform = CONF.feature.driver.scalr_cloud
-    os_dist, os_ver = Dist.get_scalr_dist_info(CONF.feature.dist)
+    os_id = Dist.get_os_id(CONF.feature.dist)
     if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
-        image = filter(lambda x: x['os_family']==os_dist and x['os_version'].startswith(os_ver),
+        image = filter(lambda x: x['os_id']==os_id,
                        images(Platform.to_scalr(CONF.feature.driver.current_cloud)).all()['images'])[0]
     else:
         image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.feature.platform]['location'] and
-                             x['os_family']==os_dist and x['os_version'].startswith(os_ver),
+                             x['os_id']==os_id,
                        images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
                                         behaviors=behaviors,
-                                        os_family=image['os_family'],
-                                        os_version=image['os_version'],
+                                        os_id=image['os_id'],
                                         name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,

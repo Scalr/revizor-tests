@@ -6,7 +6,7 @@ from lettuce import world, step, after
 
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
-from revizor2.consts import Platform
+from revizor2.consts import Platform, Dist
 from revizor2.utils import wait_until
 from revizor2.helpers import install_behaviors_on_node
 
@@ -222,7 +222,8 @@ def create_role(step):
 
     res = IMPL.bundle.create_role(server_id=world.server.id,
                                   bundle_task_id=world.bundle_task_id,
-                                  behaviors=','.join(behaviors_name))
+                                  behaviors=','.join(behaviors_name),
+                                  os_id=Dist.get_os_id(CONF.feature.dist))
     if not res:
         raise AssertionError('Create role initialization is failed.')
 
