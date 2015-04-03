@@ -33,3 +33,13 @@ def verify_chef_hostname(step, serv_as):
     if not node_name == hostname:
         raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
 
+
+@step("chef log in ([\w\d]+) contains '([\w\d_=]+)'")
+def verify_chef_log(step, serv_as, text):
+    server = getattr(world, serv_as)
+    server.scriptlogs.reload()
+    for log in server.scriptlogs:
+        if log.name == '[Scalr built-in] Chef bootstrap':
+            if not text in log.message:
+                raise AssertionError('Text "%s" not found in chef bootstrap:\n%s' % (text, log.message))
+            return

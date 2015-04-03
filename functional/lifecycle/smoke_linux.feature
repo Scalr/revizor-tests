@@ -11,7 +11,7 @@ Feature: Linux server fast smoke test
         And scalarizr version from system repo is last in M1
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
-        And scalarizr debug log in M1 contains 'revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK'
+        And chef log in M1 contains 'revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK'
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify script execution on bootstrapping
