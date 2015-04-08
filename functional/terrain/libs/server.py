@@ -113,9 +113,11 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
             LOG.debug('Check lookup server terminated?')
             if lookup_server.status in [ServerStatus.TERMINATED,
-                                        ServerStatus.PENDING_TERMINATE] \
+                                        ServerStatus.PENDING_TERMINATE,
+                                        ServerStatus.MISSING] \
                 and not status in [ServerStatus.TERMINATED,
-                                   ServerStatus.PENDING_TERMINATE]:
+                                   ServerStatus.PENDING_TERMINATE,
+                                   ServerStatus.MISSING]:
                 raise ServerTerminated('Server %s change status to %s (was %s)' %
                                        (lookup_server.id, lookup_server.status,
                                         previous_state))
