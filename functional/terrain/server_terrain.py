@@ -141,8 +141,10 @@ def wait_all_terminated(step):
 @step('hostname in ([\w\d]+) is valid$')
 def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
-    hostname = world.get_hostname(server).strip()
-    valid_hostname = '%s-%s-%s'.lower().strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
+    hostname = server.api.system.get_hostname()
+    valid_hostname = '%s-%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
+    if CONF.feature.dist.startswith('win'):
+        valid_hostname = world.farm.name.replace(' ', '').upper()
     if not hostname == valid_hostname:
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 

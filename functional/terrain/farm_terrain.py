@@ -11,7 +11,9 @@ from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.api import Script, Farm, Metrics
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
-from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS
+from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
+    DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
+    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS
 
 
 LOG = logging.getLogger(__name__)
@@ -44,6 +46,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
 
+    if CONF.feature.dist.startswith('win'):
+        role_options["base.hostname_format"] = "{SCALR_FARM_NAME}"
+
     if saved_role:
         role_id = getattr(world, '%s_id' % saved_role.strip())
     if not behavior:
@@ -63,6 +68,15 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_init_id = Script.get_id('Revizor orchestration init')['id']
                 scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % {'SCRIPT_PONG_ID': script_pong_id,
                                                                          'SCRIPT_INIT_ID': script_init_id})
+            elif opt == 'small_linux_orchestration':
+                LOG.debug('Add small orchestration for linux')
+                script_pong_id = Script.get_id('Linux ping-pong')['id']
+                scripting = json.loads(SMALL_ORCHESTRATION_LINUX % {'SCRIPT_PONG_ID': script_pong_id})
+
+            elif opt == 'small_win_orchestration':
+                LOG.debug('Add small orchestration for windows')
+                scripting = SMALL_ORCHESTRATION_WINDOWS
+
             elif opt == 'failed_script':
                 script_id = Script.get_id('test_return_nonzero')['id']
                 scripting = [

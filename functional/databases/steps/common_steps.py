@@ -415,11 +415,12 @@ def check_grow_status(step, status):
 
 
 def wait_grow_status(status):
-    new_status = IMPL.services.grow_info(world.grow_status_id)['status']
+    new_status = IMPL.services.grow_info(server_id=world.grow_status_id['serverId'],
+                                         server_id=world.grow_status_id['operationId'])['status']
     LOG.info('Grow status for id %s is %s' % (world.grow_status_id, new_status))
-    if new_status == status:
+    if new_status.lower() == status:
         return True
-    elif new_status in ['failed', 'error']:
+    elif new_status.lower() in ['failed', 'error']:
         raise AssertionError('Status of growing is %s' % new_status)
     else:
         return False
