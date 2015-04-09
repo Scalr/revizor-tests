@@ -416,7 +416,7 @@ def check_grow_status(step, status):
 
 def wait_grow_status(status):
     new_status = IMPL.services.grow_info(server_id=world.grow_status_id['serverId'],
-                                         server_id=world.grow_status_id['operationId'])['status']
+                                         operation_id=world.grow_status_id['operationId'])['status']
     LOG.info('Grow status for id %s is %s' % (world.grow_status_id, new_status))
     if new_status.lower() == status:
         return True
