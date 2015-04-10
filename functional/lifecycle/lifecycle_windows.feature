@@ -14,6 +14,7 @@ Feature: Windows server lifecycle
         And file 'C:\chef_result_file' exist in M1 windows
         And I have a M1 attached volume as V1
         And attached volume in M1 has size 1 Gb
+        And hostname in M1 is valid
 
     @ec2
     Scenario: Restart scalarizr
@@ -69,3 +70,21 @@ Feature: Windows server lifecycle
         Then I start farm
         And I expect server bootstrapping as M1
         And file 'c:/chef_result_file' exist in M1 windows
+
+    @ec2
+    Scenario: Bootstraping with reboot
+        Given I have a clean and stopped farm
+        And I add role to this farm with init_reboot,small_win_orchestration
+        When I start farm
+        And I see pending server M1
+        When I wait server M1 in initializing state
+        Then I wait server M1 in running state
+        And hostname in M1 is valid
+
+    @ec2
+    Scenario: Bootstraping with failed hostname
+        Given I have a clean and stopped farm
+        And I add role to this farm with failed_hostname
+        When I start farm
+        And I see pending server M1
+        And I wait server M1 in failed state

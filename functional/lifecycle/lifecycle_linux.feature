@@ -4,7 +4,6 @@ Feature: Linux server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
 
-
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
@@ -123,6 +122,27 @@ Feature: Linux server lifecycle
         And directory '/media/raidmount' exist in M1
         And count of files in directory '/media/raidmount' is 100 in M1
         And saved device for '/media/ebsmount' for role is another
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
+    Scenario: Bootstraping with reboot
+        Given I have a clean and stopped farm
+        And I add role to this farm with init_reboot,small_linux_orchestration
+        When I start farm
+        And I see pending server M1
+        And I wait server M1 in initializing state
+        When I wait server M1 in running state
+        Then script Revizor last reboot executed in HostInit by user root with exitcode 0 for M1
+        And script Revizor last reboot executed in HostUp by user root with exitcode 0 for M1
+        And start time in Revizor last reboot scripts are different for M1
+        And hostname in M1 is valid
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
+    Scenario: Bootstraping with failed hostname
+        Given I have a clean and stopped farm
+        And I add role to this farm with failed_hostname
+        When I start farm
+        And I see pending server M1
+        And I wait server M1 in failed state
 
     @ec2 @openstack @stopresume
     Scenario: Stop/resume on init policy

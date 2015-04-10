@@ -1,3 +1,4 @@
+import re
 import time
 import json
 import logging
@@ -270,3 +271,19 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     if not mount_disks[mount_point] == fstab[mount_point]:
         raise AssertionError('Disk from mount != disk in fstab: "%s" != "%s"' %
                              (mount_disks[mount_point], fstab[mount_point]))
+
+
+@step("start time in ([\w\d _-]+) scripts are different for ([\w\d]+)")
+def verify_stdout_for_scripts(step, script_name, serv_as):
+    server = getattr(world, serv_as)
+    script_name = re.sub('[^A-Za-z0-9/.]+', '_', script_name)[:50]
+    times = set()
+    counter = 0
+    server.scriptlogs.reload()
+    for script in server.scriptlogs:
+        if not script.name == script_name:
+            continue
+        counter += 1
+        times.add(script.message.splitlines()[-1].split()[-6])
+    if not len(times) == counter:
+        raise AssertionError('Last reboot times is equals: %s' % list(times))
