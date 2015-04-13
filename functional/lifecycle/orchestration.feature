@@ -21,7 +21,7 @@ Feature: Orchestration features test
       | BeforeHostUp | Linux ping-pong               | root     | 0        | pong   |
       | BeforeHostUp | chef                          | root     | 0        | "HOME"=>"/root"; "USER"=>"root" |
       | HostUp       | Linux ping-pong               | revizor2 | 1        |        |
-      | HostUp       | /home/revizor/local_script.sh | revizor  | 0        | Local script work! User: revizor; USER=revizor; HOME=/root |
+      | HostUp       | /home/revizor/local_script.sh | revizor  | 0        | Local script work! User: revizor; USER=revizor; HOME=/home/revizor |
       | HostUp       | Linux ping-pong               | revizor  | 0        | pong   |
       | HostUp       | chef                          | root     | 0        |        |
 
