@@ -21,6 +21,9 @@ Feature: Linux server resume strategy
         And disk types in role are valid
         And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
+        When I save mount table on M1
+        And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
     @ec2 @gce @stopresume
     Scenario: Stop/resume on init policy
@@ -31,6 +34,12 @@ Feature: Linux server resume strategy
         When I resume server M1
         Then I wait server M1 in running state
         And Scalr receives HostUp from M1
+        And directory '/media/diskmount' exist in M1
+        And directory '/media/raidmount' exist in M1
+        And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+        And process 'memcached' has options '-m 1024' in M1
+        And process 'chef-client' has options '--daemonize' in M1
 
     @ec2 @openstack @stopresume
     Scenario: Stop/resume on reboot policy
