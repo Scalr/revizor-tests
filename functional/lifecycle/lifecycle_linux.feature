@@ -17,19 +17,20 @@ Feature: Linux server lifecycle
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
-    @ec2 @openstack @storages
+    @ec2 @gce @openstack @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
-        And directory '/media/ebsmount' exist in M1
+        And disk types in role are valid
+        And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
-        And I create 100 files in '/media/ebsmount' in M1
+        And I create 100 files in '/media/diskmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
-    @ec2 @openstack @storages @fstab
+    @ec2 @gce @openstack @storages @fstab
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
-        And disk from M1 mount points for '/media/ebsmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
     @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
@@ -40,7 +41,7 @@ Feature: Linux server lifecycle
 
     @ec2 @openstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
-        And disk from M1 mount points for '/media/ebsmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
@@ -103,10 +104,10 @@ Feature: Linux server lifecycle
         When I stop farm
         And wait all servers are terminated
 
-    @ec2 @storages
+    @ec2 @gce @storages
     Scenario: Delete attached storage
-        When I save device for '/media/ebsmount' for role
-        And I delete saved device '/media/ebsmount'
+        When I save device for '/media/diskmount' for role
+        And I delete saved device '/media/diskmount'
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
     Scenario: Start farm
@@ -114,17 +115,17 @@ Feature: Linux server lifecycle
         Then I expect server bootstrapping as M1
         And scalarizr version from system repo is last in M1
 
-    @ec2 @openstack @storages
+    @ec2 @gce @openstack @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old
-        And directory '/media/ebsmount' exist in M1
+        And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
         And count of files in directory '/media/raidmount' is 100 in M1
-        And saved device for '/media/ebsmount' for role is another
+        And saved device for '/media/diskmount' for role is another
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
-    Scenario: Bootstraping with reboot
+    Scenario: Reboot on bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with init_reboot,small_linux_orchestration
         When I start farm
@@ -137,7 +138,7 @@ Feature: Linux server lifecycle
         And hostname in M1 is valid
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
-    Scenario: Bootstraping with failed hostname
+    Scenario: Failed bootsrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
         When I start farm

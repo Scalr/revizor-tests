@@ -2,12 +2,13 @@ import re
 import time
 import json
 import logging
+from itertools import chain
 
 from lettuce import world, step
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 
 
 LOG = logging.getLogger(__name__)
@@ -72,7 +73,6 @@ def check_message_config(step, config_group, message, serv_as):
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    #FIXME: Add this to GCE
     for attempt in range(3):
         out = node.run('/bin/ls %s' % path)
         if not out[0] and not out[1]:
@@ -229,6 +229,10 @@ def verify_saved_and_new_volumes(step, mount_point):
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
+    if CONF.feature.driver.current_cloud in [Platform.IDCF,
+                                             Platform.CLOUDSTACK]:
+        LOG.info('Not check iptables because CloudStack')
+        return
     server = getattr(world, serv_as)
     ports = ports.split(',')
     node = world.cloud.get_node(server)
@@ -262,10 +266,10 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     fstab = {x.split()[1]: x.split()[0] for x in fstab if x and x.startswith('/')}
     LOG.debug('Fstab on server "%s" contains:\n %s' % (to_server.id, fstab))
     mount_disks = getattr(world, '%s_mount_table' % from_serv_as)
-    if not mount_point in mount_disks:
+    if mount_point not in mount_disks:
         raise AssertionError('Mount point "%s" not exist in mount table:\n%s' %
                              (mount_point, mount_disks))
-    if not mount_point in fstab:
+    if mount_point not in fstab:
         raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
                              (mount_point, fstab))
     if not mount_disks[mount_point] == fstab[mount_point]:
@@ -287,3 +291,29 @@ def verify_stdout_for_scripts(step, script_name, serv_as):
         times.add(script.message.splitlines()[-1].split()[-6])
     if not len(times) == counter:
         raise AssertionError('Last reboot times is equals: %s' % list(times))
+
+
+@step("disk types in role are valid")
+def verify_attached_disk_types(step):
+    LOG.info('Verify atype of attached disks')
+    role = world.get_role()
+    storage_config = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
+    volume_ids = {}
+    for device in storage_config['configs']:
+        volume_ids[device['mountPoint']] = [s['storageId'] for s in storage_config['devices'][device['id']]]
+    ids = list(chain.from_iterable(volume_ids.values()))
+    volumes = filter(lambda x: x.id in ids, world.cloud.list_volumes())
+    for mount_point in volume_ids:
+        volume_ids[mount_point] = filter(lambda x: x.id in volume_ids[mount_point], volumes)
+    LOG.debug('Volumes in mount points: %s' % volume_ids)
+    if CONF.feature.driver.current_cloud == Platform.EC2:
+        LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
+        return
+    elif CONF.feature.driver.current_cloud == Platform.GCE:
+        if not volume_ids['/media/diskmount'][0].extra['type'] == 'pd-standard':
+            raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
+                                 volume_ids['/media/diskmount'][0].extra['type'])
+        if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
+            raise AssertionError(
+                'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
+                volume_ids['/media/diskmount'][0].extra['type'])

@@ -58,6 +58,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
+            if opt == 'noiptables' and CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
+                continue
             if 'redis processes' in opt:
                 redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
                 LOG.info('Setup %s redis processes' % redis_count)

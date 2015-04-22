@@ -140,7 +140,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                    (lookup_server.id, ServerStatus.INIT, lookup_server.get_failed_status_message()))
 
             LOG.debug('Try get node')
-            if not lookup_node and not lookup_server.status in [ServerStatus.PENDING_LAUNCH,
+            if not lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
@@ -149,7 +149,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify debug log in node')
-            if lookup_node and not lookup_server.status in [ServerStatus.PENDING_LAUNCH,
+            if lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
                                                             ServerStatus.PENDING_TERMINATE,
                                                             ServerStatus.TERMINATED,
                                                             ServerStatus.PENDING_SUSPEND,
