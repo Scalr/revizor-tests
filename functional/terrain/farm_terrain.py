@@ -39,9 +39,11 @@ def having_a_stopped_farm(step):
 @step(r"I add(?P<behavior> \w+)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
 def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=None):
     additional_storages = None
+    options = options or []
     scripting = None
     role_id = None
     scaling_metrics = None
+    old_branch = CONF.feature.branch
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
@@ -60,6 +62,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             LOG.info('Inspect option: %s' % opt)
             if opt == 'noiptables' and CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
                 continue
+            if opt in ('branch_latest', 'branch_stable'):
+                CONF.feature.branch = opt.split('_')[1]
             if 'redis processes' in opt:
                 redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
                 LOG.info('Setup %s redis processes' % redis_count)
@@ -167,6 +171,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                   role_id=role_id, scaling=scaling_metrics)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
+    if 'branch_latest' in options or 'branch_stable' in options:
+        CONF.feature.branch = old_branch
 
 
 @step('I delete (\w+) role from this farm')
