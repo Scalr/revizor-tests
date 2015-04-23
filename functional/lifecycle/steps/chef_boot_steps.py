@@ -45,7 +45,7 @@ def verify_chef_log(step, serv_as, text):
             return
 
 
-@step("I ([\w\d]+) chef bootstarp stat on ([\w\d]+)")
+@step("I ([\w\d]+) chef bootstrap stat on ([\w\d]+)")
 def step_impl(step, asction, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
