@@ -62,7 +62,6 @@ Feature: Linux server resume strategy
         And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
         And count of files in directory '/media/raidmount' is 100 in M1
-        And saved device for '/media/diskmount' for role is another
 
     @ec2 @gce @openstack @storages @fstab
     Scenario: Verify attached storages in fstab after resume
