@@ -77,7 +77,7 @@ def server_state_action(step, action, reboot_type, serv_as):
     if isinstance(res, bool) and not res:
         error_message = "% success: %s" % (action, res)
     elif isinstance(res, dict):
-        error_message = res.get('errorMessage')
+        error_message = res.get('errorMessage', None)
     assert not error_message, error_message
     LOG.info('Server %s was %sed' % (server.id, action))
 
