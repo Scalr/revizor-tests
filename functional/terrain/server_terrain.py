@@ -67,13 +67,18 @@ def rebundle_server(step, serv_as):
 
 @step('I (reboot|suspend|resume)(?: (soft|hard))? server ([\w\d]+)$')
 def server_state_action(step, action, reboot_type, serv_as):
+
     server = getattr(world, serv_as)
     LOG.info('%s server %s' % (action.capitalize(), server.id))
     args = {'method': reboot_type.strip() if reboot_type else 'soft'}
     meth = getattr(server, action)
     res = meth(**args) if action == 'reboot' else meth()
-    if 'errorMessage' in res and res['errorMessage']:
-        raise AssertionError('Server %s was not properly %sed: %s' % (server.id, action, res['errorMessage']))
+    error_message = None
+    if isinstance(res, bool) and not res:
+        error_message = "% success: %s" % (action, res)
+    elif isinstance(res, dict):
+        error_message = res.get('errorMessage', None)
+    assert not error_message, error_message
     LOG.info('Server %s was %sed' % (server.id, action))
 
 

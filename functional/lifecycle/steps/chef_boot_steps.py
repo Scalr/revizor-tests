@@ -43,3 +43,20 @@ def verify_chef_log(step, serv_as, text):
             if not text in log.message:
                 raise AssertionError('Text "%s" not found in chef bootstrap:\n%s' % (text, log.message))
             return
+
+
+@step("I ([\w\d]+) chef bootstrap stat on ([\w\d]+)")
+def step_impl(step, asction, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    # Get chef client.pem update time
+    bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem')[0].split()[0]
+    LOG.debug('Chef client.pem, last modification time: %s' % bootstrap_stat)
+    if asction.strip() == 'save':
+        setattr(world, '%s_bootstrap_stat' % server.id, bootstrap_stat)
+        return
+    saved_bootstrap_stat = getattr(world, '%s_bootstrap_stat' % server.id)
+    LOG.debug('First time chef client.pem, last modification stat: %s' % bootstrap_stat)
+    assert bootstrap_stat > saved_bootstrap_stat, \
+        'Node was not bootstrap with chef after resume.'
+
