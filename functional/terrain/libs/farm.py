@@ -62,6 +62,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
             versions = get_role_versions(mask)
+            versions.sort()
+            versions.reverse()
             #TODO: Return RV_ROLE_VERSION
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
