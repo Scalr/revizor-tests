@@ -84,7 +84,6 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then D1 resolves into W1 ip address
         And http get domain D2 matches H2 index page
 
-
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Add two SSL domains
         When I create domain D3 to www role
