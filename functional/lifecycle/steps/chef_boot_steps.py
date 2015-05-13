@@ -53,17 +53,12 @@ def step_impl(step, serv_as):
     node = world.cloud.get_node(server)
     saved_bootstrap_stat = getattr(world, '%s_bootstrap_stat' % server.id, None)
 
-    for _ in range(10):
-        # Get chef client.pem update time
-        bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem')[0].split()[0]
-        LOG.debug('Chef client.pem, last modification time: %s' % bootstrap_stat)
-        if not saved_bootstrap_stat:
-            LOG.debug('Save chef client.pem, last modification time: %s' % bootstrap_stat)
-            setattr(world, '%s_bootstrap_stat' % server.id, bootstrap_stat)
-            break
-        elif bootstrap_stat > saved_bootstrap_stat:
-            break
-        time.sleep(30)
-    else:
-        raise AssertionError('Chef client.pem, was not modified after resume.')
+    # Get chef client.pem update time
+    bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem')[0].split()[0]
+    LOG.debug('Chef client.pem, last modification time: %s' % bootstrap_stat)
+    if not saved_bootstrap_stat:
+        LOG.debug('Save chef client.pem, last modification time: %s' % bootstrap_stat)
+        setattr(world, '%s_bootstrap_stat' % server.id, bootstrap_stat)
+        return
+    assert bootstrap_stat > saved_bootstrap_stat, 'Chef client.pem, was not modified after resume.'
 
