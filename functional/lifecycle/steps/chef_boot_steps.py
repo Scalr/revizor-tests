@@ -46,19 +46,22 @@ def verify_chef_log(step, serv_as, text):
             return
 
 
-@step("I (?:[\w\d]+) chef bootstrap stat on ([\w\d]+)")
-def step_impl(step, serv_as):
+@step("I ([\w\d]+) chef bootstrap stats on ([\w\d]+)")
+def step_impl(step, action, serv_as):
 
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    saved_bootstrap_stat = getattr(world, '%s_bootstrap_stat' % server.id, None)
+
 
     # Get chef client.pem update time
     bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem')[0].split()[0]
     LOG.debug('Chef client.pem, last modification time: %s' % bootstrap_stat)
-    if not saved_bootstrap_stat:
+
+    if action == 'save':
         LOG.debug('Save chef client.pem, last modification time: %s' % bootstrap_stat)
         setattr(world, '%s_bootstrap_stat' % server.id, bootstrap_stat)
         return
+    #
+    saved_bootstrap_stat = getattr(world, '%s_bootstrap_stat' % server.id)
     assert bootstrap_stat > saved_bootstrap_stat, 'Chef client.pem, was not modified after resume.'
 
