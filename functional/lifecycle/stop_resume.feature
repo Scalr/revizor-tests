@@ -28,7 +28,7 @@ Feature: Linux server resume strategy
 
     @ec2 @gce @openstack @cloudstack @chef
     Scenario: Verify chef deployment
-        When I save chef bootstrap stat on M1
+        When I save chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
@@ -54,7 +54,7 @@ Feature: Linux server resume strategy
 
     @ec2 @gce @openstack @cloudstack @chef
     Scenario: Verify chef deployment after resume
-        When I check chef bootstrap stat on M1
+        When I check chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
