@@ -11,6 +11,7 @@ from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
+from revizor2.dbmsr import DataBaseError
 from revizor2.helpers import generate_random_string
 from revizor2.consts import Platform, ServerStatus, Dist
 from revizor2.defaults import DEFAULT_REDIS_PATH
@@ -362,6 +363,15 @@ def check_database_in_new_server(step, serv_as, has_not, db_name, username=None)
     else:
         servers = [getattr(world, serv_as)]
     credentials = (username, db_role.db.credentials[username]) if username else None
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        for i in range(5):
+            try:
+                db_role.db.get_connection()
+                break
+            except DataBaseError:
+                time.sleep(5)
+        else:
+            raise
     for server in servers:
         for db in dbs:
             LOG.info('Check database %s in server %s' % (db, server.id))

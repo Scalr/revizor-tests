@@ -72,7 +72,7 @@ Feature: Windows server lifecycle
         And file 'c:/chef_result_file' exist in M1 windows
 
     @ec2
-    Scenario: Bootstraping with reboot
+    Scenario: Reboot on bootstrapping
         Given I have a clean and stopped farm
         And I add role to this farm with init_reboot,small_win_orchestration
         When I start farm

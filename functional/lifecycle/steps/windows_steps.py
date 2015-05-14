@@ -3,20 +3,31 @@ import logging
 from datetime import datetime
 
 from lettuce import world, step
+
 try:
     import winrm
 except ImportError:
     raise ImportError("Please install WinRM")
 
+from revizor2.conf import CONF
+from revizor2.consts import Platform
+
 
 LOG = logging.getLogger(__name__)
 
 
+def get_windows_session(server):
+    username = 'Administrator'
+    if CONF.feature.driver.cloud_family == Platform.GCE:
+        username = 'scalr'
+    session = winrm.Session('http://%s:5985/wsman' % server.public_ip,
+                            auth=(username, server.windows_password))
+    return session
+
 @step(r"file '([\w\d\:\\/_]+)' exist in ([\w\d]+) windows$")
 def check_windows_file(step, path, serv_as):
     server = getattr(world, serv_as)
-    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.windows_password))
+    console = get_windows_session(server)
     LOG.info('Run command: %s' % 'ls %s' % path)
     out = console.run_cmd('ls %s' % path).std_out
     LOG.debug('Result of command:')
@@ -29,8 +40,7 @@ def check_windows_file(step, path, serv_as):
 @step(r"I reboot windows scalarizr in ([\w\d]+)")
 def reboot_windows(step, serv_as):
     server = getattr(world, serv_as)
-    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.windows_password))
+    console = get_windows_session(server)
     LOG.info('Restart scalarizr via winrm')
     LOG.debug('Stop scalarizr')
     out = console.run_cmd('net stop Scalarizr')
@@ -43,8 +53,7 @@ def reboot_windows(step, serv_as):
 @step(r"see 'Scalarizr terminated' in ([\w\d]+) windows log")
 def check_terminated_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.windows_password))
+    console = get_windows_session(server)
     LOG.info("Run command: cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'")
     out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep 'Scalarizr terminated'").std_out
     LOG.debug('Result of command:')
@@ -57,8 +66,7 @@ def check_terminated_in_log(step, serv_as):
 @step(r"not ERROR in ([\w\d]+) scalarizr windows log")
 def check_errors_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.windows_password))
+    console = get_windows_session(server)
     LOG.info("Run command cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR")
     out = console.run_cmd("cat \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\" | grep ERROR").std_out
     LOG.debug('Result of command:')
@@ -100,8 +108,7 @@ def check_attached_disk_size(step, serv_as, size):
     time.sleep(60)
     size = int(size)
     server = getattr(world, serv_as)
-    console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                            auth=("Administrator", server.windows_password))
+    console = get_windows_session(server)
     LOG.info('Run command: "wmic logicaldisk get size,caption"')
     out = console.run_cmd('wmic logicaldisk get size,caption').std_out
     LOG.debug('Result of command:')
