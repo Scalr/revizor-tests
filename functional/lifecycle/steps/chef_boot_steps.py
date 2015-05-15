@@ -1,6 +1,7 @@
 import logging
-import time
 
+from revizor2.conf import CONF
+from revizor2.consts import Platform
 from lettuce import world, step
 
 
@@ -63,5 +64,10 @@ def step_impl(step, action, serv_as):
         return
     #
     saved_bootstrap_stat = getattr(world, '%s_bootstrap_stat' % server.id)
-    assert bootstrap_stat > saved_bootstrap_stat, 'Chef client.pem, was not modified after resume.'
+    assertion_msg = 'Chef client.pem, was %s modified after resume.'
+
+    if CONF.feature.driver.current_cloud in [Platform.EC2, Platform.GCE]:
+        assert bootstrap_stat > saved_bootstrap_stat, assertion_msg % 'not'
+    else:
+        assert bootstrap_stat == saved_bootstrap_stat, assertion_msg % ''
 

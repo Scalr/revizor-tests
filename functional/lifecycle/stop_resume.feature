@@ -52,14 +52,21 @@ Feature: Linux server resume strategy
         Then I wait server M1 in running state
         And Scalr receives RebootFinish from M1
 
-    @ec2 @gce @openstack @cloudstack @chef
-    Scenario: Verify chef deployment after resume
+    @ec2 @gce @chef
+    Scenario: Verify chef deployment after resume on init policy
         When I check chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
 
-    @ec2 @gce @openstack @cloudstack @storages
+    @openstack @cloudstack @chef
+    Scenario: Verify chef after resume on reboot policy
+        When I check chef bootstrap stats on M1
+        And process memcached is not running in M1
+        And process 'chef-client' has options '--daemonize' in M1
+        And chef node_name in M1 set by global hostname
+
+  @ec2 @gce @openstack @cloudstack @storages
     Scenario: Check attached storages after resume
         And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
