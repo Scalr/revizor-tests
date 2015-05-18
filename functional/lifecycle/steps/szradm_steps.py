@@ -85,7 +85,7 @@ class SzrAdmResultsParser(object):
         """
         try:
             if not isinstance(data, ET.Element):
-                data = ET.XML(data.translate(None, '\n\t'))
+                data = ET.XML(''.join(data.splitlines()).replace('\t',''))
         except ET.ParseError, e:
             raise AssertionError('\nMessage: %s, \nInput data is:\n%s' % (e.message, data))
 
@@ -177,7 +177,7 @@ def run_command(step, command, serv_as):
     if result[2]:
         raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %
                              (command, result[1]))
-    LOG.debug('Parsing a command result on a remote host: %s' % server.id)
+    LOG.debug('Parsing a command result: %s' % result[0])
     result = SzrAdmResultsParser.parser(result[0])
     LOG.debug('Command result was successfully parsed on a remote host:%s\n%s' % (server.id, result))
     setattr(world, '%s_result' % serv_as, result)
