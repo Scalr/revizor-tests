@@ -74,6 +74,9 @@ Feature: SzrAdm check backward compatibility
         Then I run "szradm list-virtualhosts" on A1
         And I run "szradm list-virtualhosts" on A2
         Then I compare all obtained results of A1,A2
+        Then I run "szradm q list-virtualhosts" on A1
+        And I run "szradm q list-virtualhosts" on A2
+        Then I compare all obtained results of A1,A2
         And the key "hostname" has 1 record on A1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
