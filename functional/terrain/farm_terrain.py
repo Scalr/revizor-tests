@@ -13,7 +13,7 @@ from revizor2.api import Script, Farm, Metrics
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
-    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS
+    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -128,24 +128,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             elif opt == 'storages':
                 LOG.info('Insert additional storages config')
                 if CONF.feature.dist.startswith('win'):
-                    #FIXME: Think and move this to defaults
-                    additional_storages = {'configs': [
-                        {
-                            "type": "ebs",
-                            "fs": "",
-                            "settings": {
-                                "ebs.size": "1",
-                                "ebs.type": "standard",
-                                "ebs.snapshot": None,
-                                "ebs.encrypted": False
-                            },
-                            "mount": False,
-                            "mountPoint": "",
-                            "reUse": True,
-                            "status": "",
-                            "rebuild": False
-                        }
-                    ]}
+                    additional_storages = {
+                        'configs': DEFAULT_WINDOWS_ADDITIONAL_STORAGES.get(
+                            CONF.feature.driver.cloud_family, [])}
                 else:
                     additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
             elif opt == 'scaling':

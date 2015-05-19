@@ -136,7 +136,6 @@ def check_matches_in_domain(step, proto, domain_as, matched_text):
 def start_basehttpserver(step, port, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Run BaseHttpServer in server %s' % server.id)
-
     node = world.cloud.get_node(server)
     LOG.debug('Put base_server.py script')
     node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
