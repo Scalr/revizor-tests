@@ -10,8 +10,9 @@ from lettuce import world
 from libcloud.compute.types import NodeState
 
 from revizor2.api import Server
+from revizor2.conf import CONF
 from revizor2.fixtures import resources
-from revizor2.consts import ServerStatus, MessageStatus, Dist
+from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
@@ -124,12 +125,19 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
             LOG.debug('Check lookup server launch failed')
             if lookup_server.is_launch_failed:
+                failed_message = lookup_server.get_failed_status_message()
+                if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK \
+                and 'Can not decode json response data' in failed_message:
+                    time.sleep(90)
+                    lookup_server = None
+                    lookup_node = None
+                    continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
                     return lookup_server
                 raise ServerFailed('Server %s failed in %s. Reason: %s'
                                    % (lookup_server.id, ServerStatus.PENDING_LAUNCH,
-                                      lookup_server.get_failed_status_message()))
+                                      failed_message))
 
             LOG.debug('Check lookup server init failed')
             if lookup_server.is_init_failed:
@@ -320,6 +328,7 @@ def wait_upstream_in_config(node, ip, contain=True):
 
 @world.absorb
 def check_index_page(node, proto, revert, domain_name, name):
+    #TODO: Rewrite this
     index = resources('html/index_test.php')
     index = index.get() % {'id': name}
     if proto.isdigit():

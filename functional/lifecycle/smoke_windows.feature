@@ -10,7 +10,7 @@ Feature: Windows server fast smoke test
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
         And I have a M1 attached volume as V1
-        And attached volume in M1 has size 1 Gb
+        And attached volume V1 has size 1 Gb
 
     @ec2
     Scenario: Windows reboot

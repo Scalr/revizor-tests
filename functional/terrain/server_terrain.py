@@ -113,7 +113,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
         script_id = None
     else:
         script_id = Script.get_id(script_name)['id']
-    LOG.info('Execute script id: %s, name: %s' % (script_id, script_name))
+    LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
     LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
@@ -149,7 +149,8 @@ def verify_hostname_is_valid(step, serv_as):
     hostname = server.api.system.get_hostname()
     valid_hostname = '%s-%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
     if CONF.feature.dist.startswith('win'):
-        valid_hostname = world.farm.name.replace(' ', '').upper()
+        valid_hostname = world.farm.name.replace(' ', '').lower()
+        hostname = hostname.lower()
     if not hostname == valid_hostname:
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
