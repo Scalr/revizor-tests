@@ -15,6 +15,7 @@ LOG = logging.getLogger(__name__)
 
 @step(r"http get (.+) contains default message")
 def assert_check_http_get_answer(step, serv_as):
+    #TODO: Move to common with apache
     server = getattr(world, serv_as)
     nginx_mes = ['No running app instances found',
            'Backend server did not respond in time',

@@ -184,7 +184,7 @@ def farm_launch(step):
 @step('I start farm with delay$')
 def farm_launch(step):
     """Start farm with delay for cloudstack"""
-    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.driver.current_cloud == Platform.IDCF: #Maybe use on all cloudstack
         time.sleep(1800)
     world.farm.launch()
     LOG.info('Launch farm \'%s\' (%s)' % (world.farm.id, world.farm.name))

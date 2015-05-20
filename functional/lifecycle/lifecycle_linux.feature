@@ -39,7 +39,7 @@ Feature: Linux server lifecycle
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @openstack @storages @fstab
+    @ec2 @cloudstack @openstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
@@ -104,7 +104,7 @@ Feature: Linux server lifecycle
         When I stop farm
         And wait all servers are terminated
 
-    @ec2 @gce @storages
+    @ec2 @cloudstack @gce @storages
     Scenario: Delete attached storage
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
