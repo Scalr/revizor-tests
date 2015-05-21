@@ -138,8 +138,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
                                  (server.id))
         attached_volume = filter(lambda x:
-                                 x.extra['device'] != node.extra[
-                                     'root_device_name'],
+                                 x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
     elif CONF.feature.driver.current_cloud == Platform.GCE:
         volumes = filter(lambda x: x['deviceName'] != 'root',
@@ -152,6 +151,14 @@ def save_attached_volume_id(step, serv_as, volume_as):
                                  server.id)
         attached_volume = filter(lambda x: x.name == volumes[0]['deviceName'],
                                  world.cloud.list_volumes())[0]
+    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        volumes = server.get_volumes()
+        if len(volumes) == 1:
+            raise AssertionError('Server %s doesn\'t has attached volumes!' %
+                                 (server.id))
+        attached_volume = filter(lambda x:
+                                 x.extra['volume_type'] != 'ROOT',
+                                 volumes)[0]
     setattr(world, '%s_volume' % volume_as, attached_volume)
     LOG.info('Attached volume for server "%s" is "%s"' %
              (server.id, attached_volume.id))
@@ -162,6 +169,9 @@ def verify_attached_volume_size(step, volume_as, size):
     LOG.info('Verify master volume has new size "%s"' % size)
     size = int(size)
     volume = getattr(world, '%s_volume' % volume_as)
-    if not size == int(volume.size):
+    volume_size = int(volume.size)
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        volume_size = volume_size/1024/1024/1024
+    if not size == volume_size:
         raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
                              % (volume.id, volume.size, size))

@@ -19,7 +19,12 @@ from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 LOG = logging.getLogger(__name__)
 
 
-SCALARIZR_LOG_IGNORE_ERRORS = ['boto', 'p2p_message', 'Caught exception reading instance data']
+SCALARIZR_LOG_IGNORE_ERRORS = [
+    'boto',
+    'p2p_message',
+    'Caught exception reading instance data',
+    'Expected list, got null. Selector: listvolumesresponse'
+]
 
 
 @world.absorb

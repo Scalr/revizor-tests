@@ -59,6 +59,7 @@ def remove_vhost(step, vhost_as):
     LOG.info('Delete vhost: %s' % vhost.name)
     vhost.delete()
 
+
 @step(r'I change the(?: (http|https)) virtual host (.+) template(?: (invalid))? data')
 def change_vhost_template(step, proto, vhost_as, invalid=None):
     """This step is editing an existing virtual host, changing the contents of Server non-ssl template field,
