@@ -81,7 +81,7 @@ class SzrAdmResultsParser(object):
             :type   data: str
 
             >>> Usage:
-                SzrAdmResultsParser.yaml_parser(string)
+                SzrAdmResultsParser.xml_parser(string)
         """
         try:
             if not isinstance(data, ET.Element):
