@@ -33,7 +33,7 @@ def verify_scalarizr_log(node):
         node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
-        log_out = node.run('grep "ERROR" /var/log/scalarizr_debug.log ')
+        log_out = node.run('grep "\- ERROR" /var/log/scalarizr_debug.log')
         LOG.debug('Grep result: %s' % log_out[0])
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
@@ -336,10 +336,7 @@ def check_index_page(node, proto, revert, domain_name, name):
     #TODO: Rewrite this
     index = resources('html/index_test.php')
     index = index.get() % {'id': name}
-    if proto.isdigit():
-        url = 'http://%s:%s/' % (domain_name, proto)
-    else:
-        url = '%s://%s/' % (proto, domain_name)
+    url = '%s://%s/' % (proto, domain_name)
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.id))

@@ -10,7 +10,9 @@ import OpenSSL
 from OpenSSL.SSL import TLSv1_METHOD, Context, Connection
 from OpenSSL.crypto import FILETYPE_PEM
 
+from revizor2.conf import CONF
 from revizor2.utils import wait_until
+from revizor2.consts import Platform
 from revizor2.fixtures import resources
 
 
@@ -86,10 +88,19 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
 
 @step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
 def check_index(step, proto, revert, domain_as, vhost_as):
+    #TODO: Rewrite this ugly
     revert = False if not revert else True
     domain = getattr(world, domain_as)
     vhost = getattr(world, vhost_as)
+    domain_address = domain.name
 
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        domain_server = domain.role.servers[0]
+        public_port = world.cloud.open_port(
+            world.cloud.get_node(domain_server),
+            80 if proto == 'http' else 443
+        )
+        domain_address = '%s:%s' % (domain_address, str(public_port))
     # Find role by vhost
     for role in world.farm.roles:
         if role.id == vhost.farm_roleid:
@@ -111,7 +122,7 @@ def check_index(step, proto, revert, domain_as, vhost_as):
         except AttributeError, e:
             LOG.error('Failed in delete index.html: %s' % e)
 
-    world.check_index_page(nodes, proto, revert, domain.name, vhost_as)
+    world.check_index_page(nodes, proto, revert, domain_address, vhost_as)
 
 
 @step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')

@@ -12,6 +12,16 @@ from lettuce import world, step
 
 LOG = logging.getLogger(__name__)
 
+
+APACHE_MESSAGES = (
+    'It works!',
+    'Apache HTTP Server',
+    'Welcome to your Scalr application',
+    'Scalr farm configured succesfully',
+    'Amazon Linux AMI Test Page'
+)
+
+
 @step(r'(https|http)(?: (not))? get (.+) contains default welcome message')
 def assert_check_http_get_answer(step, proto, revert, serv_as):
     server = getattr(world, serv_as)
@@ -28,12 +38,7 @@ def assert_check_http_get_answer(step, proto, revert, serv_as):
             msg = None
 
     LOG.debug('Step mode: %s. Apache message: %s' % ('not contains message' if revert else 'contains message', msg))
-    apache_messages = ['It works!',
-                       'Apache HTTP Server',
-                       'Welcome to your Scalr application',
-                       'Scalr farm configured succesfully',
-                       'Amazon Linux AMI Test Page']
-    if not revert and not any(message in msg for message in apache_messages):
+    if not revert and not any(message in msg for message in APACHE_MESSAGES):
         raise AssertionError('Not see default message, Received message: %s,  code: %s' % (msg, resp.status_code))
     elif revert and msg:
         raise AssertionError('Error. The message in default apache https mode. Received message: %s' % msg)
