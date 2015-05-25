@@ -1,5 +1,9 @@
+import time
 import logging
 from lettuce import world, step
+
+from revizor2.conf import CONF
+from revizor2.consts import Platform
 
 
 LOG = logging.getLogger(__name__)
@@ -58,6 +62,9 @@ def remove_vhost(step, vhost_as):
     vhost = getattr(world, vhost_as)
     LOG.info('Delete vhost: %s' % vhost.name)
     vhost.delete()
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        LOG.debug('Wait 15 second in cloudstack')
+        time.sleep(15)
 
 
 @step(r'I change the(?: (http|https)) virtual host (.+) template(?: (invalid))? data')
