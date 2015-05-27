@@ -11,6 +11,7 @@ from revizor2.conf import CONF
 from revizor2.api import Script
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
+from revizor2.exceptions import MessageFailed
 
 
 LOG = logging.getLogger(__name__)
@@ -82,14 +83,18 @@ def server_state_action(step, action, reboot_type, serv_as):
     LOG.info('Server %s was %sed' % (server.id, action))
 
 
-@step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)')
-def assert_server_message(step, msgtype, msg, serv_as, timeout=1500):
+@step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?')
+def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=1500):
     """Check scalr in/out message delivering"""
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
     if serv_as == 'all':
         world.farm.servers.reload()
         server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
-        world.wait_server_message(server, msg.strip(), msgtype, find_in_all=True, timeout=timeout)
+        world.wait_server_message(server,
+                                  msg.strip(),
+                                  msgtype,
+                                  find_in_all=True,
+                                  timeout=timeout)
     else:
         try:
             LOG.info('Try get server %s in world' % serv_as)
@@ -99,8 +104,12 @@ def assert_server_message(step, msgtype, msg, serv_as, timeout=1500):
             world.farm.servers.reload()
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
         LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
-        s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
-        setattr(world, serv_as, s)
+        try:
+            s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
+            setattr(world, serv_as, s)
+        except MessageFailed:
+            if not failed:
+                raise
 
 
 @step("I execute( local)? script '(.+)' (.+) on (.+)")

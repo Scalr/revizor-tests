@@ -132,7 +132,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if lookup_server.is_launch_failed:
                 failed_message = lookup_server.get_failed_status_message()
                 if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK \
-                and 'Can not decode json response data' in failed_message:
+                and ('Can not decode json response data' in failed_message
+                     or 'Cannot establish connection with CloudStack server. (Server returned nothing )' in failed_message):
                     time.sleep(90)
                     lookup_server = None
                     lookup_node = None

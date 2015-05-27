@@ -9,7 +9,7 @@ Feature: MySQL database server with behavior mysql2
         And mysql is running on M1
         And scalarizr version is last in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @pmalaunch
+    @ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
     Scenario: Launch phpMyAdmin
         When I trigger pmaaccess creation
         Then I launch pma session
@@ -189,7 +189,7 @@ Feature: MySQL database server with behavior mysql2
 		And M2 is slave of M1
 		And M2 contains databases D3,D4 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @pmalaunch
+	@ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart
         When I trigger pmaaccess creation
         Then I launch pma session

@@ -58,7 +58,8 @@ Feature: Apache application server role
         When I stop service scalarizr and pid has been changed on A1
         Then D2 resolves into A1 ip address
         And A1 has H2 in virtual hosts configuration
-        Then I remove from web interface virtual host H2
+        When I remove from web interface virtual host H2
+        Then Scalr sends VhostReconfigure to A1 with fail
         And I start service scalarizr and pid has been changed on A1
         And http get domain D2 matches H2 index page
         Then I reboot server A1
