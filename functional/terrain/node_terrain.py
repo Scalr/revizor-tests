@@ -400,7 +400,7 @@ def get_ebs_for_instance(step, serv_as):
     if CONF.feature.driver.current_cloud == Platform.EC2:
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
     elif CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
-        storages = filter(lambda x: x.extra['type'] == 'DATADISK', volumes)
+        storages = filter(lambda x: x.extra['volume_type'] == 'DATADISK', volumes)
     else:
         return
     LOG.info('Storages for server %s is: %s' % (server.id, storages))

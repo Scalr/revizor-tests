@@ -71,7 +71,7 @@ def check_server_storage(serv_as, status):
     if CONF.feature.platform == 'ec2':
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
     elif CONF.feature.platform in ['cloudstack', 'idcf', 'ucloud']:
-        storages = filter(lambda x: x.extra['type'] == 'DATADISK', volumes)
+        storages = filter(lambda x: x.extra['volume_type'] == 'DATADISK', volumes)
     if not storages and not status.strip() == 'deleted':
         raise AssertionError('Server %s not have storages' % server.id)
     if status.strip() == 'deleted' and len(storages) < len(getattr(world, '%s_storages' % serv_as)):
