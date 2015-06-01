@@ -104,7 +104,7 @@ Feature: Linux server lifecycle
         When I stop farm
         And wait all servers are terminated
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @cloudstack @openstack @gce @storages
     Scenario: Delete attached storage
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
