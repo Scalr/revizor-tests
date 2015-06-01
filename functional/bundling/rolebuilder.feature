@@ -15,5 +15,6 @@ Feature: Build all behaviors via rolebuilder and check server running
       | behaviors  |
       | mysql2,app |
       | percona,www |
-      | redis,mongodb,haproxy |
+      | redis,haproxy |
       | postgresql,memcached,rabbitmq |
+      | mongodb |
