@@ -156,17 +156,17 @@ def update_scalarizr(step, serv_as):
 
 
 @step('process ([\w-]+) is (not\s)*running in ([\w\d]+)$')
-def check_process(step, negation, process, serv_as):
+def check_process(step, process, negation, serv_as):
     LOG.info("Check running process %s on server" % process)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     list_proc = node.run('ps aux | grep %s' % process)[0]
-    for p in list_proc.splitlines():
-        process_is_running =  not 'grep' in p and process in p
+    processes = filter(lambda x: not 'grep' in x, list_proc)
+    if (not processes and not negation) or (processes and negation):
         msg = "Process {} on server {} not in valid state".format(
             process,
             server.id)
-        assert not process_is_running if negation else process_is_running, msg
+        raise AssertionError(msg)
 
 
 @step(r'(\d+) port is( not)? listen on ([\w\d]+)')
