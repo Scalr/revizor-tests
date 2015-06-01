@@ -595,14 +595,14 @@ def get_storage_id(step, action, db):
 @step(r'I increase storage size to (\d+) Gb in farm settings for ([\w\d]+) role')
 def increase_storage_farm_size(step, size, role_type):
     #TODO: Change this to decorator
-    if CONF.feature.driver.current_cloud in (Platform.EC2,) \
-            and CONF.feature.storage == 'persistent':
-        LOG.info('Change storage size for "%s" role to "%s"' % (role_type, size))
-        role = world.get_role(role_type)
-        size = int(size)
-        role.edit(options={
-            "db.msr.storage.grow_config": json.dumps({"size": size})
-        })
+    # if CONF.feature.driver.current_cloud in (Platform.EC2,) \
+    #         and CONF.feature.storage == 'persistent':
+    LOG.info('Change storage size for "%s" role to "%s"' % (role_type, size))
+    role = world.get_role(role_type)
+    size = int(size)
+    role.edit(options={
+        "db.msr.storage.grow_config": json.dumps({"size": size})
+    })
 
 
 @step(r'I delete volume ([\w\d]+)')

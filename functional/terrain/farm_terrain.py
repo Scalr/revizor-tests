@@ -132,7 +132,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         'configs': DEFAULT_WINDOWS_ADDITIONAL_STORAGES.get(
                             CONF.feature.driver.cloud_family, [])}
                 else:
-                    additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
+                    if CONF.feature.driver.current_cloud == Platform.RACKSPACE_US:
+                        additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(Platform.RACKSPACE_US, [])}
+                    else:
+                        additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)
