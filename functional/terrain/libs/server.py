@@ -251,6 +251,9 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                             lookup_messages)
                     return True
                 elif message.status == MessageStatus.FAILED:
+                    lookup_messages.append(message.id)
+                    setattr(world, '_server_%s_lookup_messages' % server.id,
+                            lookup_messages)
                     raise MessageFailed('Message %s / %s (%s) failed' % (message.type, message.name, message.id))
                 elif message.status == MessageStatus.UNSUPPORTED:
                     raise MessageFailed('Message %s / %s (%s) unsupported' % (message.type, message.name, message.id))

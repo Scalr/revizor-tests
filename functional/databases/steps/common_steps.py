@@ -142,11 +142,12 @@ class Redis(object):
         # Get redis path by os version
         ver_path = os_family_info.get(os_ver, os_family_info['default'])
         LOG.info('Start redis-server on remote host: %s' % self.server.public_ip)
+        binary_path = self.node.run('whereis redis-server')[0].split()[1]
         # Set run command
         cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
               "&& sleep 5 " \
               "&&  pgrep -l redis-server | awk {print'$1'}" % ({
-                  'bin': os.path.join(ver_path.get('bin'), 'redis-server'),
+                  'bin': binary_path,
                   'conf': os.path.join(ver_path.get('conf'), 'redis.6379.conf')})
 
         # Run command

@@ -162,6 +162,7 @@ def delete_nginx_proxy(step, proxy_name, proxy_role):
 
 @step(r"'([\w\d_ =:\.]+)' in ([\w\d]+) upstream file")
 def check_options_in_nginx_upstream(step, option, serv_as):
+    time.sleep(15)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     options = node.run('cat /etc/nginx/app-servers.include')[0]

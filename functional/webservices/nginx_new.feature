@@ -47,18 +47,18 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
           / A1 default 1 limit_rate 4096;
           / A2 backup 2
           / example.com down
-          /custom_port A1:8002 default limit_rate 8192;
+          /custom_port A1:8004 default limit_rate 8192;
           """
         Then I reboot server W1
         When Scalr receives RebootFinish from W1
         And 'A1 default weight=1' in W1 upstream file
-        And 'A1:8002 default' in W1 upstream file
+        And 'A1:8004 default' in W1 upstream file
         And 'A2 backup weight=2' in W1 upstream file
         And 'example.com down' in W1 upstream file
         And 'limit_rate 4096;' in W1 proxies file
         And 'limit_rate 8192;' in W1 proxies file
         And nginx is running on W1
-        Then I start BaseHttpServer on 8002 port in A1
+        Then I start BaseHttpServer on 8004 port in A1
         And http get domain D1/custom_port matches 'It works!'
         And http get domain D1 matches H1 index page
 
