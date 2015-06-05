@@ -144,23 +144,3 @@ Feature: Linux server lifecycle
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
-
-    @ec2 @openstack @stopresume
-    Scenario: Stop/resume on init policy
-        When I suspend server M1
-        Then Scalr sends BeforeHostTerminate to M1
-        And I wait server M1 in suspended state
-        Then I expect server bootstrapping as M2
-        When I resume server M1
-        Then I wait server M1 in running state
-        And Scalr receives HostUp from M1
-
-    @ec2 @openstack @stopresume
-    Scenario: Stop/resume on reboot policy
-        When I change suspend policy in role to reboot
-        Then I suspend server M1
-        And I wait server M1 in suspended state
-        Then I expect server bootstrapping as M3
-        When I resume server M1
-        Then I wait server M1 in running state
-        And Scalr receives RebootFinish from M1
