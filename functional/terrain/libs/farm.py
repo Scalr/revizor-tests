@@ -45,7 +45,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
-    use_vpc = False
+    use_vpc = CONF.feature.use_vpc \
+              and CONF.feature.driver.is_ec2 \
+              and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409', 'amzn1503')
+
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
@@ -59,9 +62,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 behavior = BEHAVIORS_ALIASES[behavior]
             if CONF.feature.role_type == 'instance':
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-            elif CONF.feature.use_vpc \
-                    and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409')\
-                    and CONF.feature.driver.scalr_cloud == 'ec2':
+            elif use_vpc:
                 mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             else:
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
@@ -73,9 +74,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
-            elif CONF.feature.use_vpc \
-                    and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409') \
-                    and CONF.feature.driver.scalr_cloud == 'ec2':
+            elif use_vpc:
                 role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             else:
@@ -116,10 +115,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
     if dist == 'rhel7' and not CONF.feature.use_vpc:
         CONF.feature.instance_type = 'm3.medium'
-    if CONF.feature.use_vpc \
-            and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409') \
-            and CONF.feature.driver.scalr_cloud == 'ec2':
-        use_vpc = True
+
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,
