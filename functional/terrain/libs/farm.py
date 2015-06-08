@@ -46,7 +46,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
     use_vpc = CONF.feature.use_vpc \
-              and CONF.feature.driver.is_ec2 \
+              and CONF.feature.driver.is_platform_ec2 \
               and CONF.feature.dist in ('ubuntu1404', 'rhel7', 'amzn1409', 'amzn1503')
 
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
