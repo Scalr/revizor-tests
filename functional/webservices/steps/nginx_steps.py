@@ -22,7 +22,8 @@ def assert_check_http_get_answer(step, serv_as):
         'Backend server did not respond in time',
         'the Amazon Linux AMI',
         'Welcome to <strong>nginx</strong> on EPEL!',
-        'This is the default web page for this server.'
+        'This is the default web page for this server.',
+        'This is the default welcome page'
     ]
     resp = requests.get('http://%s' % server.public_ip, timeout=120).text
     if not any(message in resp for message in nginx_mes):
