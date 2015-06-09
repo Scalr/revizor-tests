@@ -145,9 +145,8 @@ def attach_script(step, script_name):
     scripts = IMPL.script.list()
     role = world.get_role()
     res = filter(lambda x: x['name'] == script_name, scripts)[0]
-    role_settings = IMPL.farm.get_role_settings(world.farm.id, role.role.id,).get('settings', {})
     LOG.info('Add script %s to custom event %s' % (res['name'], world.last_event['name']))
-    IMPL.farm.edit_role(world.farm.id, role.role.id, options=role_settings, scripting=[{
+    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[{
         "script_type": "scalr",
         "script_id": str(res['id']),
         "script": res['name'],
