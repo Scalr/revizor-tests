@@ -104,5 +104,5 @@ def app_server_should_be_clean(step, serv_as):
     ips = re.findall(r"((?:\d+\.?){4}:\d+)", out)
     if not len(ips) == 1:
         raise AssertionError('In default app-servers.include must be only one host, but it: %s (%s)' % (len(ips), ips))
-    if not ips[0] == ip:#'127.0.0.1:80':
+    if not ips[0] == ip:
         raise AssertionError('First host in default app-server.include is not localhost, it: %s' % ips)
