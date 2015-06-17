@@ -28,12 +28,12 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 
 
 @world.absorb
-def verify_scalarizr_log(node):
+def verify_scalarizr_log(node, log_type):
     if isinstance(node, Server):
         node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
-        log_out = node.run('grep "\- ERROR" /var/log/scalarizr_debug.log')
+        log_out = node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type)
         LOG.debug('Grep result: %s' % log_out[0])
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
@@ -66,8 +66,8 @@ def verify_scalarizr_log(node):
             continue
 
         if log_level == 'ERROR':
-            LOG.error('Found ERROR in scalarizr_debug.log:\n %s' % line)
-            raise ScalarizrLogError('Error in scalarizr_debug.log on server %s\nErrors: %s' % (node.id, log_out[0]))
+            LOG.error('Found ERROR in scalarizr_%s.log:\n %s' % (log_type, line))
+            raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out[0]))
 
 
 @world.absorb
@@ -162,6 +162,12 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
+            LOG.debug('Verify update log in node')
+            if lookup_node and lookup_server.status in ServerStatus.PENDING:
+                if not Dist.is_windows_family(lookup_server.role.dist):
+                    LOG.debug('Check scalarizr update log in lookup server')
+                    verify_scalarizr_log(lookup_node, 'update')
+
             LOG.debug('Verify debug log in node')
             if lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
                                                             ServerStatus.PENDING_TERMINATE,
@@ -170,9 +176,9 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 if not Dist.is_windows_family(lookup_server.role.dist):
-                    LOG.debug('Check scalarizr log in lookup server')
+                    LOG.debug('Check scalarizr debug log in lookup server')
                     #TODO: Add to windows check log
-                    verify_scalarizr_log(lookup_node)
+                    verify_scalarizr_log(lookup_node, 'debug')
 
             LOG.debug('If server Running and we wait Initializing, return server')
             if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:
