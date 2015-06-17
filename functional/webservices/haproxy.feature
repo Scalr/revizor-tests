@@ -75,33 +75,3 @@ Feature: HAProxy load balancer role
         When I start BaseHttpServer on 8002 port in A1
         Then 8000 port is listen on W1
         And 8000 get domain D1 matches 'It works!'
-
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Check network options
-        Given I have a clean and stopped farm
-        When I add app role to this farm
-        And I add haproxy role to this farm
-        Then I start farm
-        And I expect server bootstrapping as W1
-        And bootstrap 1 servers as (A1) in app role
-        Then I add proxy P1 to haproxy role for 80 port with app role backend and public network
-        And I add proxy P2 to haproxy role for 100 port with app role backend and private network
-        When I reboot server W1
-        And Scalr receives RebootFinish from W1
-        Then W1 listen list should contains backend for 80 port
-        And W1 backend list for 80 port should contains A1:public
-        And W1 listen list should contains backend for 100 port
-        And W1 backend list for 100 port should contains A1:private
-
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Check templates
-        Given I have a clean and stopped farm
-        When I add app role to this farm
-        And I add haproxy role to this farm
-        Then I start farm
-        And I expect server bootstrapping as W1
-        And bootstrap 1 servers as (A1) in app role
-        Then I add proxy P1 to haproxy role for 80 port with app role backend and proxy template and global template
-        And I reboot server W1 
-        And Scalr receives RebootFinish from W1
-        Then W1 listen list should contains P1 proxy template for 80 port
