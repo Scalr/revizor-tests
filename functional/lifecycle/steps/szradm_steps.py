@@ -226,6 +226,14 @@ def get_key(step, pattern, denial, record_count, serv_as):
     LOG.info("The key %s exists and has %s records on %s" % (pattern, record_count, server.id))
 
 
+@step(r'the key "([\w\d]+)" has record "([\w\d]+)" on ([\w\d]+)')
+def check_value_in_column(step, key, value, serv_as):
+    server = getattr(world, serv_as)
+    results = getattr(world, '%s_result' % serv_as)
+    if not value in results['key']:
+        raise AssertionError('Value "%s" not exist in column "%s", all values: %s' % (value, key, results[key]))
+
+
 @step(r'table contains (.+) servers ([\w\d,]+)')
 def search_servers_ip(step, pattern, serv_as):
     serv_as = serv_as.split(',')

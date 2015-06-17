@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps
+Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps
 Feature: Linux server lifecycle
     In order to manage server lifecycle
     As a scalr user
@@ -98,6 +98,15 @@ Feature: Linux server lifecycle
         And Scalr sends Deploy to M1
         Then Scalr receives DeployResult from M1
         And deploy task deployed
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @szradm
+    Scenario: Verify szradm list-roles
+        When I run "szradm -q list-roles" on M1
+        And table contains external-ip servers M1
+        When I run "szradm --queryenv get-latest-version" on M1
+        And the key "version" has 1 record on M1
+        When I run "szradm list-messages" on M1
+        And the key "name" has record "HostInitResponse" on M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
     Scenario: Stop farm
