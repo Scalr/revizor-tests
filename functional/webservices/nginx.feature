@@ -16,7 +16,7 @@ Feature: Nginx load balancer role test with apache backends
         Then I expect server bootstrapping as B1 in base role
         And I add base role as app role in W1 scalarizr config
         Then I restart service scalarizr in W1
-        And I wait 1 minutes
+        And Scalr sends HostUp to W1
         And W1 upstream list should contain B1
         And http get W1 contains default message
 
@@ -25,7 +25,7 @@ Feature: Nginx load balancer role test with apache backends
         When I delete base role from this farm
         And I remove base role from W1 scalarizr config
         Then I restart service scalarizr in W1
-        And I wait 1 minutes
+        And Scalr sends HostDown to W1
         And W1 upstream list should not contain B1
         And W1 upstream list should be default
 
@@ -38,7 +38,6 @@ Feature: Nginx load balancer role test with apache backends
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Removing app server
         When I terminate server A2 with decrease
-        And I wait 1 minutes
         Then W1 upstream list should not contain A2
         But W1 upstream list should contain A1
         And Scalr sends HostDown to W1

@@ -22,7 +22,8 @@ def assert_check_http_get_answer(step, serv_as):
         'Backend server did not respond in time',
         'the Amazon Linux AMI',
         'Welcome to <strong>nginx</strong> on EPEL!',
-        'This is the default web page for this server.'
+        'This is the default web page for this server.',
+        'This is the default welcome page'
     ]
     resp = requests.get('http://%s' % server.public_ip, timeout=120).text
     if not any(message in resp for message in nginx_mes):
@@ -95,9 +96,13 @@ def delete_custom_role_from_backend(step, role_type, serv_as):
 def app_server_should_be_clean(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
+    ip = '127.0.0.1:80'
+    LOG.info('Check if default ip is in list')
+    wait_until(world.wait_upstream_in_config, args=(node,ip),
+               timeout=180,error_text="Server %s (%s) not in upstream list" % (server.id, ip))
     out = node.run('cat /etc/nginx/app-servers.include')[0]
     ips = re.findall(r"((?:\d+\.?){4}:\d+)", out)
     if not len(ips) == 1:
         raise AssertionError('In default app-servers.include must be only one host, but it: %s (%s)' % (len(ips), ips))
-    if not ips[0] == '127.0.0.1:80':
+    if not ips[0] == ip:
         raise AssertionError('First host in default app-server.include is not localhost, it: %s' % ips)
