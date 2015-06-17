@@ -6,7 +6,9 @@ import logging
 
 from lettuce import world, step, after
 
+from revizor2.conf import CONF
 from revizor2.utils import wait_until
+from revizor2.consts import Platform
 
 
 LOG = logging.getLogger(__name__)
@@ -86,6 +88,10 @@ def add_objects(step, obj, serv_as):
     password = wait_until(world.wait_rabbitmq_cp, timeout=360, error_text="Not see detail to rabbitmq panel")['password']
     setattr(world, 'rabbitmq_password', password)
     LOG.info('Rabbitmq password: %s' % password)
+    port = 5672
+    if CONF.feature.driver.current_cloud in [Platform.IDCF,
+                                             Platform.CLOUDSTACK]:
+        port = world.cloud.open_port(node, port)
     if obj == 'user':
         node.run('rabbitmqctl add_user testuser testpassword')
         LOG.info('Add user scalr to rabbitmq')
@@ -94,13 +100,17 @@ def add_objects(step, obj, serv_as):
         LOG.info('Add vhost "testvhost" to rabbitmq')
     elif obj == 'queue':
         credentials = pika.PlainCredentials('scalr', password)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(credentials=credentials, host=str(serv.public_ip)))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(credentials=credentials,
+                                                                       host=str(serv.public_ip),
+                                                                       port=int(port)))
         channel = connection.channel()
         channel.queue_declare(queue='test_queue', durable=True)
         LOG.info('Add queue "test_queue" to rabbitmq')
     elif obj == 'message':
         credentials = pika.PlainCredentials('scalr', password)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(credentials=credentials, host=str(serv.public_ip)))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(credentials=credentials,
+                                                                       host=str(serv.public_ip),
+                                                                       port=int(port)))
         channel = connection.channel()
         channel.basic_publish(exchange='', routing_key='test_queue', body='super test message',
                                                 properties=pika.BasicProperties(delivery_mode=2,))
@@ -136,6 +146,10 @@ def assert_check_objects(step, obj, serv_as):
     serv = getattr(world, serv_as)
     node = world.cloud.get_node(serv)
     password = getattr(world, 'rabbitmq_password')
+    port = 5672
+    if CONF.feature.driver.current_cloud in [Platform.IDCF,
+                                             Platform.CLOUDSTACK]:
+        port = world.cloud.open_port(node, port)
     if obj == 'user':
         LOG.info('Check user in rabbitmq')
         out = node.run('rabbitmqctl list_users')[0]
@@ -157,7 +171,9 @@ def assert_check_objects(step, obj, serv_as):
     elif obj == 'message':
         LOG.info('Check  message in rabbitmq')
         credentials = pika.PlainCredentials('scalr', password)
-        connection = pika.BlockingConnection(pika.ConnectionParameters(credentials=credentials, host=str(serv.public_ip)))
+        connection = pika.BlockingConnection(pika.ConnectionParameters(credentials=credentials,
+                                                                       host=str(serv.public_ip),
+                                                                       port=int(port)))
         channel = connection.channel()
         try:
             m = channel.basic_get(queue='test_queue')
