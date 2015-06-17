@@ -45,6 +45,9 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    use_vpc = (CONF.feature.use_vpc and CONF.feature.driver.is_platform_ec2) or \
+              (CONF.feature.dist in ('rhel7', 'amzn1503') and CONF.feature.driver.is_platform_ec2)
+
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
@@ -58,6 +61,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 behavior = BEHAVIORS_ALIASES[behavior]
             if CONF.feature.role_type == 'instance':
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
+            elif use_vpc:
+                mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             else:
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -67,6 +72,9 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             #TODO: Return RV_ROLE_VERSION
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
+            elif use_vpc:
+                role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             else:
                 role_name = '%s%s-%s-%s' % (behavior, versions[0],
@@ -104,14 +112,16 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'rhel7':
+    if dist == 'rhel7' and not CONF.feature.use_vpc:
         CONF.feature.instance_type = 'm3.medium'
+
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,
                         storages=storages,
                         alias=alias,
-                        scaling=scaling)
+                        scaling=scaling,
+                        use_vpc=use_vpc)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

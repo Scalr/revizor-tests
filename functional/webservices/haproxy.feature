@@ -10,6 +10,7 @@ Feature: HAProxy load balancer role
         Then I expect server bootstrapping as W1
         And W1 backend list for 80 port should contains 'example.com default'
         And scalarizr version is last in W1
+        And 80 port is listen on W1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Testing proxy delete

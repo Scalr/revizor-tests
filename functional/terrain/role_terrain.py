@@ -74,15 +74,24 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 
 @step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
 def add_new_role_to_farm(step, alias=None):
+    #TODO: Add support for HVM (and VPC)
+    # VPC Support
+    use_vpc = (CONF.feature.use_vpc and CONF.feature.driver.is_platform_ec2) or \
+              (CONF.feature.dist in ('rhel7', 'amzn1503') and CONF.feature.driver.is_platform_ec2)
+
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
+
     options = getattr(world, 'role_options', {})
     scripting = getattr(world, 'role_scripting', [])
+
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
     if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
-    world.farm.add_role(world.bundled_role_id, options=options, scripting=scripting, alias=alias)
+
+    world.farm.add_role(world.bundled_role_id, options=options,
+                        scripting=scripting, alias=alias, use_vpc=use_vpc)
     world.farm.roles.reload()
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
