@@ -28,7 +28,7 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 
 
 @world.absorb
-def verify_scalarizr_log(node, log_type=debug):
+def verify_scalarizr_log(node, log_type='debug'):
     if isinstance(node, Server):
         node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
