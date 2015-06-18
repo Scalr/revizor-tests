@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/chef_boot_steps, steps/scripting_steps
+Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/chef_boot_steps, steps/scripting_steps, steps/szradm_steps
 Feature: Linux server fast smoke test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
@@ -35,6 +35,15 @@ Feature: Linux server fast smoke test
         Given file '/root/chef_hostup_result' exist in M1
         And process 'memcached' has options '-m 1024' in M1
         And M1 chef runlist has only recipes [memcached,revizorenv]
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @szradm
+    Scenario: Verify szradm list-roles
+        When I run "szradm -q list-roles" on M1
+        And output contain M1 external ip
+        When I run "szradm --queryenv get-latest-version" on M1
+        And the key "version" has 1 record on M1
+        When I run "szradm list-messages" on M1
+        And the key "name" has record "HostInitResponse" on M1
 
     @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
     Scenario: Linux reboot

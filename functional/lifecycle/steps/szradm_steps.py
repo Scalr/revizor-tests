@@ -228,10 +228,17 @@ def get_key(step, pattern, denial, record_count, serv_as):
 
 @step(r'the key "([\w\d]+)" has record "([\w\d]+)" on ([\w\d]+)')
 def check_value_in_column(step, key, value, serv_as):
+    results = getattr(world, '%s_result' % serv_as)
+    if not value in results[key]:
+        raise AssertionError('Value "%s" not exist in column "%s", all values: %s' % (value, key, results[key]))
+
+
+@step(r'output contain ([\w\d]+) external ip')
+def verify_external_ip(step, serv_as):
     server = getattr(world, serv_as)
     results = getattr(world, '%s_result' % serv_as)
-    if not value in results['key']:
-        raise AssertionError('Value "%s" not exist in column "%s", all values: %s' % (value, key, results[key]))
+    if not results['response']['roles']['role']['hosts']['host']['external-ip'] == server.public_ip:
+        raise AssertionError('Not see server public ip in szradm response: %s' % results)
 
 
 @step(r'table contains (.+) servers ([\w\d,]+)')
