@@ -46,6 +46,7 @@ def parse_haproxy_config(node):
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend([\w\d\s]+)?")
 def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role, options):
     LOG.info("Add haproxy proxy %s with role backend" % proxy_name)
+    proxy_template = None
     proxy_role = world.get_role(proxy_role)
     backend_role = world.get_role(backend_role)
     backends = [{
@@ -59,11 +60,9 @@ def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role, options)
             backends[0].update({'network': options.strip().split()[1]})
         if 'proxy template' in options:
             proxy_template = PROXY_TEMPLATE
-    proxy_role.add_haproxy_proxy(port, backends, description=proxy_name, 
-                                 proxy_template=proxy_template)
+    proxy_role.add_haproxy_proxy(port, backends, description=proxy_name, proxy_template=proxy_template)
     LOG.info("Save proxy %s with backends: %s" % (proxy_name, backends))
-    setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends, 
-                                             "proxy_template": proxy_template})
+    setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends, "proxy_template": proxy_template})
 
 
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with backends: ([\w\d\' ,:\.]+) and healthcheck: ([\w\d, ]+)")
@@ -140,6 +139,15 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
                 backends.append(re.compile('%s:%s' % (hostname, backend_port)))
             else:
                 backends.append(re.compile('%s:%s(?: check)? %s' % (hostname, backend_port, new_back[1])))
+        elif ':' in back.strip():
+            serv, network = back.strip().split(':')
+            hostname = getattr(world, serv, serv)
+            if not isinstance(hostname, (unicode, str)):
+                if network == 'public':
+                    hostname = hostname.public_ip
+                elif network == 'private':
+                    hostname = hostname.private_ip
+            backends.append(re.compile('%s:%s' % (hostname, port)))
         else:
             hostname = getattr(world, back.strip(), back.strip())
             if not isinstance(hostname, (unicode, str)):
@@ -248,8 +256,7 @@ def check_global_in_config(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
-    section_start = c.find('##### main template start #####') +
-                           len('##### main template start #####')
+    section_start = c.find('##### main template start #####') + len('##### main template start #####')
     section_end = c.find('##### main template end #####')
     config = [i.strip() for i in c[section_start:section_end].replace('   ',' ').split('\n')]
     global_template = [i.strip() for i in GLOBAL_TEMPLATE.replace('   ',' ').split('\n')]
