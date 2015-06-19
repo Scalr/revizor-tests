@@ -111,7 +111,7 @@ def deploy_app(step, app_name):
     LOG.info('Deploy app %s' % app_name)
     old_tasks_ids = [task['id'] for task in IMPL.deploy.tasks_list()]
     LOG.debug('Old tasks %s' % old_tasks_ids)
-    world.farm.deploy_app(app_name, path='/tmp')
+    world.farm.deploy_app(app_name, path='/tmp/%s' % app_name)
     time.sleep(10)
     new_tasks_ids = [task['id'] for task in IMPL.deploy.tasks_list()]
     LOG.debug('New tasks %s' % new_tasks_ids)
