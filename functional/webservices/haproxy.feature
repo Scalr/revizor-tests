@@ -100,7 +100,9 @@ Feature: HAProxy load balancer role
         Then I start farm
         And I expect server bootstrapping as W1
         And bootstrap 1 servers as (A1) in app role
-        Then I add proxy P1 to haproxy role for 80 port with app role backend and proxy template and global template
+        Then I add proxy P1 to haproxy role for 80 port with app role backend and proxy template
+        And I add global config to haproxy role
         And I reboot server W1 
         And Scalr receives RebootFinish from W1
         Then W1 listen list should contains P1 proxy template for 80 port
+        And W1 config should contain global section
