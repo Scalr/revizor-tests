@@ -13,6 +13,8 @@ from revizor2.fixtures import resources
 
 LOG = logging.getLogger(__name__)
 
+GLOBAL_TEMPLATE = 'global \n    log 127.0.0.1   local0 \n    log 127.0.0.1   local1 notice \n    maxconn     256000\n'
+PROXY_TEMPLATE = '    stats enable \n    option forwardfor \n    stats uri'
 
 def parse_haproxy_config(node):
     config = [l for l in node.run('cat /etc/haproxy/haproxy.cfg')[0].splitlines() if l.strip()]
@@ -44,6 +46,7 @@ def parse_haproxy_config(node):
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend")
 def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
     LOG.info("Add haproxy proxy %s with role backend" % proxy_name)
+    proxy_template = None
     proxy_role = world.get_role(proxy_role)
     backend_role = world.get_role(backend_role)
     backends = [{
@@ -52,9 +55,14 @@ def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
         'backup': '0',
         'down': '0'
     }]
+    if options:
+        if ('public' or 'private') in options:
+            backends[0].update({'network': options.strip().split()[1]})
+        if 'proxy template' in options:
+            proxy_template = PROXY_TEMPLATE
+    proxy_role.add_haproxy_proxy(port, backends, description=proxy_name, proxy_template=proxy_template)
     LOG.info("Save proxy %s with backends: %s" % (proxy_name, backends))
-    proxy_role.add_haproxy_proxy(port, backends, description=proxy_name)
-    setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends})
+    setattr(world, '%s_proxy' % proxy_name, {"port": port, "backends": backends, "proxy_template": proxy_template})
 
 
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with backends: ([\w\d\' ,:\.]+) and healthcheck: ([\w\d, ]+)")
@@ -131,6 +139,15 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
                 backends.append(re.compile('%s:%s' % (hostname, backend_port)))
             else:
                 backends.append(re.compile('%s:%s(?: check)? %s' % (hostname, backend_port, new_back[1])))
+        elif ':' in back.strip():
+            serv, network = back.strip().split(':')
+            hostname = getattr(world, serv, serv)
+            if not isinstance(hostname, (unicode, str)):
+                if network == 'public':
+                    hostname = hostname.public_ip
+                elif network == 'private':
+                    hostname = hostname.private_ip
+            backends.append(re.compile('%s:%s' % (hostname, port)))
         else:
             hostname = getattr(world, back.strip(), back.strip())
             if not isinstance(hostname, (unicode, str)):
@@ -154,20 +171,31 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
                 raise AssertionError("Backend '%s' not found in backends (%s) file for port '%s'" % (backend.pattern, config['backends'][port], port))
 
 
-@step(r'([\w\d]+) listen list should contains backend for (\d+) port')
-def verify_listen_for_port(step, serv_as, port):
+@step(r'([\w\d]+) listen list should contains ([\w\d\s]+) for (\d+) port')
+def verify_listen_for_port(step, serv_as, option, port):
     LOG.info("Verify backends servers in config")
     haproxy_server = getattr(world, serv_as)
     port = int(port)
     LOG.info("Backend port: %s" % port)
     config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
     LOG.debug("HAProxy config : %s" % config)
-    for opt in config['listens'][port]:
-        if re.match('default_backend scalr(?:\:\d+)?:backend(?:\:\w+)?:%s' % port, opt):
-            LOG.info('Haproxy server "%s" has default_backend for "%s" port: "%s"' % (haproxy_server.id, port, opt))
-            break
+    if option == 'backend':
+        for opt in config['listens'][port]:
+            if re.match('default_backend scalr(?:\:\d+)?:backend(?:\:\w+)?:%s' % port, opt):
+                LOG.info('Haproxy server "%s" has default_backend for "%s" port: "%s"' % (haproxy_server.id, port, opt))
+                break
+        else:
+            raise AssertionError(
+                "Listens sections not contain backend for '%s' port: %s" % (port, config['listens'][port]))
     else:
-        raise AssertionError("Listens sections not contain backend for '%s' port: %s" % (port, config['listens'][port]))
+        proxy = getattr(world, '%s_proxy' % option.split()[0])
+        proxy_template = [i.strip()
+                          for i in proxy["proxy_template"].strip().split('\n')]
+        if [i for i in config['listens'][port] if i in proxy_template] == proxy_template:
+            LOG.info('Haproxy server "%s" has correct proxy  template for "%s" port: "%s"' % (
+                haproxy_server.id, port, proxy_template))
+        else:
+            raise AssertionError("Listens sections not contain '%s' for '%s' port: %s" % (option, port, config['listens'][port]))
 
 
 @step(r'healthcheck parameters is (\d+), (\d+), (\d+) in ([\w\d]+) backend file for (\d+) port')
@@ -217,3 +245,25 @@ def verify_proxy_in_config(step, serv_as, proxy_name):
     if proxy['port'] in config['backends'] or proxy['port'] in config['listens']:
         raise AssertionError("HAProxy config contains parameters for %s proxy (port %s): %s" % (proxy_name,
                                                                                                 proxy['port'], config))
+
+
+@step(r'I add global config to ([\w\d]+) role')
+def add_global_config(step, proxy_role):
+    proxy_role = world.get_role(proxy_role)
+    proxy_role.add_haproxy_global_config(GLOBAL_TEMPLATE)
+
+
+@step(r'([\w\d]+) config should contain global section')
+def check_global_in_config(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
+    section_start = c.find('##### main template start #####') + len('##### main template start #####')
+    section_end = c.find('##### main template end #####')
+    config = [i.strip() for i in c[section_start:section_end].replace('   ',' ').split('\n')]
+    global_template = [i.strip() for i in GLOBAL_TEMPLATE.replace('   ',' ').split('\n')]
+    options_in_config = [i for i in global_template if i in config]
+    if options_in_config == global_template:
+        LOG.info('Haproxy server "%s" contains global config: %s' % (serv_as, global_template))
+    else:
+        raise AssertionError("%s server does not contain global config: %s" % (serv_as, global_template))
