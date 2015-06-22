@@ -124,7 +124,6 @@ Feature: MySQL (old behavior) database server
         Then Scalr sends Mysql_PromoteToMaster to N1
         And Scalr receives Mysql_PromoteToMasterResult from N1
         And N1 Mysql_PromoteToMasterResult message does not contain errors
-        And I wait 20 minutes
         And Scalr sends Mysql_NewMasterUp to all
         And M2 contains database D3
 
