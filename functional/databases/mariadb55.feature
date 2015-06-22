@@ -39,7 +39,6 @@ Feature: mariadb database server with behavior mariadb
     Scenario: Bundling data
         When I trigger databundle creation
         And Scalr receives DbMsr_CreateDataBundleResult from M1
-        And I wait 20 minutes #!
         And Last databundle date updated to current
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @oneserv
