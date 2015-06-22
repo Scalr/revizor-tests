@@ -19,7 +19,6 @@ Feature: HAProxy load balancer role
         And Scalr receives RebootFinish from W1
         Then W1 config should not contains P1
         And process haproxy is running in W1
-        And 80 port is listen on W1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding app to upstream

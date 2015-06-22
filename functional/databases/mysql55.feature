@@ -183,12 +183,12 @@ Feature: MySQL database server with behavior mysql2
 		And mysql is running on M1
 		And M1 contains database D3 by user 'revizor'
 		And scalarizr version is last in M1
-        Given I have a M1 attached volume as V1
-        And attached volume V1 has size 7 Gb
 		Then I expect server bootstrapping as M2
 		And mysql2 replication status is up
 		And M2 is slave of M1
 		And M2 contains databases D3,D4 by user 'revizor'
+        Given I have a M1 attached volume as V1
+        And attached volume V1 has size 7 Gb
 
 	@ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart

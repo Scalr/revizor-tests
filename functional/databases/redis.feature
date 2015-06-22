@@ -180,12 +180,12 @@ Feature: Redis database server functional test
         And redis is running on M1
         And M1 contains database 3
         And scalarizr version is last in M1
-        Given I have a M1 attached volume as V1
-        And attached volume V1 has size 7 Gb
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
         And M2 contains database 3
         And M2 contains database 4
+        Given I have a M1 attached volume as V1
+        And attached volume V1 has size 7 Gb
 
     @ec2
     Scenario: Verify storage recreation
