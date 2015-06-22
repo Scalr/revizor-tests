@@ -641,3 +641,15 @@ def verify_db_not_exist(step, serv_as):
         if len(databases) > 5:
             raise AssertionError('%s role contains databases: "%s"' %
                                  (db_role.db.db_name, databases))
+
+@step(r"([\w\d]+) ([^ .]+) message does not contain errors")
+def check_errors_in_message(step,serv_as, message_name):
+    server = getattr(world, serv_as)
+    for m in server.messages:
+        if m.name == message_name:
+            message_id = m.id
+            break
+    node = world.cloud.get_node(server)
+    message = json.loads(node.run('szradm md --json %s' % message_id)[0])
+    if 'last_error' in message:
+        raise AssertionError('Message %s at %s contains error: %s' % (message_name, serv_as, message['last_error']))

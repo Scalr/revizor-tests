@@ -39,6 +39,7 @@ Feature: mariadb database server with behavior mariadb
     Scenario: Bundling data
         When I trigger databundle creation
         And Scalr receives DbMsr_CreateDataBundleResult from M1
+        And I wait 20 minutes #!
         And Last databundle date updated to current
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @oneserv
@@ -150,6 +151,7 @@ Feature: mariadb database server with behavior mariadb
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
+        And N1 DbMsr_PromoteToMasterResult message does not contain errors
         And Scalr sends DbMsr_NewMasterUp to all
         And I verify mariadb master storage id
         And mariadb replication status is up
