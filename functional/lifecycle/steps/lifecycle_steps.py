@@ -262,7 +262,14 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
              (mount_point, to_server.id))
     node = world.cloud.get_node(to_server)
-    fstab = node.run('cat /etc/fstab')[0].splitlines()
+    for i in range(3):
+        fstab = node.run('cat /etc/fstab')[0]
+        if not fstab: #FIXME: on openstack this trouble was, fix this
+            LOG.warning('cat /etc/fstab return nothing')
+            time.sleep(15)
+            continue
+        break
+    fstab = fstab.splitlines()
     fstab = {x.split()[1]: x.split()[0] for x in fstab if x and x.startswith('/')}
     LOG.debug('Fstab on server "%s" contains:\n %s' % (to_server.id, fstab))
     mount_disks = getattr(world, '%s_mount_table' % from_serv_as)
