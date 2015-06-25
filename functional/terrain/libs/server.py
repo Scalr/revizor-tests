@@ -186,9 +186,11 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status in ServerStatus.PENDING:
+                LOG.debug('Check scalarizr update log in lookup server')
                 if not Dist.is_windows_family(lookup_server.role.dist):
-                    LOG.debug('Check scalarizr update log in lookup server')
                     verify_scalarizr_log(lookup_node, log_type='update')
+                else:
+                    verify_scalarizr_log(lookup_node, log_type='update',windows=True,server=lookup_server)
 
             LOG.debug('Verify debug log in node')
             if lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
@@ -197,10 +199,12 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.PENDING_SUSPEND,
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
+                LOG.debug('Check scalarizr debug log in lookup server')    
                 if not Dist.is_windows_family(lookup_server.role.dist):
-                    LOG.debug('Check scalarizr debug log in lookup server')
                     #TODO: Add to windows check log
                     verify_scalarizr_log(lookup_node)
+                else:
+                    verify_scalarizr_log(lookup_node,windows=True,server=lookup_server)
 
             LOG.debug('If server Running and we wait Initializing, return server')
             if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:
