@@ -6,7 +6,7 @@ Feature: Linux server resume strategy
     @ec2 @gce @openstack @cloudstack @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
-        And I add role to this farm with chef,storages
+        And I add role to this farm with chef,storages,termination_preferences
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -33,24 +33,20 @@ Feature: Linux server resume strategy
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
 
-    @ec2 @gce @stopresume
-    Scenario: Stop/resume on init policy
-        When I suspend server M1
-        Then Scalr sends BeforeHostTerminate to M1
-        And I wait server M1 in suspended state
-        Then I expect server bootstrapping as M2
-        When I resume server M1
-        Then I wait server M1 in running state
-        And Scalr receives HostUp from M1
-
-    @openstack @cloudstack @stopresume
+    @ec2 @gce @cloudstack @stopresume
     Scenario: Stop/resume on reboot policy
         When I suspend server M1
-        And I wait server M1 in suspended state
-        Then I expect server bootstrapping as M3
+        Then BeforeHostTerminate event was fired by M1
+        And Scalr sends BeforeHostTerminate to M1
+        Then I wait server M1 in suspended state
+        And HostDown (Suspend) event was fired by M1
+        Then I expect new server bootstrapping as M2
         When I resume server M1
+        And I wait server M1 in resuming state
+        Then Scalr receives RebootFinish from M1
+        And ResumeComplete event was fired by M1
         Then I wait server M1 in running state
-        And Scalr receives RebootFinish from M1
+
 
     @ec2 @gce @chef
     Scenario: Verify chef deployment after resume on init policy

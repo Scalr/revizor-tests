@@ -11,13 +11,13 @@ from revizor2.conf import CONF
 from revizor2.api import Script
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import MessageFailed
+from revizor2.exceptions import MessageFailed, EventNotFounded
 
 
 LOG = logging.getLogger(__name__)
 
 
-@step('I expect server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
+@step('I expect (?:new\s)*server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
@@ -110,6 +110,22 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
         except MessageFailed:
             if not failed:
                 raise
+
+
+@step(r'(?:[\w]+) ([\w\W]+) event was fired by ([\w\d]+)')
+def assert_server_event(step, event, serv_as):
+    server = getattr(world, serv_as)
+    LOG.info('Check "%s" event in server events log on %s' % (event, server.id))
+    for _ in xrange(300):
+        server.events.reload()
+        server_events = [e.type.lower() for e in reversed(server.events)]
+        LOG.debug('Server %s events list: %s' % (server.id, server_events))
+        if event.lower() in server_events:
+            LOG.debug('"%s" event in server event log.' % event)
+            break
+        time.sleep(30)
+    else:
+        raise EventNotFounded('No "%s" event in server events log on %s' % (event, server.id))
 
 
 @step("I execute( local)? script '(.+)' (.+) on (.+)")
