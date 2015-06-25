@@ -9,6 +9,11 @@ import requests
 from lettuce import world
 from libcloud.compute.types import NodeState
 
+try:
+    import winrm
+except ImportError:
+    raise ImportError("Please install WinRM")
+
 from revizor2.api import Server
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
@@ -26,20 +31,37 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'Expected list, got null. Selector: listvolumesresponse'
 ]
 
+@world.absorb
+def get_windows_session(server):
+    username = 'Administrator'
+    port = 5985
+    if CONF.feature.driver.cloud_family == Platform.GCE:
+        username = 'scalr'
+    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        node = world.cloud.get_node(server)
+        port = world.cloud.open_port(node, port)
+    session = winrm.Session('http://%s:%s/wsman' % (server.public_ip, port),
+                            auth=(username, server.windows_password))
+    return session
 
 @world.absorb
-def verify_scalarizr_log(node, log_type='debug'):
+def verify_scalarizr_log(node, log_type='debug', windows = False, server = None):
     if isinstance(node, Server):
         node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
-        log_out = node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type)
-        LOG.debug('Grep result: %s' % log_out[0])
+        if windows:
+            console = get_windows_session(server)
+            log_out = (console.run_cmd("findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)).std_out
+            LOG.debug('Type result: %s' % log_out)
+        else:
+            log_out = (node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type))[0]
+            LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
         LOG.error(traceback.format_exc())
         return
-    for line in log_out[0].splitlines():
+    for line in log_out.splitlines():
         ignore = False
         LOG.debug('Verify line "%s" for errors' % line)
         log_date = None
@@ -67,7 +89,7 @@ def verify_scalarizr_log(node, log_type='debug'):
 
         if log_level == 'ERROR':
             LOG.error('Found ERROR in scalarizr_%s.log:\n %s' % (log_type, line))
-            raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out[0]))
+            raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
 
 @world.absorb
