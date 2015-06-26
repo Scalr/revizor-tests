@@ -121,12 +121,28 @@ def assert_server_event(step, event, serv_as):
         server_events = [e.type.lower() for e in reversed(server.events)]
         LOG.debug('Server %s events list: %s' % (server.id, server_events))
         if event.lower() in server_events:
-            LOG.debug('"%s" event in server event log.' % event)
+            LOG.debug('"%s" event was fired by %s.' % (event, server.id))
             break
         time.sleep(30)
     else:
-        raise EventNotFounded('No "%s" event in server events log on %s' % (event, server.id))
+        raise EventNotFounded('Timeout exceeded: "%s" event was not fired by %s' % (event, server.id))
 
+@step(r'(?:[\w]+) ([\w\W]+) events were not fired after ([\w\d]+) resume')
+def assert_server_event_again_fired(step, events, serv_as):
+
+
+    server = getattr(world, serv_as)
+    server.events.reload()
+    LOG.info('Check "%s" events were not again fired by %s' % (events, server.id))
+
+    server_events = [e.type.lower() for e in reversed(server.events)]
+    LOG.debug('Server %s events list: %s' % (server.id, server_events))
+
+    duplicated_server_events = set([e for e in server_events if server_events.count(e) > 1])
+    LOG.debug('Server %s duplicated events list: %s' % (server.id, duplicated_server_events))
+
+    assert not any(e.lower() in duplicated_server_events for e in events.split(',')), \
+        'Some events from %s were fired by %s more than one time' % (events, server.id)
 
 @step("I execute( local)? script '(.+)' (.+) on (.+)")
 def execute_script(step, local, script_name, exec_type, serv_as):
