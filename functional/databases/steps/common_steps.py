@@ -643,7 +643,7 @@ def verify_db_not_exist(step, serv_as):
                                  (db_role.db.db_name, databases))
 
 @step(r"([\w\d]+) ([^ .]+) message does not contain errors")
-def check_errors_in_message(step,serv_as, message_name):
+def check_errors_in_message(step, serv_as, message_name):
     server = getattr(world, serv_as)
     for m in server.messages:
         if m.name == message_name:
