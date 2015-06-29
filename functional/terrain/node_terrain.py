@@ -160,13 +160,12 @@ def check_process(step, process, negation, serv_as):
     LOG.info("Check running process %s on server" % process)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    list_proc = node.run('ps aux | grep %s' % process)[0]
-    processes = filter(lambda x: not 'grep' in x, list_proc)
-    if (not processes and not negation) or (processes and negation):
-        msg = "Process {} on server {} not in valid state".format(
-            process,
-            server.id)
-        raise AssertionError(msg)
+    list_proc = node.run('ps aux | grep %s' % process)[0].split('\n')
+    processes = filter(lambda x: 'grep' not in x and x, list_proc)
+    msg = "Process {} on server {} not in valid state".format(
+        process,
+        server.id)
+    assert not processes if negation else processes, msg
 
 
 @step(r'(\d+) port is( not)? listen on ([\w\d]+)')

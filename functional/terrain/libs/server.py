@@ -13,7 +13,12 @@ from revizor2.api import Server
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
 from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
-from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
+
+from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
+    ServerFailed, TimeoutError, \
+    MessageNotFounded, MessageFailed,\
+    EventNotFounded
+
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
 LOG = logging.getLogger(__name__)
@@ -303,6 +308,21 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                                                                             message_name,
                                                                             [s.id for s in servers]))
 
+
+@world.absorb
+def is_events_fired(server, events_type):
+
+    events_fired = False
+    server.events.reload()
+
+    server_events = [e.type.lower() for e in reversed(server.events)]
+    LOG.debug('Server %s events list: %s' % (server.id, server_events))
+
+    if all(e.lower() in server_events for e in events_type.split(',')):
+        LOG.debug('"%s" events were fired by %s.' % (events_type, server.id))
+        events_fired =  True
+
+    return events_fired
 
 @world.absorb
 def wait_script_execute(server, message, state):

@@ -11,13 +11,13 @@ from revizor2.conf import CONF
 from revizor2.api import Script
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import MessageFailed
+from revizor2.exceptions import MessageFailed, EventNotFounded
 
 
 LOG = logging.getLogger(__name__)
 
 
-@step('I expect server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
+@step('I expect (?:new\s)*server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
@@ -111,6 +111,37 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
             if not failed:
                 raise
 
+
+@step(r'(?:[\w]+) ([\w\W]+) event was fired by ([\w\d]+)')
+def assert_server_event(step, events_type, serv_as):
+    server = getattr(world, serv_as)
+    LOG.info('Check "%s" events were fired  by %s' % (events_type, server.id))
+    err_msg = '"%s" events were not fired by %s' % (events_type, server.id)
+    wait_until(
+        world.is_events_fired,
+        args=(server, events_type),
+        timeout=300,
+        logger=LOG,
+        error_text=err_msg)
+
+
+
+@step(r'(?:[\w]+) ([\w\W]+) events were not fired after ([\w\d]+) resume')
+def assert_server_event_again_fired(step, events, serv_as):
+
+
+    server = getattr(world, serv_as)
+    server.events.reload()
+    LOG.info('Check "%s" events were not again fired by %s' % (events, server.id))
+
+    server_events = [e.type.lower() for e in reversed(server.events)]
+    LOG.debug('Server %s events list: %s' % (server.id, server_events))
+
+    duplicated_server_events = set([e for e in server_events if server_events.count(e) > 1])
+    LOG.debug('Server %s duplicated events list: %s' % (server.id, duplicated_server_events))
+
+    assert not any(e.lower() in duplicated_server_events for e in events.split(',')), \
+        'Some events from %s were fired by %s more than one time' % (events, server.id)
 
 @step("I execute( local)? script '(.+)' (.+) on (.+)")
 def execute_script(step, local, script_name, exec_type, serv_as):
