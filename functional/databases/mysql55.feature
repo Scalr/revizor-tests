@@ -156,6 +156,7 @@ Feature: MySQL database server with behavior mysql2
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1
+        And DbMsr_PromoteToMasterResult message on N1 does not contain errors
         And Scalr sends DbMsr_NewMasterUp to all
         And I verify mysql2 master storage id
         And mysql2 replication status is up
