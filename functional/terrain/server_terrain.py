@@ -116,7 +116,14 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
 def assert_server_event(step, events_type, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Check "%s" events were fired  by %s' % (events_type, server.id))
-    world.wait_server_events(server, events_type)
+    err_msg = '"%s" events were not fired by %s' % (events_type, server.id)
+    wait_until(
+        world.is_events_fired,
+        args=(server, events_type),
+        timeout=300,
+        logger=LOG,
+        error_text=err_msg)
+
 
 
 @step(r'(?:[\w]+) ([\w\W]+) events were not fired after ([\w\d]+) resume')
