@@ -642,9 +642,10 @@ def verify_db_not_exist(step, serv_as):
             raise AssertionError('%s role contains databases: "%s"' %
                                  (db_role.db.db_name, databases))
 
-@step(r"([\w\d]+) ([^ .]+) message does not contain errors")
-def check_errors_in_message(step, serv_as, message_name):
-    server = getattr(world, serv_as)
+@step(r"DbMsr_PromoteToMasterResult message on N1 does not contain errors")
+def check_errors_in_message(step):
+    message_name = 'DbMsr_PromoteToMasterResult'
+    server = getattr(world, 'N1')
     for m in server.messages:
         if m.name == message_name:
             message_id = m.id
