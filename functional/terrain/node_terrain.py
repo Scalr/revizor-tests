@@ -290,7 +290,7 @@ def assert_scalarizr_version(step, serv_as):
     update_status = server.upd_api.status()
     if update_status['candidate']:
         raise AssertionError('Server not has last build of scalarizr package, candidate: %s' % update_status['candidate'])
-    if update_status['state'] != 'completed' or not update_status['prev_state'].startswith('completed'):
+    if update_status['state'] != 'completed':
         raise AssertionError('Update client not in normal state. Status = "%s", Previous state = "%s"' % (
             update_status['state'], update_status['prev_state']))
     #TODO: Add comparison package version
