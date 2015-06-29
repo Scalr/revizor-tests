@@ -44,6 +44,15 @@ def get_windows_session(server):
                             auth=(username, server.windows_password))
     return session
 
+def run_cmd_command(server, command):
+    console = get_windows_session(server)
+    LOG.info('Run command: %s in server %s' % (command, server.id))
+    out = console.run_cmd(command)
+    LOG.debug('Result of command: %s\n%s' % (out.std_out, out.std_err))
+    if not out.status_code == 0:
+        raise AssertionError('Command: "%s" exit with status code: %s and stdout: %s\n stderr:%s' % (command, out.status_code, out.std_out, out.std_err))
+    return out
+
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows = False, server = None):
     if isinstance(node, Server):
@@ -51,9 +60,8 @@ def verify_scalarizr_log(node, log_type='debug', windows = False, server = None)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
         if windows:
-            console = get_windows_session(server)
-            console.run_cmd("(echo ERROR>>C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log")
-            log_out = (console.run_cmd("findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)).std_out
+            run_cmd_command(server, "echo \- ERROR >> C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log")
+            log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type).std_out
             LOG.debug('Type result: %s' % log_out)
         else:
             log_out = (node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type))[0]
