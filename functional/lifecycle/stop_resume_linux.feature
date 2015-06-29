@@ -34,7 +34,7 @@ Feature: Linux server resume strategy
         And chef node_name in M1 set by global hostname
 
     @ec2 @gce @cloudstack @stopresume
-    Scenario: Stop/resume on reboot policy
+    Scenario: Stop/resume
         When I suspend server M1
         Then BeforeHostTerminate event was fired by M1
         And Scalr sends BeforeHostTerminate to M1

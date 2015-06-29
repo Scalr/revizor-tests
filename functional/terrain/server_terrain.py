@@ -113,19 +113,11 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
 
 
 @step(r'(?:[\w]+) ([\w\W]+) event was fired by ([\w\d]+)')
-def assert_server_event(step, event, serv_as):
+def assert_server_event(step, events_type, serv_as):
     server = getattr(world, serv_as)
-    LOG.info('Check "%s" event in server events log on %s' % (event, server.id))
-    for _ in xrange(300):
-        server.events.reload()
-        server_events = [e.type.lower() for e in reversed(server.events)]
-        LOG.debug('Server %s events list: %s' % (server.id, server_events))
-        if event.lower() in server_events:
-            LOG.debug('"%s" event was fired by %s.' % (event, server.id))
-            break
-        time.sleep(30)
-    else:
-        raise EventNotFounded('Timeout exceeded: "%s" event was not fired by %s' % (event, server.id))
+    LOG.info('Check "%s" events were fired  by %s' % (events_type, server.id))
+    world.wait_server_events(server, events_type)
+
 
 @step(r'(?:[\w]+) ([\w\W]+) events were not fired after ([\w\d]+) resume')
 def assert_server_event_again_fired(step, events, serv_as):

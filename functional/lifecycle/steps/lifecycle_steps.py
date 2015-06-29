@@ -69,7 +69,7 @@ def check_message_config(step, config_group, message, serv_as):
         raise AssertionError('New and old details is not equal')
 
 
-@step("[directory|file] '(.+)' exist in (.+)$")
+@step("[directory|file] '([\W\w]+)' exist in ([\w\d]+)$")
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
@@ -256,7 +256,7 @@ def save_mount_table(step, serv_as):
     setattr(world, '%s_mount_table' % serv_as, mount_table)
 
 
-@step("disk from ([\w\d]+) mount points for '([\w\d/]+)' exist in fstab on ([\w\d]+)")
+@step("disk from ([\w\d]+) mount points for '([\W\w]+)' exist in fstab on ([\w\d]+)")
 def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     to_server = getattr(world, to_serv_as)
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %

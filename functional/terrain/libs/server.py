@@ -13,7 +13,12 @@ from revizor2.api import Server
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
 from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
-from revizor2.exceptions import ScalarizrLogError, ServerTerminated, ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
+
+from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
+    ServerFailed, TimeoutError, \
+    MessageNotFounded, MessageFailed,\
+    EventNotFounded
+
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
 LOG = logging.getLogger(__name__)
@@ -302,6 +307,21 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
         raise MessageNotFounded('%s / %s was not finding in servers: %s' % (message_type,
                                                                             message_name,
                                                                             [s.id for s in servers]))
+
+
+@world.absorb
+def wait_server_events(server, events_type, timeout=300):
+    events = events_type.split(',')
+    for _ in xrange(timeout/10):
+        server.events.reload()
+        server_events = [e.type.lower() for e in reversed(server.events)]
+        LOG.debug('Server %s events list: %s' % (server.id, server_events))
+        if all(e.lower() in server_events for e in events):
+            LOG.debug('"%s" events were fired by %s.' % (events_type, server.id))
+            break
+        time.sleep(10)
+    else:
+        raise EventNotFounded('Timeout exceeded: "%s" events were not fired by %s' % (events_type, server.id))
 
 
 @world.absorb
