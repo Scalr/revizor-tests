@@ -66,8 +66,12 @@ def reboot_windows(step, serv_as):
 @step(r"see 'Scalarizr terminated' in ([\w\d]+) windows log")
 def check_terminated_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    out = run_cmd_command(server,
-                          "findstr /c:\"Scalarizr terminated\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"")
+    if CONF.feature.ci_repo == 'buildbot':
+        out = run_cmd_command(server,
+                              "findstr /c:\"Scalarizr terminated\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"")
+    else:
+        out = run_cmd_command(server,
+                              "findstr /c:\"Scalarizr terminated\" \"C:\opt\scalarizr\\var\log\scalarizr_debug.log\"")
     if 'Scalarizr terminated' in out.std_out:
         return True
     raise AssertionError("Not see 'Scalarizr terminated' in debug log")
@@ -76,7 +80,11 @@ def check_terminated_in_log(step, serv_as):
 @step(r"not ERROR in ([\w\d]+) scalarizr windows log")
 def check_errors_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    out = run_cmd_command(server, "findstr /c:\"ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"").std_out
+    if CONF.feature.ci_repo == 'buildbot':
+        out = run_cmd_command(server, "findstr /c:\"ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"").std_out
+    else:
+        out = run_cmd_command(server,
+                              "findstr /c:\"ERROR\" \"C:\opt\scalarizr\\var\log\scalarizr_debug.log\"").std_out
     errors = []
     if 'ERROR' in out:
         log = out.splitlines()
