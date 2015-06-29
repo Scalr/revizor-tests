@@ -165,7 +165,7 @@ def check_process(step, process, negation, serv_as):
     msg = "Process {} on server {} not in valid state".format(
         process,
         server.id)
-    assert (not processes and not negation) or (processes and negation), msg
+    assert not processes if negation else processes, msg
 
 
 @step(r'(\d+) port is( not)? listen on ([\w\d]+)')
