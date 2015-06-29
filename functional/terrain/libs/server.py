@@ -52,6 +52,7 @@ def verify_scalarizr_log(node, log_type='debug', windows = False, server = None)
     try:
         if windows:
             console = get_windows_session(server)
+            console.run_cmd("(echo ERROR>>C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log")
             log_out = (console.run_cmd("findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)).std_out
             LOG.debug('Type result: %s' % log_out)
         else:
