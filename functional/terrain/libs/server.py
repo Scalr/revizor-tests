@@ -60,7 +60,6 @@ def verify_scalarizr_log(node, log_type='debug', windows = False, server = None)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
         if windows:
-            run_cmd_command(server, "echo \- ERROR >> C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log")
             log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type).std_out
             LOG.debug('Type result: %s' % log_out)
         else:
