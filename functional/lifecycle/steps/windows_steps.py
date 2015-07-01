@@ -125,3 +125,20 @@ def check_attached_disk_size(step, serv_as, size):
     else:
         raise AssertionError('Any attached disk does\'nt has size "%s", all disks "%s"'
                              % (size, disks))
+
+
+@step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")
+def remove_file(step, file_name, serv_as):
+    server = getattr(world, serv_as)
+    cmd = 'del /F/Q %s' % file_name
+    succeed, fail = run_cmd_command(server, cmd)
+
+
+@step(r"I check file '([\w\W]+)' ([\w\W]+)*exist on ([\w\d]+) windows")
+def check_file_exist(step, file_name, negation, serv_as):
+    server = getattr(world, serv_as)
+    cmd = "if {negation}exist {file_name} ( echo succeeded ) else echo failed 1>&2".format(
+        negation = negation or '',
+        file_name = file_name)
+    succeed, fail = run_cmd_command(server, cmd)
+    assert succeed, '%s is %sexist on %s' % (file_name, negation or '', server.id)

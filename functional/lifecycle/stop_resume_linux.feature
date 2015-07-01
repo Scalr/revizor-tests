@@ -55,7 +55,7 @@ Feature: Linux server resume strategy
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
 
-  @ec2 @gce @cloudstack @storages
+    @ec2 @gce @cloudstack @storages
     Scenario: Check attached storages after resume
         And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
