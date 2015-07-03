@@ -28,7 +28,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'boto',
     'p2p_message',
     'Caught exception reading instance data',
-    'Expected list, got null. Selector: listvolumesresponse'
+    'Expected list, got null. Selector: listvolumesresponse',
+    'error was thrown due to the hostname format'
 ]
 
 
