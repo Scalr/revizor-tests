@@ -88,3 +88,11 @@ Feature: Windows server lifecycle
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
+
+    @ec2 @gce
+    Scenario: Bootstraping with failed hostname
+        Given I have a clean and stopped farm
+        And I add role to this farm with winchef,storages
+        When I start farm
+        And I expect server bootstrapping as M1
+        And I wait 15 minutes
