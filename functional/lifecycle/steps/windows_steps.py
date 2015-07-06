@@ -34,7 +34,7 @@ def run_cmd_command(server, command):
     console = get_windows_session(server)
     LOG.info('Run command: %s in server %s' % (command, server.id))
     out = console.run_cmd(command)
-    LOG.debug('Result of command: %s\n%s' % (out.std_out, out.std_err))
+    LOG.debug('Result of command:\nSTDOUT: %s\nSTDERR: %s' % (out.std_out, out.std_err))
     if not out.status_code == 0:
         raise AssertionError('Command: "%s" exit with status code: %s and stdout: %s\n stderr:%s' % (command, out.status_code, out.std_out, out.std_err))
     return out
@@ -66,8 +66,12 @@ def reboot_windows(step, serv_as):
 @step(r"see 'Scalarizr terminated' in ([\w\d]+) windows log")
 def check_terminated_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    out = run_cmd_command(server,
-                          "findstr /c:\"Scalarizr terminated\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"")
+    if CONF.feature.ci_repo == 'buildbot':
+        out = run_cmd_command(server,
+                              "findstr /c:\"Scalarizr terminated\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"")
+    else:
+        out = run_cmd_command(server,
+                              "findstr /c:\"Scalarizr terminated\" \"C:\opt\scalarizr\\var\log\scalarizr_debug.log\"")
     if 'Scalarizr terminated' in out.std_out:
         return True
     raise AssertionError("Not see 'Scalarizr terminated' in debug log")
@@ -76,7 +80,11 @@ def check_terminated_in_log(step, serv_as):
 @step(r"not ERROR in ([\w\d]+) scalarizr windows log")
 def check_errors_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    out = run_cmd_command(server, "findstr /c:\"ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"").std_out
+    if CONF.feature.ci_repo == 'buildbot':
+        out = run_cmd_command(server, "findstr /c:\"ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_debug.log\"").std_out
+    else:
+        out = run_cmd_command(server,
+                              "findstr /c:\"ERROR\" \"C:\opt\scalarizr\\var\log\scalarizr_debug.log\"").std_out
     errors = []
     if 'ERROR' in out:
         log = out.splitlines()
@@ -125,3 +133,21 @@ def check_attached_disk_size(step, serv_as, size):
     else:
         raise AssertionError('Any attached disk does\'nt has size "%s", all disks "%s"'
                              % (size, disks))
+
+
+@step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")
+def remove_file(step, file_name, serv_as):
+    server = getattr(world, serv_as)
+    cmd = 'del /F %s' % file_name
+    res = run_cmd_command(server, cmd)
+    assert not res.std_err, "An error occurred while try to delete %s:\n%s" % (file_name, res.std_err)
+
+
+@step(r"I check file '([\w\W]+)' ([\w\W]+)*exist on ([\w\d]+) windows")
+def check_file_exist(step, file_name, negation, serv_as):
+    server = getattr(world, serv_as)
+    cmd = "if {negation}exist {file_name} ( echo succeeded ) else echo failed 1>&2".format(
+        negation = negation or '',
+        file_name = file_name)
+    res = run_cmd_command(server, cmd)
+    assert res.std_out, '%s is %sexist on %s' % (file_name, negation or '', server.id)

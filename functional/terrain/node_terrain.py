@@ -160,13 +160,12 @@ def check_process(step, process, negation, serv_as):
     LOG.info("Check running process %s on server" % process)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    list_proc = node.run('ps aux | grep %s' % process)[0]
-    processes = filter(lambda x: not 'grep' in x, list_proc)
-    if (not processes and not negation) or (processes and negation):
-        msg = "Process {} on server {} not in valid state".format(
-            process,
-            server.id)
-        raise AssertionError(msg)
+    list_proc = node.run('ps aux | grep %s' % process)[0].split('\n')
+    processes = filter(lambda x: 'grep' not in x and x, list_proc)
+    msg = "Process {} on server {} not in valid state".format(
+        process,
+        server.id)
+    assert not processes if negation else processes, msg
 
 
 @step(r'(\d+) port is( not)? listen on ([\w\d]+)')
@@ -286,40 +285,14 @@ def assert_scalarizr_version(step, repo, serv_as):
 
 @step('scalarizr version is last in (.+)$')
 def assert_scalarizr_version(step, serv_as):
-    #TODO: Rewrite this and think about profit
-    return
-    # server = getattr(world, serv_as)
-    # node = world.cloud.get_node(server)
-    # installed_version = None
-    # candidate_version = None
-    # if 'ubuntu' in server.role.os.lower(): #TODO: Fix this to debian, rhel and other os
-    #     LOG.info('Check ubuntu installed scalarizr')
-    #     out = node.run('apt-cache policy scalarizr')
-    #     LOG.debug('Installed information: %s' % out[0])
-    #     for line in out[0].splitlines():
-    #         if line.strip().startswith('Installed'):
-    #             installed_version = line.split()[-1].split('-')[0].split('.')[-1]
-    #             LOG.info('Installed version: %s' % installed_version)
-    #         elif line.strip().startswith('Candidate'):
-    #             candidate_version = line.split()[-1].split('-')[0].split('.')[-1]
-    #             LOG.info('Candidate version: %s' % candidate_version)
-    # elif 'centos' in server.role.os.lower() or 'redhat' in server.role.os.lower():
-    #     LOG.info('Check ubuntu installed scalarizr')
-    #     out = node.run('yum list --showduplicates scalarizr-base')
-    #     LOG.debug('Installed information: %s' % out[0])
-    #     for line in out[0].splitlines():
-    #         if line.strip().endswith('installed'):
-    #             installed_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
-    #             LOG.info('Installed version: %s' % installed_version)
-    #         elif line.strip().startswith('scalarizr'):
-    #             candidate_version = [word for word in line.split() if word.strip()][1].split('-')[0].split('.')[-1]
-    #             LOG.info('Candidate version: %s' % candidate_version)
-    # else:
-    #     LOG.warning('Undefined OS can\'t verify scalarizr version: %s' % server.role.os)
-    #     return
-    # if candidate_version and not installed_version == candidate_version:
-    #     raise AssertionError('Installed scalarizr is not last! Installed: %s, '
-    #                          'candidate: %s' % (installed_version, candidate_version))
+    server = getattr(world, serv_as)
+    update_status = server.upd_api.status()
+    if update_status['candidate']:
+        raise AssertionError('Server not has last build of scalarizr package, candidate: %s' % update_status['candidate'])
+    if update_status['state'] != 'completed':
+        raise AssertionError('Update client not in normal state. Status = "%s", Previous state = "%s"' % (
+            update_status['state'], update_status['prev_state']))
+    #TODO: Add comparison package version
 
 
 @step('I reboot scalarizr in (.+)$')
