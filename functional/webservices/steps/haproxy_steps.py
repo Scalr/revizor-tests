@@ -177,7 +177,16 @@ def verify_listen_for_port(step, serv_as, option, port):
     haproxy_server = getattr(world, serv_as)
     port = int(port)
     LOG.info("Backend port: %s" % port)
-    config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+    time_until = time.time() + 60
+    section = None
+    while time.time() < time_until:
+        config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+        try:
+            section = config['listens'][port]
+        except KeyError:
+            pass
+        if section:
+            break
     LOG.debug("HAProxy config : %s" % config)
     if option == 'backend':
         for opt in config['listens'][port]:
