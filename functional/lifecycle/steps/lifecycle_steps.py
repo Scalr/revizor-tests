@@ -22,7 +22,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
     LOG.info('Server succesfully %s' % state)
 
 
-@step('I wait and see (.+) server (.+)$')
+@step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
 def waiting_server(step, state, serv_as, timeout=1400):
     if CONF.feature.dist.startswith('win'):
         timeout = 2400

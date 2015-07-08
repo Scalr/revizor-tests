@@ -20,8 +20,8 @@ Feature: Windows server resume strategy
         And Scalr sends BeforeHostTerminate to M1
         Then I wait server M1 in suspended state
         And HostDown (Suspend) event was fired by M1
-        And Scalr receives Win_HostDown from M1
-        Then I wait and see running server M2
+        #And Scalr receives Win_HostDown from M1
+        Then I wait and see new running server M2
         When I resume server M1
         Then I wait server M1 in resuming state
         Then Scalr receives RebootFinish from M1
