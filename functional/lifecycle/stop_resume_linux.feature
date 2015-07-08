@@ -31,7 +31,7 @@ Feature: Linux server resume strategy
         When I save chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
-        And chef node_name in M1 set by global hostname
+        #And chef node_name in M1 set by global hostname
 
     @ec2 @gce @cloudstack @stopresume
     Scenario: Stop/resume
@@ -53,7 +53,7 @@ Feature: Linux server resume strategy
         When I check chef bootstrap stats on M1
         And process memcached is not running in M1
         And process 'chef-client' has options '--daemonize' in M1
-        And chef node_name in M1 set by global hostname
+        #And chef node_name in M1 set by global hostname
 
     @ec2 @gce @cloudstack @storages
     Scenario: Check attached storages after resume
