@@ -43,8 +43,8 @@ def parse_haproxy_config(node):
     return parameters
 
 
-@step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend")
-def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role):
+@step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend([\w ]+)?")
+def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role, options):
     LOG.info("Add haproxy proxy %s with role backend" % proxy_name)
     proxy_template = None
     proxy_role = world.get_role(proxy_role)
@@ -177,7 +177,16 @@ def verify_listen_for_port(step, serv_as, option, port):
     haproxy_server = getattr(world, serv_as)
     port = int(port)
     LOG.info("Backend port: %s" % port)
-    config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+    time_until = time.time() + 60
+    section = None
+    while time.time() < time_until:
+        config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+        try:
+            section = config['listens'][port]
+        except KeyError:
+            pass
+        if section:
+            break
     LOG.debug("HAProxy config : %s" % config)
     if option == 'backend':
         for opt in config['listens'][port]:
