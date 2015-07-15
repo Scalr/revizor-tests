@@ -10,6 +10,7 @@ Feature: Check chef attributes set
         And scalarizr version is last in M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
+        And Server M1 exists on chef nodes list
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains 'revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK'
 
@@ -17,6 +18,7 @@ Feature: Check chef attributes set
     Scenario: Verify Scalr delete chef-fixtures
         When I stop farm
         And wait all servers are terminated
+        And Server M1 not exists on chef nodes list
         Then I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1

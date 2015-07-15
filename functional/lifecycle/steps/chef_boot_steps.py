@@ -69,9 +69,20 @@ def step_impl(step, action, serv_as):
 
     assert bootstrap_stat == saved_bootstrap_stat, assertion_msg
 
-@step(r'Server ([\w\d]+) was not removed from chef nodes')
-def check_node_exists_on_chef_server(step, serv_as):
+
+@step(r'Server ([\w\d]+) ([\w]+\s)*exists on chef nodes list')
+def check_node_exists_on_chef_server(step, serv_as, negation):
     server = getattr(world, serv_as)
     chef_api = chef.autoconfigure()
-    host_name = server.details['hostname']
-    assert chef.Node(host_name).exists, 'Server %s was deleted from Chef nodes' % host_name
+    try:
+         host_name = getattr(world, '%_chef_node_name' % server.id)
+    except AttributeError:
+        host_name = '%s-%s-%s' % (
+            world.farm.name.replace(' ', '-'),
+            server.role.name,
+            server.index
+        )
+        setattr(world, '%_chef_node_name' % server.id, host_name)
+
+    node_exists = chef.Node(host_name).exists
+    assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
