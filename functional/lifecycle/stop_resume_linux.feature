@@ -40,6 +40,7 @@ Feature: Linux server resume strategy
         And Scalr sends BeforeHostTerminate to M1
         Then I wait server M1 in suspended state
         And HostDown (Suspend) event was fired by M1
+        And Server M1 was not removed from chef nodes
         Then I expect new server bootstrapping as M2
         When I resume server M1
         Then I wait server M1 in resuming state
