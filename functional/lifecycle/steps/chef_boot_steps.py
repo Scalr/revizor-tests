@@ -1,3 +1,4 @@
+import chef
 import logging
 
 from revizor2.conf import CONF
@@ -68,3 +69,9 @@ def step_impl(step, action, serv_as):
 
     assert bootstrap_stat == saved_bootstrap_stat, assertion_msg
 
+@step(r'Server ([\w\d]+) was not removed from chef nodes')
+def check_node_exists_on_chef_server(step, serv_as):
+    server = getattr(world, serv_as)
+    chef_api = chef.autoconfigure()
+    host_name = server.details['hostname']
+    assert chef.Node(host_name).exists, 'Server %s was deleted from Chef nodes' % host_name
