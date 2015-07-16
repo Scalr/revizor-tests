@@ -32,7 +32,8 @@ def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split()[1][1:-1]
-    hostname = world.get_hostname(server)
+    #hostname = world.get_hostname(server)
+    hostname = world.get_hostname_by_server_format(server)
     if not node_name == hostname:
         raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
 
@@ -74,15 +75,13 @@ def step_impl(step, action, serv_as):
 def check_node_exists_on_chef_server(step, serv_as, negation):
     server = getattr(world, serv_as)
     chef_api = chef.autoconfigure()
+
     try:
          host_name = getattr(world, '%_chef_node_name' % server.id)
     except AttributeError:
-        host_name = '%s-%s-%s' % (
-            world.farm.name.replace(' ', '-'),
-            server.role.name,
-            server.index
-        )
+        host_name = world.get_hostname_by_server_format(server)
         setattr(world, '%_chef_node_name' % server.id, host_name)
+        LOG.debug('Chef node name: %s' % host_name)
 
     node_exists = chef.Node(host_name).exists
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name

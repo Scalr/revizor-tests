@@ -31,7 +31,7 @@ Feature: Linux server resume strategy
         When I save chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
-        #And chef node_name in M1 set by global hostname
+        And chef node_name in M1 set by global hostname
 
     @ec2 @gce @cloudstack @stopresume
     Scenario: Stop/resume
@@ -54,7 +54,7 @@ Feature: Linux server resume strategy
         When I check chef bootstrap stats on M1
         And process memcached is not running in M1
         And process 'chef-client' has options '--daemonize' in M1
-        #And chef node_name in M1 set by global hostname
+        And chef node_name in M1 set by global hostname
 
     @ec2 @gce @cloudstack @storages
     Scenario: Check attached storages after resume
@@ -66,4 +66,10 @@ Feature: Linux server resume strategy
     Scenario: Verify attached storages in fstab after resume
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+
+    @ec2 @gce @cloudstack
+    Scenario: Verify Scalr delete chef nodes
+        When I stop farm
+        And wait all servers are terminated
+        And Server M1 not exists on chef nodes list
 

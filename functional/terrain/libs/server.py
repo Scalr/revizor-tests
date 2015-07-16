@@ -384,6 +384,15 @@ def get_hostname(server):
 
 
 @world.absorb
+def get_hostname_by_server_format(server):
+    return '%s-%s-%s' % (
+            world.farm.name.replace(' ', '-'),
+            server.role.name,
+            server.index
+    )
+
+
+@world.absorb
 def wait_upstream_in_config(node, ip, contain=True):
     out = node.run('cat /etc/nginx/app-servers.include')
     if contain:

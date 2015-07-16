@@ -31,3 +31,8 @@ Feature: Windows server resume strategy
         And HostInit,BeforeHostUp events were not fired after M1 resume
         Then I check file 'C:\chef_result_file' not exist on M1 windows
 
+    @ec2 @gce @cloudstack
+    Scenario: Verify Scalr delete chef nodes
+        When I stop farm
+        And wait all servers are terminated
+        And Server M1 not exists on chef nodes list
