@@ -82,13 +82,9 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
         setattr(world, '%s_chef_node_name' % server.id, host_name)
     LOG.debug('Chef node name: %s' % host_name)
 
-    for _ in xrange(60):
-        chef_api = chef.autoconfigure()
-        LOG.debug('Chef api instance: %s' % chef_api)
-        if isinstance(chef_api, chef.api.ChefAPI):
-            break
-        time.sleep(1)
-    else:
+    chef_api = chef.autoconfigure()
+    LOG.debug('Chef api instance: %s' % chef_api)
+    if not isinstance(chef_api, chef.api.ChefAPI):
         raise AssertionError("Can't initialize ChefAPI instance.")
 
     node = chef.Node(host_name, api=chef_api)
