@@ -77,11 +77,12 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
     chef_api = chef.autoconfigure()
 
     try:
-         host_name = getattr(world, '%_chef_node_name' % server.id)
+         host_name = getattr(world, '%s_chef_node_name' % server.id)
     except AttributeError:
         host_name = world.get_hostname_by_server_format(server)
-        setattr(world, '%_chef_node_name' % server.id, host_name)
+        setattr(world, '%s_chef_node_name' % server.id, host_name)
         LOG.debug('Chef node name: %s' % host_name)
 
     node_exists = chef.Node(host_name).exists
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
+    
