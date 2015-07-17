@@ -77,7 +77,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             elif opt == 'small_linux_orchestration':
                 LOG.debug('Add small orchestration for linux')
                 script_pong_id = Script.get_id('Linux ping-pong')['id']
-                scripting = json.loads(SMALL_ORCHESTRATION_LINUX % {'SCRIPT_PONG_ID': script_pong_id})
+                script_last_reboot_id = Script.get_id('Revizor last reboot')['id']
+                scripting = json.loads(SMALL_ORCHESTRATION_LINUX % {'SCRIPT_PONG_ID': script_pong_id,
+                                                                    'SCRIPT_LAST_REBOOT_ID': script_last_reboot_id})
 
             elif opt == 'small_win_orchestration':
                 LOG.debug('Add small orchestration for windows')
