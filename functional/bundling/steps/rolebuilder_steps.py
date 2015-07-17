@@ -41,8 +41,16 @@ def start_rolebuild(step):
 @step('I start build role with behaviors (.+)$')
 def start_rolebuild(step, behaviors):
     behaviors = behaviors.strip().split(',')
+    use_hvm = False
+
     if not 'chef' in behaviors:
         behaviors.append('chef')
+
+    if CONF.feature.dist == 'amzn1503':
+        use_hvm = True
+        if 'mongodb' in behaviors:
+            behaviors.remove('mongodb')
+
     location = CONF.platforms[CONF.feature.platform]['location']
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
@@ -55,6 +63,7 @@ def start_rolebuild(step, behaviors):
         image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.feature.platform]['location'] and
                              x['os_id']==os_id,
                        images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
+
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
@@ -64,7 +73,7 @@ def start_rolebuild(step, behaviors):
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql',
-                                        hvm = True if CONF.feature.dist == 'amzn1503' else False)
+                                        hvm = use_hvm)
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 
