@@ -63,7 +63,8 @@ def start_rolebuild(step, behaviors):
                                         name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
-                                        mysqltype='percona' if 'percona' in behaviors else 'mysql')
+                                        mysqltype='percona' if 'percona' in behaviors else 'mysql',
+                                        hvm = True if CONF.feature.dist == 'amzn1503' else False)
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 
