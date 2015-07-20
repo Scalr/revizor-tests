@@ -18,7 +18,7 @@ Feature: Check chef attributes set
     Scenario: Verify Scalr delete chef-fixtures
         When I stop farm
         And wait all servers are terminated
-        And Server M1 not exists on chef nodes list
+        And server M1 not exists on chef nodes list
         Then I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1

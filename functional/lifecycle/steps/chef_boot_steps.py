@@ -72,7 +72,7 @@ def step_impl(step, action, serv_as):
     assert bootstrap_stat == saved_bootstrap_stat, assertion_msg
 
 
-@step(r'Server ([\w\d]+) ([\w]+\s)*exists on chef nodes list')
+@step(r'server ([\w\d]+) ([\w]+\s)*exists on chef nodes list')
 def check_node_exists_on_chef_server(step, serv_as, negation):
     server = getattr(world, serv_as)
     try:

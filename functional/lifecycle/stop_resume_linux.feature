@@ -40,7 +40,7 @@ Feature: Linux server resume strategy
         And Scalr sends BeforeHostTerminate to M1
         Then I wait server M1 in suspended state
         And HostDown (Suspend) event was fired by M1
-        And Server M1 exists on chef nodes list
+        And server M1 exists on chef nodes list
         Then I expect new server bootstrapping as M2
         When I resume server M1
         Then I wait server M1 in resuming state
@@ -71,5 +71,5 @@ Feature: Linux server resume strategy
     Scenario: Verify Scalr delete chef nodes
         When I stop farm
         And wait all servers are terminated
-        And Server M1 not exists on chef nodes list
+        And server M1 not exists on chef nodes list
 
