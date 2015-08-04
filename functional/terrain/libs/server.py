@@ -37,6 +37,7 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'error was thrown due to the hostname format'
 ]
 
+
 @world.absorb
 def get_windows_session(server):
     username = 'Administrator'
@@ -50,6 +51,7 @@ def get_windows_session(server):
                             auth=(username, server.windows_password))
     return session
 
+
 def run_cmd_command(server, command):
     console = get_windows_session(server)
     LOG.info('Run command: %s in server %s' % (command, server.id))
@@ -58,6 +60,7 @@ def run_cmd_command(server, command):
     if not out.status_code == 0:
         raise AssertionError('Command: "%s" exit with status code: %s and stdout: %s\n stderr:%s' % (command, out.status_code, out.std_out, out.std_err))
     return out
+
 
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):

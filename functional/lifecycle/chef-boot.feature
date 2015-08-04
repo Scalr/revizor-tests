@@ -10,7 +10,7 @@ Feature: Check chef attributes set
         And scalarizr version is last in M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
-        And Server M1 exists on chef nodes list
+        And server M1 exists on chef nodes list
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains 'revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK'
 

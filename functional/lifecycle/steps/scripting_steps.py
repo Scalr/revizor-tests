@@ -21,7 +21,7 @@ def assert_check_script(step, message, state, serv_as):
 
 @step("script ([\w\d -/]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d !:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
-    LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\user: %s\nexitcode: %s\ncontain: %s' %
+    LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\nuser: %s\nexitcode: %s\ncontain: %s' %
               (name, event, user, exitcode, contain)
     )
     contain = contain.split(';') if contain else []
@@ -30,10 +30,12 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
     server.scriptlogs.reload()
     # Convert script name, because scalr convert name to:
     # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
-    name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50] if name else name
+    # name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50] if name else name
+    #FIXME: When marat merge https://scalr-labs.atlassian.net/browse/SCALARIZR-1879 to master change local to url
+    name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50]
     for log in server.scriptlogs:
-        LOG.debug('Check script log:\nname: %s\nevent: %s\nmessage: %s\nrun as: %s\nexitcode: %s\n' %
-                  (log.name, log.event, log.message, log.run_as, log.exitcode))
+        LOG.debug('Check script log:\nname: %s\nevent: %s\nrun as: %s\nexitcode: %s\n' %
+                  (log.name, log.event, log.run_as, log.exitcode))
 
         if log.event.strip() == event.strip() \
                 and log.run_as == user \
