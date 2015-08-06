@@ -86,7 +86,7 @@ Feature: SzrAdm check backward compatibility
         Then I compare all obtained results of A1,A2
         And the key "cert" has 0 record on A1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2
     Scenario: Verify szradm get-ebs-mountpoints
         When I run "szradm list-ebs-mountpoints" on A1
         And I run "szradm list-ebs-mountpoints" on A2
