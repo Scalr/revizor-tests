@@ -8,6 +8,7 @@ from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import images
 from revizor2.utils import wait_until
+from revizor2.exceptions import NotFound
 from revizor2.consts import Platform, Dist
 
 
@@ -56,14 +57,16 @@ def start_rolebuild(step, behaviors):
         location = 'all'
     platform = CONF.feature.driver.scalr_cloud
     os_id = Dist.get_os_id(CONF.feature.dist)
-    if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
-        image = filter(lambda x: x['os_id']==os_id,
-                       images(Platform.to_scalr(CONF.feature.driver.current_cloud)).all()['images'])[0]
-    else:
-        image = filter(lambda x: x['cloud_location']==CONF.platforms[CONF.feature.platform]['location'] and
-                             x['os_id']==os_id,
-                       images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
-
+    try:
+        if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
+            image = filter(lambda x: x['os_id'] == os_id,
+                           images(Platform.to_scalr(CONF.feature.driver.current_cloud)).all()['images'])[0]
+        else:
+            image = filter(lambda x: x['cloud_location'] == CONF.platforms[CONF.feature.platform]['location'] and
+                                 x['os_id'] == os_id,
+                           images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
+    except IndexError:
+        raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
                                         arch='x86_64',
