@@ -13,7 +13,6 @@ Feature: Build all behaviors via rolebuilder and check server running
 
     Examples:
       | behaviors                     |
-      | redis,mongodb,haproxy         |
       | mysql2,app                    |
       | percona,www                   |
       | redis,haproxy                 |

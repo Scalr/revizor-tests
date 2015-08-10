@@ -52,6 +52,9 @@ def start_rolebuild(step, behaviors):
         if 'mongodb' in behaviors:
             behaviors.remove('mongodb')
 
+    if CONF.feature.driver.current_cloud not in (Platform.EC2, Platform.CLOUDSTACK) and 'mongodb' in behaviors:
+        raise AssertionError('Mongodb not supported in this platform')
+
     location = CONF.platforms[CONF.feature.platform]['location']
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
