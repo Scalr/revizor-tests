@@ -594,17 +594,14 @@ def get_storage_id(step, action, db):
 
 
 @step(r'I increase storage size to (\d+) Gb in farm settings for ([\w\d]+) role')
+@world.run_only_if(platform=(Platform.EC2, ), storage='persistent')
 def increase_storage_farm_size(step, size, role_type):
-    if CONF.feature.driver.current_cloud in (Platform.EC2,) \
-            and CONF.feature.storage == 'persistent':
-        LOG.info('Change storage size for "%s" role to "%s"' % (role_type, size))
-        role = world.get_role(role_type)
-        size = int(size)
-        role.edit(options={
-            "db.msr.storage.grow_config": json.dumps({"size": size})
-        })
-    else:
-        return
+    LOG.info('Change storage size for "%s" role to "%s"' % (role_type, size))
+    role = world.get_role(role_type)
+    size = int(size)
+    role.edit(options={
+        "db.msr.storage.grow_config": json.dumps({"size": size})
+    })
 
 
 @step(r'I delete volume ([\w\d]+)')
@@ -651,5 +648,5 @@ def check_errors_in_message(step, message_name, serv_as):
             break
     node = world.cloud.get_node(server)
     message = json.loads(node.run('szradm md --json %s' % message_id)[0])
-    if 'last_error' in message:
-        raise AssertionError('Message %s at %s contains error: %s' % (message_name, serv_as, message['last_error']))
+    if 'last_error' in message['body']:
+        raise AssertionError('Message %s at %s contains error: %s' % (message_name, serv_as, message['body']['last_error']))

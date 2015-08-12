@@ -1,6 +1,7 @@
 import sys
 import socket
 import logging
+import collections
 from distutils.version import LooseVersion
 
 import requests
@@ -9,6 +10,7 @@ from lettuce import world
 from lxml import etree
 
 from revizor2.api import Server
+from revizor2.conf import CONF
 from revizor2.consts import ServerStatus
 
 LOG = logging.getLogger(__name__)
@@ -28,6 +30,25 @@ def wrt(what):
     if isinstance(what, unicode):
         what = what.encode('utf-8')
     sys.stdout.write(what+'\n')
+
+
+@world.absorb
+def run_only_if(*args, **kwargs):
+    """
+    Accept parameters: platform, storage
+    """
+    platform = kwargs.get('platform', [])
+    storage = kwargs.get('storage', [])
+    if not isinstance(platform, collections.Iterable):
+        platform = [platform]
+    if not isinstance(storage, collections.Iterable):
+        storage = [storage]
+
+    def wrapper(func):
+        if (platform and CONF.feature.driver.scalr_cloud not in platform) or (storage and CONF.feature.storage not in storage):
+            func._exclude = True
+        return func
+    return wrapper
 
 
 @world.absorb

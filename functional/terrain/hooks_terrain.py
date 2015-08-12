@@ -63,6 +63,17 @@ def exclude_scenarios_by_version(feature):
             feature.scenarios = new_scenarios_list
 
 
+@before.each_scenario
+def exclude_steps_by_options(scenario):
+    """
+    Exclude steps from feature for @world.run_only_if
+    """
+    for step in scenario.steps:
+        func = step._get_match(None)[1].function
+        if hasattr(func, '_exclude'):
+            scenario.steps.remove(step)
+
+
 @after.each_scenario
 def get_all_logs(scenario):
     """Give scalarizr_debug.log logs from servers"""

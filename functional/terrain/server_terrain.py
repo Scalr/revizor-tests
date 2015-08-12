@@ -224,6 +224,7 @@ def verify_string_in_file(step, file_path, value, serv_as):
 
 
 @step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
+@world.run_only_if(storage='persistent')
 def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
@@ -261,6 +262,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
 
 
 @step(r'attached volume ([\w\d]+) has size (\d+) Gb')
+@world.run_only_if(platform=(Platform.EC2, Platform.CLOUDSTACK), storage='persistent')
 def verify_attached_volume_size(step, volume_as, size):
     #FIXME: If database in GCE not check this
     LOG.info('Verify attached volume has new size "%s"' % size)
