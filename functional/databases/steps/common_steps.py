@@ -491,13 +491,13 @@ def download_dump(step, serv_as):
         check_omnibus = node.run('ls /opt/scalarizr/embedded/bin/python')
         if not check_omnibus[1].strip():
             interpretator = '/opt/scalarizr/embedded/bin/python'
-        if node.os[0] == 'redhat' and node.os[1].startswith('5'):
-            interpretator = 'python26'
-        node.run('%s /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
+        out = node.run('%s /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
             interpretator, world.cloud.config.libcloud.key,
             world.cloud.config.libcloud.secret,
             world.last_backup_url
-        ))
+            ))
+        if out[2] == '1':
+            raise AssertionError('Backup download failed. Error: %s' % out[1])
     # elif CONF.feature.driver.current_cloud == Platform.GCE:
     #     with open(world.cloud.config.libcloud.key, 'r+') as key:
     #         node.put_file('/tmp/gcs_pk.p12', key.readall())
