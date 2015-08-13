@@ -82,11 +82,13 @@ def assert_check_message_in_log(step, message, serv_as):
 def verify_recipes_in_runlist(step, serv_as, recipes):
     recipes = recipes.split(',')
     server = getattr(world, serv_as)
+
+    host_name = world.get_hostname_by_server_format(server)
     chef_api = chef.autoconfigure()
-    run_list = chef.Node(server.details['hostname']).run_list
+
+    run_list = chef.Node(host_name, api=chef_api).run_list
     if len(run_list) != len(recipes):
         raise AssertionError('Count of recipes in node is another that must be: "%s" != "%s" "%s"' %
                              (len(run_list), len(recipes), run_list))
-    for recipe in recipes:
-        if not recipe in ','.join(run_list):
-            raise AssertionError('Recipe "%s" not exist in run list!' % run_list)
+    if not all(recipe in ','.join(run_list) for recipe in recipes):
+        raise AssertionError('Recipe "%s" not exist in run list!' % run_list)
