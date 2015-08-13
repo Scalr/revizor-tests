@@ -45,7 +45,9 @@ def run_only_if(*args, **kwargs):
         storage = [storage]
 
     def wrapper(func):
-        if (platform and CONF.feature.driver.scalr_cloud not in platform) or (storage and CONF.feature.storage not in storage):
+        if platform and CONF.feature.driver.scalr_cloud not in platform:
+            func._exclude = True
+        elif storage and CONF.feature.storage not in storage:
             func._exclude = True
         return func
     return wrapper
