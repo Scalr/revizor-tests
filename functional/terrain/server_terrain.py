@@ -79,6 +79,9 @@ def server_state_action(step, action, reboot_type, serv_as):
         error_message = "% success: %s" % (action, res)
     elif isinstance(res, dict):
         error_message = res.get('errorMessage', None)
+    # Workaround for SCALRCORE-1576    
+    if error_message == [u'Unable to perform request to scalarizr: A server error occurred.  Please contact the administrator. (500)']:
+        error_message = None
     assert not error_message, error_message
     LOG.info('Server %s was %sed' % (server.id, action))
 
