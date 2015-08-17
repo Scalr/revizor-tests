@@ -24,6 +24,7 @@ Feature: Orchestration features test
       | HostUp       | /home/revizor/local_script.sh | revizor  | 0        | Local script work! User: revizor; USER=revizor; HOME=/home/revizor |
       | HostUp       | Linux ping-pong               | revizor  | 0        | pong   |
       | HostUp       | chef                          | root     | 0        |        |
+      | HostUp       | /bin/uname                    | root     | 0        | Linux  |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify chef executed normally
