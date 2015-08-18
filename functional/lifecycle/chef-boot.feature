@@ -48,6 +48,3 @@ Feature: Check chef attributes set
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And nginx is running on M1
-        Then I restart service www and pid has been changed on M1
-        And nginx is running on M1
-
