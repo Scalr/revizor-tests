@@ -154,6 +154,16 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
                 hostname = hostname.private_ip
             backends.append(re.compile('%s:%s' % (hostname, port)))
     LOG.info("Will search backends: %s" % backends)
+    time_until = time.time() + 60
+    section = None
+    while time.time() < time_until:
+        config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
+        try:
+            section = config['backends'][port]
+        except KeyError:
+            pass
+        if section:
+            break
     config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
     LOG.debug("HAProxy config : %s" % config)
 
