@@ -295,7 +295,7 @@ def verify_stdout_for_scripts(step, script_name, serv_as):
         if not script.name == script_name:
             continue
         counter += 1
-        times.add(script.message.splitlines()[-1].split()[-6])
+        times.add(script.message.splitlines()[-1].split()[-2][:-3])
     if not len(times) == counter:
         raise AssertionError('Last reboot times is equals: %s' % list(times))
 
