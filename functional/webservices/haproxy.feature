@@ -61,18 +61,18 @@ Feature: HAProxy load balancer role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Add second proxy
-        When I add proxy P2 to haproxy role for 8000 port with backends: 'A1:8002 default' 'example2.com disabled' 'example3.com backup' and healthcheck: 12, 20, 8
+        When I add proxy P2 to haproxy role for 8009 port with backends: 'A1:8443 default' 'example2.com disabled' 'example3.com backup' and healthcheck: 12, 20, 8
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
-        And W1 backend list for 8000 port should contains 'A1:8002 default'
-        And W1 backend list for 8000 port should contains 'example2.com disabled'
-        And W1 backend list for 8000 port should contains 'example3.com backup'
-        And healthcheck parameters is 12, 20, 8 in W1 backend file for 8000 port
+        And W1 backend list for 8009 port should contains 'A1:8443 default'
+        And W1 backend list for 8009 port should contains 'example2.com disabled'
+        And W1 backend list for 8009 port should contains 'example3.com backup'
+        And healthcheck parameters is 12, 20, 8 in W1 backend file for 8009 port
         And process haproxy is running in W1
         And 80 port is listen on W1
-        When I start BaseHttpServer on 8002 port in A1
-        Then 8000 port is listen on W1
-        And 8000 get domain D1 matches 'It works!'
+        When I start BaseHttpServer on 8443 port in A1
+        Then 8009 port is listen on W1
+        And 8009 get domain D1 matches 'It works!'
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Check network options
