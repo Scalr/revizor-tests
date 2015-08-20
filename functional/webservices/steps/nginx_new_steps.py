@@ -82,18 +82,11 @@ def check_proxy_in_nginx_config(step, www_serv, vhost_name):
     serv = getattr(world, www_serv)
     domain = getattr(world, vhost_name)
     node = world.cloud.get_node(serv)
-<<<<<<< HEAD
     LOG.info('Proxies config for server %s' % serv.public_ip)
     try:
         config = wait_until(check_config_for_option, args=[node, 'proxies.include', domain.name], timeout=60)
         LOG.info(config)
     except:
-=======
-    out = check_files(node, 'proxies.include', domain.name)
-    LOG.info('Proxies config for server %s' % serv.public_ip)
-    LOG.info(out[1])
-    if not out[0]:
->>>>>>> 763c0cfafe213df4a6734b87e8a19ac16ace83a8
         raise AssertionError('Not see domain %s in proxies.include' % domain)
 
 
@@ -186,17 +179,10 @@ def check_options_in_nginx_upstream(step, option, serv_as):
     LOG.info('Verify %s in upstream config' % option)
     option = option.split()
     if len(option) == 1:
-<<<<<<< HEAD
         try:
             options = wait_until(check_config_for_option, args=[node, 'app-servers.include', option[0]], timeout=60)
         except:
             raise AssertionError("Options '%s' not in upstream config: %s" % (option, node.run('cat /etc/nginx/app-servers.include')[0]))
-=======
-        out = check_files(node, 'app-servers.include', option[0])
-        LOG.debug('Upstream config files: %s' % out[1])
-        if not out[0]:
-            raise AssertionError("Options '%s' not in upstream config:%s" % (option, out[1]))
->>>>>>> 763c0cfafe213df4a6734b87e8a19ac16ace83a8
     elif len(option) > 1:
         host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
@@ -208,15 +194,9 @@ def check_options_in_nginx_upstream(step, option, serv_as):
         if option[-1].startswith('weight'):
             upstream_url = upstream_url.replace(';', ' %s;' % option[-1])
         LOG.info('Verify \'%s\' in upstream' % upstream_url)
-<<<<<<< HEAD
         try:
             options = wait_until(check_config_for_option, args=[node, 'app-servers.include', upstream_url], timeout=60)
         except:
-=======
-        out = check_files(node, 'app-servers.include', upstream_url)
-        LOG.debug('Upstream config files: %s' % out[1])
-        if not out[0]:
->>>>>>> 763c0cfafe213df4a6734b87e8a19ac16ace83a8
             raise AssertionError('Upstream config not contains "%s"' % upstream_url)
 
 
@@ -225,14 +205,9 @@ def check_options_in_nginx_upstream(step, option, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Verify %s in proxies config' % option)
-<<<<<<< HEAD
     try:
         options = wait_until(check_config_for_option, args=[node, 'proxies.include', option], timeout=160)
     except:
-=======
-    out = check_files(node, 'proxies.include', option)
-    if not out[0]:
->>>>>>> 763c0cfafe213df4a6734b87e8a19ac16ace83a8
         raise AssertionError('Parameter \'%s\' not found in proxies.include' % option)
 
 
@@ -266,18 +241,3 @@ def check_redirect(step, src_domain_as, has_not, dst_domain_as):
         if r.history[0].status_code == 301 and r.url.startswith('https://%s' % dst_domain.name):
             return True
         raise AssertionError("http://%s not redirect to https://%s" % (source_domain.name, dst_domain.name))
-<<<<<<< HEAD
-=======
-
-def check_files(node, option_file, option, timeout=60):
-    time_until = time.time() + timeout
-    status = False
-    while time.time() < time_until:
-        options = node.run('cat /etc/nginx/%s' % option_file)[0]
-        if option_file == 'proxies.include':
-            options = ' '.join(options.split())
-        if option in options:
-            status = True
-            break
-    return status, options
->>>>>>> 763c0cfafe213df4a6734b87e8a19ac16ace83a8
