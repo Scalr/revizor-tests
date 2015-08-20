@@ -87,9 +87,6 @@ def check_proxy_in_nginx_config(step, www_serv, vhost_name):
                args=[node, 'proxies.include', domain.name],
                timeout=180,
                error_text='Not see domain %s in proxies.include' % domain)
-    # LOG.info(config)
-    # except:
-    #     raise AssertionError('Not see domain %s in proxies.include' % domain)
 
 
 @step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies:")
@@ -185,8 +182,6 @@ def check_options_in_nginx_upstream(step, option, serv_as):
                    args=[node, 'app-servers.include', option[0]],
                    timeout=180,
                    error_text="Options '%s' not in upstream config: %s" % (option, node.run('cat /etc/nginx/app-servers.include')[0]))
-        # except:
-        #     raise AssertionError("Options '%s' not in upstream config: %s" % (option, node.run('cat /etc/nginx/app-servers.include')[0]))
     elif len(option) > 1:
         host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
@@ -202,8 +197,6 @@ def check_options_in_nginx_upstream(step, option, serv_as):
                    args=[node, 'app-servers.include', upstream_url],
                    timeout=180,
                    error_text='Upstream config not contains "%s"' % upstream_url)
-        # except:
-        #     raise AssertionError('Upstream config not contains "%s"' % upstream_url)
 
 
 @step(r"'([\w\d_ :;\.]+)' in ([\w\d]+) proxies file$")
@@ -214,8 +207,6 @@ def check_options_in_nginx_upstream(step, option, serv_as):
     wait_until(check_config_for_option,
                args=[node, 'proxies.include', option],
                timeout=180, error_text='Parameter \'%s\' not found in proxies.include' % option)
-    # except:
-    #     raise AssertionError('Parameter \'%s\' not found in proxies.include' % option)
 
 
 @step(r"([\w\d]+) upstream list should be clean")
