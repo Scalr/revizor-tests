@@ -68,7 +68,6 @@ def rebundle_server(step, serv_as):
 
 @step('I (reboot|suspend|resume)(?: (soft|hard))? server ([\w\d]+)$')
 def server_state_action(step, action, reboot_type, serv_as):
-
     server = getattr(world, serv_as)
     LOG.info('%s server %s' % (action.capitalize(), server.id))
     args = {'method': reboot_type.strip() if reboot_type else 'soft'}
