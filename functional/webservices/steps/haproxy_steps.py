@@ -42,6 +42,14 @@ def parse_haproxy_config(node):
             parameters[tmp_section.split()[0]+'s'][int(tmp_section.split()[1].split(':')[-1])] = tmp_opts
     return parameters
 
+def check_config_for_option(node, section, port):
+    config = parse_haproxy_config(node)
+    try:
+        section = config[section][port]
+    except KeyError:
+        pass
+    if section:
+        return config
 
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend([\w ]+)?")
 def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role, options):
@@ -154,8 +162,11 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
                 hostname = hostname.private_ip
             backends.append(re.compile('%s:%s' % (hostname, port)))
     LOG.info("Will search backends: %s" % backends)
-    config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
-    LOG.debug("HAProxy config : %s" % config)
+    node = world.cloud.get_node(haproxy_server)
+    config = wait_until(check_config_for_option,
+                        args=[node, 'backends', port],
+                        timeout=180,
+                        error_text='No backends section in HAProxy config')
 
     for backend in backends:
         for server in config['backends'][port]:
@@ -177,16 +188,11 @@ def verify_listen_for_port(step, serv_as, option, port):
     haproxy_server = getattr(world, serv_as)
     port = int(port)
     LOG.info("Backend port: %s" % port)
-    time_until = time.time() + 60
-    section = None
-    while time.time() < time_until:
-        config = parse_haproxy_config(world.cloud.get_node(haproxy_server))
-        try:
-            section = config['listens'][port]
-        except KeyError:
-            pass
-        if section:
-            break
+    node = world.cloud.get_node(haproxy_server)
+    config = wait_until(check_config_for_option,
+                        args=[node, 'listens', port],
+                        timeout=180,
+                        error_text='No listens section in HAProxy config')
     LOG.debug("HAProxy config : %s" % config)
     if option == 'backend':
         for opt in config['listens'][port]:
