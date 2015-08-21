@@ -163,11 +163,13 @@ def verify_backends_for_port(step, serv_as, port, has_not, backends_servers):
             backends.append(re.compile('%s:%s' % (hostname, port)))
     LOG.info("Will search backends: %s" % backends)
     node = world.cloud.get_node(haproxy_server)
-    try:
-        config = wait_until(check_config_for_option, args=[node, 'backends', port], timeout=60)
-    except:
-        config = parse_haproxy_config(node)
-    LOG.debug("HAProxy config : %s" % config)
+    config = wait_until(check_config_for_option,
+                        args=[node, 'backends', port],
+                        timeout=180,
+                        error_text='No backends section in HAProxy config')
+    # except:
+    #     config = parse_haproxy_config(node)
+    # LOG.debug("HAProxy config : %s" % config)
 
     for backend in backends:
         for server in config['backends'][port]:
@@ -190,10 +192,12 @@ def verify_listen_for_port(step, serv_as, option, port):
     port = int(port)
     LOG.info("Backend port: %s" % port)
     node = world.cloud.get_node(haproxy_server)
-    try:
-        config = wait_until(check_config_for_option, args=[node, 'backends', port], timeout=60)
-    except:
-        config = parse_haproxy_config(node)
+    config = wait_until(check_config_for_option,
+                        args=[node, 'listens', port],
+                        timeout=180,
+                        error_text='No listens section in HAProxy config')
+    # except:
+    #     config = parse_haproxy_config(node)
     LOG.debug("HAProxy config : %s" % config)
     if option == 'backend':
         for opt in config['listens'][port]:
