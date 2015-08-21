@@ -6,6 +6,8 @@ from lettuce import world, step
 
 from revizor2.api import Certificate, IMPL
 
+from revizor2.utils import wait_until
+
 
 LOG = logging.getLogger(__name__)
 
@@ -18,6 +20,13 @@ def get_nginx_default_server_template():
                    farm_settings['tabParams']['nginx']['server_section_ssl']
     }
     return template
+
+def check_config_for_option(node, config_file, option):
+    config = node.run('cat /etc/nginx/%s' % config_file)[0]
+    if config_file == 'proxies.include':
+        config = ' '.join(config.split())
+    if option in config:
+        return config
 
 
 @step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
@@ -73,11 +82,11 @@ def check_proxy_in_nginx_config(step, www_serv, vhost_name):
     serv = getattr(world, www_serv)
     domain = getattr(world, vhost_name)
     node = world.cloud.get_node(serv)
-    config = node.run('cat /etc/nginx/proxies.include')[0]
     LOG.info('Proxies config for server %s' % serv.public_ip)
-    LOG.info(config)
-    if not domain.name in config:
-        raise AssertionError('Not see domain %s in proxies.include' % domain)
+    wait_until(check_config_for_option,
+               args=[node, 'proxies.include', domain.name],
+               timeout=180,
+               error_text='Not see domain %s in proxies.include' % domain)
 
 
 @step(r"I modify proxy ([\w\d]+) in ([\w\d]+) role (with|without) ip_hash and proxies:")
@@ -166,15 +175,13 @@ def check_options_in_nginx_upstream(step, option, serv_as):
     time.sleep(60) #TODO: Change this behavior (wait scalarizr open port in selinux)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    options = node.run('cat /etc/nginx/app-servers.include')[0]
-    LOG.debug('Upstream config files: %s' % options)
     LOG.info('Verify %s in upstream config' % option)
     option = option.split()
     if len(option) == 1:
-        if option[0] in options:
-            return True
-        else:
-            raise AssertionError("Options '%s' not in upstream config: %s" % (option, options))
+        wait_until(check_config_for_option,
+                   args=[node, 'app-servers.include', option[0]],
+                   timeout=180,
+                   error_text="Options '%s' not in upstream config: %s" % (option, node.run('cat /etc/nginx/app-servers.include')[0]))
     elif len(option) > 1:
         host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
@@ -186,19 +193,20 @@ def check_options_in_nginx_upstream(step, option, serv_as):
         if option[-1].startswith('weight'):
             upstream_url = upstream_url.replace(';', ' %s;' % option[-1])
         LOG.info('Verify \'%s\' in upstream' % upstream_url)
-        if not upstream_url in options:
-            raise AssertionError('Upstream config not contains "%s"' % upstream_url)
+        wait_until(check_config_for_option,
+                   args=[node, 'app-servers.include', upstream_url],
+                   timeout=180,
+                   error_text='Upstream config not contains "%s"' % upstream_url)
 
 
 @step(r"'([\w\d_ :;\.]+)' in ([\w\d]+) proxies file$")
 def check_options_in_nginx_upstream(step, option, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    options = node.run('cat /etc/nginx/proxies.include')[0]
-    options = ' '.join(options.split())
     LOG.info('Verify %s in proxies config' % option)
-    if not option in options:
-        raise AssertionError('Parameter \'%s\' not found in proxies.include' % option)
+    wait_until(check_config_for_option,
+               args=[node, 'proxies.include', option],
+               timeout=180, error_text='Parameter \'%s\' not found in proxies.include' % option)
 
 
 @step(r"([\w\d]+) upstream list should be clean")
