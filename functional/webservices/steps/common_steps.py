@@ -168,6 +168,7 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
 
 
 @step('domain ([\w\d]+)(?:,([\w\d]+))? contains valid Cert and CACert(?: into ([\w\d]+))?')
+@world.run_only_if(dist='!centos5')
 def assert_check_cert(step, domain_as1, domain_as2=None, serv_as=None):
 
     domain1 = getattr(world, domain_as1)
