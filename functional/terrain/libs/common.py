@@ -39,16 +39,33 @@ def run_only_if(*args, **kwargs):
     """
     platform = kwargs.get('platform', [])
     storage = kwargs.get('storage', [])
+    dist = kwargs.get('dist', [])
     if not isinstance(platform, collections.Iterable):
         platform = [platform]
     if not isinstance(storage, collections.Iterable):
         storage = [storage]
+    if not isinstance(dist, collections.Iterable):
+        dist = [dist]
 
     def wrapper(func):
-        if platform and CONF.feature.driver.scalr_cloud not in platform:
-            func._exclude = True
-        elif storage and CONF.feature.storage not in storage:
-            func._exclude = True
+        if platform and any('!' in e for e in platform):
+            if '!' + CONF.feature.driver.scalr_cloud in platform:
+                func._exclude = True
+        else:
+            if CONF.feature.driver.scalr_cloud not in platform:
+                func._exclude = True
+        if storage and any('!' in e for e in storage):
+            if '!' + CONF.feature.storage in storage:
+                func._exclude = True
+        else:
+            if CONF.feature.storage not in storage:
+                func._exclude = True
+        if dist and any('!' in e for e in dist):
+            if '!' + CONF.feature.dist in dist:
+                func._exclude = True
+        else:
+            if CONF.feature.dist not in dist:
+                func._exclude = True
         return func
     return wrapper
 
