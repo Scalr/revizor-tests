@@ -1,11 +1,8 @@
 # coding: utf-8
-
 """
 Created on 08.24.2015
 @author: Eugeny Kurkovich
 """
-
-
 import os
 import hmac
 import json
@@ -22,7 +19,6 @@ from revizor2.api import IMPL
 from lettuce import world, step
 from collections import namedtuple
 from urlparse import urlparse, urlunparse
-
 
 LOG = logging.getLogger(__name__)
 
@@ -41,7 +37,6 @@ CONST = namedtuple(
     )
 
 def send_request(key, uri, params=None, body=None):
-
     secretKey = key.get('secretKey')
     keyId = key.get('keyId')
     jsonEncodedBody = json.dumps(body) if body else ''
@@ -86,7 +81,6 @@ def send_request(key, uri, params=None, body=None):
     endpoint = urlunparse(data=endpoint_args)
     LOG.debug('Endpoint : %s Header : %s' % (endpoint, headers))
 
-
     try:
         resp = requests.get(endpoint, params=params, headers=headers)
         resp.raise_for_status()
@@ -96,7 +90,6 @@ def send_request(key, uri, params=None, body=None):
             **resp.json().get('errors', [{'message': '', 'code': ''}])[0])
         )
     return resp
-
 
 @step(r'I have ([\d]+) new api secret key(?:s)?')
 def generate_new_keys(step, count):
@@ -110,14 +103,12 @@ def generate_new_keys(step, count):
     setattr(world, 'keys', keys)
     LOG.debug('Generated keys: %s' % keys)
 
-
 @step(r'I generate (more\sthan\s)?([\d]+) api queries for one minute(\susing second secret key)?')
 def send_api_requests(step, inc_count, queries_count, key_id):
 
     def task():
         resp = send_request(key, uri, dict(maxResults=2))
         return resp.status_code
-
 
     key = getattr(world, 'keys')[bool(key_id)]
     scalr_env = getattr(IMPL, 'account').get_env()
@@ -126,7 +117,6 @@ def send_api_requests(step, inc_count, queries_count, key_id):
     queries_count = int(queries_count)+1 if inc_count else int(queries_count)
     tasks_end_time = time.time()+60
 
-
     tasks = [gevent.spawn(task) for _ in xrange(queries_count) if time.time() < tasks_end_time]
     gevent_result = gevent.joinall(tasks)
     tasks_result = [tr.value for tr in gevent_result]
@@ -134,7 +124,6 @@ def send_api_requests(step, inc_count, queries_count, key_id):
     world.queries_count = queries_count
     world.tasks_results = tasks_result
     LOG.debug('Saved tasks results: %s' % tasks_result)
-
 
 @step(r'limit error was (not\s)?triggered by scalr')
 def check_api_result(step, no_errors):
@@ -151,7 +140,6 @@ def check_api_result(step, no_errors):
     else:
         raise AssertionError('Limit error was not triggered by Scalr')
 
-
 @step(r'I generate api queries with failed method')
 def send_failed_request(step):
     key = getattr(world, 'keys')[0]
@@ -161,7 +149,6 @@ def send_failed_request(step):
     resp = send_request(key, uri, dict(maxResults=2))
     world.tasks_results = resp.status_code
     LOG.debug('Failed result: %s' % resp.json())
-
 
 @step(r'The ([\d]+) error was triggered by scalr')
 def chesk_error_code(step, error_code):
