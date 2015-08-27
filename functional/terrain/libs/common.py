@@ -35,37 +35,34 @@ def wrt(what):
 @world.absorb
 def run_only_if(*args, **kwargs):
     """
-    Accept parameters: platform, storage
+    Accept parameters: platform, storage, dist
     """
     platform = kwargs.get('platform', [])
     storage = kwargs.get('storage', [])
     dist = kwargs.get('dist', [])
+
     if not isinstance(platform, collections.Iterable):
         platform = [platform]
+    if any('!' in s for s in platform) and CONF.feature.driver.scalr_cloud not in [s.strip('!') for s in platform]:
+        platform = CONF.feature.driver.scalr_cloud
+
     if not isinstance(storage, collections.Iterable):
         storage = [storage]
+    if any('!' in s for s in storage) and CONF.feature.storage not in [s.strip('!') for s in storage]:
+        storage = CONF.feature.storage
+
     if not isinstance(dist, collections.Iterable):
         dist = [dist]
+    if any('!' in s for s in dist) and CONF.feature.dist not in [s.strip('!') for s in dist]:
+        dist = CONF.feature.dist
 
     def wrapper(func):
-        if platform and any('!' in e for e in platform):
-            if '!' + CONF.feature.driver.scalr_cloud in platform:
-                func._exclude = True
-        else:
-            if CONF.feature.driver.scalr_cloud not in platform:
-                func._exclude = True
-        if storage and any('!' in e for e in storage):
-            if '!' + CONF.feature.storage in storage:
-                func._exclude = True
-        else:
-            if CONF.feature.storage not in storage:
-                func._exclude = True
-        if dist and any('!' in e for e in dist):
-            if '!' + CONF.feature.dist in dist:
-                func._exclude = True
-        else:
-            if CONF.feature.dist not in dist:
-                func._exclude = True
+        if platform and CONF.feature.driver.scalr_cloud not in platform:
+            func._exclude = True
+        if storage and CONF.feature.storage not in storage:
+            func._exclude = True
+        if dist and CONF.feature.dist not in dist:
+            func._exclude = True
         return func
     return wrapper
 
