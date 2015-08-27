@@ -59,9 +59,9 @@ def run_only_if(*args, **kwargs):
     def wrapper(func):
         if platform and CONF.feature.driver.scalr_cloud not in platform:
             func._exclude = True
-        if storage and CONF.feature.storage not in storage:
+        elif storage and CONF.feature.storage not in storage:
             func._exclude = True
-        if dist and CONF.feature.dist not in dist:
+        elif dist and CONF.feature.dist not in dist:
             func._exclude = True
         return func
     return wrapper
