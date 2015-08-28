@@ -83,7 +83,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
 
             elif opt == 'small_win_orchestration':
                 LOG.debug('Add small orchestration for windows')
-                scripting = SMALL_ORCHESTRATION_WINDOWS
+
+                script_pong_cmd_id = Script.get_id('Windows ping-pong. CMD')['id']
+                script_pong_ps_id = Script.get_id('Windows ping-pong. PS')['id']
+                scripting = json.loads(SMALL_ORCHESTRATION_WINDOWS % {'SCRIPT_PONG_CMD_ID': script_pong_cmd_id,
+                                                                      'SCRIPT_PONG_PS_ID': script_pong_ps_id})
 
             elif opt == 'failed_script':
                 script_id = Script.get_id('test_return_nonzero')['id']
