@@ -1,9 +1,9 @@
 {
     "RV_PLATFORM": {
-        "ec2": {"tags": [], "default": true},
-        "gce": [],
+        "ec2": {"tags": ["-api"], "default": true},
+        "gce": ["-api"],
         "idcf": ["scalr"],
-        "rackspacengus": [],
-        "ecs": []
+        "rackspacengus": ["-api"],
+        "ecs": ["-api"]
     }
 }
