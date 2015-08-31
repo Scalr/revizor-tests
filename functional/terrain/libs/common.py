@@ -35,20 +35,35 @@ def wrt(what):
 @world.absorb
 def run_only_if(*args, **kwargs):
     """
-    Accept parameters: platform, storage
+    Accept parameters: platform, storage, dist
     """
-    platform = kwargs.get('platform', [])
-    storage = kwargs.get('storage', [])
-    if not isinstance(platform, collections.Iterable):
-        platform = [platform]
-    if not isinstance(storage, collections.Iterable):
-        storage = [storage]
+    current = []
+    if kwargs.get('platform'):
+        current.append(CONF.feature.driver.current_cloud)
+    if kwargs.get('storage'):
+        current.append(CONF.feature.storage)
+    if kwargs.get('dist'):
+        current.append(CONF.feature.dist)
+    options = []
+    pass_list = []
+    skip_list = []
+    for v in kwargs.values():
+        if isinstance(v, tuple):
+            for i in v:
+                options.append(i)
+        else:
+            options.append(v)
+    for v in options:
+        if v.startswith('!'):
+            skip_list.append(v.strip('!'))
+        else:
+            pass_list.append(v)
 
     def wrapper(func):
-        if platform and CONF.feature.driver.scalr_cloud not in platform:
-            func._exclude = True
-        elif storage and CONF.feature.storage not in storage:
-            func._exclude = True
+        for v in current:
+            if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
+                func._exclude = True
+                break
         return func
     return wrapper
 
