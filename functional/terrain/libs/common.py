@@ -37,32 +37,27 @@ def run_only_if(*args, **kwargs):
     """
     Accept parameters: platform, storage, dist
     """
-    platform = kwargs.get('platform', [])
-    storage = kwargs.get('storage', [])
-    dist = kwargs.get('dist', [])
-
-    if not isinstance(platform, collections.Iterable):
-        platform = [platform]
-    if any('!' in s for s in platform) and CONF.feature.driver.scalr_cloud not in [s.strip('!') for s in platform]:
-        platform = CONF.feature.driver.scalr_cloud
-
-    if not isinstance(storage, collections.Iterable):
-        storage = [storage]
-    if any('!' in s for s in storage) and CONF.feature.storage not in [s.strip('!') for s in storage]:
-        storage = CONF.feature.storage
-
-    if not isinstance(dist, collections.Iterable):
-        dist = [dist]
-    if any('!' in s for s in dist) and CONF.feature.dist not in [s.strip('!') for s in dist]:
-        dist = CONF.feature.dist
+    current = [CONF.feature.driver.scalr_cloud, CONF.feature.storage, CONF.feature.dist]
+    options = []
+    pass_list = []
+    skip_list = []
+    for v in kwargs.values():
+        if isinstance(v, tuple):
+            for i in v:
+                options.append(i)
+        else:
+            options.append(v)
+    for v in options:
+        if v.startswith('!'):
+            skip_list.append(v.strip('!'))
+        else:
+            pass_list.append(v)
 
     def wrapper(func):
-        if platform and CONF.feature.driver.scalr_cloud not in platform:
-            func._exclude = True
-        elif storage and CONF.feature.storage not in storage:
-            func._exclude = True
-        elif dist and CONF.feature.dist not in dist:
-            func._exclude = True
+        for v in current:
+            if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
+                func._exclude = True
+                break
         return func
     return wrapper
 
