@@ -37,7 +37,13 @@ def run_only_if(*args, **kwargs):
     """
     Accept parameters: platform, storage, dist
     """
-    current = [CONF.feature.driver.scalr_cloud, CONF.feature.storage, CONF.feature.dist]
+    current = []
+    if kwargs.get('platform'):
+        current.append(CONF.feature.driver.current_cloud)
+    if kwargs.get('storage'):
+        current.append(CONF.feature.storage)
+    if kwargs.get('dist'):
+        current.append(CONF.feature.dist)
     options = []
     pass_list = []
     skip_list = []
