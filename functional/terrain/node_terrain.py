@@ -17,6 +17,12 @@ from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as 
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 
+try:
+    import winrm
+except ImportError:
+    raise ImportError("Please install WinRM")
+
+
 LOG = logging.getLogger(__name__)
 
 
@@ -501,3 +507,29 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         pid_before,
         pid_after)
     assert not any(pid in pid_before for pid in pid_after), assertion_message
+
+
+@world.absorb
+def get_windows_session(server):
+    username = 'Administrator'
+    port = 5985
+    if CONF.feature.driver.cloud_family == Platform.GCE:
+        username = 'scalr'
+    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        node = world.cloud.get_node(server)
+        port = world.cloud.open_port(node, port)
+    session = winrm.Session('http://%s:%s/wsman' % (server.public_ip, port),
+                            auth=(username, server.windows_password))
+    return session
+
+
+@world.absorb
+def run_cmd_command(server, command):
+    console = get_windows_session(server)
+    LOG.info('Run command: %s in server %s' % (command, server.id))
+    out = console.run_cmd(command)
+    LOG.debug('Result of command:\nSTDOUT: %s\nSTDERR: %s' % (out.std_out, out.std_err))
+    if not out.status_code == 0:
+        raise AssertionError('Command: "%s" exit with status code: %s and stdout: %s\n stderr:%s' % (
+        command, out.status_code, out.std_out, out.std_err))
+    return out

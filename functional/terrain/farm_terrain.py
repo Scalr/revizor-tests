@@ -13,7 +13,7 @@ from revizor2.api import Script, Farm, Metrics
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
-    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES
+    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS
 
 
 LOG = logging.getLogger(__name__)
@@ -145,6 +145,48 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)
+            elif opt == 'prepare_scaling_linux':
+                script_id = Script.get_id('Revizor scaling prepare linux')['id']
+                scripting = [
+                    {
+                        "script_type": "scalr",
+                        "script_id": script_id,
+                        "script": "Revizor scaling prepare linux",
+                        "os": "linux",
+                        "event": "HostInit",
+                        "target": "instance",
+                        "isSync": "1",
+                        "timeout": "1200",
+                        "version": "-1",
+                        "params": {},
+                        "order_index": "20",
+                        "system": "",
+                        "script_path": "",
+                        "run_as": "root"
+                    }
+                ]
+            elif opt == 'prepare_scaling_win':
+                script_id = Script.get_id('Revizor scaling prepare windows')['id']
+                scripting = [
+                    {
+                        "script_type": "scalr",
+                        "script_id": script_id,
+                        "script": "Revizor scaling prepare windows",
+                        "os": "windows",
+                        "event": "HostInit",
+                        "target": "instance",
+                        "isSync": "1",
+                        "timeout": "1200",
+                        "version": "-1",
+                        "params": {},
+                        "order_index": "20",
+                        "system": "",
+                        "script_path": "",
+                        "run_as": ""
+                    }
+                ]
+            elif opt.startswith('scaling'):
+                scaling_metrics = DEFAULT_SCALINGS[opt]
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))

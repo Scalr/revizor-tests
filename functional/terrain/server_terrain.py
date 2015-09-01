@@ -200,8 +200,12 @@ def verify_hostname_is_valid(step, serv_as):
 @step('not ERROR in ([\w]+) scalarizr log$')
 def check_scalarizr_log(step, serv_as):
     """Check scalarizr log for errors"""
-    node = world.cloud.get_node(getattr(world, serv_as))
-    world.verify_scalarizr_log(node)
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    if CONF.feature.dist.startswith('win'):
+        world.verify_scalarizr_log(node, windows=True, server=server)
+    else:
+        world.verify_scalarizr_log(node)
 
 
 @step('scalarizr process is (.+) in (.+)$')
