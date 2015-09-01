@@ -51,9 +51,11 @@ def run_only_if(*args, **kwargs):
                '>': operator.gt,
                '>=': operator.ge}
         if CONF.feature.branch == 'latest':
-            web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/release/%s/' % CONF.feature.branch).text.splitlines()
+            web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/release/%s/' %
+                                       CONF.feature.branch).text.splitlines()
         else:
-            web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/develop/%s/' % CONF.feature.branch).text.splitlines()
+            web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/develop/%s/' %
+                                       CONF.feature.branch).text.splitlines()
         for line in web_content:
             m = re.search('scalarizr_(.+?)-1_', line)
             if m:
