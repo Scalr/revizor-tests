@@ -50,7 +50,7 @@ def run_only_if(*args, **kwargs):
                '!=': operator.ne,
                '>': operator.gt,
                '>=': operator.ge}
-        if CONF.feature.branch == 'latest':
+        if CONF.feature.branch == 'latest' or 'stable':
             web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/release/%s/' %
                                        CONF.feature.branch).text.splitlines()
         else:
