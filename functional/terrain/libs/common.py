@@ -2,6 +2,8 @@ import sys
 import socket
 import logging
 import collections
+import operator
+import re
 from distutils.version import LooseVersion
 
 import requests
@@ -35,8 +37,28 @@ def wrt(what):
 @world.absorb
 def run_only_if(*args, **kwargs):
     """
-    Accept parameters: platform, storage, dist
+    Accept parameters: platform, storage, dist, szr_version
     """
+    if kwargs.get('szr_version'):
+        check_version = kwargs.get('szr_version').translate(None, '<>=!')
+        comparison = ''.join(set(kwargs.get('szr_version')).difference(check_version))
+        if comparison != '!=':
+            comparison = comparison[::-1]
+        ops = {'=': operator.eq,
+               '<': operator.lt,
+               '<=': operator.le,
+               '!=': operator.ne,
+               '>': operator.gt,
+               '>=': operator.ge}
+        if CONF.feature.branch == 'latest':
+            web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/release/%s/' % CONF.feature.branch).text.splitlines()
+        else:
+            web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/develop/%s/' % CONF.feature.branch).text.splitlines()
+        for line in web_content:
+            m = re.search('scalarizr_(.+?)-1_', line)
+            if m:
+                version = m.group(1)
+                break
     current = []
     if kwargs.get('platform'):
         current.append(CONF.feature.driver.current_cloud)
@@ -64,6 +86,8 @@ def run_only_if(*args, **kwargs):
             if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
                 func._exclude = True
                 break
+        if kwargs.get('szr_version') and not ops[comparison](LooseVersion(version), LooseVersion(check_version)):
+            func._exclude = True
         return func
     return wrapper
 
