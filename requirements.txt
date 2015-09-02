@@ -1,3 +1,4 @@
 git+https://github.com/Scalr/lettuce.git
 pywinrm
 PyChef
+semver
