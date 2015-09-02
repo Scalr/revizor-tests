@@ -2,7 +2,6 @@ import sys
 import socket
 import logging
 import collections
-import operator
 import re
 import semver
 from distutils.version import LooseVersion
