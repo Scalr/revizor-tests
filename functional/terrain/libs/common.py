@@ -4,6 +4,7 @@ import logging
 import collections
 import operator
 import re
+import semver
 from distutils.version import LooseVersion
 
 import requests
@@ -40,14 +41,6 @@ def run_only_if(*args, **kwargs):
     Accept parameters: platform, storage, dist, szr_version
     """
     if kwargs.get('szr_version'):
-        comparison = re.match(r'^[<>=!]{1,2}', kwargs.get('szr_version')).group()
-        check_version = kwargs.get('szr_version')[len(comparison):]
-        ops = {'=': operator.eq,
-               '<': operator.lt,
-               '<=': operator.le,
-               '!=': operator.ne,
-               '>': operator.gt,
-               '>=': operator.ge}
         if CONF.feature.branch in ['latest', 'stable']:
             web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/release/%s/' %
                                        CONF.feature.branch).text.splitlines()
@@ -55,9 +48,9 @@ def run_only_if(*args, **kwargs):
             web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/develop/%s/' %
                                        CONF.feature.branch).text.splitlines()
         for line in web_content:
-            m = re.search('scalarizr_(.+?)-1_', line)
+            m = re.search('scalarizr_(.+?).(\w+)-1_', line)
             if m:
-                version = m.group(1)
+                version = m.group(1).replace('b', '')
                 break
     current = []
     if kwargs.get('platform'):
@@ -86,7 +79,7 @@ def run_only_if(*args, **kwargs):
             if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
                 func._exclude = True
                 break
-        if kwargs.get('szr_version') and not ops[comparison](LooseVersion(version), LooseVersion(check_version)):
+        if kwargs.get('szr_version') and not semver.match(version, kwargs.get('szr_version')):
             func._exclude = True
         return func
     return wrapper
