@@ -40,17 +40,15 @@ def run_only_if(*args, **kwargs):
     Accept parameters: platform, storage, dist, szr_version
     """
     if kwargs.get('szr_version'):
-        check_version = kwargs.get('szr_version').translate(None, '<>=!')
-        comparison = ''.join(set(kwargs.get('szr_version')).difference(check_version))
-        if comparison != '!=':
-            comparison = comparison[::-1]
+        comparison = re.match(r'^[<>=!]{1,2}', kwargs.get('szr_version')).group()
+        check_version = kwargs.get('szr_version')[len(comparison):]
         ops = {'=': operator.eq,
                '<': operator.lt,
                '<=': operator.le,
                '!=': operator.ne,
                '>': operator.gt,
                '>=': operator.ge}
-        if CONF.feature.branch == 'latest' or 'stable':
+        if CONF.feature.branch in ['latest', 'stable']:
             web_content = requests.get('http://stridercd.scalr-labs.com/scalarizr/apt-plain/release/%s/' %
                                        CONF.feature.branch).text.splitlines()
         else:
