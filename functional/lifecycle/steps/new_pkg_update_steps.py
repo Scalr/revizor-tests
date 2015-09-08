@@ -8,12 +8,13 @@ Created on 09.01.2015
 import logging
 
 from datetime import datetime
-from lettuce import step, world
+from revizor2.api import IMPL
 from revizor2.conf import CONF
-from revizor2.api import IMPL, Server
-from revizor2.consts import Platform, Dist
-from revizor2.utils import wait_until
+from lettuce import step, world
+from revizor2.consts import Dist
+from revizor2.defaults import USE_VPC
 from revizor2.helpers import install_behaviors_on_node
+
 
 LOG = logging.getLogger(__name__)
 
@@ -31,6 +32,7 @@ def install_scalarizr(step):
     LOG.info('Install scalarizr from branch: %s on node: %s ' % (branch, cloud_server.name))
     args = (cloud_server, cookbooks, CONF.feature.driver.scalr_cloud.lower())
     install_behaviors_on_node(*args, branch=branch)
+
 
 @step(r'I create image')
 def create_image(step):
@@ -51,6 +53,7 @@ def create_image(step):
 
     image = cloud.create_template(**kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
+
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
     setattr(world, 'image', image)
     LOG.debug('Image atrs: %s' % dir(image))
@@ -64,6 +67,7 @@ def create_image(step):
     assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
+
 
 @step(r'I add image to the new role')
 def create_role(step):
@@ -99,10 +103,24 @@ def create_role(step):
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
 
+
 @step(r'I add created role to the farm')
 def setup_farm(step):
-    role = getattr(world, 'role')
-    branch = CONF.feature.feature.to_branch
+    farm = getattr(world, 'farm')
+    branch = CONF.feature.to_branch
+    role_kwargs = dict(
+        location = CONF.platforms[CONF.feature.platform]['location'] \
+            if not CONF.feature.driver.is_platform_gce else "",
+        options = {
+            "base.upd.repository": branch,
+            "base.devel_repository": CONF.feature.ci_repo,
+            "user-data.scm_branch": branch},
+        use_vpc = USE_VPC
+    )
+    farm.add_role(world.role['id'], **role_kwargs)
+    farm.roles.reload()
+    farm_role = farm.roles[0]
+    LOG.info('Change branch to: %s for role: %s' % (branch, farm_role.id))
 
 
 @step(r'I trigger scalarizr update by Scalr UI')
@@ -112,7 +130,8 @@ def update_scalarizr_by_scalr_ui(step):
 
 @step(r'^([\w\-]+) version is valid in ([\w\d]+)$')
 def assert_version(step, service, serv_as):
-    pass
+    server = getattr(world, 'serv_as')
+    service = service.strip()
 
 
 @step(r'I fork ([A-za-z0-9\/\-\_]+) branch to ([A-za-z0-9\/\-\_]+)$')

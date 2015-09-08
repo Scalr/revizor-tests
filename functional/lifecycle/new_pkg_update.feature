@@ -6,11 +6,11 @@ Feature: Update scalarizr test
       Given I have a server running in cloud
       When I install scalarizr to the server
       Then I create image
-      Then I add image to the new role
+      And I add image to the new role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update at bootstrap, use new role
-      Given I have a clean and stopped farm
+      Given I have a an empty running farm
       And I add created role to the farm
       When I expect server bootstrapping as M1
       Then scalarizr version is valid in M1

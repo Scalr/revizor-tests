@@ -7,6 +7,7 @@ from lettuce import world, step, after
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
 from revizor2.consts import Platform, Dist
+from revizor2.defaults import USE_VPC
 from revizor2.utils import wait_until
 from revizor2.helpers import install_behaviors_on_node
 
@@ -132,7 +133,7 @@ def given_server_in_cloud(step, user_data):
     else:
         user_data = None
     #Create node
-    node = world.cloud.create_node(userdata=user_data)
+    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
