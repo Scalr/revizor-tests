@@ -197,7 +197,7 @@ Feature: MySQL database server with behavior mysql2
         Then I launch pma session
         And pma is available, I see the phpMyAdmin in the title
 
-    @ec2
+    @ec2 @persistent
     Scenario: Verify storage recreation
         Given I have a M1 attached volume as V1
         When I stop farm

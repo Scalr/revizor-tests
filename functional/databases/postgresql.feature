@@ -178,7 +178,7 @@ Feature: PostgreSQL database server functional test
         Given I have a M1 attached volume as V1
         And attached volume V1 has size 7 Gb
 
-    @ec2
+    @ec2 @persistent
     Scenario: Verify storage recreation
         Given I have a M1 attached volume as V1
         When I stop farm
