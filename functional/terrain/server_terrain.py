@@ -268,7 +268,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
 
 
 @step(r'attached volume ([\w\d]+) has size (\d+) Gb')
-@world.run_only_if(platform=(Platform.EC2, Platform.CLOUDSTACK), storage='persistent')
+@world.run_only_if(storage='persistent')
 def verify_attached_volume_size(step, volume_as, size):
     LOG.info('Verify attached volume has new size "%s"' % size)
     size = int(size)
