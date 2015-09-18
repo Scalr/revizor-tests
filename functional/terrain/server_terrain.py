@@ -270,7 +270,6 @@ def save_attached_volume_id(step, serv_as, volume_as):
 @step(r'attached volume ([\w\d]+) has size (\d+) Gb')
 @world.run_only_if(platform=(Platform.EC2, Platform.CLOUDSTACK), storage='persistent')
 def verify_attached_volume_size(step, volume_as, size):
-    #FIXME: If database in GCE not check this
     LOG.info('Verify attached volume has new size "%s"' % size)
     size = int(size)
     volume = getattr(world, '%s_volume' % volume_as)

@@ -62,7 +62,7 @@ def run_only_if(*args, **kwargs):
     pass_list = []
     skip_list = []
     for v in kwargs.values():
-        if isinstance(v, tuple):
+        if isinstance(v, collections.Iterable):
             for i in v:
                 options.append(i)
         else:
