@@ -68,10 +68,13 @@ def exclude_steps_by_options(scenario):
     """
     Exclude steps from feature for @world.run_only_if
     """
+    steps_to_remove = []
     for step in scenario.steps:
         func = step._get_match(None)[1].function
         if hasattr(func, '_exclude'):
-            scenario.steps.remove(step)
+            steps_to_remove.append(step)
+    for step in steps_to_remove:
+        scenario.steps.remove(step)
 
 
 @after.each_scenario
