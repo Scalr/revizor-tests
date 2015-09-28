@@ -5,7 +5,7 @@ Created on 09.01.2015
 @author: Eugeny Kurkovich
 """
 
-import time
+import re
 import logging
 
 from datetime import datetime
@@ -14,7 +14,7 @@ from revizor2.conf import CONF
 from lettuce import step, world, after
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
-from revizor2.helpers import install_behaviors_on_node
+from distutils.version import LooseVersion
 from revizor2.utils import wait_until
 
 
@@ -40,16 +40,32 @@ def install_scalarizr(step, serv_as):
         LOG.debug('Node get successfully %s' % node)
     cloud_server =  node or getattr(world, 'cloud_server', None)
     assert cloud_server,  'Node not found'
-    cookbooks = ['base', 'scalarizr']
     branch = CONF.feature.branch
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         return
 
     # Linux handler
-    LOG.info('Install scalarizr from branch: %s on node: %s ' % (branch, cloud_server.name))
-    args = (cloud_server, cookbooks, CONF.feature.driver.scalr_cloud.lower())
-    install_behaviors_on_node(*args, branch=branch)
+    LOG.info('Install scalarizr from branch: %s to node: %s ' % (branch, cloud_server.name))
+    curl_install_cmd = dict(
+        debian = "apt-get update && apt-get install curl -y",
+        centos = "yum clean all && yum install curl -y"
+    )
+    cmd_kwargs = dict(
+        curl_install = curl_install_cmd.get(Dist.get_os_family(cloud_server.os[0])),
+        platform=CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud)),
+        repo=CONF.feature.ci_repo.lower(),
+        branch=branch)
+    cmd = '{curl_install} && ' \
+        'PLATFORM={platform} ; ' \
+        'CI_REPO={repo} ; ' \
+        'BRANCH={branch} ; ' \
+        'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash'.format(**cmd_kwargs )
+    res = cloud_server.run(cmd)
+    version = re.findall('\(([\w\d/./-]+)\)', res[0].splitlines()[-1])
+    assert  version, 'Could not install scalarizr'
+    LOG.debug('Scalarizr %s was successfully installed' % version)
+    setattr(world, 'pre_installed_agent', version[0])
 
 
 @step(r'I create image from deployed server')
@@ -87,7 +103,7 @@ def create_image(step):
 
 @step(r'I add image to the new role')
 def create_role(step):
-    image_exists = False
+    image_registered = False
     cloud_location = CONF.platforms[CONF.feature.platform]['location'] \
         if not CONF.feature.driver.is_platform_gce else ""
     image_kwargs = dict(
@@ -106,8 +122,8 @@ def create_role(step):
     except Exception as e:
         if not ('Image has already been registered' in e.message):
             raise
-        image_exists = True
-    if not image_exists:
+        image_registered = True
+    if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
         image_kwargs.update(dict(software=behaviors, name=name))
@@ -155,6 +171,22 @@ def update_scalarizr_by_scalr_ui(step):
 def assert_version(step, service, serv_as):
     server = getattr(world, 'serv_as')
     service = service.strip()
+    pre_installed_agent = world.pre_installed_agent
+    cloud = world.cloud
+    server.reload()
+    node = wait_until(cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+    LOG.debug('Node get successfully %s' % node)
+    # Windows handler
+    if Dist.is_windows_family(CONF.feature.dist):
+        return
+
+    # Linux handler
+    else:
+        res = node.run('scalarizr -v')
+        assert not res[1]
+        installed_agent = res[0].split()[1]
+    LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
+    assert LooseVersion(pre_installed_agent) > LooseVersion(installed_agent), 'Scalarizr version not valid'
 
 
 @step(r'I fork ([A-za-z0-9\/\-\_]+) branch to ([A-za-z0-9\/\-\_]+)$')
