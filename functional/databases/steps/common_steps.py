@@ -376,7 +376,7 @@ def check_database_in_new_server(step, serv_as, has_not, db_name, username=None)
     for server in servers:
         for db in dbs:
             LOG.info('Check database %s in server %s' % (db, server.id))
-            world.assert_not_equal(db_role.db.database_exist(db, server, credentials), not has_not,
+            world.assert_not_equal(db_role.db.database_exist(str(db), server, credentials), not has_not,
                                    (has_not and 'Database %s exist in server %s, but must be erased.  All db: %s'
                                    or 'Database %s not exist in server %s, all db: %s')
                                    % (db_name, server.id, db_role.db.database_list(server)))
