@@ -12,10 +12,10 @@ Feature: Update scalarizr test
       And I add created role to the farm
       When I see pending server M1
       Then I install scalarizr to the server M1
-      And I reboot server M1
+      And I reboot hard server M1
       When I expect server bootstrapping as M2
       Then scalarizr version is valid in M2
-      When I execute script 'Test script name' synchronous on M2
+      When I execute script 'Linux ping-pong' synchronous on M2
       And I see script result in M2
 
     @win @ec2 @gce @cloudstack @rackspaceng @openstack

@@ -44,24 +44,24 @@ def install_scalarizr(step, serv_as):
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         return
-
-    # Linux handler
-    LOG.info('Install scalarizr from branch: %s to node: %s ' % (branch, cloud_server.name))
-    curl_install_cmd = dict(
-        debian = "apt-get update && apt-get install curl -y",
-        centos = "yum clean all && yum install curl -y"
-    )
-    cmd_kwargs = dict(
-        curl_install = curl_install_cmd.get(Dist.get_os_family(cloud_server.os[0])),
-        platform=CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud)),
-        repo=CONF.feature.ci_repo.lower(),
-        branch=branch)
-    cmd = '{curl_install} && ' \
-        'PLATFORM={platform} ; ' \
-        'CI_REPO={repo} ; ' \
-        'BRANCH={branch} ; ' \
-        'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash'.format(**cmd_kwargs )
-    res = cloud_server.run(cmd)
+    else:
+        # Linux handler
+        LOG.info('Install scalarizr from branch: %s to node: %s ' % (branch, cloud_server.name))
+        curl_install_cmd = dict(
+            debian = "apt-get update && apt-get install curl -y",
+            centos = "yum clean all && yum install curl -y"
+        )
+        cmd_kwargs = dict(
+            curl_install = curl_install_cmd.get(Dist.get_os_family(cloud_server.os[0])),
+            platform=CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud)),
+            repo=CONF.feature.ci_repo.lower(),
+            branch=branch)
+        cmd = '{curl_install} && ' \
+            'PLATFORM={platform} ; ' \
+            'CI_REPO={repo} ; ' \
+            'BRANCH={branch} ; ' \
+            'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash'.format(**cmd_kwargs )
+        res = cloud_server.run(cmd)
     version = re.findall('\(([\w\d/./-]+)\)', res[0].splitlines()[-1])
     assert  version, 'Could not install scalarizr'
     LOG.debug('Scalarizr %s was successfully installed' % version)
@@ -83,7 +83,7 @@ def create_image(step):
         name=image_name,
     )
     if CONF.feature.driver.is_platform_ec2:
-        kwargs.update({ 'reboot': False})
+        kwargs.update({'reboot': False})
     image = cloud.create_template(**kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
@@ -114,7 +114,7 @@ def create_role(step):
     name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
             CONF.feature.dist,
             datetime.now())
-    behaviors = ['bas','chef']
+    behaviors = ['base','chef']
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
@@ -145,20 +145,22 @@ def create_role(step):
 def setup_farm(step):
     farm = getattr(world, 'farm')
     branch = CONF.feature.to_branch
+    release = branch in ['latest', 'stable']
     role_kwargs = dict(
         location = CONF.platforms[CONF.feature.platform]['location'] \
             if not CONF.feature.driver.is_platform_gce else "",
         options = {
-            "base.upd.repository": branch,
-            "base.devel_repository": CONF.feature.ci_repo,
-            "user-data.scm_branch": branch},
+            "user-data.scm_branch": '' if release else branch,
+            "base.upd.repository": branch if release else '',
+            "base.devel_repository": '' if release else CONF.feature.ci_repo
+        },
         alias = world.role['name'],
         use_vpc = USE_VPC
     )
+    LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
     farm.roles.reload()
     farm_role = farm.roles[0]
-    LOG.info('Change branch to: %s for role: %s' % (branch, farm_role.id))
     setattr(world, '%s_role' % world.role['name'], farm_role)
 
 
@@ -167,10 +169,9 @@ def update_scalarizr_by_scalr_ui(step):
     pass
 
 
-@step(r'^([\w\-]+) version is valid in ([\w\d]+)$')
-def assert_version(step, service, serv_as):
+@step(r'scalarizr version is valid in ([\w\d]+)$')
+def assert_version(step, serv_as):
     server = getattr(world, 'serv_as')
-    service = service.strip()
     pre_installed_agent = world.pre_installed_agent
     cloud = world.cloud
     server.reload()
