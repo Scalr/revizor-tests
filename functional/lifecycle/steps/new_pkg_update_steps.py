@@ -61,8 +61,8 @@ def install_scalarizr(step, serv_as):
             'CI_REPO={repo} ; ' \
             'BRANCH={branch} ; ' \
             'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash'.format(**cmd_kwargs )
-        res = cloud_server.run(cmd)
-    version = re.findall('\(([\w\d/./-]+)\)', res[0].splitlines()[-1])
+        res = cloud_server.run(cmd)[0].splitlines()[-1].strip()
+    version = re.findall('\(([\w\d/./-]+)\)', res)
     assert  version, 'Could not install scalarizr'
     LOG.debug('Scalarizr %s was successfully installed' % version)
     setattr(world, 'pre_installed_agent', version[0])
@@ -171,30 +171,26 @@ def update_scalarizr_by_scalr_ui(step):
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
 def assert_version(step, serv_as):
-    server = getattr(world, 'serv_as')
+    server = getattr(world, serv_as)
     pre_installed_agent = world.pre_installed_agent
     cloud = world.cloud
     server.reload()
-    node = wait_until(cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-    LOG.debug('Node get successfully %s' % node)
+    command = 'scalarizr -v'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        return
-
+        res = world.run_cmd_command(server, command).std_out
     # Linux handler
     else:
-        res = node.run('scalarizr -v')
-        assert not res[1]
-        installed_agent = res[0].split()[1]
+        node = wait_until(cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+        LOG.debug('Node get successfully %s' % node)
+        res = node.run(command)[0]
+    assert re.findall('(Scalarizr [a-z0-9/./-]+)', res), "Can't get scalarizr version: %s" % res
+    installed_agent = res.split()[1]
     LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
-    assert LooseVersion(pre_installed_agent) > LooseVersion(installed_agent), 'Scalarizr version not valid'
+    assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
+        'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
 
 
 @step(r'I fork ([A-za-z0-9\/\-\_]+) branch to ([A-za-z0-9\/\-\_]+)$')
 def fark_git_branch(step, branch_from, branch_to):
-    pass
-
-
-@after.all
-def cleanup(total):
     pass

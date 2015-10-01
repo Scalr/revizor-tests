@@ -51,7 +51,7 @@ def get_windows_session(server):
                             auth=(username, server.windows_password))
     return session
 
-
+@world.absorb
 def run_cmd_command(server, command):
     console = get_windows_session(server)
     LOG.info('Run command: %s in server %s' % (command, server.id))
