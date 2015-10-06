@@ -38,18 +38,10 @@ Feature: Check chef attributes set
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And file '/root/chef_solo_result' exist in M1
+        And file <settings> exist in M1
 
     Examples:
-      | settings              |
-      | chef-solo             |
-      | chef-solo-from-branch |
-
-    @ec2 @gce @cloudstack @openstack @rackspaceng
-    Scenario: Bootstrapping role with chef-solo from public repo
-        Given I have a clean and stopped farm
-        When I add role to this farm with chef-solo-public
-        When I start farm
-        Then I expect server bootstrapping as M1
-        And scalarizr version is last in M1
-        And nginx is running on M1
+      | settings                |
+      | chef-solo-private       |
+      | chef-solo-public        |
+      | chef-solo-public-branch |
