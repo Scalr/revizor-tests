@@ -13,7 +13,8 @@ from revizor2.api import Script, Farm, Metrics
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
-    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS
+    SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS, \
+    DEFAULT_CHEF_SOLO, DEFAULT_CHEF_SOLO_URL
 
 
 LOG = logging.getLogger(__name__)
@@ -187,6 +188,29 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 ]
             elif opt.startswith('scaling'):
                 scaling_metrics = DEFAULT_SCALINGS[opt]
+            elif 'chef-solo' in opt:
+                chef_opts = opt.split('-')
+                default_chef_solo_opts = DEFAULT_CHEF_SOLO.copy()
+                # Set common arguments
+                repo_url = DEFAULT_CHEF_SOLO_URL.get(chef_opts[2], '')
+                chef_attributes = json.dumps({'chef-solo': {'result': opt.strip()}})
+                private_key = ''
+                relative_path = ''
+                # Set arguments for repo url with branch
+                if chef_opts[-1] == 'branch':
+                    repo_url = ''.join((repo_url, '@revizor-test'))
+                # Set arguments for private repo
+                elif chef_opts[2] == 'private':
+                    relative_path = 'cookbooks'
+                    private_key = open(os.path.expanduser(CONF.main.private_key), 'r').read()
+                # Update default chef_solo options
+                default_chef_solo_opts.update({
+                    "chef.cookbook_url": repo_url,
+                    "chef.relative_path": relative_path,
+                    "chef.ssh_private_key": private_key,
+                    "chef.attributes": chef_attributes})
+                # Update role options
+                role_options.update(default_chef_solo_opts)
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
