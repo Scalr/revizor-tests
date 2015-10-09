@@ -21,7 +21,7 @@ from revizor2.utils import wait_until
 LOG = logging.getLogger(__name__)
 
 @step(r'I have a clean image')
-def get_clean_image(step):
+def having_clean_image(step):
     cloud = world.cloud
     image = cloud.find_image(use_hvm=USE_VPC)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
@@ -29,8 +29,8 @@ def get_clean_image(step):
 
 
 @step(r'I install scalarizr to the server(\s[\w\d]+)*$')
-def install_scalarizr(step, serv_as):
-    server = getattr(world, serv_as.strip(), '')
+def installing_scalarizr(step, serv_as):
+    server = getattr(world, serv_as, '')
     node = None
     # Wait cloud server running
     if server:
@@ -41,35 +41,35 @@ def install_scalarizr(step, serv_as):
     cloud_server =  node or getattr(world, 'cloud_server', None)
     assert cloud_server,  'Node not found'
     branch = CONF.feature.branch
+    repo = CONF.feature.ci_repo.lower()
+    platform = CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud))
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         return
     else:
         # Linux handler
         LOG.info('Install scalarizr from branch: %s to node: %s ' % (branch, cloud_server.name))
-        curl_install_cmd = dict(
-            debian = "apt-get update && apt-get install curl -y",
-            centos = "yum clean all && yum install curl -y"
-        )
-        cmd_kwargs = dict(
-            curl_install = curl_install_cmd.get(Dist.get_os_family(cloud_server.os[0])),
-            platform=CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud)),
-            repo=CONF.feature.ci_repo.lower(),
-            branch=branch)
-        cmd = '{curl_install} && ' \
+        curl_install_cmd = ("apt-get update && apt-get install curl -y",
+            "yum clean all && yum install curl -y")
+        scalarizr_install_cmd = '{curl_install} && ' \
             'PLATFORM={platform} ; ' \
             'CI_REPO={repo} ; ' \
             'BRANCH={branch} ; ' \
-            'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash'.format(**cmd_kwargs )
-        res = cloud_server.run(cmd)[0].splitlines()[-1].strip()
-    version = re.findall('\(([\w\d/./-]+)\)', res)
+            'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash &&' \
+            'scalarizr -v'.format(
+                curl_install = world.value_for_os_family(*curl_install_cmd, cloud_server),
+                platform=platform,
+                repo=repo,
+                branch=branch)
+        res = cloud_server.run(scalarizr_install_cmd)[0].splitlines()[-1].strip()
+    version = re.findall('(Scalarizr [a-z0-9/./-]+)', res)
     assert  version, 'Could not install scalarizr'
     LOG.debug('Scalarizr %s was successfully installed' % version)
-    setattr(world, 'pre_installed_agent', version[0])
+    setattr(world, 'pre_installed_agent', version[0].split()[1])
 
 
 @step(r'I create image from deployed server')
-def create_image(step):
+def creating_image(step):
     cloud = world.cloud
     cloud_server = getattr(world, 'cloud_server')
     # Create an image
@@ -102,7 +102,7 @@ def create_image(step):
 
 
 @step(r'I add image to the new role')
-def create_role(step):
+def creating_role(step):
     image_registered = False
     cloud_location = CONF.platforms[CONF.feature.platform]['location'] \
         if not CONF.feature.driver.is_platform_gce else ""
@@ -142,7 +142,7 @@ def create_role(step):
 
 
 @step(r'I add created role to the farm')
-def setup_farm(step):
+def setting_farm(step):
     farm = getattr(world, 'farm')
     branch = CONF.feature.to_branch
     release = branch in ['latest', 'stable']
@@ -165,12 +165,12 @@ def setup_farm(step):
 
 
 @step(r'I trigger scalarizr update by Scalr UI')
-def update_scalarizr_by_scalr_ui(step):
+def updating_scalarizr_by_scalr_ui(step):
     pass
 
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
-def assert_version(step, serv_as):
+def asserting_version(step, serv_as):
     server = getattr(world, serv_as)
     pre_installed_agent = world.pre_installed_agent
     cloud = world.cloud
@@ -192,5 +192,5 @@ def assert_version(step, serv_as):
 
 
 @step(r'I fork ([A-za-z0-9\/\-\_]+) branch to ([A-za-z0-9\/\-\_]+)$')
-def fark_git_branch(step, branch_from, branch_to):
+def forking_git_branch(step, branch_from, branch_to):
     pass
