@@ -38,7 +38,7 @@ Feature: Check chef attributes set
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And file <settings> exist in M1
+        And file '<settings>' exist in M1
 
     Examples:
       | settings                |
