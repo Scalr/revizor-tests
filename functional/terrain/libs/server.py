@@ -591,16 +591,16 @@ def is_log_rotate(server, process, rights, group=None):
     return True
 
 @world.absorb
-def value_for_os_family(debian, centos, node=None, server=None):
-    if not (node or server):
-        raise AttributeError('Not enough required attributes: server or node')
-    # Get node by server
-    if server and not node:
+def value_for_os_family(debian, centos, server=None, node=None):
+    if server:
+        # Get node by server
         node = world.cloud.get_node(server)
+    elif not node:
+        raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get node os name
-    node_os = (getattr(node, 'os', False) or [''])[0]
+    node_os = getattr(node, 'os', [''])[0]
     # Get os family result
-    os_family_res =  dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os) or '', False)
+    os_family_res =  dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os) or '')
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node_os)
     return os_family_res

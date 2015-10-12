@@ -20,6 +20,18 @@ from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
 
+def get_user_name():
+    if CONF.feature.driver.is_platform_gce:
+        user_name = 'scalr'
+    elif 'ubuntu' in CONF.feature.dist:
+        user_name = ['ubuntu', 'root']
+    elif 'amzn' in CONF.feature.dist:
+        user_name = 'ec2-user'
+    else:
+        user_name = 'root'
+    return user_name
+
+
 @step(r'I have a clean image')
 def having_clean_image(step):
     cloud = world.cloud
@@ -29,43 +41,45 @@ def having_clean_image(step):
 
 
 @step(r'I install scalarizr to the server(\s[\w\d]+)*$')
-def installing_scalarizr(step, serv_as):
-    server = getattr(world, serv_as, '')
-    node = None
-    # Wait cloud server running
-    if server:
-        cloud = world.cloud
-        server.reload()
-        node = wait_until(cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-        LOG.debug('Node get successfully %s' % node)
-    cloud_server =  node or getattr(world, 'cloud_server', None)
-    assert cloud_server,  'Node not found'
+def installing_scalarizr(step, serv_as=''):
+    node =  getattr(world, 'cloud_server', False)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
     platform = CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud))
+    # Wait cloud server
+    if not node:
+        LOG.debug('Cloud server not found get node from server')
+        server = getattr(world, serv_as.strip())
+        server.reload()
+        node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+        LOG.debug('Node get successfully: %s' % node)
+    assert node,  'Node not found'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         return
+    # Linux handler
     else:
-        # Linux handler
-        LOG.info('Install scalarizr from branch: %s to node: %s ' % (branch, cloud_server.name))
-        curl_install_cmd = ("apt-get update && apt-get install curl -y",
-            "yum clean all && yum install curl -y")
-        scalarizr_install_cmd = '{curl_install} && ' \
+        # Wait ssh
+        ssh = wait_until(node.get_ssh, kwargs=dict(user=get_user_name()), timeout=300, logger=LOG)
+        LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
+        cmd = '{curl_install} && ' \
             'PLATFORM={platform} ; ' \
             'CI_REPO={repo} ; ' \
             'BRANCH={branch} ; ' \
             'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash &&' \
             'scalarizr -v'.format(
-                curl_install = world.value_for_os_family(*curl_install_cmd, cloud_server),
+                curl_install=world.value_for_os_family(
+                    debian="apt-get update && apt-get install curl -y",
+                    centos="yum clean all && yum install curl -y",
+                    server=server),
                 platform=platform,
                 repo=repo,
                 branch=branch)
-        res = cloud_server.run(scalarizr_install_cmd)[0].splitlines()[-1].strip()
+        res = node.run(cmd, ssh=ssh)[0].splitlines()[-1].strip()
     version = re.findall('(Scalarizr [a-z0-9/./-]+)', res)
     assert  version, 'Could not install scalarizr'
-    LOG.debug('Scalarizr %s was successfully installed' % version)
     setattr(world, 'pre_installed_agent', version[0].split()[1])
+    LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
 
 
 @step(r'I create image from deployed server')
@@ -89,9 +103,9 @@ def creating_image(step):
     # Remove cloud server
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
     setattr(world, 'image', image)
-    LOG.debug('Image atrs: %s' % dir(image))
+    LOG.debug('Image attrs: %s' % dir(image))
     LOG.debug('Image Name: %s' % image.name)
-    if CONF.feature.driver.is_platform_idcf:
+    if CONF.feature.driver.is_platform_cloudstack:
         forwarded_port = world.forwarded_port
         ip = world.ip
         assert cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
@@ -107,14 +121,14 @@ def creating_role(step):
     cloud_location = CONF.platforms[CONF.feature.platform]['location'] \
         if not CONF.feature.driver.is_platform_gce else ""
     image_kwargs = dict(
-        platform = CONF.feature.driver.scalr_cloud,
-        cloud_location =  cloud_location,
-        image_id = world.image.id
+        platform=CONF.feature.driver.scalr_cloud,
+        cloud_location=cloud_location,
+        image_id=world.image.id
     )
     name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
             CONF.feature.dist,
             datetime.now())
-    behaviors = ['base','chef']
+    behaviors = ['chef']
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
@@ -130,12 +144,12 @@ def creating_role(step):
         IMPL.image.create(**image_kwargs)
     # Create new role
     role_kwargs = dict(
-        name =  name,
-        behaviors = behaviors,
-        images = [dict(
-            platform = CONF.feature.driver.scalr_cloud,
-            cloudLocation =  cloud_location,
-            imageId = world.image.id)])
+        name=name,
+        behaviors=behaviors,
+        images=[dict(
+            platform=CONF.feature.driver.scalr_cloud,
+            cloudLocation=cloud_location,
+            imageId=world.image.id)])
     LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
@@ -143,19 +157,19 @@ def creating_role(step):
 
 @step(r'I add created role to the farm')
 def setting_farm(step):
-    farm = getattr(world, 'farm')
+    farm = world.farm
     branch = CONF.feature.to_branch
     release = branch in ['latest', 'stable']
     role_kwargs = dict(
-        location = CONF.platforms[CONF.feature.platform]['location'] \
+        location=CONF.platforms[CONF.feature.platform]['location'] \
             if not CONF.feature.driver.is_platform_gce else "",
-        options = {
+        options={
             "user-data.scm_branch": '' if release else branch,
             "base.upd.repository": branch if release else '',
             "base.devel_repository": '' if release else CONF.feature.ci_repo
         },
-        alias = world.role['name'],
-        use_vpc = USE_VPC
+        alias=world.role['name'],
+        use_vpc=USE_VPC
     )
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
@@ -173,7 +187,6 @@ def updating_scalarizr_by_scalr_ui(step):
 def asserting_version(step, serv_as):
     server = getattr(world, serv_as)
     pre_installed_agent = world.pre_installed_agent
-    cloud = world.cloud
     server.reload()
     command = 'scalarizr -v'
     # Windows handler
@@ -181,9 +194,8 @@ def asserting_version(step, serv_as):
         res = world.run_cmd_command(server, command).std_out
     # Linux handler
     else:
-        node = wait_until(cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-        LOG.debug('Node get successfully %s' % node)
-        res = node.run(command)[0]
+        node = world.cloud.get_node(server)
+        res = node.run(command, user=get_user_name())[0]
     assert re.findall('(Scalarizr [a-z0-9/./-]+)', res), "Can't get scalarizr version: %s" % res
     installed_agent = res.split()[1]
     LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
@@ -191,6 +203,6 @@ def asserting_version(step, serv_as):
         'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
 
 
-@step(r'I fork ([A-za-z0-9\/\-\_]+) branch to ([A-za-z0-9\/\-\_]+)$')
+@step(r'I checkout to ([A-za-z0-9\/\-\_]+) from branch ([A-za-z0-9\/\-\_]+)$')
 def forking_git_branch(step, branch_from, branch_to):
     pass
