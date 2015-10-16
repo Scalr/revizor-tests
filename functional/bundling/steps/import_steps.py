@@ -120,6 +120,17 @@ COOKBOOKS_BEHAVIOR = {
 
 }
 
+CLEAN_IMAGES = {
+    'windows2012': {
+        'ec2': 'ami-75de9d10',
+        'gce': '3138506319727157610',
+    },
+    'windows2008': {
+        'ec2': 'ami-31c79354',
+        'gce': None,
+    }
+}
+
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
@@ -133,7 +144,10 @@ def given_server_in_cloud(step, user_data):
     else:
         user_data = None
     #Create node
-    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC)
+    image = None
+    if Dist.is_windows_family(CONF.feature.dist):
+        image = CLEAN_IMAGES[CONF.feature.dist][CONF.feature.platform]
+    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
