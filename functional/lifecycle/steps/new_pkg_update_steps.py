@@ -4,21 +4,47 @@
 Created on 09.01.2015
 @author: Eugeny Kurkovich
 """
-
+import time
 import re
 import logging
+try:
+    import winrm
+except ImportError:
+    raise ImportError("Please install WinRM")
 
 from datetime import datetime
-from revizor2.api import IMPL
+from revizor2.api import IMPL, Cloud
 from revizor2.conf import CONF
 from lettuce import step, world, after
-from revizor2.consts import Dist
+from revizor2.consts import Dist, Platform
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.utils import wait_until
 
 
 LOG = logging.getLogger(__name__)
+
+
+def run_sysprep(node, console):
+    if CONF.feature.driver.cloud_family == Platform.GCE:
+        sysprep_command = 'gcesysprep'
+    elif CONF.feature.driver.cloud_family == Platform.EC2:
+        sysprep_command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
+    try:
+        console.run_cmd(sysprep_command)
+    except (IOError, winrm.exceptions.WinRMTransportError, winrm.exceptions.UnauthorizedError):
+        pass
+    # Check that instance has stopped after sysprep
+    state = None
+    end_time = time.time() + 180
+    while time.time() < end_time:
+        for i in Cloud(CONF.feature.platform).list_nodes():
+            if i.uuid == node.uuid:
+                state = i.state
+                if state == 5:
+                    break
+    assert state, 'Cloud instance is not in STOPPED status - sysprep failed'
+
 
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
@@ -56,7 +82,14 @@ def installing_scalarizr(step, serv_as=''):
     assert node,  'Node not found'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        return
+        username = 'Administrator'
+        if CONF.feature.driver.cloud_family == Platform.GCE:
+            username = 'scalr'
+        console = winrm.Session('http://%s:5985/wsman' % node.public_ips[0],
+                                auth=(username, 'scalr'))
+        command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('https://my.scalr.net/public/windows/stridercd/%s/install_scalarizr.ps1'))" ; scalarizr -v''' % branch
+        res = console.run_cmd(command).std_out
+        run_sysprep(node, console)
     # Linux handler
     else:
         # Wait ssh
