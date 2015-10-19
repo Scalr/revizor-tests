@@ -71,7 +71,9 @@ Feature: Nginx load balancer role test with apache backends
         Then D2 resolves into W1 ip address
         And http get domain D2 matches H2 index page
         And https get domain D2 matches H2 index page
-        And domain D2 contains valid Cert and CACert
+        And virtual host has a valid SSL certificate
+          | source    | source_name | key         |
+          | domain    | D2          |revizor-key  |
         And my IP in A1 D2 ssl access logs
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
