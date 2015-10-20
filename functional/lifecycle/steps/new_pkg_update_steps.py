@@ -45,7 +45,7 @@ def installing_scalarizr(step, serv_as=''):
     node =  getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
-    platform = CONF.feature.driver.scalr_cloud()
+    platform = CONF.feature.driver.scalr_cloud
     # Wait cloud server
     if not node:
         LOG.debug('Cloud server not found get node from server')
