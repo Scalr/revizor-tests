@@ -40,12 +40,12 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I install scalarizr to the server(\s[\w\d]+)*$')
+@step(r'I install scalarizr to the server(?: (\w+))?')
 def installing_scalarizr(step, serv_as=''):
-    node =  getattr(world, 'cloud_server', False)
+    node =  getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
-    platform = CONF.feature.driver.to_scalr(CONF.feature.driver.get_platform_group(CONF.feature.driver.current_cloud))
+    platform = CONF.feature.driver.scalr_cloud()
     # Wait cloud server
     if not node:
         LOG.debug('Cloud server not found get node from server')
@@ -84,7 +84,6 @@ def installing_scalarizr(step, serv_as=''):
 
 @step(r'I create image from deployed server')
 def creating_image(step):
-    cloud = world.cloud
     cloud_server = getattr(world, 'cloud_server')
     # Create an image
     image_name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
@@ -98,7 +97,7 @@ def creating_image(step):
     )
     if CONF.feature.driver.is_platform_ec2:
         kwargs.update({'reboot': False})
-    image = cloud.create_template(**kwargs)
+    image = world.cloud.create_template(**kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
@@ -108,7 +107,7 @@ def creating_image(step):
     if CONF.feature.driver.is_platform_cloudstack:
         forwarded_port = world.forwarded_port
         ip = world.ip
-        assert cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
+        assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
     LOG.info('Port forwarding rule was successfully removed.')
     assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
