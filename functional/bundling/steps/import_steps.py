@@ -123,11 +123,11 @@ COOKBOOKS_BEHAVIOR = {
 CLEAN_IMAGES = {
     'windows2012': {
         'ec2': 'ami-75de9d10',
-        'gce': '3138506319727157610',
+        'gce': '7281854539962660953',
     },
     'windows2008': {
         'ec2': 'ami-31c79354',
-        'gce': None,
+        'gce': '7738642806021438243',
     }
 }
 
