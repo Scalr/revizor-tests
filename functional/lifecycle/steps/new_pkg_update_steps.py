@@ -88,10 +88,8 @@ def installing_scalarizr(step, serv_as=''):
         console = winrm.Session('http://%s:5985/wsman' % node.public_ips[0],
                                 auth=(username, 'scalr'))
         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('https://my.scalr.net/public/windows/stridercd/%s/install_scalarizr.ps1'))"''' % CONF.feature.branch
-        out = console.run_cmd(command)
-        print out.std_err
+        console.run_cmd(command)
         res = console.run_cmd('scalarizr -v').std_out
-        print res
         run_sysprep(node, console)
     # Linux handler
     else:
