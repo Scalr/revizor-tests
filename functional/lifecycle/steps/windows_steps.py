@@ -93,23 +93,17 @@ def assert_check_message_in_log(step, message, serv_as):
 @step(r"server ([\w\d]+) has disks ([(\w:) (\d+) Gb,]+)")
 @world.run_only_if(platform=Platform.EC2)
 def check_attached_disk_size(step, serv_as, cdisks):
-    correct_disks = {}
-    for i in cdisks.split(','):
-        correct_disks[re.findall('\w:', i)[0]] = re.findall('\d+', i)[0]
+    correct_disks = dict(re.findall('(\w+): (\d+) Gb', cdisks))
     server = getattr(world, serv_as)
     out = world.run_cmd_command(server, 'wmic logicaldisk get size,caption').std_out
-    sdisks = filter(lambda x: x.strip(), out.splitlines()[1:])
-    server_disks = {}
-    for d in sdisks:
-        server_disks[re.findall('\w:', d)[0]] = str(int(re.findall('\d+', d)[0])/1000000000)
-    for i in correct_disks.viewitems():
-        if i not in server_disks.viewitems():
-            try:
-                size = server_disks[i[0]]
-            except KeyError:
-                raise AssertionError("Disk %s is not present" % i[0])
-            if size != i[1]:
-                raise AssertionError("Disk %s is of wrong size  - %s " % (i[0], i[1]))
+    sdisks = filter(lambda x: x.strip(), out)
+    server_disks = dict(re.findall('(\w):(\d+)', sdisks))
+    server_disks = {k: int(v)/1000000000 for k, v in server_disks.items()}
+    for label in correct_disks:
+        if label in server_disks:
+            assert int(correct_disks[label]) == server_disks[label], "Disk %s is of wrong size  - %s " % (label, server_disks[label])
+        else:
+            raise AssertionError("Disk %s is not present" % label)
 
 
 @step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")
