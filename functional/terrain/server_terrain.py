@@ -78,7 +78,7 @@ def server_state_action(step, action, reboot_type, serv_as):
         error_message = "% success: %s" % (action, res)
     elif isinstance(res, dict):
         error_message = res.get('errorMessage', None)
-    # Workaround for SCALRCORE-1576    
+    # Workaround for SCALRCORE-1576
     if error_message == [u'Unable to perform request to scalarizr: A server error occurred.  Please contact the administrator. (500)']:
         error_message = None
     assert not error_message, error_message
@@ -230,7 +230,7 @@ def verify_string_in_file(step, file_path, value, serv_as):
 
 
 @step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
-@world.run_only_if(storage='persistent')
+@world.run_only_if(storage='persistent', platform='!'+Platform.EC2)
 def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
@@ -268,7 +268,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
 
 
 @step(r'attached volume ([\w\d]+) has size (\d+) Gb')
-@world.run_only_if(platform=(Platform.EC2, Platform.CLOUDSTACK), storage='persistent')
+@world.run_only_if(platform=(Platform.CLOUDSTACK), storage='persistent')
 def verify_attached_volume_size(step, volume_as, size):
     LOG.info('Verify attached volume has new size "%s"' % size)
     size = int(size)

@@ -1,5 +1,6 @@
 import time
 import logging
+import re
 from datetime import datetime
 
 from lettuce import world, step
@@ -89,22 +90,20 @@ def assert_check_message_in_log(step, message, serv_as):
     raise AssertionError("Not see message %s in scripts logs" % message)
 
 
-@step('server ([\w\d]+) has disk with size (\d+)Gb')
-def check_attached_disk_size(step, serv_as, size):
-    time.sleep(60)
-    size = int(size)
+@step(r"server ([\w\d]+) has disks ([(\w:) (\d+) Gb,]+)")
+@world.run_only_if(platform=Platform.EC2)
+def check_attached_disk_size(step, serv_as, cdisks):
+    correct_disks = dict(re.findall('(\w+): (\d+) Gb', cdisks))
     server = getattr(world, serv_as)
     out = world.run_cmd_command(server, 'wmic logicaldisk get size,caption').std_out
-    disks = filter(lambda x: x.strip(), out.splitlines()[1:])
-    disks = dict([(disk.split()[0],
-                   int(round(int(disk.split()[1])/1024/1024/1024.)))
-                  for disk in disks])
-    for disk in disks:
-        if disks[disk] == size:
-            return
-    else:
-        raise AssertionError('Any attached disk does\'nt has size "%s", all disks "%s"'
-                             % (size, disks))
+    sdisks = filter(lambda x: x.strip(), out)
+    server_disks = dict(re.findall('(\w):(\d+)', sdisks))
+    server_disks = {k: int(v)/1000000000 for k, v in server_disks.items()}
+    for label in correct_disks:
+        if label in server_disks:
+            assert int(correct_disks[label]) == server_disks[label], "Disk %s is of wrong size  - %s " % (label, server_disks[label])
+        else:
+            raise AssertionError("Disk %s is not present" % label)
 
 
 @step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")
