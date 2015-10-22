@@ -191,7 +191,7 @@ def verify_listen_for_port(step, serv_as, option, port):
     node = world.cloud.get_node(haproxy_server)
     config = wait_until(check_config_for_option,
                         args=[node, 'listens', port],
-                        timeout=180,
+                        timeout=300,
                         error_text='No listens section in HAProxy config')
     LOG.debug("HAProxy config : %s" % config)
     if option == 'backend':
