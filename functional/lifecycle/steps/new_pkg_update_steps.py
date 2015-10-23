@@ -35,14 +35,16 @@ def run_sysprep(node, console):
     except (IOError, winrm.exceptions.WinRMTransportError, winrm.exceptions.UnauthorizedError):
         pass
     # Check that instance has stopped after sysprep
+    cloud = world.cloud
     state = None
     end_time = time.time() + 180
-    while time.time() < end_time:
-        for i in Cloud(CONF.feature.platform).list_nodes():
-            if i.uuid == node.uuid:
-                state = i.state
-                if state == 5:
-                    break
+    while not state:
+        for n in cloud.list_nodes():
+            if n.uuid == node.uuid:
+                state = n.state
+        if time.time() > end_time:
+            break
+        time.sleep(10)
     assert state, 'Cloud instance is not in STOPPED status - sysprep failed'
 
 
@@ -82,14 +84,18 @@ def installing_scalarizr(step, serv_as=''):
     assert node,  'Node not found'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        username = 'Administrator'
-        if CONF.feature.driver.cloud_family == Platform.GCE:
-            username = 'scalr'
-        console = winrm.Session('http://%s:5985/wsman' % node.public_ips[0],
-                                auth=(username, 'scalr'))
+        # username = 'Administrator'
+        # if CONF.feature.driver.cloud_family == Platform.GCE:
+        #     username = 'scalr'
+        # console = winrm.Session('http://%s:5985/wsman' % node.public_ips[0],
+        #                         auth=(username, 'scalr'))
+        console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('https://my.scalr.net/public/windows/stridercd/%s/install_scalarizr.ps1'))"''' % CONF.feature.branch
-        console.run_cmd(command)
+        out = console.run_cmd(command)
+        print out.std_err
+        print out.std_out
         res = console.run_cmd('scalarizr -v').std_out
+        print res
         run_sysprep(node, console)
     # Linux handler
     else:
