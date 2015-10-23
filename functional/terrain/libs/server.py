@@ -604,3 +604,23 @@ def value_for_os_family(debian, centos, server=None, node=None):
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node_os)
     return os_family_res
+
+@world.absorb
+def get_service_paths(service_name, server=None, node=None, service_conf=None, service_conf_base_path=None):
+    if server:
+        node = world.cloud.get_node(server)
+    elif not node:
+        raise AttributeError()
+    # Get service path
+    service_path = node.run('which %s' % service_name)
+    if service_path[2]:
+        raise AssertionError()
+    service_path = dict(bin=service_path[0].split()[0], conf='')
+    # Get service config path
+    if service_conf:
+        base_path = service_conf_base_path or '/etc'
+        service_conf_path = node.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
+        if service_conf_path[2]:
+            raise AssertionError()
+        service_path.update({'conf': service_conf_path[0].split()[0]})
+    return service_path
