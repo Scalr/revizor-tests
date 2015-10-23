@@ -79,6 +79,7 @@ def installing_scalarizr(step, serv_as=''):
     version = re.findall('(Scalarizr [a-z0-9/./-]+)', res)
     assert  version, 'Could not install scalarizr'
     setattr(world, 'pre_installed_agent', version[0].split()[1])
+    setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
 
 
@@ -117,12 +118,16 @@ def creating_image(step):
 @step(r'I add image to the new role')
 def creating_role(step):
     image_registered = False
-    cloud_location = CONF.platforms[CONF.feature.platform]['location'] \
-        if not CONF.feature.driver.is_platform_gce else ""
+    if CONF.feature.driver.is_platform_gce:
+        cloud_location = ""
+        image_id = world.image.extra['selfLink'].split('projects')[-1][1:]
+    else:
+         cloud_location = CONF.platforms[CONF.feature.platform]['location']
+         image_id = world.image.id
     image_kwargs = dict(
         platform=CONF.feature.driver.scalr_cloud,
         cloud_location=cloud_location,
-        image_id=world.image.id
+        image_id=image_id
     )
     name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
             CONF.feature.dist,
@@ -148,7 +153,7 @@ def creating_role(step):
         images=[dict(
             platform=CONF.feature.driver.scalr_cloud,
             cloudLocation=cloud_location,
-            imageId=world.image.id)])
+            imageId=image_id)])
     LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
@@ -205,3 +210,8 @@ def asserting_version(step, serv_as):
 @step(r'I checkout to ([A-za-z0-9\/\-\_]+) from branch ([A-za-z0-9\/\-\_]+)$')
 def forking_git_branch(step, branch_from, branch_to):
     pass
+
+@step(r'I reboot server')
+def rebooting_server(step):
+    if not world.cloud_server.reboot():
+        raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
