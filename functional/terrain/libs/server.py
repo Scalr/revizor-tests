@@ -39,16 +39,19 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 
 
 @world.absorb
-def get_windows_session(server):
+def get_windows_session(server=None, public_ip=None, password=None):
     username = 'Administrator'
     port = 5985
+    if server:
+        public_ip = server.public_ip
+        password = server.windows_password
     if CONF.feature.driver.cloud_family == Platform.GCE:
         username = 'scalr'
     elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
         node = world.cloud.get_node(server)
         port = world.cloud.open_port(node, port)
-    session = winrm.Session('http://%s:%s/wsman' % (server.public_ip, port),
-                            auth=(username, server.windows_password))
+    session = winrm.Session('http://%s:%s/wsman' % (public_ip, port),
+                            auth=(username, password))
     return session
 
 @world.absorb
