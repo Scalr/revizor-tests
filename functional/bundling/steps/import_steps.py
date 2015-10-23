@@ -10,6 +10,7 @@ from revizor2.consts import Platform, Dist
 from revizor2.defaults import USE_VPC
 from revizor2.utils import wait_until
 from revizor2.helpers import install_behaviors_on_node
+from revizor2.fixtures import tables
 
 LOG = logging.getLogger(__name__)
 
@@ -120,16 +121,6 @@ COOKBOOKS_BEHAVIOR = {
 
 }
 
-CLEAN_IMAGES = {
-    'windows2012': {
-        'ec2': 'ami-75de9d10',
-        'gce': '7281854539962660953',
-    },
-    'windows2008': {
-        'ec2': 'ami-31c79354',
-        'gce': '7738642806021438243',
-    }
-}
 
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
@@ -146,8 +137,9 @@ def given_server_in_cloud(step, user_data):
     #Create node
     image = None
     if Dist.is_windows_family(CONF.feature.dist):
-        image = CLEAN_IMAGES[CONF.feature.dist][CONF.feature.platform]
-    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
+        image = tables('images-clean').filter({'dist': CONF.feature.dist,
+                                               'platform': CONF.feature.platform}).first().keys()[0]
+    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image.encode('ascii','ignore'))
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
