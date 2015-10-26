@@ -7,17 +7,20 @@ Created on 09.01.2015
 
 import re
 import logging
-
 from datetime import datetime
 from revizor2.api import IMPL
 from revizor2.conf import CONF
+from collections import namedtuple
 from lettuce import step, world, after
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.utils import wait_until
 
-
+SCALARIZR_REPOS = namedtuple('SCALARIZR_REPOS', ('release', 'develop'))(
+    'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
+    'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH'
+)
 LOG = logging.getLogger(__name__)
 
 def get_user_name():
@@ -62,19 +65,22 @@ def installing_scalarizr(step, serv_as=''):
         # Wait ssh
         ssh = wait_until(node.get_ssh, kwargs=dict(user=get_user_name()), timeout=300, logger=LOG)
         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
+        repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
         cmd = '{curl_install} && ' \
             'PLATFORM={platform} ; ' \
             'CI_REPO={repo} ; ' \
             'BRANCH={branch} ; ' \
-            'curl -L http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH/install_scalarizr.sh | bash &&' \
-            'scalarizr -v'.format(
+            'curl -L {url}/install_scalarizr.sh | bash && ' \
+            'sync && scalarizr -v'.format(
                 curl_install=world.value_for_os_family(
                     debian="apt-get update && apt-get install curl -y",
                     centos="yum clean all && yum install curl -y",
                     server=server),
                 platform=platform,
                 repo=repo,
-                branch=branch)
+                branch=branch,
+                url=getattr(SCALARIZR_REPOS, repo_type))
+        LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, ssh=ssh)[0].splitlines()[-1].strip()
     version = re.findall('(Scalarizr [a-z0-9/./-]+)', res)
     assert  version, 'Could not install scalarizr'
@@ -215,3 +221,4 @@ def forking_git_branch(step, branch_from, branch_to):
 def rebooting_server(step):
     if not world.cloud_server.reboot():
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
+    world.cloud_server = None
