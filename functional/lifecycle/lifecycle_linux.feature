@@ -31,7 +31,7 @@ Feature: Linux server lifecycle
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
+    @ec2 @cloudstack @gce @rackspaceng @eucalyptus @reboot
     Scenario: Linux reboot
         Given I have running server M1
         When I reboot server M1
