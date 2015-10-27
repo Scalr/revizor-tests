@@ -19,7 +19,7 @@ def assert_check_script(step, message, state, serv_as):
                error_text='I\'m not see %s scripts execution for server %s' % (message, serv.id))
 
 
-@step("script ([\w\d -/]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d !:;=>\"/]+)?)? for ([\w\d]+)")
+@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d !:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
     LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\nuser: %s\nexitcode: %s\ncontain: %s' %
               (name, event, user, exitcode, contain)
@@ -32,7 +32,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
     # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
     # name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50] if name else name
     #FIXME: When marat merge https://scalr-labs.atlassian.net/browse/SCALARIZR-1879 to master change local to url
-    name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50]
+    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
     for log in server.scriptlogs:
         LOG.debug('Check script log:\nname: %s\nevent: %s\nrun as: %s\nexitcode: %s\n' %
                   (log.name, log.event, log.run_as, log.exitcode))
@@ -40,7 +40,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
         if log.event.strip() == event.strip() \
                 and log.run_as == user \
                 and ((name == 'chef' and log.name.strip().startswith(name))
-                     or (name == 'local' and log.name.strip().startswith(name))
+                     or (name.startswith('http') and log.name.strip().startswith(name))
                      or log.name.strip() == name):
 
             LOG.debug('We found event \'%s\' run from user %s' % (log.event, log.run_as))
