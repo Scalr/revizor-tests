@@ -4,24 +4,54 @@
 Created on 09.01.2015
 @author: Eugeny Kurkovich
 """
-
+import time
 import re
 import logging
+try:
+    import winrm
+except ImportError:
+    raise ImportError("Please install WinRM")
+
 from datetime import datetime
 from revizor2.api import IMPL
 from revizor2.conf import CONF
 from collections import namedtuple
-from lettuce import step, world, after
+from lettuce import step, world
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.utils import wait_until
 
-SCALARIZR_REPOS = namedtuple('SCALARIZR_REPOS', ('release', 'develop'))(
-    'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
-    'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH'
-)
 LOG = logging.getLogger(__name__)
+
+SCALARIZR_REPOS = namedtuple('SCALARIZR_REPOS', ('release', 'develop', 'win'))(
+    'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
+    'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH',
+    'https://my.scalr.net/public/windows/stridercd'
+)
+PLATFORM_SYSPREP = namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
+    'gcesysprep',
+    '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
+)
+
+def run_sysprep(node, console):
+    try:
+        console.run_cmd(getattr(PLATFORM_SYSPREP, CONF.feature.driver.scalr_cloud, ''))
+    except (IOError, winrm.exceptions.WinRMTransportError, winrm.exceptions.UnauthorizedError):
+        pass
+    # Check that instance has stopped after sysprep
+    cloud = world.cloud
+    state = None
+    end_time = time.time() + 180
+    while not state:
+        for n in cloud.list_nodes():
+            if n.uuid == node.uuid:
+                state = n.state
+        if time.time() > end_time:
+            break
+        time.sleep(10)
+    assert state, 'Cloud instance is not in STOPPED status - sysprep failed'
+
 
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
@@ -59,7 +89,13 @@ def installing_scalarizr(step, serv_as=''):
     assert node,  'Node not found'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        return
+        console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
+        command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
+            SCALARIZR_REPOS.win,
+            CONF.feature.branch)
+        console.run_cmd(command)
+        res = console.run_cmd('scalarizr -v').std_out
+        run_sysprep(node, console)
     # Linux handler
     else:
         # Wait ssh
