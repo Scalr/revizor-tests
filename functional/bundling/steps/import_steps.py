@@ -7,8 +7,10 @@ from lettuce import world, step, after
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
 from revizor2.consts import Platform, Dist
+from revizor2.defaults import USE_VPC
 from revizor2.utils import wait_until
 from revizor2.helpers import install_behaviors_on_node
+from revizor2.fixtures import tables
 
 LOG = logging.getLogger(__name__)
 
@@ -119,6 +121,7 @@ COOKBOOKS_BEHAVIOR = {
 
 }
 
+
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
@@ -132,7 +135,14 @@ def given_server_in_cloud(step, user_data):
     else:
         user_data = None
     #Create node
-    node = world.cloud.create_node(userdata=user_data)
+    image = None
+    if Dist.is_windows_family(CONF.feature.dist):
+        table = tables('images-clean')
+        search_cond = dict(
+            dist=CONF.feature.dist,
+            platform=CONF.feature.platform)
+        image = table.filter(search_cond).first().keys()[0].encode('ascii','ignore')
+    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:

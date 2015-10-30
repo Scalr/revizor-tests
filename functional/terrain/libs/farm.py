@@ -7,6 +7,7 @@ from lettuce import world
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
+from revizor2.defaults import USE_VPC
 from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
@@ -45,9 +46,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
-    use_vpc = (CONF.feature.use_vpc and CONF.feature.driver.is_platform_ec2) or \
-              (CONF.feature.dist in ('rhel7', 'amzn1503') and CONF.feature.driver.is_platform_ec2)
-
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
@@ -61,7 +59,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 behavior = BEHAVIORS_ALIASES[behavior]
             if CONF.feature.role_type == 'instance':
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-            elif use_vpc:
+            elif USE_VPC:
                 mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             else:
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
@@ -73,7 +71,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
-            elif use_vpc:
+            elif USE_VPC:
                 role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             else:
@@ -121,7 +119,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=use_vpc)
+                        use_vpc=USE_VPC)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

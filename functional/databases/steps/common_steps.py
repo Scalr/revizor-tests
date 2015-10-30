@@ -13,8 +13,7 @@ from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.dbmsr import DataBaseError
 from revizor2.helpers import generate_random_string
-from revizor2.consts import Platform, ServerStatus, Dist
-from revizor2.defaults import DEFAULT_REDIS_PATH
+from revizor2.consts import Platform, ServerStatus
 
 LOG = logging.getLogger(__name__)
 
@@ -133,27 +132,20 @@ class Redis(object):
         #Run redis-server
         LOG.info('Running Redis server.')
         # Setup attrs
-        # Get default redis path for OS family
-        os_family_info = DEFAULT_REDIS_PATH.get(Dist.get_os_family(self.node.os[0]), {})
-        #Get os version
-        os_ver = '.'.join((self.node.os[0].lower(), self.node.os[1].split('.')[0]))
-        if not os_family_info:
-            raise AssertionError("Cant' get redis-server details for %s os family" % Dist.get_os_family(self.node.os[0]))
-        # Get redis path by os version
-        ver_path = os_family_info.get(os_ver, os_family_info['default'])
+        # Get default redis path
+        service_paths= world.get_service_paths('redis-server', node=self.node, service_conf='redis.6379.conf')
         LOG.info('Start redis-server on remote host: %s' % self.server.public_ip)
-        binary_path = self.node.run('whereis redis-server')[0].split()[1]
         # Set run command
         cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
               "&& sleep 5 " \
               "&&  pgrep -l redis-server | awk {print'$1'}" % ({
-                  'bin': binary_path,
-                  'conf': os.path.join(ver_path.get('conf'), 'redis.6379.conf')})
+                  'bin': service_paths.get('bin'),
+                  'conf': service_paths.get('conf')})
 
         # Run command
         node_result = self.node.run(cmd)
         if node_result[2]:
-            raise AssertionError("Can't run redis-server on %s. Error: %s %s" % (os_ver, node_result[0], node_result[1]))
+            raise AssertionError("Can't run redis-server. Error: %s %s" % (node_result[0], node_result[1]))
         LOG.info('Redis server was successfully run.')
 
     def check_data(self, pattern):
