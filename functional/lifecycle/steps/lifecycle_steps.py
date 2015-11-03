@@ -32,7 +32,7 @@ def waiting_server(step, state, serv_as, timeout=1400):
     setattr(world, serv_as, server)
 
 
-@step('I have (.+) server (.+)$')
+@step('I have (.+) server ([\w\d]+)$')
 def having_server(step, state, serv_as):
     server = getattr(world, serv_as)
     world.assert_not_equal(server.status, ServerStatus.from_code(state), "Server %s is not in state %s" % (server.id, state))

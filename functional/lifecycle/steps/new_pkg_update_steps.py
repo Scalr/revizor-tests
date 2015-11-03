@@ -36,8 +36,10 @@ PLATFORM_SYSPREP = namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
 
 def run_sysprep(node, console):
     try:
-        console.run_cmd(getattr(PLATFORM_SYSPREP, CONF.feature.driver.scalr_cloud, ''))
-    except (IOError, winrm.exceptions.WinRMTransportError, winrm.exceptions.UnauthorizedError):
+        sysprep_cmd = getattr(PLATFORM_SYSPREP, CONF.feature.driver.scalr_cloud)
+        console.run_cmd(sysprep_cmd )
+    except: #(IOError, winrm.exceptions.WinRMTransportError, winrm.exceptions.UnauthorizedError):
+        LOG.debug('Run sysprep cmd: %s' % sysprep_cmd)
         pass
     # Check that instance has stopped after sysprep
     cloud = world.cloud
@@ -152,7 +154,8 @@ def creating_image(step):
         ip = world.ip
         assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
     LOG.info('Port forwarding rule was successfully removed.')
-    assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
+    if not CONF.feature.driver.is_platform_gce:
+        assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
 
