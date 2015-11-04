@@ -1,4 +1,4 @@
-Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps
+Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps
 Feature: Update scalarizr test
 
     @linux @ec2 @gce @cloudstack @rackspaceng @openstack
