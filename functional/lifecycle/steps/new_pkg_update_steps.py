@@ -34,7 +34,7 @@ PLATFORM_SYSPREP = namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
     '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
 )
 
-PLATFORM_TERMINATED_STATE = namedtuple('PLATFORM_TERMINATED_STATE ', ('gce', 'ec2'))(
+PLATFORM_TERMINATED_STATE = namedtuple('PLATFORM_TERMINATED_STATE', ('gce', 'ec2'))(
     'terminated',
     'stopped'
 )
