@@ -34,25 +34,30 @@ PLATFORM_SYSPREP = namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
     '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
 )
 
-def run_sysprep(node, console):
+PLATFORM_TERMINATED_STATE = namedtuple('PLATFORM_TERMINATED_STATE ', ('gce', 'ec2'))(
+    'terminated',
+    'stopped'
+)
+
+
+def run_sysprep(uuid, console):
     try:
         sysprep_cmd = getattr(PLATFORM_SYSPREP, CONF.feature.driver.scalr_cloud)
         console.run_cmd(sysprep_cmd )
-    except: #(IOError, winrm.exceptions.WinRMTransportError, winrm.exceptions.UnauthorizedError):
+    except:
         LOG.debug('Run sysprep cmd: %s' % sysprep_cmd)
         pass
     # Check that instance has stopped after sysprep
-    cloud = world.cloud
-    state = None
-    end_time = time.time() + 180
-    while not state:
-        for n in cloud.list_nodes():
-            if n.uuid == node.uuid:
-                state = n.state
-        if time.time() > end_time:
+    end_time = time.time() + 300
+    while time.time() <= end_time:
+        node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
+        LOG.debug('Obtained node after sysprep running: %s' % node)
+        node_status = getattr(node, 'extra', {}).get('status', '').lower()
+        LOG.debug('Obtained node status after sysprep running: %s' % node_status)
+        if node_status == getattr(PLATFORM_TERMINATED_STATE, CONF.feature.driver.scalr_cloud):
             break
         time.sleep(10)
-    assert state, 'Cloud instance is not in STOPPED status - sysprep failed'
+    else: raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
 
 
 def get_user_name():
@@ -60,7 +65,8 @@ def get_user_name():
         user_name = 'scalr'
     elif 'ubuntu' in CONF.feature.dist:
         user_name = ['ubuntu', 'root']
-    elif 'amzn' in CONF.feature.dist:
+    elif 'amzn' in CONF.feature.dist or \
+            ('redhat' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
         user_name = 'ec2-user'
     else:
         user_name = 'root'
@@ -69,8 +75,7 @@ def get_user_name():
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    cloud = world.cloud
-    image = cloud.find_image(use_hvm=USE_VPC)
+    image = world.cloud.find_image(use_hvm=USE_VPC)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
 
@@ -97,7 +102,7 @@ def installing_scalarizr(step, serv_as=''):
             CONF.feature.branch)
         console.run_cmd(command)
         res = console.run_cmd('scalarizr -v').std_out
-        run_sysprep(node, console)
+        run_sysprep(node.uuid, console)
     # Linux handler
     else:
         # Wait ssh
@@ -120,9 +125,9 @@ def installing_scalarizr(step, serv_as=''):
                 url=getattr(SCALARIZR_REPOS, repo_type))
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, ssh=ssh)[0].splitlines()[-1].strip()
-    version = re.findall('(Scalarizr [a-z0-9/./-]+)', res)
+    version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert  version, 'Could not install scalarizr'
-    setattr(world, 'pre_installed_agent', version[0].split()[1])
+    setattr(world, 'pre_installed_agent', version[0])
     setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
 
@@ -244,9 +249,10 @@ def asserting_version(step, serv_as):
     # Linux handler
     else:
         node = world.cloud.get_node(server)
-        res = node.run(command, user=get_user_name())[0]
-    assert re.findall('(Scalarizr [a-z0-9/./-]+)', res), "Can't get scalarizr version: %s" % res
-    installed_agent = res.split()[1]
+        res = node.run(command)[0]
+    installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
+    assert installed_agent , "Can't get scalarizr version: %s" % res
+    installed_agent = installed_agent[0]
     LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
     assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
         'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)

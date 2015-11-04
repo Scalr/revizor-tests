@@ -31,8 +31,9 @@ Feature: Update scalarizr test
       And I add created role to the farm
       When I expect server bootstrapping as M2
       Then scalarizr version is valid in M2
-      When I execute script 'Test script name' synchronous on M2
+      When I execute script 'Windows ping-pong. CMD' synchronous on M2
       And I see script result in M2
+      And script output contains 'pong' in M2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update by Scalr UI

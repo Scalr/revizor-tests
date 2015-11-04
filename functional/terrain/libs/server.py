@@ -613,17 +613,17 @@ def get_service_paths(service_name, server=None, node=None, service_conf=None, s
     if server:
         node = world.cloud.get_node(server)
     elif not node:
-        raise AttributeError()
+        raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get service path
     service_path = node.run('which %s' % service_name)
     if service_path[2]:
-        raise AssertionError()
+        raise AssertionError("Can't get %s service path: %s" % (service_name, service_path))
     service_path = dict(bin=service_path[0].split()[0], conf='')
     # Get service config path
     if service_conf:
         base_path = service_conf_base_path or '/etc'
         service_conf_path = node.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
         if service_conf_path[2]:
-            raise AssertionError()
+            raise AssertionError("Can't find service %s configs : %s" % (service_name, service_conf_path))
         service_path.update({'conf': service_conf_path[0].split()[0]})
     return service_path
