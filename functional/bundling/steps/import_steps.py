@@ -3,7 +3,7 @@ from datetime import datetime
 import logging
 
 from lettuce import world, step, after
-
+from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
 from revizor2.consts import Platform, Dist
@@ -262,7 +262,13 @@ def assert_role_task_created(step,  timeout=1400):
 
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
-    world.farm.add_role(world.bundled_role_id)
+    options = getattr(world, 'role_options', {})
+    bundled_role = Role.get(world.bundled_role_id)
+    world.farm.add_role(
+        world.bundled_role_id,
+        options=options,
+        alias=bundled_role.name,
+        use_vpc=USE_VPC)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
