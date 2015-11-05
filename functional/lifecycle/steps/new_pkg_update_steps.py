@@ -107,7 +107,7 @@ def installing_scalarizr(step, serv_as=''):
     else:
         # Wait ssh
         user=get_user_name()
-        world.cloud._wait_ssh(server.public_ip, user=user)
+        world.cloud._wait_ssh(server.public_ip, username=user)
         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
         repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
         cmd = '{curl_install} && ' \
