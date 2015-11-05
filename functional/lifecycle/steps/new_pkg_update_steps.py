@@ -66,7 +66,7 @@ def get_user_name():
     elif 'ubuntu' in CONF.feature.dist:
         user_name = ['ubuntu', 'root']
     elif 'amzn' in CONF.feature.dist or \
-            ('redhat' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
+            ('rhel' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
         user_name = 'ec2-user'
     else:
         user_name = 'root'
