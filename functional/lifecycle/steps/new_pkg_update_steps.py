@@ -106,7 +106,8 @@ def installing_scalarizr(step, serv_as=''):
     # Linux handler
     else:
         # Wait ssh
-        ssh = wait_until(node.get_ssh, kwargs=dict(user=get_user_name()), timeout=300, logger=LOG)
+        user=get_user_name()
+        world.cloud._wait_ssh(server.public_ip, user=user)
         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
         repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
         cmd = '{curl_install} && ' \
@@ -124,7 +125,7 @@ def installing_scalarizr(step, serv_as=''):
                 branch=branch,
                 url=getattr(SCALARIZR_REPOS, repo_type))
         LOG.debug('Install script body: %s' % cmd)
-        res = node.run(cmd, ssh=ssh)[0].splitlines()[-1].strip()
+        res = node.run(cmd, user=user)
     version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert  version, 'Could not install scalarizr'
     setattr(world, 'pre_installed_agent', version[0])
