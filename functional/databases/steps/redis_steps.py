@@ -1,10 +1,5 @@
 from lettuce import world, step
-
-import os
 import logging
-from revizor2.consts import Dist
-from revizor2.defaults import DEFAULT_REDIS_PATH
-
 
 LOG = logging.getLogger(__name__)
 
@@ -52,23 +47,17 @@ def start_redis_process(step, process, serv_as):
     # Setup attrs
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    # Get default redis attrs for OS family
-    os_family_info = DEFAULT_REDIS_PATH.get(Dist.get_os_family(node.os[0]), {})
-    # Get redis path by os version
-    if not os_family_info:
-        raise AssertionError("Cant' get %s details for %s os family" % (process, Dist.get_os_family(node.os[0])))
-    os_ver = '.'.join((node.os[0].lower(), node.os[1].split('.')[0]))
-    ver_path = os_family_info.get(os_ver, os_family_info['default'])
+    service_paths= world.get_service_paths(process, node=node, service_conf='redis.6379.conf')
     LOG.info('Start %s on remote host: %s' % (process, server.public_ip))
     # Set run command
     cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
           "&& sleep 5 " \
           "&&  pgrep -l %(process)s | awk {print'$1'}" % ({
-              'bin': os.path.join(ver_path.get('bin'), process),
+              'bin': service_paths.get('bin'),
               'process': process,
-              'conf': os.path.join(ver_path.get('conf'), 'redis.6379.conf')})
+              'conf': service_paths.get('conf')})
     # Run command
     node_result = node.run(cmd)
     if node_result[2]:
-        raise AssertionError("Can't run %s on %s. Error: %s %s" % (process, os_ver, node_result[0], node_result[1]))
+        raise AssertionError("Can't run %s. Error: %s %s" % (process, node_result[0], node_result[1]))
     LOG.info('%s was successfully started on remote host: %s' % (process, server.public_ip))

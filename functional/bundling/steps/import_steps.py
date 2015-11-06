@@ -3,12 +3,14 @@ from datetime import datetime
 import logging
 
 from lettuce import world, step, after
-
+from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
 from revizor2.consts import Platform, Dist
+from revizor2.defaults import USE_VPC
 from revizor2.utils import wait_until
 from revizor2.helpers import install_behaviors_on_node
+from revizor2.fixtures import tables
 
 LOG = logging.getLogger(__name__)
 
@@ -119,6 +121,7 @@ COOKBOOKS_BEHAVIOR = {
 
 }
 
+
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
@@ -132,7 +135,14 @@ def given_server_in_cloud(step, user_data):
     else:
         user_data = None
     #Create node
-    node = world.cloud.create_node(userdata=user_data)
+    image = None
+    if Dist.is_windows_family(CONF.feature.dist):
+        table = tables('images-clean')
+        search_cond = dict(
+            dist=CONF.feature.dist,
+            platform=CONF.feature.platform)
+        image = table.filter(search_cond).first().keys()[0].encode('ascii','ignore')
+    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
@@ -252,7 +262,13 @@ def assert_role_task_created(step,  timeout=1400):
 
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
-    world.farm.add_role(world.bundled_role_id)
+    options = getattr(world, 'role_options', {})
+    bundled_role = Role.get(world.bundled_role_id)
+    world.farm.add_role(
+        world.bundled_role_id,
+        options=options,
+        alias=bundled_role.name,
+        use_vpc=USE_VPC)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)

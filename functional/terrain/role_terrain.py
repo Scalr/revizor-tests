@@ -9,6 +9,7 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
+from revizor2.defaults import USE_VPC
 from revizor2.consts import Platform, ServerStatus
 
 
@@ -75,10 +76,6 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 @step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
 def add_new_role_to_farm(step, alias=None):
     #TODO: Add support for HVM (and VPC)
-    # VPC Support
-    use_vpc = (CONF.feature.use_vpc and CONF.feature.driver.is_platform_ec2) or \
-              (CONF.feature.dist in ('rhel7', 'amzn1503') and CONF.feature.driver.is_platform_ec2)
-
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
 
     options = getattr(world, 'role_options', {})
@@ -91,7 +88,7 @@ def add_new_role_to_farm(step, alias=None):
                         'db.msr.redis.use_password': True})
 
     world.farm.add_role(world.bundled_role_id, options=options,
-                        scripting=scripting, alias=alias, use_vpc=use_vpc)
+                        scripting=scripting, alias=alias, use_vpc=USE_VPC)
     world.farm.roles.reload()
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))

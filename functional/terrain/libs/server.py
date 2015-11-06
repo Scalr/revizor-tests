@@ -22,7 +22,7 @@ from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
     ServerFailed, TimeoutError, \
     MessageNotFounded, MessageFailed,\
-    EventNotFounded
+    EventNotFounded, OSFamilyValueFailed
 
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
@@ -39,19 +39,22 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 
 
 @world.absorb
-def get_windows_session(server):
+def get_windows_session(server=None, public_ip=None, password=None):
     username = 'Administrator'
     port = 5985
+    if server:
+        public_ip = server.public_ip
+        password = server.windows_password
     if CONF.feature.driver.cloud_family == Platform.GCE:
         username = 'scalr'
     elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
         node = world.cloud.get_node(server)
         port = world.cloud.open_port(node, port)
-    session = winrm.Session('http://%s:%s/wsman' % (server.public_ip, port),
-                            auth=(username, server.windows_password))
+    session = winrm.Session('http://%s:%s/wsman' % (public_ip, port),
+                            auth=(username, password))
     return session
 
-
+@world.absorb
 def run_cmd_command(server, command):
     console = get_windows_session(server)
     LOG.info('Run command: %s in server %s' % (command, server.id))
@@ -589,3 +592,38 @@ def is_log_rotate(server, process, rights, group=None):
         raise AssertionError("Can't get config file:%s-logrotate. Error message:%s" %
                              (process, logrotate_conf[1]))
     return True
+
+@world.absorb
+def value_for_os_family(debian, centos, server=None, node=None):
+    if server:
+        # Get node by server
+        node = world.cloud.get_node(server)
+    elif not node:
+        raise AttributeError("Not enough required arguments: server and node both can't be empty")
+    # Get node os name
+    node_os = getattr(node, 'os', [''])[0]
+    # Get os family result
+    os_family_res =  dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os))
+    if not os_family_res:
+        raise OSFamilyValueFailed('No value for node os: %s' % node_os)
+    return os_family_res
+
+@world.absorb
+def get_service_paths(service_name, server=None, node=None, service_conf=None, service_conf_base_path=None):
+    if server:
+        node = world.cloud.get_node(server)
+    elif not node:
+        raise AttributeError("Not enough required arguments: server and node both can't be empty")
+    # Get service path
+    service_path = node.run('which %s' % service_name)
+    if service_path[2]:
+        raise AssertionError("Can't get %s service path: %s" % (service_name, service_path))
+    service_path = dict(bin=service_path[0].split()[0], conf='')
+    # Get service config path
+    if service_conf:
+        base_path = service_conf_base_path or '/etc'
+        service_conf_path = node.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
+        if service_conf_path[2]:
+            raise AssertionError("Can't find service %s configs : %s" % (service_name, service_conf_path))
+        service_path.update({'conf': service_conf_path[0].split()[0]})
+    return service_path
