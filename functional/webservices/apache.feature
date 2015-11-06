@@ -35,7 +35,9 @@ Feature: Apache application server role
         Then Scalr sends VhostReconfigure to A1
         And D2 resolves into A1 ip address
         And https get domain D2 matches H2 index page
-        And domain D2 contains valid Cert and CACert
+        And virtual host has a valid SSL certificate
+          | source    | source_name | key         |
+          | domain    | D2          |revizor-key  |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Adding second ssl virtual host
@@ -44,7 +46,11 @@ Feature: Apache application server role
         Then Scalr sends VhostReconfigure to A1
         And D3 resolves into A1 ip address
         And https get domain D3 matches H3 index page
-        And domain D2,D3 contains valid Cert and CACert into A1
+        And virtual host has a valid SSL certificate
+          | source    | source_name | key         |
+          | domain    | D2          |revizor-key  |
+          | domain    | D3          |revizor2-key |
+          | server    | A1          |revizor-key  |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Removing virtual host
