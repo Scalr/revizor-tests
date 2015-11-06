@@ -1,12 +1,12 @@
 Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps
 Feature: Update scalarizr linux test
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @bootstrap @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update at bootstrap linux test, new role create
       Given I have a clean image
       And I add image to the new role
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @bootstrap @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update at bootstrap  linux test, use new role
       Given I have a an empty running farm
       And I add created role to the farm
@@ -18,7 +18,7 @@ Feature: Update scalarizr linux test
       When I execute script 'Linux ping-pong' synchronous on M2
       And I see script result in M2
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ui @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update by Scalr UI
       Given I have running server M2
       Then I change branch to test-branch for role
