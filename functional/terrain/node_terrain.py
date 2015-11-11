@@ -161,7 +161,6 @@ def update_scalarizr(step, serv_as):
         node.run('yum install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
 
 
-
 @step('process ([\w-]+) is (not\s)*running in ([\w\d]+)$')
 def check_process(step, process, negation, serv_as):
     LOG.info("Check running process %s on server" % process)

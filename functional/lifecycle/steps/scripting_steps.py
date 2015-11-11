@@ -31,7 +31,6 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
     # Convert script name, because scalr convert name to:
     # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
     # name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50] if name else name
-    #FIXME: When marat merge https://scalr-labs.atlassian.net/browse/SCALARIZR-1879 to master change local to url
     name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
     for log in server.scriptlogs:
         LOG.debug('Check script log:\nname: %s\nevent: %s\nrun as: %s\nexitcode: %s\n' %
