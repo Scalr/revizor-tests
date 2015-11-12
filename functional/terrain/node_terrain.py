@@ -13,7 +13,8 @@ from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
-from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, DEFAULT_SCALARIZR_REPOS
+from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 
@@ -302,23 +303,28 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
+    os_family = Dist.get_os_family(server.role.dist)
     if branch in ['stable', 'latest']:
-        default_repos = DEFAULT_SCALARIZR_REPOS.release
-    else: default_repos = DEFAULT_SCALARIZR_REPOS.develop
+        default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+    else:
+        url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+        path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+        default_repo = url.format(path=path)
     # Get last scalarizr version from custom repo
-    index_url = getattr(default_repos, Dist.get_os_family(server.role.dist)).format(branch=branch)
+    index_url = default_repo.format(branch=branch)
     LOG.debug('Check package from index_url: %s' % index_url)
     repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
-    LOG.debug('Last scalarizr version %s for branch %s' % (versions[-1] , branch))
+    versions.reverse()
+    LOG.debug('Last scalarizr version %s for branch %s' % (versions[0] , branch))
     # Get installed scalarizr version
     update_status = server.upd_api.status(cached=False)
     LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
     assert update_status['state'] == 'completed', \
-        'Update client not in normal state. Status = "%s", Previous state = "%s"' % (
-            update_status['state'], update_status['prev_state'])
-    assert versions[-1]  == update_status['installed'], \
+        'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
+        (update_status['state'], update_status['prev_state'])
+    assert versions[0]  == update_status['installed'], \
         'Server not has last build of scalarizr package, candidate: %s' % update_status['installed']
 
 
