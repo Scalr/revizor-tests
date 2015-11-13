@@ -12,8 +12,9 @@ from revizor2 import consts
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
-from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository
-from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates
+from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
+from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 
@@ -289,16 +290,41 @@ def assert_scalarizr_version(step, repo, serv_as):
                              % (server_info['installed'], versions[-1]))
 
 
-@step('scalarizr version is last in (.+)$')
-def assert_scalarizr_version(step, serv_as):
+@step(r'scalarizr version(?:\sfrom\s([\w\d_]+))* is last in ([\w\d]+)$')
+def assert_scalarizr_version(step, branch, serv_as):
+    """
+    Argument branch can be system or role.
+    System branch - CONF.feature.branch
+    Role branch - CONF.feature.to_branch
+    """
     server = getattr(world, serv_as)
-    update_status = server.upd_api.status()
-    if update_status['candidate']:
-        raise AssertionError('Server not has last build of scalarizr package, candidate: %s' % update_status['candidate'])
-    if update_status['state'] != 'completed':
-        raise AssertionError('Update client not in normal state. Status = "%s", Previous state = "%s"' % (
-            update_status['state'], update_status['prev_state']))
-    #TODO: Add comparison package version
+    if branch == 'system' or not branch:
+        branch = CONF.feature.branch
+    elif branch == 'role':
+        branch = CONF.feature.to_branch
+    # Get custom repo url
+    os_family = Dist.get_os_family(server.role.dist)
+    if branch in ['stable', 'latest']:
+        default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+    else:
+        url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+        path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+        default_repo = url.format(path=path)
+    # Get last scalarizr version from custom repo
+    index_url = default_repo.format(branch=branch)
+    LOG.debug('Check package from index_url: %s' % index_url)
+    repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+    versions.sort(reverse=True)
+    LOG.debug('Last scalarizr version %s for branch %s' % (versions[0] , branch))
+    # Get installed scalarizr version
+    update_status = server.upd_api.status(cached=False)
+    LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
+    assert update_status['state'] == 'completed', \
+        'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
+        (update_status['state'], update_status['prev_state'])
+    assert versions[0]  == update_status['installed'], \
+        'Server not has last build of scalarizr package, candidate: %s' % update_status['installed']
 
 
 @step('I reboot scalarizr in (.+)$')
