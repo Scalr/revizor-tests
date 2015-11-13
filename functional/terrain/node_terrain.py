@@ -315,8 +315,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     LOG.debug('Check package from index_url: %s' % index_url)
     repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
-    versions.sort()
-    versions.reverse()
+    versions.sort(reverse=True)
     LOG.debug('Last scalarizr version %s for branch %s' % (versions[0] , branch))
     # Get installed scalarizr version
     update_status = server.upd_api.status(cached=False)
