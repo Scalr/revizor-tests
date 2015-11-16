@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import logging
 
-from lettuce import world, step, after, before
+from lettuce import world, step
 
 from revizor2.api import IMPL, Server, Cloud
 from revizor2.conf import CONF
@@ -74,6 +74,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
+                                        dontterminate='on',
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
@@ -105,13 +106,16 @@ def assert_build_completed(step):
                    error_text='Bundletask %s is not completed' % world.bundle_id)
     except BaseException as e:
         rolebuilder_server = world.rolebuilder_server
+        test_name = step.scenario.described_at.file.split('/')[-1].split('.')[0]
         path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
-                                             'rolebuilder',
+                                             test_name,
+                                             world.test_start_time.strftime('%m%d-%H:%M'),
+                                             step.scenario.name.replace('/', '-'),
                                              rolebuilder_server.id + '-role-builder.log'))
         LOG.debug('Path to save log: %s' % path)
-        if not os.path.exists(path):
-            os.makedirs(path, 0755)
-        rolebuilder_server.get_logs('../role-builder.log', path)
+        if not os.path.exists(os.path.dirname(path)):
+            os.makedirs(os.path.dirname(path), 0755)
+        rolebuilder_server.get_logs('../role-builder.log', path, compress=True)
         rolebuilder_server.terminate()
         raise e
 
