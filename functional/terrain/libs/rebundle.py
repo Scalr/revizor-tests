@@ -12,6 +12,7 @@ LOG = logging.getLogger(__name__)
 
 @world.absorb
 def bundle_task_created(server, bundle_id):
+    contents = None
     for bundlelog in server.bundlelogs:
         if bundlelog.id == bundle_id:
             contents = bundlelog.contents
