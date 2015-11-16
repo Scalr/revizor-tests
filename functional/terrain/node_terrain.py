@@ -302,7 +302,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
-    os_family = Dist.get_os_family(server.role.dist)
+    os_family = Dist.get_os_family(server.role.os_family)
     if branch in ['stable', 'latest']:
         default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
     else:
