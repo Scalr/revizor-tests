@@ -1,10 +1,11 @@
 import re
+import os
 from datetime import datetime
 import logging
 
-from lettuce import world, step
+from lettuce import world, step, after, before
 
-from revizor2.api import IMPL
+from revizor2.api import IMPL, Server, Cloud
 from revizor2.conf import CONF
 from revizor2.fixtures import images
 from revizor2.utils import wait_until
@@ -41,7 +42,7 @@ def start_rolebuild(step):
 
 
 @step('I start build role with behaviors (.+)$')
-def start_rolebuild(step, behaviors):
+def start_rolebuild_with_behaviours(step, behaviors):
     behaviors = behaviors.strip().split(',')
     use_hvm = False
 
@@ -90,18 +91,33 @@ def assert_build_started(step):
     logs = IMPL.bundle.logs(world.bundle_id)
     for l in logs:
         if 'Bundle task created' in l['message']:
+            rolebuilder_server_id = re.search('ServerID: ((\w+-)+\w+),', l['message']).group(1)
+            rolebuilder_server = Server(**IMPL.server.get(rolebuilder_server_id))
+            setattr(world, 'rolebuilder_server', rolebuilder_server)
             return True
     raise AssertionError('Not see pending status in bundletask %s' % world.bundle_id)
 
 
 @step('Build task completed')
-def assert_build_started(step):
-    wait_until(world.bundle_task_complete_rolebuilder, args=(world.bundle_id,), timeout=2000,
-               error_text='Bundletask %s is not completed' % world.bundle_id)
+def assert_build_completed(step):
+    try:
+        wait_until(world.bundle_task_complete_rolebuilder, args=(world.bundle_id,), timeout=2000,
+                   error_text='Bundletask %s is not completed' % world.bundle_id)
+    except BaseException as e:
+        rolebuilder_server = world.rolebuilder_server
+        path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
+                                             'rolebuilder',
+                                             rolebuilder_server.id + '-role-builder.log'))
+        LOG.debug('Path to save log: %s' % path)
+        if not os.path.exists(path):
+            os.makedirs(path, 0755)
+        rolebuilder_server.get_logs('../role-builder.log', path)
+        rolebuilder_server.terminate()
+        raise e
 
 
 @step('I have new role id')
-def assert_build_started(step):
+def assert_role_created(step):
     logs = IMPL.bundle.logs(world.bundle_id)
     for l in logs:
         if 'Role ID:' in l['message']:
