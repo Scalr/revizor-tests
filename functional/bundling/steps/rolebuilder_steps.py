@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import logging
 
-from lettuce import world, step, after, before
+from lettuce import world, step
 
 from revizor2.api import IMPL, Server, Cloud
 from revizor2.conf import CONF
