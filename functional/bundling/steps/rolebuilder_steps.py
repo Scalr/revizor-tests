@@ -111,11 +111,11 @@ def assert_build_completed(step):
                                              test_name,
                                              world.test_start_time.strftime('%m%d-%H:%M'),
                                              step.scenario.name.replace('/', '-'),
-                                             rolebuilder_server.id + '-role-builder.log'))
+                                             rolebuilder_server.id + '-role-builder.log.gz'))
         LOG.debug('Path to save log: %s' % path)
         if not os.path.exists(os.path.dirname(path)):
             os.makedirs(os.path.dirname(path), 0755)
-        rolebuilder_server.get_logs('../role-builder.log.gz', path, compress=True)
+        rolebuilder_server.get_logs('../role-builder.log', path, compress=True)
         rolebuilder_server.terminate()
         raise e
 
