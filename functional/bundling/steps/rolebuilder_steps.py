@@ -74,7 +74,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
-                                        dontterminate='on',
+                                        terminate=False,
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
