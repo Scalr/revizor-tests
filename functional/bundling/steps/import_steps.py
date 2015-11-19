@@ -200,7 +200,19 @@ def start_building(step):
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
     #and then run scalarizr on new screen
-    world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
+    print (res['scalarizr_run_command'])
+    if Dist.is_windows_family(CONF.feature.dist):
+        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
+        # out = console.run_cmd('''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job -command {%s}"''' % res['scalarizr_run_command'])
+        command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job { C:\Windows\System32\cmd.exe /c %s }"''' % res['scalarizr_run_command']
+        print (command)
+        out = console.run_cmd(command).std_out
+        job_name = re.search('Job(\d+)', out).group(0)
+        out = console.run_cmd('''powershell -NoProfile -ExecutionPolicy Bypass -Command "Receive-Job -name %s"''' % job_name)
+        print (out.std_out)
+        print (out.std_err)
+    else:
+        world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
 
 
 @step('connection with scalarizr was established')
@@ -224,15 +236,19 @@ def is_scalarizr_connected(step, timeout=1400):
 
 @step('I trigger the Create role')
 def create_role(step):
-    behaviors_name = CONF.feature.behaviors
-    LOG.info('Create new role with %s behaviors.' % ','.join(behaviors_name))
-    for behavior in behaviors_name:
-        if not behavior in world.behaviors:
-            raise AssertionError('Transmitted behavior: %s, not in the list received from the server' % behavior)
+    behaviors_name = CONF.feature.bevahiors
+    if Dist.is_windows_family(CONF.feature.dist):
+        behaviors = 'chef'
+    else:
+        behaviors = ','.join(behaviors_name)
+        LOG.info('Create new role with %s behaviors.' % ','.join(behaviors_name))
+        for behavior in behaviors_name:
+            if not behavior in world.behaviors:
+                raise AssertionError('Transmitted behavior: %s, not in the list received from the server' % behavior)
 
     res = IMPL.bundle.create_role(server_id=world.server.id,
                                   bundle_task_id=world.bundle_task_id,
-                                  behaviors=','.join(behaviors_name),
+                                  behaviors=behaviors,
                                   os_id=Dist.get_os_id(CONF.feature.dist))
     if not res:
         raise AssertionError('Create role initialization is failed.')
@@ -272,6 +288,16 @@ def add_new_role_to_farm(step):
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
+
+@step(r'I install Chef on windows server')
+def install_chef_on_windows(step):
+    node =  getattr(world, 'cloud_server', None)
+    console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
+    #TODO: Change to installation via Fatmouse task
+    command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+    console.run_cmd(command)
+    chef_version = console.run_cmd("chef-client --version")
+    assert chef_version.std_out, "Chef was not installed"
 
 
 @after.each_scenario
