@@ -21,6 +21,7 @@ def get_nginx_default_server_template():
     }
     return template
 
+
 def check_config_for_option(node, config_file, option):
     config = node.run('cat /etc/nginx/%s' % config_file)[0]
     if config_file == 'proxies.include':
