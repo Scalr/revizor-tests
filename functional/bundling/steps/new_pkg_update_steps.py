@@ -80,8 +80,8 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I install scalarizr to the server(?: (\w+))?')
-def installing_scalarizr(step, serv_as=''):
+@step(r'I install scalarizr (with sysprep )?to the server(?: (\w+))?')
+def installing_scalarizr(step, with_sysprep, serv_as=''):
     node =  getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
@@ -102,8 +102,8 @@ def installing_scalarizr(step, serv_as=''):
             CONF.feature.branch)
         console.run_cmd(command)
         res = console.run_cmd('scalarizr -v').std_out
-        # if with_sysprep:
-        run_sysprep(node.uuid, console)
+        if with_sysprep:
+            run_sysprep(node.uuid, console)
     # Linux handler
     else:
         # Wait ssh
