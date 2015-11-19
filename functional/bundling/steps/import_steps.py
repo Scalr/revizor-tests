@@ -2,6 +2,8 @@ import time
 from datetime import datetime
 import logging
 
+from threading import Thread
+
 from lettuce import world, step, after
 from revizor2.api import Role
 from revizor2.conf import CONF
@@ -204,13 +206,12 @@ def start_building(step):
     if Dist.is_windows_family(CONF.feature.dist):
         console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
         # out = console.run_cmd('''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job -command {%s}"''' % res['scalarizr_run_command'])
-        command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job { C:\Windows\System32\cmd.exe /c %s }"''' % res['scalarizr_run_command']
-        print (command)
-        out = console.run_cmd(command).std_out
-        job_name = re.search('Job(\d+)', out).group(0)
-        out = console.run_cmd('''powershell -NoProfile -ExecutionPolicy Bypass -Command "Receive-Job -name %s"''' % job_name)
-        print (out.std_out)
-        print (out.std_err)
+        # command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job { C:\Windows\System32\cmd.exe /c %s }"''' % res['scalarizr_run_command']
+        try:
+            t1 = Thread(target=console.run_cmd, args=(res['scalarizr_run_command'],))
+            t1.start()
+        except:
+            pass
     else:
         world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
 
@@ -236,7 +237,7 @@ def is_scalarizr_connected(step, timeout=1400):
 
 @step('I trigger the Create role')
 def create_role(step):
-    behaviors_name = CONF.feature.bevahiors
+    behaviors_name = CONF.feature.behaviors
     if Dist.is_windows_family(CONF.feature.dist):
         behaviors = 'chef'
     else:
