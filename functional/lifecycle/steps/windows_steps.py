@@ -97,8 +97,6 @@ def check_attached_disk_size(step, serv_as, cdisks):
     server = getattr(world, serv_as)
     out = world.run_cmd_command(server, 'wmic logicaldisk get size,caption,volumename').std_out
     sdisks = filter(lambda x: x.strip(), out)
-    labels = re.findall('(\w):\d+(\w+$)?', sdisks)
-    assert ("Z", "test_label") in labels, "Label 'test_label' is not present for disk Z. Current labels - %s" % labels
     server_disks = dict(re.findall('(\w):(\d+)', sdisks))
     server_disks = {k: int(v)/1000000000 for k, v in server_disks.items()}
     for label in correct_disks:
@@ -106,6 +104,8 @@ def check_attached_disk_size(step, serv_as, cdisks):
             assert int(correct_disks[label]) == server_disks[label], "Disk %s is of wrong size  - %s " % (label, server_disks[label])
         else:
             raise AssertionError("Disk %s is not present" % label)
+    labels = re.findall('(\w):\d+(\w+$)?', sdisks)
+    assert ("Z", "test_label") in labels, "Label 'test_label' is not present for disk Z. Current labels - %s" % labels
 
 
 @step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")
