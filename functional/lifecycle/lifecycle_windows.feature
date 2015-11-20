@@ -12,7 +12,7 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
-        And server M1 has disks E: 1 Gb, D: 2 Gb, Z: 160 Gb
+        And server M1 has disks E: 1 Gb, D: 2 Gb, Z: 4 Gb
         And I have a M1 attached volume as V1
         And attached volume V1 has size 1 Gb
         And hostname in M1 is valid
