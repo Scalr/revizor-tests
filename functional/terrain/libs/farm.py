@@ -8,7 +8,7 @@ from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
 from revizor2.defaults import USE_VPC
-from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES
+from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES, Platform
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
@@ -111,8 +111,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
     if dist == 'rhel7' and not CONF.feature.use_vpc:
-        CONF.feature.instance_type = 'm3.medium'
-
+        options['aws.instance_type'] = 'm3.medium'
+    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.EC2:
+        LOG.debug('Dist is windows, set instance type')
+        options['aws.instance_type'] = 'm3.medium'
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,
