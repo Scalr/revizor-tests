@@ -207,11 +207,14 @@ def start_building(step):
         console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
         # out = console.run_cmd('''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job -command {%s}"''' % res['scalarizr_run_command'])
         # command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job { C:\Windows\System32\cmd.exe /c %s }"''' % res['scalarizr_run_command']
-        try:
-            t1 = Thread(target=console.run_cmd, args=(res['scalarizr_run_command'],))
-            t1.start()
-        except:
-            pass
+
+        def call_in_background(command):
+            try:
+                console.run_cmd(command)
+            except:
+                pass
+        t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
+        t1.start()
     else:
         world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
 
