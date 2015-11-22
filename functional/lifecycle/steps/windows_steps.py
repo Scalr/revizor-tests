@@ -90,22 +90,25 @@ def assert_check_message_in_log(step, message, serv_as):
     raise AssertionError("Not see message %s in scripts logs" % message)
 
 
-@step(r"server ([\w\d]+) has disks ([(\w:) (\d+) Gb,]+)")
+@step(r"server ([\w\d]+) has disks ([(\w)(\(\w+_label\))?: (\d+) Gb,]+)")
 @world.run_only_if(platform=Platform.EC2)
 def check_attached_disk_size(step, serv_as, cdisks):
-    correct_disks = dict(re.findall('(\w+): (\d+) Gb', cdisks))
+    correct_disks = dict(re.findall('(\w)(?:\(\w+_label\))?: (\d+) Gb', cdisks))
     server = getattr(world, serv_as)
     out = world.run_cmd_command(server, 'wmic logicaldisk get size,caption,volumename').std_out
     sdisks = filter(lambda x: x.strip(), out)
-    server_disks = dict(re.findall('(\w):(\d+)', sdisks))
+    server_disks = dict(re.findall('(\w):(\d+)(?:\w+_label)?', sdisks))
     server_disks = {k: int(v)/1000000000 for k, v in server_disks.items()}
-    for label in correct_disks:
-        if label in server_disks:
-            assert int(correct_disks[label]) == server_disks[label], "Disk %s is of wrong size  - %s " % (label, server_disks[label])
+    for mountpoint in correct_disks:
+        if mountpoint in server_disks:
+            assert int(correct_disks[mountpoint]) == server_disks[mountpoint], "Disk %s is of wrong size  - %s " % (mountpoint, server_disks[mountpoint])
         else:
-            raise AssertionError("Disk %s is not present" % label)
-    labels = re.findall('(\w):\d+(\w+$)?', sdisks)
-    assert ("Z", "test_label") in labels, "Label 'test_label' is not present for disk Z. Current labels - %s" % labels
+            raise AssertionError("Disk %s is not present" % mountpoint)
+    server_labels = dict(re.findall('(\w):\d+(\w+_label)?', sdisks))
+    correct_labels = dict(re.findall('(\w)(\(\w+_label\))?: \d+', cdisks))
+    for mountpoint in correct_labels:
+        if mountpoint in server_labels:
+            assert correct_labels[mountpoint].strip('()') == server_labels[mountpoint], "Disk %s has an incorrect or no label %s. Should be %s." % (mountpoint,server_labels[mountpoint], correct_labels[mountpoint].strip('()'))
 
 
 @step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")
