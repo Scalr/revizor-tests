@@ -24,13 +24,13 @@ Feature: Update scalarizr windows test
       Then I change branch to test-branch for role
       When I trigger scalarizr update by Scalr UI
       Then scalarizr version is valid in M2
-      Then I execute script 'Test script name' synchronous on M2
+      Then I execute script 'Revizor update test win' synchronous on M2
       And I see script result in M2
       Then I checkout to test-branch from branch tested-branch
       And I change branch to test-branch for role
       When I trigger scalarizr update by Scalr UI
       Then scalarizr version is valid in M2
-      Then I execute script 'Test script name' synchronous on M2
+      Then I execute script 'Revizor update test win' synchronous on M2
       And I see script result in M2
 
 
