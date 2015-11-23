@@ -1,4 +1,4 @@
-Using step definitions from: steps/import_steps, steps/new_pkg_update_steps
+Using step definitions from: steps/import_steps
 Feature: Import server to scalr and use this role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
