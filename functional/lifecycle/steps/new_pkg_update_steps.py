@@ -27,8 +27,9 @@ LOG = logging.getLogger(__name__)
 SCALARIZR_REPOS = namedtuple('SCALARIZR_REPOS', ('release', 'develop', 'win'))(
     'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
     'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH',
-    'https://my.scalr.net/public/windows/stridercd'
+    'https://my.scalr.net/public/windows'
 )
+
 PLATFORM_SYSPREP = namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
     'gcesysprep',
     '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
@@ -97,10 +98,13 @@ def installing_scalarizr(step, serv_as=''):
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
+        repo_type = branch if branch in ['latest', 'stable'] else '%s/%s' % (CONF.feature.ci_repo, branch)
         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
             SCALARIZR_REPOS.win,
-            CONF.feature.branch)
-        console.run_cmd(command)
+            repo_type)
+        err = console.run_cmd(command).std_err
+        if err:
+            raise Exception("Error when installing scalarizr! %s" % err)
         res = console.run_cmd('scalarizr -v').std_out
         run_sysprep(node.uuid, console)
     # Linux handler
