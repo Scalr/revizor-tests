@@ -11,7 +11,7 @@ Feature: Linux server lifecycle
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
-        And scalarizr version from system repo is last in M1
+        And scalarizr version is last in M1
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
 

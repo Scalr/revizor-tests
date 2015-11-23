@@ -114,6 +114,7 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
     world.assert_not_equal(domain_ip, server.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, server.public_ip))
 
 
+@world.run_only_if(dist=['!centos5'])
 @step(r'virtual host has a valid SSL certificate')
 def check_virtual_host_certificate(step):
     for host_hash in step.hashes:
