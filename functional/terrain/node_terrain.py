@@ -584,7 +584,7 @@ def get_user_name():
 
 
 @step(r'I install scalarizr (with sysprep )?to the server(?: (\w+))?')
-def installing_scalarizr(step, with_sysprep, serv_as=''):
+def installing_scalarizr(step, sysprep=None, serv_as=''):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
@@ -608,7 +608,8 @@ def installing_scalarizr(step, with_sysprep, serv_as=''):
         if err:
             raise Exception("Error when installing scalarizr! %s" % err)
         res = console.run_cmd('scalarizr -v').std_out
-        run_sysprep(node.uuid, console)
+        if sysprep:
+            run_sysprep(node.uuid, console)
     # Linux handler
     else:
         # Wait ssh
