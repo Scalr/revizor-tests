@@ -27,7 +27,7 @@ except ImportError:
 SCALARIZR_REPOS = collections.namedtuple('SCALARIZR_REPOS', ('release', 'develop', 'win'))(
     'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
     'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH',
-    'https://my.scalr.net/public/windows/stridercd'
+    'https://my.scalr.net/public/windows'
 )
 
 PLATFORM_SYSPREP = collections.namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
