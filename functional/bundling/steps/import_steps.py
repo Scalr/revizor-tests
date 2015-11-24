@@ -202,12 +202,8 @@ def start_building(step):
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
     #and then run scalarizr on new screen
-    print (res['scalarizr_run_command'])
     if Dist.is_windows_family(CONF.feature.dist):
         console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
-        # out = console.run_cmd('''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job -command {%s}"''' % res['scalarizr_run_command'])
-        # command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "Start-Job { C:\Windows\System32\cmd.exe /c %s }"''' % res['scalarizr_run_command']
-
         def call_in_background(command):
             try:
                 console.run_cmd(command)
@@ -283,6 +279,8 @@ def assert_role_task_created(step,  timeout=1400):
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
     options = getattr(world, 'role_options', {})
+    if Dist.is_windows_family(CONF.feature.dist) and CONF.feature.platform == 'ec2':
+        options['aws.instance_type'] = 'm3.medium'
     bundled_role = Role.get(world.bundled_role_id)
     world.farm.add_role(
         world.bundled_role_id,
