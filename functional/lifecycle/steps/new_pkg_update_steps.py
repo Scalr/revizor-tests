@@ -13,7 +13,7 @@ except ImportError:
     raise ImportError("Please install WinRM")
 
 from datetime import datetime
-from revizor2.api import IMPL
+from revizor2.api import IMPL, Platform
 from revizor2.conf import CONF
 from collections import namedtuple
 from lettuce import step, world
@@ -227,6 +227,8 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
+    if Dist.is_windows_family(CONF.feature.dist) and CONF.feature.platform == 'ec2':
+        role_kwargs['options']['aws.instance_type'] = 'm3.medium'
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
     farm.roles.reload()
@@ -247,7 +249,11 @@ def asserting_version(step, serv_as):
     command = 'scalarizr -v'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        res = world.run_cmd_command(server, command).std_out
+        if CONF.feature.driver.current_cloud == Platform.EC2:
+            console = world.get_windows_session(public_ip=server.public_ip, password='scalr')
+            res = console.run_cmd(command).std_out
+        else:
+            res = world.run_cmd_command(server, command).std_out
     # Linux handler
     else:
         node = world.cloud.get_node(server)
