@@ -24,114 +24,12 @@ from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
 
-# SCALARIZR_REPOS = namedtuple('SCALARIZR_REPOS', ('release', 'develop', 'win'))(
-#     'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
-#     'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH',
-#     'https://my.scalr.net/public/windows/stridercd'
-# )
-# PLATFORM_SYSPREP = namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
-#     'gcesysprep',
-#     '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
-# )
-
-# PLATFORM_TERMINATED_STATE = namedtuple('PLATFORM_TERMINATED_STATE', ('gce', 'ec2'))(
-#     'terminated',
-#     'stopped'
-# )
-
-
-# def run_sysprep(uuid, console):
-#     try:
-#         sysprep_cmd = getattr(PLATFORM_SYSPREP, CONF.feature.driver.scalr_cloud)
-#         console.run_cmd(sysprep_cmd )
-#     except:
-#         LOG.debug('Run sysprep cmd: %s' % sysprep_cmd)
-#         pass
-#     # Check that instance has stopped after sysprep
-#     end_time = time.time() + 300
-#     while time.time() <= end_time:
-#         node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
-#         LOG.debug('Obtained node after sysprep running: %s' % node)
-#         node_status = getattr(node, 'extra', {}).get('status', '').lower()
-#         LOG.debug('Obtained node status after sysprep running: %s' % node_status)
-#         if node_status == getattr(PLATFORM_TERMINATED_STATE, CONF.feature.driver.scalr_cloud):
-#             break
-#         time.sleep(10)
-#     else: raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
-
-
-# def get_user_name():
-#     if CONF.feature.driver.is_platform_gce:
-#         user_name = 'scalr'
-#     elif 'ubuntu' in CONF.feature.dist:
-#         user_name = ['ubuntu', 'root']
-#     elif 'amzn' in CONF.feature.dist or \
-#             ('rhel' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
-#         user_name = 'ec2-user'
-#     else:
-#         user_name = 'root'
-#     return user_name
-
 
 @step(r'I have a clean image')
 def having_clean_image(step):
     image = world.cloud.find_image(use_hvm=USE_VPC)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
-
-
-# @step(r'I install scalarizr to the server(?: (\w+))?')
-# def installing_scalarizr(step, serv_as=''):
-#     node =  getattr(world, 'cloud_server', None)
-#     branch = CONF.feature.branch
-#     repo = CONF.feature.ci_repo.lower()
-#     platform = CONF.feature.driver.scalr_cloud
-#     # Wait cloud server
-#     if not node:
-#         LOG.debug('Cloud server not found get node from server')
-#         server = getattr(world, serv_as.strip())
-#         server.reload()
-#         node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-#         LOG.debug('Node get successfully: %s' % node)
-#     assert node,  'Node not found'
-#     # Windows handler
-#     if Dist.is_windows_family(CONF.feature.dist):
-#         console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
-#         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
-#             SCALARIZR_REPOS.win,
-#             CONF.feature.branch)
-#         console.run_cmd(command)
-#         res = console.run_cmd('scalarizr -v').std_out
-#         # if with_sysprep:
-#         run_sysprep(node.uuid, console)
-#     # Linux handler
-#     else:
-#         # Wait ssh
-#         user=get_user_name()
-#         wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
-#         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
-#         repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
-#         cmd = '{curl_install} && ' \
-#             'PLATFORM={platform} ; ' \
-#             'CI_REPO={repo} ; ' \
-#             'BRANCH={branch} ; ' \
-#             'curl -L {url}/install_scalarizr.sh | bash && ' \
-#             'sync && scalarizr -v'.format(
-#                 curl_install=world.value_for_os_family(
-#                     debian="apt-get update && apt-get install curl -y",
-#                     centos="yum clean all && yum install curl -y",
-#                     server=server),
-#                 platform=platform,
-#                 repo=repo,
-#                 branch=branch,
-#                 url=getattr(SCALARIZR_REPOS, repo_type))
-#         LOG.debug('Install script body: %s' % cmd)
-#         res = node.run(cmd, user=user)[0]
-#     version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-#     assert  version, 'Could not install scalarizr'
-#     setattr(world, 'pre_installed_agent', version[0])
-#     setattr(world, 'cloud_server', node)
-#     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
 
 
 @step(r'I create image from deployed server')
