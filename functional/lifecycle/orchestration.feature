@@ -33,19 +33,19 @@ Feature: Orchestration features test
         And process 'memcached' has options '-m 1024' in M1
         And M1 chef runlist has only recipes [memcached,revizorenv]
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario Outline: Scripts executing on linux
-        When I execute <script_type> '<script_name>' <execute_type> on M1
-        And I see script result in M1
-        And script result contains '<output>' on M1
+  @ec2 @gce @cloudstack @rackspaceng @openstack
+  Scenario Outline: Scripts executing on linux
+    When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
+    And I see script result in M1
+    And script result contains '<output>' on M1
 
-    Examples:
-      | script_name                    | execute_type | script_type | output                                    |
-      | Restart scalarizr              | synchronous  | remote      | None                                      |
-      | Linux ping-pong                | asynchronous | remote      | pong                                      |
-      | Linux ping-pong                | synchronous  | remote      | pong                                      |
-      | /home/revizor/local_script.sh  | synchronous  | local       | Local script work!\nUSER=root\nHOME=/root |
-      | /home/revizor/local_script.sh  | asynchronous | local       | Local script work!\nUSER=root\nHOME=/root |
+  Examples:
+    | script_name                   | execute_type | script_type | output                                    |
+    | Restart scalarizr             | synchronous  |             |                                           |
+    | Linux ping-pong               | asynchronous |             | pong                                      |
+    | Linux ping-pong               | synchronous  |             | pong                                      |
+    | /home/revizor/local_script.sh | synchronous  | local       | Local script work!; USER=root; HOME=/root |
+    | /home/revizor/local_script.sh | asynchronous | local       | Local script work!; USER=root; HOME=/root |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role with failed script

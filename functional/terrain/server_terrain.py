@@ -162,10 +162,10 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
-@step(r"I execute ([\w]+) '([\w\W]+)' ([\w]+) on ([\w\d]+)")
+@step(r"I execute '([\w\W]+)?' '([\w\W]+)' '([\w]+)' on ([\w\d]+)")
 def script_executing(step, script_type, script_name, execute_type, serv_as):
-    if script_type == 'local':
-        script_type = ' %s ' % script_type
+    if script_type:
+        script_type = ' %s ' % script_type.strip()
     else:
         script_type = ' '
     external_step = "I execute{script_type}script '{script_name}' {execute_type} on {server}".format(
