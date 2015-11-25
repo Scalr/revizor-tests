@@ -198,7 +198,6 @@ def creating_role(step):
         LOG.debug('Register image %s to the Scalr' % name)
         image_kwargs.update(dict(software=behaviors, name=name))
         image = IMPL.image.create(**image_kwargs)
-        setattr(world, 'image', image)
     # Create new role
     role_kwargs = dict(
         name=name,
@@ -273,5 +272,5 @@ def remove_temporary_image(total):
     LOG.info('Clear farm: %s' % world.farm.id)
     IMPL.role.delete(world.role['id'])
     LOG.info('Remove temporary role: %s' % world.role['name'])
-    IMPL.image.delete(getattr(world.image, 'id', world.image['id']))
-    LOG.info('Remove temporary image: %s' % getattr(world.image, 'name', world.image['name']))
+    IMPL.image.delete(world.role['images'][0]['extended']['hash'])
+    LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
