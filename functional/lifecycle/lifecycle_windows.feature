@@ -26,6 +26,26 @@ Feature: Windows server lifecycle
         And not ERROR in M1 scalarizr windows log
 
     @ec2 @gce
+    Scenario: Restart scalarizr by script
+      Given I have running server M1
+      When I execute script 'windows restart scalarizr' synchronous on M1
+      And see 'Scalarizr terminated' in M1 windows log
+      And scalarizr is running on M1
+      And not ERROR in M1 scalarizr windows log
+      And I see script result in M1
+      And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
+
+    @ec2 @gce
+    Scenario: Restart scalarizr during script execution
+      Given I have running server M1
+      When I execute script 'windows sleep 60' asynchronous on M1
+      When I reboot windows scalarizr in M1
+      And see 'Scalarizr terminated' in M1 windows log
+      And scalarizr is running on M1
+      And not ERROR in M1 scalarizr windows log
+      And I see script result in M1
+
+    @ec2 @gce
     Scenario: Windows reboot
         When I reboot server M1
         Then Scalr receives Win_HostDown from M1
@@ -35,34 +55,19 @@ Feature: Windows server lifecycle
         And scalr-upd-client is running on M1
 
     @ec2 @gce
-    Scenario: Execute sync cmd script on Windows
-        When I execute script 'Windows ping-pong. CMD' synchronous on M1
-        Then I see script result in M1
-        And script output contains 'pong' in M1
+    Scenario Outline: Scripts executing on Windows
+        Given I have running server M1
+        When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
+        And I see script result in M1
+        And script result contains '<output>' on M1
 
-    @ec2 @gce
-    Scenario: Execute async cmd script on Windows
-        When I execute script 'Windows ping-pong. CMD' asynchronous on M1
-        Then I see script result in M1
-        And script output contains 'pong' in M1
-
-    @ec2 @gce
-    Scenario: Execute sync ps script on Windows
-        When I execute script 'Windows ping-pong. PS' synchronous on M1
-        Then I see script result in M1
-        And script output contains 'pong' in M1
-
-    @ec2 @gce
-    Scenario: Execute async ps script on Windows
-        When I execute script 'Windows ping-pong. PS' asynchronous on M1
-        Then I see script result in M1
-        And script output contains 'pong' in M1
-
-    @ec2 @gce
-    Scenario: Execute sync ps script on Windows from URL
-        When I execute local script 'https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt' asynchronous on M1
-        Then I see script result in M1
-        And script output contains 'Script runned from URL' in M1
+    Examples:
+        | script_name            | execute_type | script_type  | output |
+        | Windows ping-pong. CMD | synchronous  |              | pong   |
+        | Windows ping-pong. CMD | asynchronous |              | pong   |
+        | Windows ping-pong. PS  | synchronous  |              | pong   |
+        | Windows ping-pong. PS  | asynchronous |              | pong   |
+        | https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt| asynchronous | local | Script runned from URL |
 
     @ec2 @gce
     Scenario: Restart farm
