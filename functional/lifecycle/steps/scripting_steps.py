@@ -19,7 +19,7 @@ def assert_check_script(step, message, state, serv_as):
                error_text='I\'m not see %s scripts execution for server %s' % (message, serv.id))
 
 
-@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d !:;=>\"/]+)?)? for ([\w\d]+)")
+@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
     LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\nuser: %s\nexitcode: %s\ncontain: %s' %
               (name, event, user, exitcode, contain)

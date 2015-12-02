@@ -25,6 +25,7 @@ Feature: Orchestration features test
       | HostUp       | Linux ping-pong               | revizor  | 0        | pong   |
       | HostUp       | chef                          | root     | 0        |        |
       | HostUp       | /bin/uname                    | root     | 0        | Linux  |
+      | HostUp       | Sleep 10                      | root     | 130      | printing dot each second; ..... |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify chef executed normally
