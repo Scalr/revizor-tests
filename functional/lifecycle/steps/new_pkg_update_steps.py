@@ -80,9 +80,10 @@ def having_clean_image(step):
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
 
+
 @step(r'I install scalarizr to the server(?: (\w+))?')
 def installing_scalarizr(step, serv_as=''):
-    node =  getattr(world, 'cloud_server', None)
+    node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
     platform = CONF.feature.driver.scalr_cloud
@@ -135,6 +136,7 @@ def installing_scalarizr(step, serv_as=''):
     setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
 
+
 @step(r'I create image from deployed server')
 def creating_image(step):
     cloud_server = getattr(world, 'cloud_server')
@@ -166,6 +168,7 @@ def creating_image(step):
         assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
+
 
 @step(r'I add image to the new role')
 def creating_role(step):
@@ -234,9 +237,11 @@ def setting_farm(step):
     farm_role = farm.roles[0]
     setattr(world, '%s_role' % world.role['name'], farm_role)
 
+
 @step(r'I trigger scalarizr update by Scalr UI')
 def updating_scalarizr_by_scalr_ui(step):
     pass
+
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
 def asserting_version(step, serv_as):
@@ -262,15 +267,18 @@ def asserting_version(step, serv_as):
     assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
         'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
 
+
 @step(r'I checkout to ([A-za-z0-9\/\-\_]+) from branch ([A-za-z0-9\/\-\_]+)$')
 def forking_git_branch(step, branch_from, branch_to):
     pass
+
 
 @step(r'I reboot server')
 def rebooting_server(step):
     if not world.cloud_server.reboot():
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
     world.cloud_server = None
+
 
 @after.all
 def remove_temporary_image(total):
