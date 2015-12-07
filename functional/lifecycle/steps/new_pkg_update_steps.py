@@ -274,9 +274,10 @@ def rebooting_server(step):
 
 @after.all
 def remove_temporary_image(total):
-    IMPL.farm.clear_roles(world.farm.id)
-    LOG.info('Clear farm: %s' % world.farm.id)
-    IMPL.role.delete(world.role['id'])
-    LOG.info('Remove temporary role: %s' % world.role['name'])
-    IMPL.image.delete(world.role['images'][0]['extended']['hash'])
-    LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
+    if total.scenarios_ran == total.scenarios_passed:
+        IMPL.farm.clear_roles(world.farm.id)
+        LOG.info('Clear farm: %s' % world.farm.id)
+        IMPL.role.delete(world.role['id'])
+        LOG.info('Remove temporary role: %s' % world.role['name'])
+        IMPL.image.delete(world.role['images'][0]['extended']['hash'])
+        LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
