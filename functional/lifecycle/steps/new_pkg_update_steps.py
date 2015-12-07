@@ -105,7 +105,10 @@ def installing_scalarizr(step, serv_as=''):
         err = console.run_cmd(command).std_err
         if err:
             raise Exception("Error when installing scalarizr! %s" % err)
-        res = console.run_cmd('scalarizr -v').std_out
+        res = console.run_cmd('scalarizr -v')
+        LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)
+        assert version, 'Scalarizr version is invalid. Command returned: %s' % res.std_out
         run_sysprep(node.uuid, console)
     # Linux handler
     else:
@@ -130,8 +133,8 @@ def installing_scalarizr(step, serv_as=''):
                 url=getattr(SCALARIZR_REPOS, repo_type))
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, user=user)[0]
-    version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    assert  version, 'Could not install scalarizr'
+        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
+        assert version, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', version[0])
     setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
