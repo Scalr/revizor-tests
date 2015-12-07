@@ -25,6 +25,7 @@ Feature: Orchestration features test
       | HostUp       | Linux ping-pong               | revizor  | 0        | pong   |
       | HostUp       | chef                          | root     | 0        |        |
       | HostUp       | /bin/uname                    | root     | 0        | Linux  |
+      | HostUp       | Sleep 10                      | root     | 130      | printing dot each second; ..... |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify chef executed normally
@@ -33,33 +34,19 @@ Feature: Orchestration features test
         And process 'memcached' has options '-m 1024' in M1
         And M1 chef runlist has only recipes [memcached,revizorenv]
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Execute 2 sync scripts
-        When I execute script 'Linux ping-pong' synchronous on M1
-        And I see script result in M1
-        Then I execute script 'Linux ping-pong' synchronous on M1
-        And I see script result in M1
+  @ec2 @gce @cloudstack @rackspaceng @openstack
+  Scenario Outline: Scripts executing on linux
+    When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
+    And I see script result in M1
+    And script result contains '<output>' on M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Execute 1 sync and 1 async scripts
-        When I execute script 'Linux ping-pong' synchronous on M1
-        And I see script result in M1
-        Then I execute script 'Linux ping-pong' asynchronous on M1
-        And I see script result in M1
-
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Execute restart scalarizr
-        When I execute script 'Restart scalarizr' synchronous on M1
-        And I see script result in M1
-
-    @ec2 @gce @cloudstack @rackspaceng @openstack
-    Scenario: Execute local script on Linux
-        Given I have running server M1
-        When I execute local script '/home/revizor/local_script.sh' synchronous on M1
-        And I see script result in M1
-        And script output contains 'Local script work!' in M1
-        And script output contains 'USER=root' in M1
-        And script output contains 'HOME=/root' in M1
+  Examples:
+    | script_name                   | execute_type | script_type | output                                    |
+    | Restart scalarizr             | synchronous  |             |                                           |
+    | Linux ping-pong               | asynchronous |             | pong                                      |
+    | Linux ping-pong               | synchronous  |             | pong                                      |
+    | /home/revizor/local_script.sh | synchronous  | local       | Local script work!; USER=root; HOME=/root |
+    | /home/revizor/local_script.sh | asynchronous | local       | Local script work!; USER=root; HOME=/root |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role with failed script

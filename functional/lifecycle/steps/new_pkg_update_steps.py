@@ -16,7 +16,7 @@ from datetime import datetime
 from revizor2.api import IMPL, Platform
 from revizor2.conf import CONF
 from collections import namedtuple
-from lettuce import step, world
+from lettuce import step, world, after
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
@@ -64,7 +64,6 @@ def creating_image(step):
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
 
-
 @step(r'I add image to the new role')
 def creating_role(step):
     image_registered = False
@@ -95,7 +94,7 @@ def creating_role(step):
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
         image_kwargs.update(dict(software=behaviors, name=name))
-        IMPL.image.create(**image_kwargs)
+        image = IMPL.image.create(**image_kwargs)
     # Create new role
     role_kwargs = dict(
         name=name,
@@ -107,7 +106,6 @@ def creating_role(step):
     LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
-
 
 @step(r'I add created role to the farm')
 def setting_farm(step):
@@ -133,11 +131,9 @@ def setting_farm(step):
     farm_role = farm.roles[0]
     setattr(world, '%s_role' % world.role['name'], farm_role)
 
-
 @step(r'I trigger scalarizr update by Scalr UI')
 def updating_scalarizr_by_scalr_ui(step):
     pass
-
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
 def asserting_version(step, serv_as):
@@ -163,7 +159,6 @@ def asserting_version(step, serv_as):
     assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
         'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
 
-
 @step(r'I checkout to ([A-za-z0-9\/\-\_]+) from branch ([A-za-z0-9\/\-\_]+)$')
 def forking_git_branch(step, branch_from, branch_to):
     pass
@@ -173,3 +168,12 @@ def rebooting_server(step):
     if not world.cloud_server.reboot():
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
     world.cloud_server = None
+
+@after.all
+def remove_temporary_image(total):
+    IMPL.farm.clear_roles(world.farm.id)
+    LOG.info('Clear farm: %s' % world.farm.id)
+    IMPL.role.delete(world.role['id'])
+    LOG.info('Remove temporary role: %s' % world.role['name'])
+    IMPL.image.delete(world.role['images'][0]['extended']['hash'])
+    LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])

@@ -162,6 +162,19 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
+@step(r"I execute '([\w\W]+)?' '([\w\W]+)' '([\w]+)' on ([\w\d]+)")
+def script_executing(step, script_type, script_name, execute_type, serv_as):
+    if script_type:
+        script_type = ' %s ' % script_type.strip()
+    else:
+        script_type = ' '
+    external_step = "I execute{script_type}script '{script_name}' {execute_type} on {server}".format(
+        script_type=script_type,
+        script_name=script_name,
+        execute_type=execute_type,
+        server=serv_as)
+    LOG.debug('Run external step: %s' % external_step)
+    step.when(external_step)
 
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
@@ -268,7 +281,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
 
 
 @step(r'attached volume ([\w\d]+) has size (\d+) Gb')
-@world.run_only_if(storage='persistent')
+@world.run_only_if(storage='persistent', platform=[Platform.EC2])
 def verify_attached_volume_size(step, volume_as, size):
     LOG.info('Verify attached volume has new size "%s"' % size)
     size = int(size)
