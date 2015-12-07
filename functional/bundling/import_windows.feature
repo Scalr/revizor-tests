@@ -16,7 +16,7 @@ Feature: Import server to scalr and use this role
         Given I have a an empty running farm
         When I add to farm imported role
         Then I expect server bootstrapping as M1
-        And hostname in M1 is valid
+        And scalarizr version is last in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Executing import command on server running with userdata
@@ -33,5 +33,5 @@ Feature: Import server to scalr and use this role
         Given I have a an empty running farm
         When I add to farm imported role
         Then I expect server bootstrapping as M2
-        And hostname in M2 is valid
+        And scalarizr version is last in M2
 
