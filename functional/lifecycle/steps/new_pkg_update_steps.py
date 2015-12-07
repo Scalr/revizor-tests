@@ -113,7 +113,7 @@ def installing_scalarizr(step, serv_as=''):
     # Linux handler
     else:
         # Wait ssh
-        user=get_user_name()
+        user = get_user_name()
         wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
         repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
