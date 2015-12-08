@@ -1,6 +1,9 @@
 {
     "DISTS": ["win2008", "win2012"],
     "RV_PLATFORM": {
-        "ec2": {"tags": ["ec2"], "default": true}
+        "ec2": {"tags": ["ec2"], "default": true},
+        "gce": ["gce"],
+        "rackspacengus": ["openstack"],
+        "openstack": ["openstack"]
     }
 }

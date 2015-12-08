@@ -32,6 +32,65 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
+# @step(r'I install scalarizr to the server(?: (\w+))?')
+# def installing_scalarizr(step, serv_as=''):
+#     node = getattr(world, 'cloud_server', None)
+#     branch = CONF.feature.branch
+#     repo = CONF.feature.ci_repo.lower()
+#     platform = CONF.feature.driver.scalr_cloud
+#     # Wait cloud server
+#     if not node:
+#         LOG.debug('Cloud server not found get node from server')
+#         server = getattr(world, serv_as.strip())
+#         server.reload()
+#         node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+#         LOG.debug('Node get successfully: %s' % node)
+#     assert node,  'Node not found'
+#     # Windows handler
+#     if Dist.is_windows_family(CONF.feature.dist):
+#         console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
+#         repo_type = branch if branch in ['latest', 'stable'] else '%s/%s' % (CONF.feature.ci_repo, branch)
+#         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
+#             SCALARIZR_REPOS.win,
+#             repo_type)
+#         err = console.run_cmd(command).std_err
+#         if err:
+#             raise Exception("Error when installing scalarizr! %s" % err)
+#         res = console.run_cmd('scalarizr -v')
+#         LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+#         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)
+#         assert version, 'Scalarizr version is invalid. Command returned: %s' % res.std_out
+#         run_sysprep(node.uuid, console)
+#     # Linux handler
+#     else:
+#         # Wait ssh
+#         user = get_user_name()
+#         wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
+#         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
+#         repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
+#         cmd = '{curl_install} && ' \
+#             'PLATFORM={platform} ; ' \
+#             'CI_REPO={repo} ; ' \
+#             'BRANCH={branch} ; ' \
+#             'curl -L {url}/install_scalarizr.sh | bash && ' \
+#             'sync && scalarizr -v'.format(
+#                 curl_install=world.value_for_os_family(
+#                     debian="apt-get update && apt-get install curl -y",
+#                     centos="yum clean all && yum install curl -y",
+#                     server=server),
+#                 platform=platform,
+#                 repo=repo,
+#                 branch=branch,
+#                 url=getattr(SCALARIZR_REPOS, repo_type))
+#         LOG.debug('Install script body: %s' % cmd)
+#         res = node.run(cmd, user=user)[0]
+#         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
+#         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
+#     setattr(world, 'pre_installed_agent', version[0])
+#     setattr(world, 'cloud_server', node)
+#     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
+
+
 @step(r'I create image from deployed server')
 def creating_image(step):
     cloud_server = getattr(world, 'cloud_server')
@@ -63,6 +122,7 @@ def creating_image(step):
         assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
+
 
 @step(r'I add image to the new role')
 def creating_role(step):
@@ -131,9 +191,11 @@ def setting_farm(step):
     farm_role = farm.roles[0]
     setattr(world, '%s_role' % world.role['name'], farm_role)
 
+
 @step(r'I trigger scalarizr update by Scalr UI')
 def updating_scalarizr_by_scalr_ui(step):
     pass
+
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
 def asserting_version(step, serv_as):
@@ -159,9 +221,11 @@ def asserting_version(step, serv_as):
     assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
         'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
 
+
 @step(r'I checkout to ([A-za-z0-9\/\-\_]+) from branch ([A-za-z0-9\/\-\_]+)$')
 def forking_git_branch(step, branch_from, branch_to):
     pass
+
 
 @step(r'I reboot server')
 def rebooting_server(step):
@@ -169,11 +233,13 @@ def rebooting_server(step):
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
     world.cloud_server = None
 
+
 @after.all
 def remove_temporary_image(total):
-    IMPL.farm.clear_roles(world.farm.id)
-    LOG.info('Clear farm: %s' % world.farm.id)
-    IMPL.role.delete(world.role['id'])
-    LOG.info('Remove temporary role: %s' % world.role['name'])
-    IMPL.image.delete(world.role['images'][0]['extended']['hash'])
-    LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
+    if total.scenarios_ran == total.scenarios_passed:
+        IMPL.farm.clear_roles(world.farm.id)
+        LOG.info('Clear farm: %s' % world.farm.id)
+        IMPL.role.delete(world.role['id'])
+        LOG.info('Remove temporary role: %s' % world.role['name'])
+        IMPL.image.delete(world.role['images'][0]['extended']['hash'])
+        LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
