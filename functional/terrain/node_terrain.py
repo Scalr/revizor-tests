@@ -564,7 +564,7 @@ def run_sysprep(uuid, console):
         LOG.debug('Obtained node after sysprep running: %s' % node)
         # node_status = getattr(node, 'extra', {}).get('status', '').lower()
         LOG.debug('Obtained node status after sysprep running: %s' % node_status)
-        if node.state == 5: #getattr(PLATFORM_TERMINATED_STATE, CONF.feature.driver.scalr_cloud):
+        if node.state == 5:
             break
         time.sleep(10)
     else: raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
