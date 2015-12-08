@@ -328,7 +328,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     # Get last scalarizr version from custom repo
     index_url = default_repo.format(branch=branch)
     LOG.debug('Check package from index_url: %s' % index_url)
-    repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
+    repo_data = parser_for_os_family(server.role.os_family)(branch=branch, index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort(reverse=True)
     LOG.debug('Last scalarizr version %s for branch %s' % (versions[0], branch))
@@ -562,9 +562,9 @@ def run_sysprep(uuid, console):
     while time.time() <= end_time:
         node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
         LOG.debug('Obtained node after sysprep running: %s' % node)
-        node_status = getattr(node, 'extra', {}).get('status', '').lower()
+        # node_status = getattr(node, 'extra', {}).get('status', '').lower()
         LOG.debug('Obtained node status after sysprep running: %s' % node_status)
-        if node_status == getattr(PLATFORM_TERMINATED_STATE, CONF.feature.driver.scalr_cloud):
+        if node.state == 5: #getattr(PLATFORM_TERMINATED_STATE, CONF.feature.driver.scalr_cloud):
             break
         time.sleep(10)
     else: raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
@@ -607,7 +607,10 @@ def installing_scalarizr(step, sysprep=None, serv_as=''):
         err = console.run_cmd(command).std_err
         if err:
             raise Exception("Error when installing scalarizr! %s" % err)
-        res = console.run_cmd('scalarizr -v').std_out
+        res = console.run_cmd('scalarizr -v')
+        LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)
+        assert version, 'Scalarizr version is invalid. Command returned: %s' % res.std_out
         if sysprep:
             run_sysprep(node.uuid, console)
     # Linux handler
@@ -633,9 +636,8 @@ def installing_scalarizr(step, sysprep=None, serv_as=''):
                 url=getattr(SCALARIZR_REPOS, repo_type))
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, user=user)[0]
-    version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    print (version)
-    assert version, 'Could not install scalarizr'
+        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
+        assert version, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', version[0])
     setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
