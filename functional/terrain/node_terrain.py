@@ -231,13 +231,17 @@ def assert_check_service(step, service, closed, serv_as):
         port, 'closed' if closed else 'open', server.id
     ))
     if service == 'scalarizr' and CONF.feature.dist.startswith('win'):
-        try:
-            status = server.upd_api.status()['service_status']
-        except ServiceError:
-            status = server.upd_api_old.status()['service_status']
-        if not status == 'running':
+        status = None
+        for _ in range(5):
+            try:
+                status = server.upd_api.status()['service_status']
+            except ServiceError:
+                status = server.upd_api_old.status()['service_status']
+            if status == 'running':
+                return
+            time.sleep(5)
+        else:
             raise AssertionError('Scalarizr is not running in windows, status: %s' % status)
-        return
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.startswith('win'):
         world.set_iptables_rule(server, port)
