@@ -32,65 +32,6 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-# @step(r'I install scalarizr to the server(?: (\w+))?')
-# def installing_scalarizr(step, serv_as=''):
-#     node = getattr(world, 'cloud_server', None)
-#     branch = CONF.feature.branch
-#     repo = CONF.feature.ci_repo.lower()
-#     platform = CONF.feature.driver.scalr_cloud
-#     # Wait cloud server
-#     if not node:
-#         LOG.debug('Cloud server not found get node from server')
-#         server = getattr(world, serv_as.strip())
-#         server.reload()
-#         node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-#         LOG.debug('Node get successfully: %s' % node)
-#     assert node,  'Node not found'
-#     # Windows handler
-#     if Dist.is_windows_family(CONF.feature.dist):
-#         console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
-#         repo_type = branch if branch in ['latest', 'stable'] else '%s/%s' % (CONF.feature.ci_repo, branch)
-#         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
-#             SCALARIZR_REPOS.win,
-#             repo_type)
-#         err = console.run_cmd(command).std_err
-#         if err:
-#             raise Exception("Error when installing scalarizr! %s" % err)
-#         res = console.run_cmd('scalarizr -v')
-#         LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
-#         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)
-#         assert version, 'Scalarizr version is invalid. Command returned: %s' % res.std_out
-#         run_sysprep(node.uuid, console)
-#     # Linux handler
-#     else:
-#         # Wait ssh
-#         user = get_user_name()
-#         wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
-#         LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
-#         repo_type = 'release' if  branch in ['latest', 'stable'] else 'develop'
-#         cmd = '{curl_install} && ' \
-#             'PLATFORM={platform} ; ' \
-#             'CI_REPO={repo} ; ' \
-#             'BRANCH={branch} ; ' \
-#             'curl -L {url}/install_scalarizr.sh | bash && ' \
-#             'sync && scalarizr -v'.format(
-#                 curl_install=world.value_for_os_family(
-#                     debian="apt-get update && apt-get install curl -y",
-#                     centos="yum clean all && yum install curl -y",
-#                     server=server),
-#                 platform=platform,
-#                 repo=repo,
-#                 branch=branch,
-#                 url=getattr(SCALARIZR_REPOS, repo_type))
-#         LOG.debug('Install script body: %s' % cmd)
-#         res = node.run(cmd, user=user)[0]
-#         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-#         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
-#     setattr(world, 'pre_installed_agent', version[0])
-#     setattr(world, 'cloud_server', node)
-#     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
-
-
 @step(r'I create image from deployed server')
 def creating_image(step):
     cloud_server = getattr(world, 'cloud_server')
