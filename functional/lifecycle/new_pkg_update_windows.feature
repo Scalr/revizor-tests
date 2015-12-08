@@ -4,7 +4,7 @@ Feature: Update scalarizr windows test
     @bootstrap @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Update at bootstrap windows test, new role create
       Given I have a server running in cloud
-      When I install scalarizr to the server
+      When I install scalarizr with sysprep to the server
       Then I create image from deployed server
       And I add image to the new role
 
