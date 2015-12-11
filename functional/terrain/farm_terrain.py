@@ -9,7 +9,7 @@ from lettuce import world, step
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
-from revizor2.api import Script, Farm, Metrics
+from revizor2.api import Script, Farm, Metrics, ChefServer
 from revizor2.consts import Platform, DATABASE_BEHAVIORS
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
@@ -213,6 +213,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     "chef.attributes": chef_attributes})
                 # Update role options
                 role_options.update(default_chef_solo_opts)
+            elif 'chef' in opt:
+                option = DEFAULT_ROLE_OPTIONS.get(opt, {})
+                if option:
+                    option['chef.server_id'] = ChefServer.get('https://api.opscode.com/organizations/webta').id
+                role_options.update(option)
             else:
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
