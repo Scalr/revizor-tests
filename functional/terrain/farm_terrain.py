@@ -61,7 +61,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
-            if opt == 'noiptables' and CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
+            if opt == 'noiptables' and CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK, Platform.RACKSPACE_US]:
                 continue
             if opt in ('branch_latest', 'branch_stable'):
                 CONF.feature.branch = opt.split('_')[1]
