@@ -114,7 +114,7 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
                 raise
 
 
-@step(r'(?:[\w]+) ([\w\W]+) event was fired by ([\w\d]+)')
+@step(r'(?:\s)([\w\W]+) event was fired by ([\w\d]+)')
 def assert_server_event(step, events_type, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Check "%s" events were fired  by %s' % (events_type, server.id))
@@ -127,21 +127,15 @@ def assert_server_event(step, events_type, serv_as):
         error_text=err_msg)
 
 
-
 @step(r'(?:[\w]+) ([\w\W]+) events were not fired after ([\w\d]+) resume')
 def assert_server_event_again_fired(step, events, serv_as):
-
-
     server = getattr(world, serv_as)
     server.events.reload()
     LOG.info('Check "%s" events were not again fired by %s' % (events, server.id))
-
     server_events = [e.type.lower() for e in reversed(server.events)]
     LOG.debug('Server %s events list: %s' % (server.id, server_events))
-
     duplicated_server_events = set([e for e in server_events if server_events.count(e) > 1])
     LOG.debug('Server %s duplicated events list: %s' % (server.id, duplicated_server_events))
-
     assert not any(e.lower() in duplicated_server_events for e in events.split(',')), \
         'Some events from %s were fired by %s more than one time' % (events, server.id)
 

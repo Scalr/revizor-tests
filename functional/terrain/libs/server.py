@@ -354,18 +354,15 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
 
 @world.absorb
 def is_events_fired(server, events_type):
-
     events_fired = False
     server.events.reload()
-
     server_events = [e.type.lower() for e in reversed(server.events)]
     LOG.debug('Server %s events list: %s' % (server.id, server_events))
-
     if all(e.lower() in server_events for e in events_type.split(',')):
         LOG.debug('"%s" events were fired by %s.' % (events_type, server.id))
         events_fired =  True
-
     return events_fired
+
 
 @world.absorb
 def wait_script_execute(server, message, state):

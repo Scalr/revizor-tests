@@ -16,7 +16,7 @@ Feature: Windows server resume strategy
     @ec2 @gce @cloudstack @stopresume
     Scenario: Stop/resume
         When I suspend server M1
-        Then BeforeHostTerminate event was fired by M1
+        Then BeforeHostTerminate (Suspend) event was fired by M1
         And Scalr sends BeforeHostTerminate to M1
         Then I wait server M1 in suspended state
         And HostDown (Suspend) event was fired by M1
