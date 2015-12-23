@@ -136,7 +136,7 @@ def cleanup_all(total):
     LOG.info('Failed steps: %s' % total.steps_failed)
     LOG.debug('Results %s' % total.scenario_results)
     LOG.debug('Passed %s' % total.scenarios_passed)
-    if not total.steps_failed and CONF.feature.stop_farm:
+    if (not total.steps_failed and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.main.te_id):
         LOG.info('Clear and stop farm...')
         farm = getattr(world, 'farm', None)
         if not farm:

@@ -89,15 +89,6 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/nocache1'
         And server M1 contain '/tmp/nocache2'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @deploy
-    Scenario: Check deploy action
-        Given I have running server M1
-        When I deploy app with name 'deploy-test'
-        And Scalr sends Deploy to M1
-        Then Scalr receives DeployResult from M1
-        And directory '/var/www/pecha' exist in M1
-        And deploy task deployed
-
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @szradm
     Scenario: Verify szradm list-roles
         When I run "szradm -q list-roles" on M1

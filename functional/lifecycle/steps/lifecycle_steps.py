@@ -136,6 +136,7 @@ def define_event_to_role(step, event):
     if not res:
         LOG.info('Create new Event')
         IMPL.event.change(event, 'Revizor FireEvent')
+        events = IMPL.event.list()
     res = filter(lambda x: x['name'] == event, events)[0]
     setattr(world, 'last_event', res)
 
