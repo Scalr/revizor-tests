@@ -316,6 +316,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     System branch - CONF.feature.branch
     Role branch - CONF.feature.to_branch
     """
+    #FIXME: Rewrite this ugly code!
     server = getattr(world, serv_as)
     if branch == 'system' or not branch:
         branch = CONF.feature.branch
