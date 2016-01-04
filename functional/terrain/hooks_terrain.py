@@ -63,18 +63,21 @@ def exclude_scenarios_by_version(feature):
             feature.scenarios = new_scenarios_list
 
 
-@before.each_scenario
-def exclude_steps_by_options(scenario):
+@before.each_feature
+def exclude_steps_by_options(feature):
     """
     Exclude steps from feature for @world.run_only_if
     """
-    steps_to_remove = []
-    for step in scenario.steps:
-        func = step._get_match(None)[1].function
-        if hasattr(func, '_exclude'):
-            steps_to_remove.append(step)
-    for step in steps_to_remove:
-        scenario.steps.remove(step)
+    for scenario in feature.scenarios:
+        steps_to_remove = set()
+        for step in scenario.steps:
+            func = step._get_match(None)[1].function
+            if hasattr(func, '_exclude'):
+                steps_to_remove.add(step)
+        for step in steps_to_remove:
+            scenario.steps.remove(step)
+        if len(scenario.steps) == 0:
+            feature.scenarios.remove(scenario)
 
 
 @after.each_scenario
