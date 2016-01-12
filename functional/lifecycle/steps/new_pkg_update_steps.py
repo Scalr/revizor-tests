@@ -94,7 +94,7 @@ def creating_role(step):
     if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
-        image_kwargs.update(dict(software=behaviors, name=name))
+        image_kwargs.update(dict(software=behaviors, name=name, is_scalarized=True))
         image = IMPL.image.create(**image_kwargs)
     # Create new role
     role_kwargs = dict(
