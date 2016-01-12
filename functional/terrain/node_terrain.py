@@ -567,8 +567,7 @@ def run_sysprep(uuid, console):
     while time.time() <= end_time:
         node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
         LOG.debug('Obtained node after sysprep running: %s' % node)
-        # node_status = getattr(node, 'extra', {}).get('status', '').lower()
-        LOG.debug('Obtained node status after sysprep running: %s' % node_status)
+        LOG.debug('Obtained node status after sysprep running: %s' % node.state)
         if node.state == 5:
             break
         time.sleep(10)
