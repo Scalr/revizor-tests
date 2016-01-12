@@ -189,7 +189,14 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     }
                 ]
             elif opt.startswith('scaling'):
-                scaling_metrics = DEFAULT_SCALINGS[opt]
+                metric_name = DEFAULT_SCALINGS[opt]
+                metric_id = Metrics.get_id(metric_name)
+                scaling_metrics = {
+                    metric_id: {
+                        "max": "75",
+                        "min": "50"
+                        }
+                    }
             elif 'chef-solo' in opt:
                 chef_opts = opt.split('-')
                 default_chef_solo_opts = DEFAULT_CHEF_SOLO.copy()
