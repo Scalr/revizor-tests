@@ -27,12 +27,32 @@ except ImportError:
 SCALARIZR_REPOS = collections.namedtuple('SCALARIZR_REPOS', ('release', 'develop', 'win'))(
     'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
     'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH',
-    'https://my.scalr.net/public/windows'
+    'https://my.scalr.net/public/windows/{repo}'
+)
+
+PS_SCRIPTS = collections.namedtuple('PS_SCRIPTS', (
+    'run_as',
+    'ec2_sysprep',
+    'scalarizr_install',
+    'set_path',
+    'create_status_file',
+    'set_startup_type',
+    'run_scalarizr'))(
+        '''powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"''',
+        '''$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml'); ''' \
+        '''$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled'; ''' \
+        '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
+        '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep''',
+        "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))",
+        "$env:PYTHONPATH = '$env:ProgramFiles\Scalarizr\src'",
+        "cd 'c:\Program Files\Scalarizr\Python27'; ./python -m scalarizr.updclient.app --make-status-file",
+        "Set-Service 'ScalrUpdClient' -startuptype manual; Set-Service 'Scalarizr' -startuptype auto;",
+        "Start-Service 'Scalarizr'"
 )
 
 PLATFORM_SYSPREP = collections.namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
     'gcesysprep',
-    '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
+    PS_SCRIPTS.run_as.format(command=PS_SCRIPTS.ec2_sysprep)
 )
 
 PLATFORM_TERMINATED_STATE = collections.namedtuple('PLATFORM_TERMINATED_STATE', ('gce', 'ec2'))(
@@ -587,8 +607,8 @@ def get_user_name():
     return user_name
 
 
-@step(r'I install scalarizr (with sysprep )?to the server(?: (\w+))?')
-def installing_scalarizr(step, sysprep=None, serv_as=''):
+@step(r'I install scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?')
+def installing_scalarizr(step, version=None, sysprep=None, serv_as=''):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     repo = CONF.feature.ci_repo.lower()
@@ -604,17 +624,23 @@ def installing_scalarizr(step, sysprep=None, serv_as=''):
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
-        repo_type = branch if branch in ['latest', 'stable'] else '%s/%s' % (CONF.feature.ci_repo, branch)
-        command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
-            SCALARIZR_REPOS.win,
-            repo_type)
-        err = console.run_cmd(command).std_err
-        if err:
-            raise Exception("Error when installing scalarizr! %s" % err)
+        if version:
+            repo_type = version.strip()
+        elif branch in ['latest', 'stable']:
+            repo_type = branch
+        else:
+            repo_type = '%s/%s' % (CONF.feature.ci_repo, branch)
+        url = SCALARIZR_REPOS.win.format(repo=repo_type)
+        install_command = PS_SCRIPTS.scalarizr_install.format(url=url)
+        command = PS_SCRIPTS.run_as.format(command=install_command)
+        res = console.run_cmd(command)
+        LOG.debug('Installing scalarizr result. std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+        if res.std_err:
+            raise Exception("Error when installing scalarizr! %s" % res.std_err)
         res = console.run_cmd('scalarizr -v')
-        LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+        LOG.debug('Get scalarizr version result. std_out: %s. std_err: %s' % (res.std_out, res.std_err))
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)
-        assert version, 'Scalarizr version is invalid. Command returned: %s' % res.std_out
+        assert version, 'Scalarizr version is invalid. Command returned: %s %s' % (res.std_out, res.std_err)
         if sysprep:
             run_sysprep(node.uuid, console)
     # Linux handler
@@ -645,3 +671,17 @@ def installing_scalarizr(step, sysprep=None, serv_as=''):
     setattr(world, 'pre_installed_agent', version[0])
     setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
+
+
+@step(r"I forbid scalarizr update at startup and run it on ([\w\d]+)$")
+def executing_scalarizr(step, serv_as):
+    server = getattr(world, serv_as.strip())
+    console = world.get_windows_session(public_ip=server.public_ip, password='scalr')
+    assert not console.run_cmd(PS_SCRIPTS.run_as.format(command=PS_SCRIPTS.set_path)).std_err,\
+        "Setting PYTHONPATH error"
+    assert not console.run_cmd(PS_SCRIPTS.run_as.format(command=PS_SCRIPTS.create_status_file)).std_err,\
+        "Creatin status file error"
+    assert not console.run_cmd(PS_SCRIPTS.run_as.format(command=PS_SCRIPTS.set_startup_type)).std_err,\
+        "Setting startup type error"
+    assert not console.run_cmd(PS_SCRIPTS.run_as.format(command=PS_SCRIPTS.run_scalarizr)).std_err,\
+        "Executing error"

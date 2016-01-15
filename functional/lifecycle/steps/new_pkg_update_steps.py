@@ -21,13 +21,35 @@ from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.utils import wait_until
+from revizor2.fixtures import tables
 
 LOG = logging.getLogger(__name__)
+
+@step(r"I have manualy installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
+def havinng_installed_scalarizr(step, version=None, serv_as=None):
+    version = version or ''
+    step.behave_as("""
+      Given I have a clean image
+      And I add image to the new role
+      When I have a an empty running farm
+      Then I add created role to the farm
+      And I see pending server {serv_as}
+      When I install scalarizr{version} to the server {serv_as}
+      Then I forbid scalarizr update at startup and run it on {serv_as}
+    """.format(version=version.replace("'", ''), serv_as=serv_as))
 
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    image = world.cloud.find_image(use_hvm=USE_VPC)
+    if Dist.is_windows_family(CONF.feature.dist):
+        table = tables('images-clean')
+        search_cond = dict(
+            dist=CONF.feature.dist,
+            platform=CONF.feature.platform)
+        image_id = table.filter(search_cond).first().keys()[0].encode('ascii','ignore')
+        image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
+    else:
+        image = world.cloud.find_image(use_hvm=USE_VPC)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
 
@@ -108,6 +130,7 @@ def creating_role(step):
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
 
+
 @step(r'I add created role to the farm')
 def setting_farm(step):
     farm = world.farm
@@ -161,11 +184,6 @@ def asserting_version(step, serv_as):
     LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
     assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
         'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
-
-
-@step(r'I checkout to ([A-za-z0-9\/\-\_]+) from branch ([A-za-z0-9\/\-\_]+)$')
-def forking_git_branch(step, branch_from, branch_to):
-    pass
 
 
 @step(r'I reboot server')
