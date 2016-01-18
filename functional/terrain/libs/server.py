@@ -1,8 +1,11 @@
 __author__ = 'gigimon'
 
 import time
+import gevent
 import logging
 import traceback
+import gevent.event
+import gevent.threading
 from datetime import datetime
 
 import requests
@@ -39,20 +42,30 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 
 
 @world.absorb
-def get_windows_session(server=None, public_ip=None, password=None):
+def get_windows_session(server=None, public_ip=None, password=None, timeout=None):
+    time_until = time.time() + timeout if timeout else None
     username = 'Administrator'
     port = 5985
-    if server:
-        public_ip = server.public_ip
-        password = server.windows_password
-    if CONF.feature.driver.cloud_family == Platform.GCE:
-        username = 'scalr'
-    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
-        node = world.cloud.get_node(server)
-        port = world.cloud.open_port(node, port)
-    session = winrm.Session('http://%s:%s/wsman' % (public_ip, port),
-                            auth=(username, password))
-    return session
+    while True:
+        try:
+            if server:
+                public_ip = server.public_ip
+                password = server.windows_password
+            if CONF.feature.driver.cloud_family == Platform.GCE:
+                username = 'scalr'
+            elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+                node = world.cloud.get_node(server)
+                port = world.cloud.open_port(node, port)
+            session = winrm.Session(
+                'http://%s:%s/wsman' % (public_ip, port),
+                auth=(username, password))
+            return session
+        except Exception as e:
+            if time.time() >= time_until:
+                raise
+            LOG.error('Got windows session error: %s' % e.message)
+            time.sleep(5)
+
 
 @world.absorb
 def run_cmd_command(server, command):

@@ -158,7 +158,9 @@ def setting_farm(step):
 
 @step(r'I trigger scalarizr update by Scalr UI')
 def updating_scalarizr_by_scalr_ui(step):
-    pass
+    server = getattr(world, serv_as)
+    res = IMPL.server.update_scalarizr(server_id=server.id)
+    assert res['success'], 'Scalarizr update failed %s' % res['successMessage']
 
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
