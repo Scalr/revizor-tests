@@ -608,9 +608,9 @@ def installing_scalarizr(step, sysprep=None, serv_as=''):
         command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
             SCALARIZR_REPOS.win,
             repo_type)
-        err = console.run_cmd(command).std_err
-        if err:
-            raise Exception("Error when installing scalarizr! %s" % err)
+        sh = console.run_cmd(command)
+        if sh.std_err:
+            raise Exception("Error when installing scalarizr! %s\n%s" % (sh.std_err, sh.std_out))
         res = console.run_cmd('scalarizr -v')
         LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)

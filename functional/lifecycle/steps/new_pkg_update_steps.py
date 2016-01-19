@@ -108,6 +108,7 @@ def creating_role(step):
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
 
+
 @step(r'I add created role to the farm')
 def setting_farm(step):
     farm = world.farm
