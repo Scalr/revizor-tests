@@ -1,11 +1,8 @@
 __author__ = 'gigimon'
 
 import time
-import gevent
 import logging
 import traceback
-import gevent.event
-import gevent.threading
 from datetime import datetime
 
 import requests
@@ -40,13 +37,18 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'error was thrown due to the hostname format'
 ]
 
+# Run powershell script as Administrator
+world.PS_RUN_AS = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"'''
+
 
 @world.absorb
 def get_windows_session(server=None, public_ip=None, password=None, timeout=None):
     time_until = time.time() + timeout if timeout else None
+    LOG.debug('Enter session %s : %s' % (timeout, time_until))
     username = 'Administrator'
     port = 5985
     while True:
+        LOG.debug('Enter loop')
         try:
             if server:
                 public_ip = server.public_ip
@@ -61,9 +63,32 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 auth=(username, password))
             return session
         except Exception as e:
+            LOG.debug('Enter exception %s : %s' % (time.time(), time_until))
             if time.time() >= time_until:
+                LOG.debug('Enter raise')
                 raise
             LOG.error('Got windows session error: %s' % e.message)
+            time.sleep(5)
+
+
+@world.absorb
+def run_cmd_command_until(command, server=None, public_ip=None, password=None, timeout=300):
+    time_until = time.time() + timeout if timeout else None
+    LOG.debug('Execute powershell command: %s' % command)
+    while True:
+        console = get_windows_session(
+            server=server,
+            public_ip=public_ip,
+            password=password,
+            timeout=timeout)
+        try:
+            res = console.run_cmd(command)
+            LOG.debug('std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+            return res
+        except Exception as  e:
+            if time.time() >= time_until:
+                raise AssertionError('Command: %s execution failed' % command)
+            LOG.error('Got an error while try execute command: %s ErrorMsg %s'% (command, e.message))
             time.sleep(5)
 
 

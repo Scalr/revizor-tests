@@ -29,14 +29,17 @@ LOG = logging.getLogger(__name__)
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
     version = version or ''
     step.behave_as("""
-      Given I have a clean image
-      And I add image to the new role
-      When I have a an empty running farm
-      Then I add created role to the farm
-      And I see pending server {serv_as}
-      When I install scalarizr{version} to the server {serv_as}
-      Then I forbid scalarizr update at startup and run it on {serv_as}
-    """.format(version=version.replace("'", ''), serv_as=serv_as))
+        Given I have a clean image
+        And I add image to the new role
+        When I have a an empty running farm
+        Then I add created role to the farm
+        And I see pending server {serv_as}
+        When I install scalarizr{version} to the server {serv_as}
+        Then I forbid {legacy}scalarizr update at startup and run it on {serv_as}
+        And I wait and see running server {serv_as}""".format(
+            version=version.replace("'", ''),
+            serv_as=serv_as,
+            legacy='legacy ' if version else ''))
 
 
 @step(r'I have a clean image')
@@ -147,8 +150,8 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if Dist.is_windows_family(CONF.feature.dist) and CONF.feature.platform == 'ec2':
-        role_kwargs['options']['aws.instance_type'] = 'm3.medium'
+    if CONF.feature.platform == 'ec2':
+        role_kwargs['options']['instance_type'] = 'm3.medium'
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
     farm.roles.reload()
@@ -156,11 +159,14 @@ def setting_farm(step):
     setattr(world, '%s_role' % world.role['name'], farm_role)
 
 
-@step(r'I trigger scalarizr update by Scalr UI')
-def updating_scalarizr_by_scalr_ui(step):
+@step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
+def updating_scalarizr_by_scalr_ui(step, serv_as):
     server = getattr(world, serv_as)
-    res = IMPL.server.update_scalarizr(server_id=server.id)
-    assert res['success'], 'Scalarizr update failed %s' % res['successMessage']
+    try:
+        res = IMPL.server.update_scalarizr(server_id=server.id)
+        LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
+    except  Exception as e:
+        LOG.error('Scalarizr update failed : %s ' % e.message)
 
 
 @step(r'scalarizr version is valid in ([\w\d]+)$')
@@ -171,11 +177,7 @@ def asserting_version(step, serv_as):
     command = 'scalarizr -v'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        if CONF.feature.driver.current_cloud == Platform.EC2:
-            console = world.get_windows_session(public_ip=server.public_ip, password='scalr')
-            res = console.run_cmd(command).std_out
-        else:
-            res = world.run_cmd_command(server, command).std_out
+        res = world.run_cmd_command_until(command, server=server).std_out
     # Linux handler
     else:
         node = world.cloud.get_node(server)
@@ -193,6 +195,29 @@ def rebooting_server(step):
     if not world.cloud_server.reboot():
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
     world.cloud_server = None
+
+
+@step(r"I forbid (legacy )?scalarizr update at startup and run it on ([\w\d]+)$")
+def executing_scalarizr(step, legacy, serv_as):
+    # Create ScalrUpd Client status file
+    if legacy:
+        cwd = 'c:\Program Files\Scalarizr\Python27'
+        env = '''$env:PYTHONPATH = """$env:ProgramFiles\Scalarizr\src"""; '''
+    else:
+        cwd = 'C:\opt\embedded\bin'
+        env = ''
+    set_status = '''{env}cd """{cwd}"""; ''' \
+        '''./python -m scalarizr.updclient.app --make-status-file;'''.format(env=env,cwd=cwd)
+    # Run scalarizr
+    run_scalarizr = '''Set-Service """ScalrUpdClient""" -startuptype manual; ''' \
+        '''Set-Service """Scalarizr""" -startuptype auto; ''' \
+        '''Start-Service """Scalarizr"""'''
+    server = getattr(world, serv_as.strip())
+    server.reload()
+    assert not world.run_cmd_command_until(world.PS_RUN_AS.format(command=set_status), server=server).std_err,\
+        'Scalr UpdClient status file creatoin failed'
+    assert not world.run_cmd_command_until(world.PS_RUN_AS.format(command=run_scalarizr), server=server).std_err,\
+        'Scalarizr execution failed'
 
 
 @after.all
