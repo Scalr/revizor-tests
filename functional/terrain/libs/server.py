@@ -51,9 +51,9 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
             if server:
                 public_ip = server.public_ip
                 password = password or server.windows_password
-            if CONF.feature.platform.is_platform_gce:
+            if CONF.feature.driver.is_platform_gce:
                 username = 'scalr'
-            elif CONF.feature.platform.is_platform_cloudstack:
+            elif CONF.feature.driver.is_platform_cloudstack:
                 node = world.cloud.get_node(server)
                 port = world.cloud.open_port(node, port)
             session = winrm.Session(

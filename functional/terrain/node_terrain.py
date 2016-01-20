@@ -598,7 +598,7 @@ def installing_scalarizr(step, is_manual=None, scalarizr_version='', sysprep='',
                 password='scalr')
         else:
             console_kwargs = dict(server=server)
-            if CONF.feature.platform.is_platform_ec2:
+            if CONF.feature.driver.is_platform_ec2:
                 console_kwargs.update({'password': 'scalr'})
         # Get scalarizr repo
         if scalarizr_version:

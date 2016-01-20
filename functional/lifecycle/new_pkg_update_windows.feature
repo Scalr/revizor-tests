@@ -3,7 +3,7 @@ Feature: Update scalarizr windows test
 
     @ui @ec2 @gce
     Scenario Outline: Update from Scalr UI windows test
-      Given I have manualy installed scalarizr <default_agent> on M1
+      Given I have manualy installed scalarizr '<default_agent>' on M1
       And scalarizr version is valid in M1
       When I change branch for role
       Then I trigger scalarizr update by Scalr UI on M1
@@ -21,7 +21,7 @@ Feature: Update scalarizr windows test
 
     @manual @ec2 @gce
     Scenario Outline: Update from Scalr UI windows test
-      Given I have manualy installed scalarizr <default_agent> on M2
+      Given I have manualy installed scalarizr '<default_agent>' on M2
       And scalarizr version is valid in M2
       When I install new scalarizr to the server M2
       Then update process is finished on M2 with status completed
