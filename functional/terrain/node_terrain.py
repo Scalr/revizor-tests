@@ -581,10 +581,11 @@ def get_user_name():
     return user_name
 
 
-@step(r'I install scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?')
-def installing_scalarizr(step, scalarizr_version='', sysprep='', serv_as=''):
+@step(r'I install( new)? scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?')
+def installing_scalarizr(step, is_manual=None, scalarizr_version='', sysprep='', serv_as=''):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
+    to_branch = CONF.feature.to_branch
     repo = CONF.feature.ci_repo.lower()
     platform = CONF.feature.driver.scalr_cloud
     server = getattr(world, serv_as.strip())
@@ -597,13 +598,17 @@ def installing_scalarizr(step, scalarizr_version='', sysprep='', serv_as=''):
                 password='scalr')
         else:
             console_kwargs = dict(server=server)
+            if CONF.feature.platform.is_platform_ec2:
+                console_kwargs.update({'password': 'scalr'})
         # Get scalarizr repo
         if scalarizr_version:
             repo = 'snapshot/{}'.format(scalarizr_version.strip())
+        elif is_manual:
+            repo = '%s/%s' % (repo, to_branch)
         elif branch in ['latest', 'stable']:
             repo = branch
         else:
-            repo = '%s/%s' % (CONF.feature.ci_repo, branch)
+            repo = '%s/%s' % (repo, branch)
         # Install scalarizr
         url = 'https://my.scalr.net/public/windows/{repo}'.format(repo=repo)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)

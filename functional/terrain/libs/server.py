@@ -44,18 +44,16 @@ world.PS_RUN_AS = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "{co
 @world.absorb
 def get_windows_session(server=None, public_ip=None, password=None, timeout=None):
     time_until = time.time() + timeout if timeout else None
-    LOG.debug('Enter session %s : %s' % (timeout, time_until))
     username = 'Administrator'
     port = 5985
     while True:
-        LOG.debug('Enter loop')
         try:
             if server:
                 public_ip = server.public_ip
-                password = server.windows_password
-            if CONF.feature.driver.cloud_family == Platform.GCE:
+                password = password or server.windows_password
+            if CONF.feature.platform.is_platform_gce:
                 username = 'scalr'
-            elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+            elif CONF.feature.platform.is_platform_cloudstack:
                 node = world.cloud.get_node(server)
                 port = world.cloud.open_port(node, port)
             session = winrm.Session(
@@ -63,9 +61,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 auth=(username, password))
             return session
         except Exception as e:
-            LOG.debug('Enter exception %s : %s' % (time.time(), time_until))
             if time.time() >= time_until:
-                LOG.debug('Enter raise')
                 raise
             LOG.error('Got windows session error: %s' % e.message)
             time.sleep(5)

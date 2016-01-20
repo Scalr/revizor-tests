@@ -27,7 +27,10 @@ LOG = logging.getLogger(__name__)
 
 @step(r"I have manualy installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
-    version = version or ''
+    version = (version or '').replace("'", '')
+    if version:
+        legacy='legacy '
+        setattr(world, 'default_agent', version)
     step.behave_as("""
         Given I have a clean image
         And I add image to the new role
@@ -37,9 +40,9 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
         When I install scalarizr{version} to the server {serv_as}
         Then I forbid {legacy}scalarizr update at startup and run it on {serv_as}
         And I wait and see running server {serv_as}""".format(
-            version=version.replace("'", ''),
+            version=version,
             serv_as=serv_as,
-            legacy='legacy ' if version else ''))
+            legacy=legacy))
 
 
 @step(r'I have a clean image')
@@ -172,9 +175,11 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
 @step(r'scalarizr version is valid in ([\w\d]+)$')
 def asserting_version(step, serv_as):
     server = getattr(world, serv_as)
+    default_installed_agent = gettattr(world, 'default_agent', None)
     pre_installed_agent = world.pre_installed_agent
     server.reload()
     command = 'scalarizr -v'
+    err_msg = 'Scalarizr version not valid'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         res = world.run_cmd_command_until(command, server=server).std_out
@@ -186,8 +191,11 @@ def asserting_version(step, serv_as):
     assert installed_agent , "Can't get scalarizr version: %s" % res
     installed_agent = installed_agent[0]
     LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
-    assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent),\
-        'Scalarizr version not valid, pre installed agent: %s, newest: %s' % (pre_installed_agent, installed_agent)
+    if default_installed_agent:
+        assert  LooseVersion(default_installed_agent) == LooseVersion(installed_agent), err_msg
+        world.default_agent = None
+        return
+    assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent), err_msg
 
 
 @step(r'I reboot server')
