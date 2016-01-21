@@ -49,6 +49,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
     while True:
         try:
             if server:
+                server.reload()
                 public_ip = server.public_ip
                 password = password or server.windows_password
             if CONF.feature.driver.is_platform_gce:
@@ -56,9 +57,11 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
             elif CONF.feature.driver.is_platform_cloudstack:
                 node = world.cloud.get_node(server)
                 port = world.cloud.open_port(node, port)
+            LOG.info('Used credentials for windows session: %s:%s %s:%s' % (public_ip, port, username, password))
             session = winrm.Session(
                 'http://%s:%s/wsman' % (public_ip, port),
                 auth=(username, password))
+            LOG.debug('WinRm instance: %s' % session)
             return session
         except Exception as e:
             if time.time() >= time_until:
@@ -68,7 +71,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
 
 
 @world.absorb
-def run_cmd_command_until(command, server=None, public_ip=None, password=None, timeout=300):
+def run_cmd_command_until(command, server=None, public_ip=None, password=None, timeout=None):
     time_until = time.time() + timeout if timeout else None
     LOG.debug('Execute powershell command: %s' % command)
     while True:
@@ -85,7 +88,7 @@ def run_cmd_command_until(command, server=None, public_ip=None, password=None, t
             if time.time() >= time_until:
                 raise AssertionError('Command: %s execution failed' % command)
             LOG.error('Got an error while try execute command: %s ErrorMsg %s'% (command, e.message))
-            time.sleep(5)
+            time.sleep(10)
 
 
 @world.absorb

@@ -25,11 +25,11 @@ from revizor2.fixtures import tables
 
 LOG = logging.getLogger(__name__)
 
-@step(r"I have manualy installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
+@step(r"I have manually installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
-    version = (version or '').replace("'", '')
+    version = (version or '').replace("'", '').strip()
     if version:
-        legacy='legacy '
+        pkg_type='legacy ' if version == '3.8.5' else 'msi_old '
         setattr(world, 'default_agent', version)
     step.behave_as("""
         Given I have a clean image
@@ -38,11 +38,11 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
         Then I add created role to the farm
         And I see pending server {serv_as}
         When I install scalarizr{version} to the server {serv_as}
-        Then I forbid {legacy}scalarizr update at startup and run it on {serv_as}
+        Then I forbid {pkg_type}scalarizr update at startup and run it on {serv_as}
         And I wait and see running server {serv_as}""".format(
             version=version,
             serv_as=serv_as,
-            legacy=legacy))
+            pkg_type=pkg_type))
 
 
 @step(r'I have a clean image')
@@ -172,17 +172,17 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
         LOG.error('Scalarizr update failed : %s ' % e.message)
 
 
-@step(r'scalarizr version is valid in ([\w\d]+)$')
-def asserting_version(step, serv_as):
+@step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
+def asserting_version(step, version, serv_as):
     server = getattr(world, serv_as)
-    default_installed_agent = gettattr(world, 'default_agent', None)
+    default_installed_agent = getattr(world, 'default_agent', None)
     pre_installed_agent = world.pre_installed_agent
     server.reload()
     command = 'scalarizr -v'
-    err_msg = 'Scalarizr version not valid'
+    err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        res = world.run_cmd_command_until(command, server=server).std_out
+        res = world.run_cmd_command_until(command, server=server, timeout=300).std_out
     # Linux handler
     else:
         node = world.cloud.get_node(server)
@@ -190,12 +190,15 @@ def asserting_version(step, serv_as):
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert installed_agent , "Can't get scalarizr version: %s" % res
     installed_agent = installed_agent[0]
-    LOG.debug('Scalarizr was updated from %s to %s' % (pre_installed_agent, installed_agent))
     if default_installed_agent:
-        assert  LooseVersion(default_installed_agent) == LooseVersion(installed_agent), err_msg
+        assert  LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
+            err_msg % (default_installed_agent, installed_agent)
         world.default_agent = None
         return
-    assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent), err_msg
+    assert LooseVersion(pre_installed_agent) != LooseVersion(installed_agent), \
+        err_msg % (pre_installed_agent, installed_agent)
+    LOG.debug('Scalarizr was updated. Pre: %s, Inst: %s' %
+              (pre_installed_agent, installed_agent))
 
 
 @step(r'I reboot server')
@@ -205,14 +208,14 @@ def rebooting_server(step):
     world.cloud_server = None
 
 
-@step(r"I forbid (legacy )?scalarizr update at startup and run it on ([\w\d]+)$")
-def executing_scalarizr(step, legacy, serv_as):
+@step(r"I forbid ([\w]+\s)?scalarizr update at startup and run it on ([\w\d]+)$")
+def executing_scalarizr(step, pkg_type='', serv_as=None):
     # Create ScalrUpd Client status file
-    if legacy:
+    if pkg_type.strip() == 'legacy':
         cwd = 'c:\Program Files\Scalarizr\Python27'
         env = '''$env:PYTHONPATH = """$env:ProgramFiles\Scalarizr\src"""; '''
     else:
-        cwd = 'C:\opt\embedded\bin'
+        cwd = 'C:\opt\scalarizr\current\embedded'
         env = ''
     set_status = '''{env}cd """{cwd}"""; ''' \
         '''./python -m scalarizr.updclient.app --make-status-file;'''.format(env=env,cwd=cwd)
@@ -222,10 +225,13 @@ def executing_scalarizr(step, legacy, serv_as):
         '''Start-Service """Scalarizr"""'''
     server = getattr(world, serv_as.strip())
     server.reload()
-    assert not world.run_cmd_command_until(world.PS_RUN_AS.format(command=set_status), server=server).std_err,\
-        'Scalr UpdClient status file creatoin failed'
-    assert not world.run_cmd_command_until(world.PS_RUN_AS.format(command=run_scalarizr), server=server).std_err,\
-        'Scalarizr execution failed'
+    kwargs = dict(server=server, timeout=300)
+    assert not world.run_cmd_command_until(
+        world.PS_RUN_AS.format(command=set_status),
+        **kwargs).std_err, 'Scalr UpdClient status file creatoin failed'
+    assert not world.run_cmd_command_until(
+        world.PS_RUN_AS.format(command=run_scalarizr),
+        **kwargs).std_err, 'Scalarizr execution failed'
 
 
 @after.all

@@ -14,7 +14,7 @@ Feature: Update scalarizr linux test
       Then I install scalarizr to the server M1
       And I reboot server
       When I expect server bootstrapping as M2
-      Then scalarizr version is valid in M2
+      Then scalarizr version was updated in M2
       When I execute script 'Linux ping-pong' synchronous on M2
       And I see script result in M2
 
@@ -23,7 +23,7 @@ Feature: Update scalarizr linux test
       Given I have running server M2
       Then I change branch to test-branch for role
       When I trigger scalarizr update by Scalr UI
-      Then scalarizr version is valid in M2
+      Then scalarizr version was updated in M2
       Then I execute script 'Revizor update test lin' synchronous on M2
       And I see script result in M2
       Then I checkout to test-branch from branch tested-branch

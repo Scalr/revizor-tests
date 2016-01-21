@@ -581,8 +581,8 @@ def get_user_name():
     return user_name
 
 
-@step(r'I install( new)? scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?')
-def installing_scalarizr(step, is_manual=None, scalarizr_version='', sysprep='', serv_as=''):
+@step(r'I install(?: new)? scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?( manually)?')
+def installing_scalarizr(step,  custom_version='', use_sysprep='', serv_as='', is_manually=None):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     to_branch = CONF.feature.to_branch
@@ -600,10 +600,11 @@ def installing_scalarizr(step, is_manual=None, scalarizr_version='', sysprep='',
             console_kwargs = dict(server=server)
             if CONF.feature.driver.is_platform_ec2:
                 console_kwargs.update({'password': 'scalr'})
+        console_kwargs.update({'timeout': 300})
         # Get scalarizr repo
-        if scalarizr_version:
-            repo = 'snapshot/{}'.format(scalarizr_version.strip())
-        elif is_manual:
+        if custom_version:
+            repo = 'snapshot/{}'.format(custom_version.strip())
+        elif is_manually:
             repo = '%s/%s' % (repo, to_branch)
         elif branch in ['latest', 'stable']:
             repo = branch
@@ -612,13 +613,14 @@ def installing_scalarizr(step, is_manual=None, scalarizr_version='', sysprep='',
         # Install scalarizr
         url = 'https://my.scalr.net/public/windows/{repo}'.format(repo=repo)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
-        assert not world.run_cmd_command_until(world.PS_RUN_AS.format(command=cmd), **console_kwargs).std_err, \
-            "Scalarizr installation failed"
+        assert not world.run_cmd_command_until(
+            world.PS_RUN_AS.format(command=cmd),
+            **console_kwargs).std_err, "Scalarizr installation failed"
         version = re.findall(
             '(?:Scalarizr\s)([a-z0-9/./-]+)',
             world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out)
         assert version, 'installed scalarizr verson not valid %s' % version
-        if sysprep:
+        if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
     else:
