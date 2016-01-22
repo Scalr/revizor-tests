@@ -4,8 +4,10 @@
 Created on 09.01.2015
 @author: Eugeny Kurkovich
 """
-import time
+import os
 import re
+import time
+import base64
 import logging
 try:
     import winrm
@@ -21,9 +23,17 @@ from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.utils import wait_until
-from revizor2.fixtures import tables
+from revizor2.fixtures import tables, resources
+
+from github import GitHub
 
 LOG = logging.getLogger(__name__)
+
+ORG = 'Scalr'
+SCALARIZR_REPO = 'int-scalarizr'
+GITHUB_TOKEN = '64b51473b2dd607eddd2a9a3b95b8685ca27498b'
+GH = GitHub(access_token=GITHUB_TOKEN)
+
 
 @step(r"I have manually installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
@@ -43,6 +53,70 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
             version=version,
             serv_as=serv_as,
             pkg_type=pkg_type))
+
+
+@step(r"I have corrupted package")
+def having_corrupted_package(step):
+    branch = CONF.feature.to_branch
+    step.behave_as("""
+        Given I have a copy of the branch
+        When I patch start method
+        Then I wait for broken package was built
+    """)
+
+
+@step('I have a copy of the(?: (.+))? branch')
+def having_branch_copy(step, branch=None):
+    branch = branch or ''
+    if 'system' in branch:
+        branch = os.environ.get('RV_BRANCH', 'master')
+    elif not branch:
+        branch = os.environ.get('RV_TO_BRANCH', 'master')
+    else:
+        branch = branch.strip()
+    world.test_branch = 'test-{}/{}'.format(int(time.time()), branch)
+    LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch))
+    # Get parent branch a Reference
+    ref = GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % branch).get()
+    # Create new reference(branch)
+    res = GH.repos(ORG)(SCALARIZR_REPO).git.refs.post(
+        ref='refs/heads/%s' % world.test_branch,
+        sha=ref.object.sha)
+    LOG.debug('Branch %s was copied. GitHub api res: %s' % (branch, res))
+
+
+@step('I patch start method')
+def patching_service(step):
+    fixture_path = 'scripts/scalarizr_app.py'
+    script_path = 'src/scalarizr/app.py'
+    # Get parent sha
+    ref = GH.repos(ORG)(SCALARIZR_REPO).contents(script_path).get(ref=world.test_branch)
+    # Patch script
+    res = GH.repos(ORG)(SCALARIZR_REPO).contents(script_path).put(
+        message='Patch service',
+        content=base64.b64encode(resources(fixture_path).get()),
+        sha=ref.sha,
+        branch=world.test_branch)
+    world.patch_sha = res.commit.sha
+    LOG.debug('Scalarizr service was patched. GitHub api res: %s' % res)
+
+
+@step(r'I wait for broken package was built')
+def waiting_new_package(step):
+    time_until = time.time() + 900
+    while True:
+        # Get build status
+        res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.patch_sha).status.get()
+        if res.statuses:
+            status = res.statuses[0]
+            LOG.debug('Patch commit build status: %s' % status)
+            if status.state == 'success':
+                LOG.info('Drone status: %s' % status.description)
+                return
+            elif status.state == 'failure' or time.time() >= time_until:
+                raise AssertionError('Timeout or build status failed: %s. Description: %s' %
+                                     (status.state, status.description))
+        time.sleep(30)
 
 
 @step(r'I have a clean image')
@@ -243,3 +317,7 @@ def remove_temporary_image(total):
         LOG.info('Remove temporary role: %s' % world.role['name'])
         IMPL.image.delete(world.role['images'][0]['extended']['hash'])
         LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
+    # Delete github reference(cloned branch)
+    if getattr(world, 'test_branch', None):
+        res = GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.test_branch).delete()
+        LOG.debug('Branch %s was deleted. GitHub api res: %s' % (world.test_branch, res))

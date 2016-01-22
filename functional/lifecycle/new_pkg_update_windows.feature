@@ -19,6 +19,7 @@ Feature: Update scalarizr windows test
       | 3.8.5         |
       | 3.12.7        |
 
+
     @manual @ec2 @gce
     Scenario Outline: Manual scalarizr update, windows test
       Given I have manually installed scalarizr '<default_agent>' on M2
@@ -36,6 +37,12 @@ Feature: Update scalarizr windows test
       | 3.8.5         |
       | 3.12.7        |
 
+
     @ui @rollback @ec2 @gce
-    Scenario: Update from Scalr UI to corrupted package, Windows test
-      Given I have corrupted package builded from the testing branch
+    Scenario Outline: Update from Scalr UI to corrupted package, Windows test
+      Given I have corrupted package
+
+    Examples:
+      | default_agent |
+      | 3.8.5         |
+      #| 3.12.7        |
