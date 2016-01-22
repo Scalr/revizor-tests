@@ -8,6 +8,7 @@ import os
 import re
 import time
 import base64
+import github
 import logging
 try:
     import winrm
@@ -25,14 +26,11 @@ from distutils.version import LooseVersion
 from revizor2.utils import wait_until
 from revizor2.fixtures import tables, resources
 
-from github import GitHub
-
 LOG = logging.getLogger(__name__)
 
 ORG = 'Scalr'
 SCALARIZR_REPO = 'int-scalarizr'
-GITHUB_TOKEN = '64b51473b2dd607eddd2a9a3b95b8685ca27498b'
-GH = GitHub(access_token=GITHUB_TOKEN)
+GH = github.GitHub(access_token=CONF.main.github_access_token)
 
 
 @step(r"I have manually installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
@@ -78,6 +76,7 @@ def having_branch_copy(step, branch=None):
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch))
     # Get parent branch a Reference
     ref = GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % branch).get()
+    LOG.debug('Parent branch ref: %s' % ref)
     # Create new reference(branch)
     res = GH.repos(ORG)(SCALARIZR_REPO).git.refs.post(
         ref='refs/heads/%s' % world.test_branch,
@@ -113,9 +112,10 @@ def waiting_new_package(step):
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
                 return
-            elif status.state == 'failure' or time.time() >= time_until:
-                raise AssertionError('Timeout or build status failed: %s. Description: %s' %
-                                     (status.state, status.description))
+            elif status.state == 'failure':
+                time_until = None
+        if time.time() >= time_until:
+            raise AssertionError('Timeout or build status failed.')
         time.sleep(30)
 
 
@@ -227,7 +227,7 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if CONF.feature.platform == 'ec2':
+    if CONF.feature.driver.is_platform_ec2 and Dist.is_windows_family(CONF.feature.dist):
         role_kwargs['options']['instance_type'] = 'm3.medium'
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
@@ -319,5 +319,8 @@ def remove_temporary_image(total):
         LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
     # Delete github reference(cloned branch)
     if getattr(world, 'test_branch', None):
-        res = GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.test_branch).delete()
-        LOG.debug('Branch %s was deleted. GitHub api res: %s' % (world.test_branch, res))
+        try:
+            GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.test_branch).delete()
+            LOG.debug('Branch %s was deleted.' % world.test_branch)
+        except github.ApiError as e:
+            LOG.error(e.message)

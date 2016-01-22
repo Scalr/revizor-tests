@@ -64,10 +64,10 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
             LOG.debug('WinRm instance: %s' % session)
             return session
         except Exception as e:
-            if time.time() >= time_until:
-                raise
             LOG.error('Got windows session error: %s' % e.message)
-            time.sleep(5)
+        if time.time() >= time_until:
+            raise TimeoutError
+        time.sleep(5)
 
 
 @world.absorb
@@ -85,10 +85,10 @@ def run_cmd_command_until(command, server=None, public_ip=None, password=None, t
             LOG.debug('std_out: %s. std_err: %s' % (res.std_out, res.std_err))
             return res
         except Exception as  e:
-            if time.time() >= time_until:
-                raise AssertionError('Command: %s execution failed' % command)
             LOG.error('Got an error while try execute command: %s ErrorMsg %s'% (command, e.message))
-            time.sleep(10)
+        if time.time() >= time_until:
+            raise AssertionError('Command: %s execution failed' % command)
+        time.sleep(10)
 
 
 @world.absorb
