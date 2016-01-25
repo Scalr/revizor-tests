@@ -57,47 +57,49 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
 def having_corrupted_package(step):
     branch = CONF.feature.to_branch
     step.behave_as("""
-        Given I have a copy of the branch
-        When I patch start method
+        Given I have a copy of the branch with patched script
         Then I wait for broken package was built
     """)
 
 
-@step('I have a copy of the(?: (.+))? branch')
+@step('I have a copy of the(?: (.+))? branch with patched script')
 def having_branch_copy(step, branch=None):
+    git = GH.repos(ORG)(SCALARIZR_REPO).git
+    fixture_path = 'scripts/scalarizr_app.py'
+    script_path = 'src/scalarizr/app.py'
     branch = branch or ''
     if 'system' in branch:
-        branch = os.environ.get('RV_BRANCH', 'master')
+        branch = os.environ.get('RV_BRANCH')
     elif not branch:
-        branch = os.environ.get('RV_TO_BRANCH', 'master')
+        branch = os.environ.get('RV_TO_BRANCH')
     else:
         branch = branch.strip()
     world.test_branch = 'test-{}/{}'.format(int(time.time()), branch)
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch))
-    # Get parent branch a Reference
-    ref = GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % branch).get()
-    LOG.debug('Parent branch ref: %s' % ref)
-    # Create new reference(branch)
-    res = GH.repos(ORG)(SCALARIZR_REPO).git.refs.post(
-        ref='refs/heads/%s' % world.test_branch,
-        sha=ref.object.sha)
-    LOG.debug('Branch %s was copied. GitHub api res: %s' % (branch, res))
-
-
-@step('I patch start method')
-def patching_service(step):
-    fixture_path = 'scripts/scalarizr_app.py'
-    script_path = 'src/scalarizr/app.py'
-    # Get parent sha
-    ref = GH.repos(ORG)(SCALARIZR_REPO).contents(script_path).get(ref=world.test_branch)
-    # Patch script
-    res = GH.repos(ORG)(SCALARIZR_REPO).contents(script_path).put(
-        message='Patch service',
+    # Create a new blob with the content of the file
+    blob = git.blobs.post(
         content=base64.b64encode(resources(fixture_path).get()),
-        sha=ref.sha,
-        branch=world.test_branch)
-    world.patch_sha = res.commit.sha
-    LOG.debug('Scalarizr service was patched. GitHub api res: %s' % res)
+        encoding='base64')
+    # Get the SHA the current test branch points to
+    branch_ref = git.refs('heads/%s' % branch).get()
+    # Fetch the tree this SHA belongs to
+    base_commit = git.commits(branch_ref.object.sha).get()
+    # Create a new tree object with the new blob, based on the old tree
+    tree = git.trees.post(
+        base_tree=base_commit.tree.sha,
+        tree=[{'path': script_path,
+               'mode': '100644',
+               'type': 'blob',
+               'sha': blob.sha}])
+    # Create a new commit object using the new tree and point its parent to the current master
+    commit = git.commits.post(
+        message='Patch app.py, corrupt windows start',
+        parents=[branch_ref.object.sha],
+        tree=tree.sha)
+    # Finally update the heads/master reference to point to the new commit
+    cloned_branch = git.refs.post(ref='refs/heads/%s' % world.test_branch, sha=commit.sha)
+    world.patch_sha = commit.sha
+    LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
 
 
 @step(r'I wait for broken package was built')
@@ -320,7 +322,7 @@ def remove_temporary_image(total):
     # Delete github reference(cloned branch)
     if getattr(world, 'test_branch', None):
         try:
-            GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.test_branch).delete()
+            #GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.test_branch).delete()
             LOG.debug('Branch %s was deleted.' % world.test_branch)
         except github.ApiError as e:
             LOG.error(e.message)
