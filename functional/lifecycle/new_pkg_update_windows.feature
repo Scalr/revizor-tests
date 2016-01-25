@@ -40,7 +40,16 @@ Feature: Update scalarizr windows test
 
     @ui @rollback @ec2 @gce
     Scenario Outline: Update from Scalr UI to corrupted package, Windows test
-      Given I have corrupted package
+      Given I have manually installed scalarizr '<default_agent>' on M3
+      And scalarizr version is default in M3
+      When I build corrupted package
+      Then I set branch with corrupted package for role
+      Then I trigger scalarizr update by Scalr UI on M3
+      And update process is finished on M3 with status rollbacked
+      And scalarizr version is default in M3
+      When I execute script 'Windows ping-pong. CMD' synchronous on M3
+      Then I see script result in M3
+      And script output contains 'pong' in M3
 
     Examples:
       | default_agent |
