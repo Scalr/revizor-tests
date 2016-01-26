@@ -24,6 +24,7 @@ def give_empty_running_farm():
     world.farm = Farm.get(farm_id)
     world.farm.roles.reload()
     if len(world.farm.roles):
+        LOG.info('Clear farm roles')
         IMPL.farm.clear_roles(world.farm.id)
     world.farm.vhosts.reload()
     world.farm.domains.reload()
