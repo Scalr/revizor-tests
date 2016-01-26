@@ -581,8 +581,8 @@ def get_user_name():
     return user_name
 
 
-@step(r'I install(?: new)? scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?( manually)?')
-def installing_scalarizr(step,  custom_version='', use_sysprep='', serv_as='', is_manually=None):
+@step(r'I install(?: new)? scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?( manually)?(?: from the branch ([\w\d\W]+))?')
+def installing_scalarizr(step,  custom_version='', use_sysprep='', serv_as='', is_manually=None, from_branch=None):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     to_branch = CONF.feature.to_branch
@@ -606,6 +606,8 @@ def installing_scalarizr(step,  custom_version='', use_sysprep='', serv_as='', i
             repo = 'snapshot/{}'.format(custom_version.strip())
         elif is_manually:
             repo = '%s/%s' % (repo, to_branch)
+        elif from_branch:
+            repo = '%s/%s' % (repo, from_branch)
         elif branch in ['latest', 'stable']:
             repo = branch
         else:

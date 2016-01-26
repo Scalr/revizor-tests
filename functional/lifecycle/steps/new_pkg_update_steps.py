@@ -53,18 +53,23 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
             pkg_type=pkg_type))
 
 
-@step(r"I build corrupted package")
-def having_corrupted_package(step):
-    branch = CONF.feature.to_branch
+@step(r"I build corrupt package")
+def having_corrupt_package(step):
     step.behave_as("""
         Given I have a copy of the branch with patched script
         Then I wait for broken package was built
     """)
 
 
-@step(r"I set branch with corrupted package for role")
+@step(r"I set branch with corrupt package for role")
 def setting_new_devel_branch(step):
-   step.given("I change branch to {} for role".format(world.branch_with_corrupted_package))
+   step.given("I change branch to {} for role".format(world.branch_with_corrupt_package))
+
+
+@step(r"I install corrupt package to the server ([\w\d]+)")
+def installing_corrupt_package(step, serv_as):
+    branch = getattr(world, 'branch_with_corrupt_package ')
+    step.given("I install new scalarizr to the server {} from the branch {}".format(serv_as, branch.strip()))
 
 
 @step('I have a copy of the(?: (.+))? branch with patched script')
@@ -79,8 +84,8 @@ def having_branch_copy(step, branch=None):
         branch = os.environ.get('RV_TO_BRANCH')
     else:
         branch = branch.strip()
-    world.branch_with_corrupted_package = 'test-{}/{}'.format(int(time.time()), branch)
-    LOG.info('Cloning branch: %s to %s' % (branch, world.branch_with_corrupted_package))
+    world.branch_with_corrupt_package = 'test-{}/{}'.format(int(time.time()), branch)
+    LOG.info('Cloning branch: %s to %s' % (branch, world.branch_with_corrupt_package))
     # Create a new blob with the content of the file
     blob = git.blobs.post(
         content=base64.b64encode(resources(fixture_path).get()),
@@ -102,7 +107,7 @@ def having_branch_copy(step, branch=None):
         parents=[branch_ref.object.sha],
         tree=tree.sha)
     # Finally update the heads/master reference to point to the new commit
-    cloned_branch = git.refs.post(ref='refs/heads/%s' % world.branch_with_corrupted_package, sha=commit.sha)
+    cloned_branch = git.refs.post(ref='refs/heads/%s' % world.branch_with_corrupt_package, sha=commit.sha)
     world.patch_sha = commit.sha
     LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
 
@@ -327,9 +332,9 @@ def remove_temporary_image(total):
             IMPL.image.delete(world.role['images'][0]['extended']['hash'])
             LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
     # Delete github reference(cloned branch)
-    if getattr(world, 'branch_with_corrupted_package', None):
+    if getattr(world, 'branch_with_corrupt_package', None):
         try:
-            GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.branch_with_corrupted_package).delete()
-            LOG.debug('Branch %s was deleted.' % world.branch_with_corrupted_package)
+            GH.repos(ORG)(SCALARIZR_REPO).git.refs('heads/%s' % world.branch_with_corrupt_package).delete()
+            LOG.debug('Branch %s was deleted.' % world.branch_with_corrupt_package)
         except github.ApiError as e:
             LOG.error(e.message)
