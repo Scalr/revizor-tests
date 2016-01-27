@@ -82,7 +82,6 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
-    git = GH.repos(ORG)(SCALARIZR_REPO).git
     branch = branch or ''
     if 'system' in branch:
         branch = os.environ.get('RV_BRANCH')
@@ -91,41 +90,47 @@ def having_branch_copy(step, branch=None, is_patched=False):
     else:
         branch = branch.strip()
     world.test_branch_copy= 'test-{}/{}'.format(int(time.time()), branch)
-    LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
-    # Get the SHA the current test branch points to
-    base_sha = git.refs('heads/%s' % branch).get().object.sha
     if is_patched:
         fixture_path = 'scripts/scalarizr_app.py'
         script_path = 'src/scalarizr/app.py'
-        # Create a new blob with the content of the file
-        blob = git.blobs.post(
-            content=base64.b64encode(resources(fixture_path).get()),
-            encoding='base64')
-        # Fetch the tree this base SHA belongs to
-        base_commit = git.commits(base_sha).get()
-        # Create a new tree object with the new blob, based on the old tree
-        tree = git.trees.post(
-            base_tree=base_commit.tree.sha,
-            tree=[{'path': script_path,
-                   'mode': '100644',
-                   'type': 'blob',
-                   'sha': blob.sha}])
-        # Create a new commit object using the new tree and point its parent to the current master
-        commit = git.commits.post(
-            message='Patch app.py, corrupt windows start',
-            parents=[base_sha],
-            tree=tree.sha)
-        base_sha = commit.sha
-        LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
+        content = resources(fixture_path).get()
+    else:
+        script_path = 'README.md'
+        content = 'Scalarizr\n=========\nTested build for: [%s]()' % branch
+    LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
+    git = GH.repos(ORG)(SCALARIZR_REPO).git
+    # Get the SHA the current test branch points to
+    base_sha = git.refs('heads/%s' % branch).get().object.sha
+    # Create a new blob with the content of the file
+    blob = git.blobs.post(
+        content=base64.b64encode(content),
+        encoding='base64')
+    # Fetch the tree this base SHA belongs to
+    base_commit = git.commits(base_sha).get()
+    # Create a new tree object with the new blob, based on the old tree
+    tree = git.trees.post(
+        base_tree=base_commit.tree.sha,
+        tree=[{'path': script_path,
+               'mode': '100644',
+               'type': 'blob',
+               'sha': blob.sha}])
+    # Create a new commit object using the new tree and point its parent to the current master
+    commit = git.commits.post(
+        message='Patch app.py, corrupt windows start',
+        parents=[base_sha],
+        tree=tree.sha)
+    base_sha = commit.sha
+    LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
     # Finally update the heads/master reference to point to the new commit
     cloned_branch = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
     LOG.debug('New branch was created. %s' % cloned_branch)
-    world.build_commit_sha = base_sha if is_patched else cloned_branch.object.sha
+    world.build_commit_sha = base_sha
 
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
     time_until = time.time() + 900
+    LOG.info('Geting build status for: %s' % world.build_commit_sha)
     while True:
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
