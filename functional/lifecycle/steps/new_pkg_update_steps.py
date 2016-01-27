@@ -302,7 +302,7 @@ def asserting_version(step, version, serv_as):
 def checking_upd_client_version(step, action, serv_as):
     server = getattr(world, serv_as)
     server.reload()
-    upd_client_staus = server.apd_api.status()
+    upd_client_staus = server.upd_api.status()
     LOG.info('Scalr upd client status: %s' % upd_client_staus)
     if action == 'save':
         world.upd_client_version = upd_client_staus['service_version']
