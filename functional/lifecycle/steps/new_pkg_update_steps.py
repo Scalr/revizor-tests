@@ -58,7 +58,7 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
 
 
 @step(r"I build (new|corrupt) package")
-def having_corrupt_package(step, pkg_type):
+def having_new_package(step, pkg_type):
     if pkg_type == 'new':
         patched = ''
     else:
@@ -306,7 +306,7 @@ def checking_upd_client_version(step, action, serv_as):
     LOG.info('Scalr upd client status: %s' % upd_client_staus)
     if action == 'save':
         world.upd_client_version = upd_client_staus['service_version']
-        LOG.info("Current Scalr update client version:" % world.upd_client_version)
+        LOG.info("Current Scalr update client version: %s" % world.upd_client_version)
         return
     upd_client_version = getattr(world, 'upd_client_version')
     upd_client_current_version = upd_client_staus['service_version']
