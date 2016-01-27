@@ -101,7 +101,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
         blob = git.blobs.post(
             content=base64.b64encode(resources(fixture_path).get()),
             encoding='base64')
-        # Fetch the tree this SHA belongs to
+        # Fetch the tree this base SHA belongs to
         base_commit = git.commits(base_sha).get()
         # Create a new tree object with the new blob, based on the old tree
         tree = git.trees.post(
@@ -266,7 +266,7 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
         res = IMPL.server.update_scalarizr(server_id=server.id)
         LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
     except  Exception as e:
-        LOG.error('Scalarizr update failed : %s ' % e.message)
+        LOG.error('Scalarizr update status : %s ' % e.message)
 
 
 @step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
@@ -296,6 +296,22 @@ def asserting_version(step, version, serv_as):
         err_msg % (pre_installed_agent, installed_agent)
     LOG.debug('Scalarizr was updated. Pre: %s, Inst: %s' %
               (pre_installed_agent, installed_agent))
+
+
+@step(r"I (check|save) current Scalr update client version(?: was changed)? on ([\w\d]+)")
+def checking_upd_client_version(step, action, serv_as):
+    server = getattr(world, serv_as)
+    server.reload()
+    upd_client_staus = server.apd_api.status()
+    LOG.info('Scalr upd client status: %s' % upd_client_staus)
+    if action == 'save':
+        world.upd_client_version = upd_client_staus['service_version']
+        LOG.info("Current Scalr update client version:" % world.upd_client_version)
+        return
+    upd_client_version = getattr(world, 'upd_client_version')
+    upd_client_current_version = upd_client_staus['service_version']
+    assert LooseVersion(upd_client_current_version) > LooseVersion(upd_client_version), \
+        "Scalr update client version not valid curr: %s prev: %s" % (upd_client_current_version, upd_client_version)
 
 
 @step(r'I reboot server')
@@ -332,7 +348,7 @@ def executing_scalarizr(step, pkg_type='', serv_as=None):
 
 
 @after.all
-def remove_temporary_image(total):
+def remove_temporary_data(total):
     if total.scenarios_ran == total.scenarios_passed:
         if getattr(world, 'farm', None):
             IMPL.farm.clear_roles(world.farm.id)

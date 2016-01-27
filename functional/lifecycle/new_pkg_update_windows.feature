@@ -139,10 +139,12 @@ Feature: Update scalarizr windows test
     Scenario: Manual scalaizr update from msi_new to msi_new, Windows test
       Given I have manually installed scalarizr on M9
       And scalarizr version from role is last in M9
+      And I save current Scalr update client version on M9
       When I build new package
       And I install new package to the server M9
       Then update process is finished on M9 with status completed
       And Scalr receives HostUpdate from M9
+      And I check current Scalr update client version was changed on M9
       When I execute script 'Windows ping-pong. CMD' synchronous on M9
       Then I see script result in M9
       And script output contains 'pong' in M9
