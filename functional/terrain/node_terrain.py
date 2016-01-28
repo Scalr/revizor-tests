@@ -581,15 +581,27 @@ def get_user_name():
     return user_name
 
 
-@step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?( with sysprep)? to the server(?: ([A-Z\d]+))?( manually)?(?: from the branch ([\w\d\W]+))?")
-def installing_scalarizr(step,  custom_version='', use_sysprep='', serv_as='', is_manually=None, from_branch=None):
+@step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
+def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, is_manually=None, from_branch=None):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     to_branch = CONF.feature.to_branch
     repo = CONF.feature.ci_repo.lower()
     platform = CONF.feature.driver.scalr_cloud
-    server = getattr(world, serv_as.strip(), None)
+    server = getattr(world, (serv_as or '').strip(), None)
     if server: server.reload()
+    LOG.debug("""Installing scalarizr to the node. Args from feature file: """
+              """version: {version}, """
+              """use_sysprep: {use_sysprep}, """
+              """server: {server}, """
+              """manually: {manually}, """
+              """from_branch: {branch}""".format(
+        version=custom_version,
+        use_sysprep=bool(use_sysprep),
+        server=serv_as,
+        manually=bool(is_manually),
+        branch=from_branch
+    ))
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         if node:
