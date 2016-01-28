@@ -581,14 +581,14 @@ def get_user_name():
     return user_name
 
 
-@step(r'I install(?: new)? scalarizr([\w\W\d]+)? (with sysprep )?to the server(?: (\w+))?( manually)?(?: from the branch ([\w\d\W]+))?')
+@step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?( with sysprep)? to the server(?: ([A-Z\d]+))?( manually)?(?: from the branch ([\w\d\W]+))?")
 def installing_scalarizr(step,  custom_version='', use_sysprep='', serv_as='', is_manually=None, from_branch=None):
     node = getattr(world, 'cloud_server', None)
     branch = CONF.feature.branch
     to_branch = CONF.feature.to_branch
     repo = CONF.feature.ci_repo.lower()
     platform = CONF.feature.driver.scalr_cloud
-    server = getattr(world, serv_as.strip())
+    server = getattr(world, serv_as.strip(), None)
     if server: server.reload()
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):

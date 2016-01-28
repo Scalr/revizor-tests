@@ -35,13 +35,9 @@ GH = github.GitHub(access_token=CONF.main.github_access_token)
 
 @step(r"I have manually installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
-    version = (version or '').replace("'", '').strip()
-    pkg_type='legacy ' if version == '3.8.5' else 'msi '
+    version = (version or '').replace("'", '')
     if version:
-        setattr(world, 'default_agent', version)
-        manually =''
-    else:
-        manually = ' manually'
+        setattr(world, 'default_agent', version.strip())
     step.behave_as("""
         Given I have a clean image
         And I add image to the new role
@@ -53,8 +49,8 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
         And I wait and see running server {serv_as}""".format(
             version=version,
             serv_as=serv_as,
-            pkg_type=pkg_type,
-            manually = manually))
+            pkg_type='legacy ' if version.strip() == '3.8.5' else 'msi ',
+            manually='' if version else ' manually'))
 
 
 @step(r"I build (new|corrupt) package")
