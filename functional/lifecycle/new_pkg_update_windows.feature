@@ -1,7 +1,7 @@
 Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system,
 Feature: Update scalarizr windows test
 
-    @ui @legacy @msi_old @ec2 @gce
+    @ui @legacy @msi_old @ec2 @gce @allow_clean_data
     Scenario Outline: Update from Scalr UI, windows test
       Given I have manually installed scalarizr '<default_agent>' on M1
       And scalarizr version is default in M1
@@ -20,7 +20,7 @@ Feature: Update scalarizr windows test
       | 3.12.7        |
 
 
-    @manual @legacy @msi_old @ec2 @gce
+    @manual @legacy @msi_old @ec2 @gce @allow_clean_data
     Scenario Outline: Manual scalarizr update, Windows test
       Given I have manually installed scalarizr '<default_agent>' on M2
       And scalarizr version is default in M2
@@ -38,7 +38,7 @@ Feature: Update scalarizr windows test
       | 3.12.7        |
 
 
-    @ui @rollback @legacy @ec2 @gce
+    @ui @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Update from Scalr UI to corrupt package with rollback, Windows test
       Given I have manually installed scalarizr '3.8.5' on M3
       And scalarizr version is default in M3
@@ -52,7 +52,7 @@ Feature: Update scalarizr windows test
       And script output contains 'pong' in M3
 
 
-    @ui @rollback @legacy @ec2 @gce
+    @ui @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Update from Scalr UI after rollback, Windows test
       Given I have manually installed scalarizr '3.8.5' on M4
       And scalarizr version is default in M4
@@ -71,7 +71,7 @@ Feature: Update scalarizr windows test
       And script output contains 'pong' in M4
 
 
-    @manual @rollback @legacy @ec2 @gce
+    @manual @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Manual scalarizr update to corrupt package with rollback, Windows test
       Given I have manually installed scalarizr '3.8.5' on M5
       And scalarizr version is default in M5
@@ -84,7 +84,7 @@ Feature: Update scalarizr windows test
       And script output contains 'pong' in M5
 
 
-    @manual @rollback @legacy @ec2 @gce
+    @manual @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Manual scalarizr update after rollback, Windows test
       Given I have manually installed scalarizr '3.8.5' on M6
       And scalarizr version is default in M6
@@ -101,7 +101,7 @@ Feature: Update scalarizr windows test
       And script output contains 'pong' in M6
 
 
-    @ui @rollback @msi_old @ec2 @gce
+    @ui @rollback @msi_old @ec2 @gce @allow_clean_data
     Scenario: Update from Scalr UI after corrupt package install, Windows test
       Given I have manually installed scalarizr '3.12.7' on M7
       And scalarizr version is default in M7
@@ -119,7 +119,7 @@ Feature: Update scalarizr windows test
       And script output contains 'pong' in M7
 
 
-    @manual @rollback @msi_old @ec2 @gce
+    @manual @rollback @msi_old @ec2 @gce @allow_clean_data
     Scenario: Manual scalarizr update after corrupt package install, Windows test
       Given I have manually installed scalarizr '3.12.7' on M8
       And scalarizr version is default in M8
@@ -135,7 +135,7 @@ Feature: Update scalarizr windows test
       And script output contains 'pong' in M8
 
 
-    @manual @msi_new @ec2 @gce
+    @manual @msi_new @ec2 @gce @allow_clean_data
     Scenario: Manual scalaizr update from msi_new to msi_new, Windows test
       Given I have manually installed scalarizr on M9
       And scalarizr version from role is last in M9

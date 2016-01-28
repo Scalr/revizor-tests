@@ -69,7 +69,7 @@ def having_new_package(step, pkg_type):
     """.format(patched=patched))
 
 
-@step(r"I set branch with corrupt package for role")
+@step(r"I set branch with (?:corrupt|new) package for role")
 def setting_new_devel_branch(step):
    step.given("I change branch to {} for role".format(world.test_branch_copy))
 
@@ -352,17 +352,30 @@ def executing_scalarizr(step, pkg_type='', serv_as=None):
         **kwargs).std_err, 'Scalarizr execution failed'
 
 
-@after.all
-def remove_temporary_data(total):
-    if total.scenarios_ran == total.scenarios_passed:
-        if getattr(world, 'farm', None):
-            IMPL.farm.clear_roles(world.farm.id)
-            LOG.info('Clear farm: %s' % world.farm.id)
-        if getattr(world, 'role', None):
-            IMPL.role.delete(world.role['id'])
-            LOG.info('Remove temporary role: %s' % world.role['name'])
-            IMPL.image.delete(world.role['images'][0]['extended']['hash'])
-            LOG.info('Remove temporary image: %s' % world.role['images'][0]['extended']['name'])
+@after.each_scenario
+def remove_temporary_data_after_each(scenario):
+    use_only_for = ['allow_clean_data']
+    if scenario.matches_tags(use_only_for) and scenario.passed:
+        clear_farm()
+        remove_temporary_role()
+    remove_temporary_branch()
+
+
+def clear_farm():
+    if getattr(world, 'farm', None):
+        IMPL.farm.clear_roles(world.farm.id)
+        LOG.info('Farm: %s was cleared' % world.farm.id)
+
+
+def remove_temporary_role():
+    if getattr(world, 'role', None):
+        IMPL.role.delete(world.role['id'])
+        LOG.info('Temporary role : %s was removed' % world.role['name'])
+        IMPL.image.delete(world.role['images'][0]['extended']['hash'])
+        LOG.info('Temporary image : %s was removed' % world.role['images'][0]['extended']['name'])
+
+
+def remove_temporary_branch():
     # Delete github reference(cloned branch)
     if getattr(world, 'test_branch_copy', None):
         try:
