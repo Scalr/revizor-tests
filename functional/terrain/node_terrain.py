@@ -587,7 +587,6 @@ def get_repo_type(custom_branch, custom_version=None):
         def __init__(self, branch, version=None):
             dict.__init__(self)
             ci_repo = CONF.feature.ci_repo.lower()
-            branch = branch
             version = version or ''
             self.update({
                 'release': '{branch}'.format(branch=branch),
@@ -601,9 +600,11 @@ def get_repo_type(custom_branch, custom_version=None):
 
         def __getitem__(self, key):
             if self.has_key(key):
+                value = dict.__getitem__(self, key)
                 if not Dist.is_windows_family(CONF.feature.dist):
-                    return self.__extend_repo_type(dict.__getitem__(self, key))
-            return False
+                    value = self.__extend_repo_type(value)
+                return value
+            raise AssertionError('Repo type: "%s" not valid' % key)
 
         def get(self, key):
             return self.__getitem__(key)
