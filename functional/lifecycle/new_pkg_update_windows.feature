@@ -1,4 +1,4 @@
-Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system,
+Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system
 Feature: Update scalarizr windows test
 
     @ui @legacy @msi_old @ec2 @gce @allow_clean_data

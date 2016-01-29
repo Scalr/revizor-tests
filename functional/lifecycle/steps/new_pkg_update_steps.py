@@ -127,7 +127,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
-    time_until = time.time() + 900
+    time_until = time.time() + 1200
     LOG.info('Geting build status for: %s' % world.build_commit_sha)
     while True:
         # Get build status

@@ -581,30 +581,42 @@ def get_user_name():
     return user_name
 
 
-def get_repo_type(branch, custom_version=None):
-    platform = CONF.feature.driver.scalr_cloud
-    ci_repo = CONF.feature.ci_repo.lower()
-    repo_types = {
-        'linux': {
-            'release': '{branch}/%s' % platform,
-            'develop': '{ci}/%s/{branch}' % platform,
-            'snapshot': 'snapshot/%s/{version}' % platform},
-        'windows' : {
-            'release': '{branch}',
-            'develop': '{ci}/{branch}',
-            'snapshot': 'snapshot/{version}'}}
+def get_repo_type(custom_branch, custom_version=None):
+    class RepoTypes(dict):
+
+        def __init__(self, branch, version=None):
+            dict.__init__(self)
+            ci_repo = CONF.feature.ci_repo.lower()
+            branch = branch
+            version = version or ''
+            self.update({
+                'release': '{branch}'.format(branch=branch),
+                'develop': '{ci}/{branch}'.format(ci=ci_repo, branch=branch),
+                'snapshot': 'snapshot/{version}'.format(version=version)})
+
+        def __extend_repo_type(self, value):
+            rt = value.split('/')
+            rt.insert(1, CONF.feature.driver.scalr_cloud)
+            return '/'.join(rt)
+
+        def __getitem__(self, key):
+            if self.has_key(key):
+                if not Dist.is_windows_family(CONF.feature.dist):
+                    return self.__extend_repo_type(dict.__getitem__(self, key))
+            return False
+
+        def get(self, key):
+            return self.__getitem__(key)
+
     # Getting repo types for os family
-    if Dist.is_windows_family(CONF.feature.dist):
-        os_family_repo = repo_types['windows']
-    else:
-        os_family_repo = repo_types['linux']
+    repo_types = RepoTypes(branch=custom_branch, version=custom_version)
     # Getting repo
     if custom_version:
-        repo_type = os_family_repo['snapshot'].format(version=custom_version)
-    elif branch in ['latest', 'stable']:
-        repo_type = os_family_repo['release'].format(branch=branch)
+        repo_type = repo_types.get('snapshot')
+    elif custom_branch in ['latest', 'stable']:
+        repo_type = repo_types.get('release')
     else:
-        repo_type = os_family_repo['develop'].format(ci=ci_repo, branch=branch)
+        repo_type = repo_types.get('develop')
     return repo_type
 
 

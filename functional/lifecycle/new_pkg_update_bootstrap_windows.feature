@@ -1,4 +1,4 @@
-Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps
+Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system
 Feature: Update scalarizr windows test
 
     @bootstrap @ec2 @gce
@@ -58,7 +58,6 @@ Feature: Update scalarizr windows test
       When I trigger scalarizr update by Scalr UI on M4
       Then update process is finished on M4 with status completed
       And Scalr receives HostUpdate from M4
-      And scalarizr version from role is last in M4
       When I build corrupt package
       And I set branch with corrupt package for role
       When I trigger scalarizr update by Scalr UI on M4

@@ -1,4 +1,4 @@
-Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps
+Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system
 Feature: Update scalarizr linux test
 
     @bootstrap @ec2 @gce
@@ -27,7 +27,6 @@ Feature: Update scalarizr linux test
       And I trigger scalarizr update by Scalr UI on M2
       Then update process is finished on M2 with status completed
       And Scalr receives HostUpdate from M2
-      And scalarizr version from role is last in M2
       And I check current Scalr update client version was changed on M2
       When I execute script 'Windows ping-pong. CMD' synchronous on M2
       Then I see script result in M2
