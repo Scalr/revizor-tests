@@ -20,6 +20,8 @@ from revizor2.api import IMPL, Platform
 from revizor2.conf import CONF
 from collections import namedtuple
 from lettuce import step, world, after
+from urllib2 import URLError
+
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
@@ -346,6 +348,21 @@ def executing_scalarizr(step, pkg_type='', serv_as=None):
     assert not world.run_cmd_command_until(
         world.PS_RUN_AS.format(command=run_scalarizr),
         **kwargs).std_err, 'Scalarizr execution failed'
+
+
+@step(r'([\w]+) process is(?: (not))? running on ([\w\d]+)')
+def checking_service_state(step, service, is_not, serv_as):
+    service_api = dict(scalarizr='api', updclient='upd_api')
+    server = getattr(world, serv_as)
+    api = getattr(server, service_api[service], None)
+    if not api:
+        raise AssertionError("Can't get api for service %s" % service)
+    try:
+        status = api.status()
+    except URLError as e:
+        LOG.error('Got an error while try to get %s status. Err: %s' % (service, e.reason))
+        status = False
+    assert (status and not is_not) or (not status and is_not), '%s service state not valid' % service
 
 
 @after.each_scenario

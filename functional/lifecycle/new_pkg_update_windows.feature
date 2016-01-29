@@ -19,7 +19,6 @@ Feature: Update scalarizr windows test
       | 3.8.5         |
       | 3.12.7        |
 
-
     @manual @legacy @msi_old @ec2 @gce @allow_clean_data
     Scenario Outline: Manual scalarizr update, Windows test
       Given I have manually installed scalarizr '<default_agent>' on M2
@@ -37,7 +36,6 @@ Feature: Update scalarizr windows test
       | 3.8.5         |
       | 3.12.7        |
 
-
     @ui @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Update from Scalr UI to corrupt package with rollback, Windows test
       Given I have manually installed scalarizr '3.8.5' on M3
@@ -50,7 +48,6 @@ Feature: Update scalarizr windows test
       When I execute script 'Windows ping-pong. CMD' synchronous on M3
       Then I see script result in M3
       And script output contains 'pong' in M3
-
 
     @ui @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Update from Scalr UI after rollback, Windows test
@@ -70,7 +67,6 @@ Feature: Update scalarizr windows test
       Then I see script result in M4
       And script output contains 'pong' in M4
 
-
     @manual @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Manual scalarizr update to corrupt package with rollback, Windows test
       Given I have manually installed scalarizr '3.8.5' on M5
@@ -82,7 +78,6 @@ Feature: Update scalarizr windows test
       When I execute script 'Windows ping-pong. CMD' synchronous on M5
       Then I see script result in M5
       And script output contains 'pong' in M5
-
 
     @manual @rollback @legacy @ec2 @gce @allow_clean_data
     Scenario: Manual scalarizr update after rollback, Windows test
@@ -99,7 +94,6 @@ Feature: Update scalarizr windows test
       When I execute script 'Windows ping-pong. CMD' synchronous on M6
       Then I see script result in M6
       And script output contains 'pong' in M6
-
 
     @ui @rollback @msi_old @ec2 @gce @allow_clean_data
     Scenario: Update from Scalr UI after corrupt package install, Windows test
@@ -118,7 +112,6 @@ Feature: Update scalarizr windows test
       Then I see script result in M7
       And script output contains 'pong' in M7
 
-
     @manual @rollback @msi_old @ec2 @gce @allow_clean_data
     Scenario: Manual scalarizr update after corrupt package install, Windows test
       Given I have manually installed scalarizr '3.12.7' on M8
@@ -133,7 +126,6 @@ Feature: Update scalarizr windows test
       When I execute script 'Windows ping-pong. CMD' synchronous on M8
       Then I see script result in M8
       And script output contains 'pong' in M8
-
 
     @manual @msi_new @ec2 @gce @allow_clean_data
     Scenario: Manual scalaizr update from msi_new to msi_new, Windows test

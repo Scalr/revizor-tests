@@ -209,7 +209,7 @@ def verify_port_status(step, port, closed, serv_as):
         raise AssertionError('Port %s is closed on server %s (attempts: %s)' % (port, server.id, results))
 
 
-@step(r'([\w-]+) is( not)? running on (.+)')
+@step(r'(^[\w-]+(?!process)) is( not)? running on (.+)')
 def assert_check_service(step, service, closed, serv_as):
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
@@ -581,27 +581,49 @@ def get_user_name():
     return user_name
 
 
-@step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
-def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, is_manually=None, from_branch=None):
-    node = getattr(world, 'cloud_server', None)
-    branch = CONF.feature.branch
-    to_branch = CONF.feature.to_branch
-    repo = CONF.feature.ci_repo.lower()
+def get_repo_type(branch, custom_version=None):
     platform = CONF.feature.driver.scalr_cloud
+    ci_repo = CONF.feature.ci_repo.lower()
+    repo_types = {
+        'linux': {
+            'release': '{branch}/%s' % platform,
+            'develop': '{ci}/%s/{branch}' % platform,
+            'snapshot': 'snapshot/%s/{version}' % platform},
+        'windows' : {
+            'release': '{branch}',
+            'develop': '{ci}/{branch}',
+            'snapshot': 'snapshot/{version}'}}
+    # Getting repo types for os family
+    if Dist.is_windows_family(CONF.feature.dist):
+        os_family_repo = repo_types['windows']
+    else:
+        os_family_repo = repo_types['linux']
+    # Getting repo
+    if custom_version:
+        repo_type = os_family_repo['snapshot'].format(version=custom_version)
+    elif branch in ['latest', 'stable']:
+        repo_type = os_family_repo['release'].format(branch=branch)
+    else:
+        repo_type = os_family_repo['develop'].format(ci=ci_repo, branch=branch)
+    return repo_type
+
+
+@step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
+def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
+    node = getattr(world, 'cloud_server', None)
+    rv_branch = CONF.feature.branch
+    rv_to_branch = CONF.feature.to_branch
     server = getattr(world, (serv_as or '').strip(), None)
     if server: server.reload()
-    LOG.debug("""Installing scalarizr to the node. Args from feature file: """
-              """version: {version}, """
-              """use_sysprep: {use_sysprep}, """
-              """server: {server}, """
-              """manually: {manually}, """
-              """from_branch: {branch}""".format(
-        version=custom_version,
-        use_sysprep=bool(use_sysprep),
-        server=serv_as,
-        manually=bool(is_manually),
-        branch=from_branch
-    ))
+    # Get scalarizr repo type
+    if use_rv_to_branch:
+        branch = rv_to_branch
+    elif custom_branch:
+        branch = custom_branch
+    else:
+        branch = rv_branch
+    repo_type = get_repo_type(branch, custom_version)
+    LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
         if node:
@@ -613,19 +635,8 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             if CONF.feature.driver.is_platform_ec2:
                 console_kwargs.update({'password': 'scalr'})
         console_kwargs.update({'timeout': 300})
-        # Get scalarizr repo
-        if custom_version:
-            repo = 'snapshot/{}'.format(custom_version.strip())
-        elif is_manually:
-            repo = '%s/%s' % (repo, to_branch)
-        elif from_branch:
-            repo = '%s/%s' % (repo, from_branch)
-        elif branch in ['latest', 'stable']:
-            repo = branch
-        else:
-            repo = '%s/%s' % (repo, branch)
         # Install scalarizr
-        url = 'https://my.scalr.net/public/windows/{repo}'.format(repo=repo)
+        url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
@@ -645,22 +656,14 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             LOG.debug('Node get successfully: %s' % node)# Wait ssh
         user = get_user_name()
         wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
-        LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
-        repo_type = '$BRANCH/$PLATFORM' if branch in ['latest', 'stable'] else '$CI_REPO/$PLATFORM/$BRANCH'
         url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
         cmd = '{curl_install} && ' \
-            'PLATFORM={platform} ; ' \
-            'CI_REPO={repo} ; ' \
-            'BRANCH={branch} ; ' \
             'curl -L {url}/install_scalarizr.sh | bash && ' \
             'sync && scalarizr -v'.format(
                 curl_install=world.value_for_os_family(
                     debian="apt-get update && apt-get install curl -y",
                     centos="yum clean all && yum install curl -y",
                     server=server),
-                platform=platform,
-                repo=repo,
-                branch=branch,
                 url=url)
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, user=user)[0]
