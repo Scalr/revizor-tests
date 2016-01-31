@@ -352,17 +352,18 @@ def executing_scalarizr(step, pkg_type='', serv_as=None):
 
 @step(r'([\w]+) process is(?: (not))? running on ([\w\d]+)')
 def checking_service_state(step, service, is_not, serv_as):
-    service_api = dict(scalarizr='api', updclient='upd_api')
+    def get_object(obj, args):
+        if len(args) == 1:
+            return getattr(obj, args[0])
+        return get_object(getattr(obj, args[0]), args[1:])
+    service_api = dict(scalarizr='api.system.dist', updclient='upd_api.status')
     server = getattr(world, serv_as)
-    api = getattr(server, service_api[service], None)
-    if not api:
-        raise AssertionError("Can't get api for service %s" % service)
     try:
-        status = api.status()
+        res = get_object(server, service_api[service].split('.'))()
     except URLError as e:
         LOG.error('Got an error while try to get %s status. Err: %s' % (service, e.reason))
-        status = False
-    assert (status and not is_not) or (not status and is_not), '%s service state not valid' % service
+        res = False
+    assert (res and not is_not) or (not res and is_not), '%s service state not valid' % service
 
 
 @after.each_scenario
