@@ -146,6 +146,7 @@ Feature: Update scalarizr windows test
       Given I have a server running in cloud
       When I install scalarizr <default_agent> with sysprep to the server
       Then I create image from deployed server
+      And I add image to the new role
       When I have a an empty running farm
       And I add created role to the farm
       When I expect server bootstrapping as M10
