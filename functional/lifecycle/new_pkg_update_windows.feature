@@ -140,3 +140,65 @@ Feature: Update scalarizr windows test
       When I execute script 'Windows ping-pong. CMD' synchronous on M9
       Then I see script result in M9
       And script output contains 'pong' in M9
+
+    @bootstrap @legacy @msi_old @ec2 @gce @allow_clean_data
+    Scenario Outline: Update at bootstrap, windows test
+      Given I have a server running in cloud
+      When I install scalarizr <default_agent> with sysprep to the server
+      Then I create image from deployed server
+      When I have a an empty running farm
+      And I add created role to the farm
+      When I expect server bootstrapping as M10
+      Then scalarizr version from role is last in M10
+      When I execute script 'Windows ping-pong. CMD' synchronous on M10
+      And I see script result in M10
+      And script output contains 'pong' in M10
+
+    Examples:
+      | default_agent |
+      | 3.8.5         |
+      | 3.12.7        |
+
+    @bootstrap @ui @msi_new @ec2 @gce @allow_clean_data
+    Scenario: Update to corrupt package after bootstrap windows test, no prev updates
+      Given I have a server running in cloud
+      When I install scalarizr with sysprep to the server manually
+      Then I create image from deployed server
+      And I add image to the new role
+      When I have a an empty running farm
+      And I add created role to the farm
+      And I change branch for role
+      When I expect server bootstrapping as M11
+      And scalarizr version from role is last in M11
+      When I build corrupt package
+      And I set branch with corrupt package for role
+      And I trigger scalarizr update by Scalr UI on M11
+      Then update process is finished on M11 with status error
+      And scalarizr process is not running on M11
+      And updclient process is running on M11
+
+    @bootstrap @ui @msi_new @rollback @ec2 @gce @allow_clean_data
+    Scenario: Update to corrupt package with rollback, windows test
+      Given I have a server running in cloud
+      When I install scalarizr with sysprep to the server manually
+      Then I create image from deployed server
+      And I add image to the new role
+      When I have a an empty running farm
+      And I add created role to the farm
+      And I change branch for role
+      When I expect server bootstrapping as M12
+      And scalarizr version from role is last in M12
+      When I build new package
+      And I set branch with new package for role
+      When I trigger scalarizr update by Scalr UI on M12
+      Then update process is finished on M12 with status completed
+      And Scalr receives HostUpdate from M12
+      When I build corrupt package
+      And I set branch with corrupt package for role
+      When I trigger scalarizr update by Scalr UI on M12
+      Then update process is finished on M12 with status rollbacked
+      And scalarizr process is running on M12
+      And updclient process is running on M12
+      When I execute script 'Windows ping-pong. CMD' synchronous on M12
+      Then I see script result in M12
+      And script output contains 'pong' in M12

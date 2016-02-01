@@ -35,7 +35,7 @@ SCALARIZR_REPO = 'int-scalarizr'
 GH = github.GitHub(access_token=CONF.main.github_access_token)
 
 
-@step(r"I have manually installed scalarizr(\s'[\w\W\d]+')* on ([\w\d]+)")
+@step(r"I have manually installed scalarizr(?:\s('[\w\W\d]+'))* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
     version = (version or '').replace("'", '')
     if version:
@@ -46,7 +46,7 @@ def havinng_installed_scalarizr(step, version=None, serv_as=None):
         When I have a an empty running farm
         Then I add created role to the farm
         And I see pending server {serv_as}
-        When I install scalarizr{version} to the server {serv_as}{manually}
+        When I install scalarizr {version} to the server {serv_as}{manually}
         Then I forbid {pkg_type}scalarizr update at startup and run it on {serv_as}
         And I wait and see running server {serv_as}""".format(
             version=version,
