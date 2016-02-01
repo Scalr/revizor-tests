@@ -37,22 +37,59 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'error was thrown due to the hostname format'
 ]
 
+# Run powershell script as Administrator
+world.PS_RUN_AS = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"'''
+
 
 @world.absorb
-def get_windows_session(server=None, public_ip=None, password=None):
+def get_windows_session(server=None, public_ip=None, password=None, timeout=None):
+    time_until = time.time() + timeout if timeout else None
     username = 'Administrator'
     port = 5985
-    if server:
-        public_ip = server.public_ip
-        password = server.windows_password
-    if CONF.feature.driver.cloud_family == Platform.GCE:
-        username = 'scalr'
-    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
-        node = world.cloud.get_node(server)
-        port = world.cloud.open_port(node, port)
-    session = winrm.Session('http://%s:%s/wsman' % (public_ip, port),
-                            auth=(username, password))
-    return session
+    while True:
+        try:
+            if server:
+                server.reload()
+                public_ip = server.public_ip
+                password = password or server.windows_password
+            if CONF.feature.driver.is_platform_gce:
+                username = 'scalr'
+            elif CONF.feature.driver.is_platform_cloudstack:
+                node = world.cloud.get_node(server)
+                port = world.cloud.open_port(node, port)
+            LOG.info('Used credentials for windows session: %s:%s %s:%s' % (public_ip, port, username, password))
+            session = winrm.Session(
+                'http://%s:%s/wsman' % (public_ip, port),
+                auth=(username, password))
+            LOG.debug('WinRm instance: %s' % session)
+            return session
+        except Exception as e:
+            LOG.error('Got windows session error: %s' % e.message)
+        if time.time() >= time_until:
+            raise TimeoutError
+        time.sleep(5)
+
+
+@world.absorb
+def run_cmd_command_until(command, server=None, public_ip=None, password=None, timeout=None):
+    time_until = time.time() + timeout if timeout else None
+    LOG.debug('Execute powershell command: %s' % command)
+    while True:
+        console = get_windows_session(
+            server=server,
+            public_ip=public_ip,
+            password=password,
+            timeout=timeout)
+        try:
+            res = console.run_cmd(command)
+            LOG.debug('std_out: %s. std_err: %s' % (res.std_out, res.std_err))
+            return res
+        except Exception as  e:
+            LOG.error('Got an error while try execute command: %s ErrorMsg %s'% (command, e.message))
+        if time.time() >= time_until:
+            raise AssertionError('Command: %s execution failed' % command)
+        time.sleep(10)
+
 
 @world.absorb
 def run_cmd_command(server, command):

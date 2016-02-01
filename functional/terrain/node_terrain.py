@@ -24,21 +24,10 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-SCALARIZR_REPOS = collections.namedtuple('SCALARIZR_REPOS', ('release', 'develop', 'win'))(
-    'https://my.scalr.net/public/linux/$BRANCH/$PLATFORM',
-    'http://my.scalr.net/public/linux/$CI_REPO/$PLATFORM/$BRANCH',
-    'https://my.scalr.net/public/windows'
-)
 
-PLATFORM_SYSPREP = collections.namedtuple('PLATFORM_SYSPREP', ('gce', 'ec2'))(
-    'gcesysprep',
-    '''powershell -NoProfile -ExecutionPolicy Bypass -Command "$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml');$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled';$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')";cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep"'''
-)
-
-PLATFORM_TERMINATED_STATE = collections.namedtuple('PLATFORM_TERMINATED_STATE', ('gce', 'ec2'))(
+PLATFORM_TERMINATED_STATE = collections.namedtuple('terminated_state', ('gce', 'ec2'))(
     'terminated',
-    'stopped'
-)
+    'stopped')
 
 LOG = logging.getLogger(__name__)
 
@@ -220,7 +209,7 @@ def verify_port_status(step, port, closed, serv_as):
         raise AssertionError('Port %s is closed on server %s (attempts: %s)' % (port, server.id, results))
 
 
-@step(r'([\w-]+) is( not)? running on (.+)')
+@step(r'(^[\w-]+(?!process)) is( not)? running on (.+)')
 def assert_check_service(step, service, closed, serv_as):
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
@@ -556,12 +545,17 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
 
 
 def run_sysprep(uuid, console):
+    cmd = dict(
+        gce='gcesysprep',
+        ec2=world.PS_RUN_AS.format(
+            command='''$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml'); ''' \
+                '''$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled'; ''' \
+                '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
+                '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
     try:
-        sysprep_cmd = getattr(PLATFORM_SYSPREP, CONF.feature.driver.scalr_cloud)
-        console.run_cmd(sysprep_cmd)
-    except:
-        LOG.debug('Run sysprep cmd: %s' % sysprep_cmd)
-        pass
+        console.run_cmd(cmd.get(CONF.feature.driver.scalr_cloud))
+    except Exception as e:
+        LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
     end_time = time.time() + 300
     while time.time() <= end_time:
@@ -587,57 +581,103 @@ def get_user_name():
     return user_name
 
 
-@step(r'I install scalarizr (with sysprep )?to the server(?: (\w+))?')
-def installing_scalarizr(step, sysprep=None, serv_as=''):
+def get_repo_type(custom_branch, custom_version=None):
+    class RepoTypes(dict):
+
+        def __init__(self, branch, version=None):
+            dict.__init__(self)
+            ci_repo = CONF.feature.ci_repo.lower()
+            version = version or ''
+            self.update({
+                'release': '{branch}'.format(branch=branch),
+                'develop': '{ci}/{branch}'.format(ci=ci_repo, branch=branch),
+                'snapshot': 'snapshot/{version}'.format(version=version)})
+
+        def __extend_repo_type(self, value):
+            rt = value.split('/')
+            rt.insert(1, CONF.feature.driver.scalr_cloud)
+            return '/'.join(rt)
+
+        def __getitem__(self, key):
+            if self.has_key(key):
+                value = dict.__getitem__(self, key)
+                if not Dist.is_windows_family(CONF.feature.dist):
+                    value = self.__extend_repo_type(value)
+                return value
+            raise AssertionError('Repo type: "%s" not valid' % key)
+
+        def get(self, key):
+            return self.__getitem__(key)
+
+    # Getting repo types for os family
+    repo_types = RepoTypes(branch=custom_branch, version=custom_version)
+    # Getting repo
+    if custom_version:
+        repo_type = repo_types.get('snapshot')
+    elif custom_branch in ['latest', 'stable']:
+        repo_type = repo_types.get('release')
+    else:
+        repo_type = repo_types.get('develop')
+    return repo_type
+
+
+@step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
+def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
     node = getattr(world, 'cloud_server', None)
-    branch = CONF.feature.branch
-    repo = CONF.feature.ci_repo.lower()
-    platform = CONF.feature.driver.scalr_cloud
-    # Wait cloud server
-    if not node:
-        LOG.debug('Cloud server not found get node from server')
-        server = getattr(world, serv_as.strip())
-        server.reload()
-        node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-        LOG.debug('Node get successfully: %s' % node)
-    assert node,  'Node not found'
+    rv_branch = CONF.feature.branch
+    rv_to_branch = CONF.feature.to_branch
+    server = getattr(world, (serv_as or '').strip(), None)
+    if server: server.reload()
+    # Get scalarizr repo type
+    if use_rv_to_branch:
+        branch = rv_to_branch
+    elif custom_branch:
+        branch = custom_branch
+    else:
+        branch = rv_branch
+    repo_type = get_repo_type(branch, custom_version)
+    LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
-        repo_type = branch if branch in ['latest', 'stable'] else '%s/%s' % (CONF.feature.ci_repo, branch)
-        command = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((new-object net.webclient).DownloadString('{}/{}/install_scalarizr.ps1'))"'''.format(
-            SCALARIZR_REPOS.win,
-            repo_type)
-        sh = console.run_cmd(command)
-        if sh.std_err:
-            raise Exception("Error when installing scalarizr! %s\n%s" % (sh.std_err, sh.std_out))
-        res = console.run_cmd('scalarizr -v')
-        LOG.debug('Scalarizr -v command std_out: %s. std_err: %s' % (res.std_out, res.std_err))
-        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res.std_out)
-        assert version, 'Scalarizr version is invalid. Command returned: %s' % res.std_out
-        if sysprep:
-            run_sysprep(node.uuid, console)
+        if node:
+            console_kwargs = dict(
+                public_ip=node.public_ips[0],
+                password='scalr')
+        else:
+            console_kwargs = dict(server=server)
+            if CONF.feature.driver.is_platform_ec2:
+                console_kwargs.update({'password': 'scalr'})
+        console_kwargs.update({'timeout': 300})
+        # Install scalarizr
+        url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
+        cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
+        assert not world.run_cmd_command_until(
+            world.PS_RUN_AS.format(command=cmd),
+            **console_kwargs).std_err, "Scalarizr installation failed"
+        version = re.findall(
+            '(?:Scalarizr\s)([a-z0-9/./-]+)',
+            world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out)
+        assert version, 'installed scalarizr verson not valid %s' % version
+        if use_sysprep:
+            run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
     else:
-        # Wait ssh
+        # Wait cloud server
+        if not node:
+            LOG.debug('Cloud server not found get node from server')
+            node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+            LOG.debug('Node get successfully: %s' % node)# Wait ssh
         user = get_user_name()
         wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
-        LOG.info('Installing scalarizr from branch: %s to node: %s ' % (branch, node.name))
-        repo_type = 'release' if branch in ['latest', 'stable'] else 'develop'
+        url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
         cmd = '{curl_install} && ' \
-            'PLATFORM={platform} ; ' \
-            'CI_REPO={repo} ; ' \
-            'BRANCH={branch} ; ' \
             'curl -L {url}/install_scalarizr.sh | bash && ' \
             'sync && scalarizr -v'.format(
                 curl_install=world.value_for_os_family(
                     debian="apt-get update && apt-get install curl -y",
                     centos="yum clean all && yum install curl -y",
                     server=server),
-                platform=platform,
-                repo=repo,
-                branch=branch,
-                url=getattr(SCALARIZR_REPOS, repo_type))
+                url=url)
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, user=user)[0]
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
