@@ -162,15 +162,19 @@ def cleanup_all(total):
         world.farm.terminate()
 
         world.farm.vhosts.reload()
-        world.farm.domains.reload()
-
         for vhost in world.farm.vhosts:
             LOG.info('Delete vhost: %s' % vhost.name)
             vhost.delete()
 
-        for domain in world.farm.domains:
-            LOG.info('Delete domain: %s' % domain.name)
-            domain.delete()
+        try:
+            world.farm.domains.reload()
+            for domain in world.farm.domains:
+                LOG.info('Delete domain: %s' % domain.name)
+                domain.delete()
+        except Exception as e:
+            if 'You do not have permission to view this component' in e:
+                LOG.warning('DNS disabled in Scalr config!')
+
     else:
         farm = getattr(world, 'farm', None)
         if not farm:
