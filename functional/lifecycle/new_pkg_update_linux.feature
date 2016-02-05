@@ -28,6 +28,6 @@ Feature: Update scalarizr linux test
       Then update process is finished on M2 with status completed
       And Scalr receives HostUpdate from M2
       And I check current Scalr update client version was changed on M2
-      When I execute script 'Windows ping-pong. CMD' synchronous on M2
+      When I execute script 'Linux ping-pong' synchronous on M2
       Then I see script result in M2
       And script output contains 'pong' in M2
