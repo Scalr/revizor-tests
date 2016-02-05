@@ -368,8 +368,10 @@ def checking_service_state(step, service, is_not, serv_as):
 
 @after.each_scenario
 def remove_temporary_data_after_each(scenario):
-    use_only_for = ['allow_clean_data']
-    if scenario.matches_tags(use_only_for) and scenario.passed:
+    use_afret_scenario = ['allow_clean_data']
+    use_on_fail = ['allow_clean_on_fail']
+    if (scenario.matches_tags(use_afret_scenario) and scenario.passed) or \
+            (scenario.matches_tags(use_on_fail) and scenario.failed):
         clear_farm()
         remove_temporary_role()
     remove_temporary_branch()

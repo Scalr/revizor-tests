@@ -1,12 +1,12 @@
 Using step definitions from: steps/new_pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system
 Feature: Update scalarizr linux test
 
-    @bootstrap @ec2 @gce
+    @bootstrap @ec2 @gce @allow_clean_on_fail
     Scenario: Update at bootstrap linux test, new role create
       Given I have a clean image
       And I add image to the new role
 
-    @bootstrap @ec2 @gce
+    @bootstrap @ec2 @gce @allow_clean_on_fail
     Scenario: Update at bootstrap linux test, use new role
       Given I have a an empty running farm
       And I add created role to the farm
