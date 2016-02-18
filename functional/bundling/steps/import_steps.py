@@ -143,7 +143,7 @@ def given_server_in_cloud(step, user_data):
         search_cond = dict(
             dist=CONF.feature.dist,
             platform=CONF.feature.platform)
-        image = table.filter(search_cond).first().keys()[0].encode('ascii','ignore')
+        image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
     node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
