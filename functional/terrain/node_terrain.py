@@ -657,7 +657,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         version = re.findall(
             '(?:Scalarizr\s)([a-z0-9/./-]+)',
             world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out)
-        assert version, 'installed scalarizr verson not valid %s' % version
+        assert version, 'installed scalarizr version not valid %s' % version
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
@@ -676,7 +676,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 curl_install=world.value_for_os_family(
                     debian="apt-get update && apt-get install curl -y",
                     centos="yum clean all && yum install curl -y",
-                    server=server),
+                    server=server,
+                    node=node
+                ),
                 url=url)
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd, user=user)[0]
