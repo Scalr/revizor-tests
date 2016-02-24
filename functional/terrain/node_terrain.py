@@ -209,7 +209,7 @@ def verify_port_status(step, port, closed, serv_as):
         raise AssertionError('Port %s is closed on server %s (attempts: %s)' % (port, server.id, results))
 
 
-@step(r'(^[\w-]+(?!process)) is( not)? running on (.+)')
+@step(r'([\w-]+(?!process)) is( not)? running on (.+)')
 def assert_check_service(step, service, closed, serv_as):
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
