@@ -116,6 +116,9 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.EC2:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'm3.medium'
+    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
+        LOG.debug('Dist is windows, set instance type')
+        options['instance_type'] = 'Standard_A1'
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,

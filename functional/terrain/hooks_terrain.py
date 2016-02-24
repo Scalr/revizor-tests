@@ -10,7 +10,7 @@ from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
-from revizor2.consts import ServerStatus, Dist
+from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
 
 LOG = logging.getLogger(__name__)
@@ -83,6 +83,8 @@ def exclude_steps_by_options(feature):
 @after.each_scenario
 def get_all_logs(scenario):
     """Give scalarizr_debug.log logs from servers"""
+    if CONF.feature.driver.current_cloud == Platform.AZURE:
+        return
     # Get Farm
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
     farm = getattr(world, 'farm', None)
