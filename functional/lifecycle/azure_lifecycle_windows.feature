@@ -17,7 +17,6 @@ Feature: Windows server lifecycle in Azure
     Scenario: Restart scalarizr by script
         Given I have running server M1
         When I execute script 'windows restart scalarizr' synchronous on M1
-        And see 'Scalarizr terminated' in M1 windows log
         And scalarizr is running on M1
         And I see script result in M1
         And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
@@ -29,7 +28,6 @@ Feature: Windows server lifecycle in Azure
         And Scalr receives RebootFinish from M1
         And Scalr sends RebootFinish to M1
         And scalarizr is running on M1
-        And scalr-upd-client is running on M1
 
     @azure
     Scenario Outline: Scripts executing on Windows
@@ -39,12 +37,12 @@ Feature: Windows server lifecycle in Azure
         And script result contains '<output>' on M1
 
         Examples:
-            | script_name                                                                                                                | execute_type | script_type | output                 |
-            | Windows ping-pong. CMD                                                                                                     | synchronous  |             | pong                   |
-            | Windows ping-pong. CMD                                                                                                     | asynchronous |             | pong                   |
-            | Windows ping-pong. PS                                                                                                      | synchronous  |             | pong                   |
-            | Windows ping-pong. PS                                                                                                      | asynchronous |             | pong                   |
-            | https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt | asynchronous | local       | Script runned from URL |
+            | script_name            | execute_type | script_type | output                 |
+            | Windows ping-pong. CMD | synchronous  |             | pong                   |
+            | Windows ping-pong. CMD | asynchronous |             | pong                   |
+            | Windows ping-pong. PS  | synchronous  |             | pong                   |
+            | Windows ping-pong. PS  | asynchronous |             | pong                   |
+            | https://goo.gl/CFeoPC  | asynchronous | local       | Script runned from URL |
 
     @azure
     Scenario: Restart farm
@@ -52,4 +50,3 @@ Feature: Windows server lifecycle in Azure
         And wait all servers are terminated
         Then I start farm
         And I expect server bootstrapping as M1
-        And file 'C:\chef_result_file' exist in M1 windows

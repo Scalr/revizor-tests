@@ -34,13 +34,6 @@ Feature: Linux server lifecycle in Azure
         And script output contains 'Non_ascii_script' in M1
 
     @azure
-    Scenario: Restart scalarizr
-        Given I have running server M1
-        When I reboot scalarizr in M1
-        And see 'Scalarizr terminated' in M1 log
-        And not ERROR in M1 scalarizr log
-
-    @azure
     Scenario: Stop farm
         When I stop farm
         And wait all servers are terminated
