@@ -333,7 +333,9 @@ def assert_scalarizr_version(step, branch, serv_as):
             update_status = server.upd_api.status(cached=False)
             break
         except urllib2.URLError:
-            time.sleep(1)
+            time.sleep(3)
+    else:
+        raise AssertionError('Can\'t get access to update client 5 times (15 seconds)')
     LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
     assert update_status['state'] == 'completed', \
         'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
