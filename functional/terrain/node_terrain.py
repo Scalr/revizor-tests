@@ -4,6 +4,7 @@ import os
 import sys
 import time
 import logging
+import urllib2
 import collections
 import re
 
@@ -327,7 +328,12 @@ def assert_scalarizr_version(step, branch, serv_as):
     versions.sort(reverse=True)
     LOG.debug('Last scalarizr version %s for branch %s' % (versions[0], branch))
     # Get installed scalarizr version
-    update_status = server.upd_api.status(cached=False)
+    for _ in range(5):
+        try:
+            update_status = server.upd_api.status(cached=False)
+            break
+        except urllib2.URLError:
+            time.sleep(1)
     LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
     assert update_status['state'] == 'completed', \
         'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
