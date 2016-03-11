@@ -1,0 +1,10 @@
+{
+    "RV_PLATFORM": {
+        "ec2": {"default": true, "tags": []},
+        "gce": [],
+        "idcf": [],
+        "rackspacengus": [],
+        "ecs": [],
+        "azure": []
+    }
+}

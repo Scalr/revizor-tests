@@ -314,19 +314,23 @@ def assert_scalarizr_version(step, branch, serv_as):
         branch = CONF.feature.to_branch
     # Get custom repo url
     os_family = Dist.get_os_family(server.role.os_family)
-    if branch in ['stable', 'latest']:
-        default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+    if '.' in branch and branch.replace('.', '').isdigit():
+        last_version = branch
     else:
-        url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
-        path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-        default_repo = url.format(path=path)
-    # Get last scalarizr version from custom repo
-    index_url = default_repo.format(branch=branch)
-    LOG.debug('Check package from index_url: %s' % index_url)
-    repo_data = parser_for_os_family(server.role.os_family)(branch=branch, index_url=index_url)
-    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
-    versions.sort(reverse=True)
-    LOG.debug('Last scalarizr version %s for branch %s' % (versions[0], branch))
+        if branch in ['stable', 'latest']:
+            default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+        else:
+            url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+            path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+            default_repo = url.format(path=path)
+        # Get last scalarizr version from custom repo
+        index_url = default_repo.format(branch=branch)
+        LOG.debug('Check package from index_url: %s' % index_url)
+        repo_data = parser_for_os_family(server.role.os_family)(branch=branch, index_url=index_url)
+        versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+        versions.sort(reverse=True)
+        last_version = versions[0]
+    LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))
     # Get installed scalarizr version
     for _ in range(5):
         try:
@@ -340,7 +344,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     assert update_status['state'] == 'completed', \
         'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
         (update_status['state'], update_status['prev_state'])
-    assert versions[0]  == update_status['installed'], \
+    assert last_version == update_status['installed'], \
         'Server not has last build of scalarizr package, candidate: %s' % update_status['installed']
 
 
