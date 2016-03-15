@@ -35,8 +35,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
     for log in server.scriptlogs:
         LOG.debug('Check script log:\nname: %s\nevent: %s\nrun as: %s\nexitcode: %s\n' %
                   (log.name, log.event, log.run_as, log.exitcode))
-
-        if log.event.strip() == event.strip() \
+        if log.event and log.event.strip() == event.strip() \
                 and log.run_as == user \
                 and ((name == 'chef' and log.name.strip().startswith(name))
                      or (name.startswith('http') and log.name.strip().startswith(name))
