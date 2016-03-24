@@ -335,6 +335,9 @@ def assert_scalarizr_version(step, branch, serv_as):
     for _ in range(5):
         try:
             update_status = server.upd_api.status(cached=False)
+            installed_version = update_status['installed']
+            if installed_version.strip().endswith('-1'):
+                installed_version = installed_version[:-2]
             break
         except urllib2.URLError:
             time.sleep(3)
@@ -344,8 +347,8 @@ def assert_scalarizr_version(step, branch, serv_as):
     assert update_status['state'] == 'completed', \
         'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
         (update_status['state'], update_status['prev_state'])
-    assert last_version == update_status['installed'], \
-        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (update_status['installed'],
+    assert last_version == installed_version, \
+        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version,
                                                                                             last_version)
 
 
