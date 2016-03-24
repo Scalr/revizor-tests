@@ -330,6 +330,8 @@ def assert_scalarizr_version(step, branch, serv_as):
         versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
         versions.sort(reverse=True)
         last_version = versions[0]
+        if last_version.strip().endswith('-1'):
+            last_version = last_version.strip()[:-2]
     LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))
     # Get installed scalarizr version
     for _ in range(5):
