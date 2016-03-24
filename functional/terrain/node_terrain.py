@@ -337,7 +337,7 @@ def assert_scalarizr_version(step, branch, serv_as):
             update_status = server.upd_api.status(cached=False)
             installed_version = update_status['installed']
             if installed_version.strip().endswith('-1'):
-                installed_version = installed_version[:-2]
+                installed_version = installed_version.strip()[:-2]
             break
         except urllib2.URLError:
             time.sleep(3)
