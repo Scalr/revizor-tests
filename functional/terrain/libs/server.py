@@ -74,6 +74,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
 def run_cmd_command_until(command, server=None, public_ip=None, password=None, timeout=None):
     time_until = time.time() + timeout if timeout else None
     LOG.debug('Execute powershell command: %s' % command)
+    e = None
     while True:
         console = get_windows_session(
             server=server,
@@ -87,8 +88,10 @@ def run_cmd_command_until(command, server=None, public_ip=None, password=None, t
         except Exception as e:
             LOG.error('Got an error while try execute command: "%s" ErrorMsg "%s"' % (command, e.message or str(e)))
         if time.time() >= time_until:
-            raise AssertionError('Command: %s execution failed' % command)
-        time.sleep(10)
+            if e:
+                LOG.error('Last error on cmd execution: "%s"' % str(e))
+            raise TimeoutError('Command: %s execution failed by timeout' % command)
+        time.sleep(30)
 
 
 @world.absorb
