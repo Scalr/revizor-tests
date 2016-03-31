@@ -343,7 +343,7 @@ def executing_scalarizr(step, pkg_type='', serv_as=None):
         '''Start-Service """Scalarizr"""'''
     server = getattr(world, serv_as.strip())
     server.reload()
-    kwargs = dict(server=server, password='scalr', timeout=300)
+    kwargs = dict(server=server, timeout=300)
     assert not world.run_cmd_command_until(
         world.PS_RUN_AS.format(command=set_status),
         **kwargs).std_err, 'Scalr UpdClient status file creatoin failed'

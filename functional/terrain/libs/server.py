@@ -52,6 +52,8 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 server.reload()
                 public_ip = server.public_ip
                 password = password or server.windows_password
+                if not password:
+                    password = 'scalr'
             if CONF.feature.driver.is_platform_gce:
                 username = 'scalr'
             elif CONF.feature.driver.is_platform_cloudstack:
