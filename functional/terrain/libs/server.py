@@ -84,8 +84,8 @@ def run_cmd_command_until(command, server=None, public_ip=None, password=None, t
             res = console.run_cmd(command)
             LOG.debug('std_out: %s. std_err: %s' % (res.std_out, res.std_err))
             return res
-        except Exception as  e:
-            LOG.error('Got an error while try execute command: %s ErrorMsg %s'% (command, e.message))
+        except Exception as e:
+            LOG.error('Got an error while try execute command: "%s" ErrorMsg "%s"' % (command, e.message or str(e)))
         if time.time() >= time_until:
             raise AssertionError('Command: %s execution failed' % command)
         time.sleep(10)

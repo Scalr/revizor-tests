@@ -665,7 +665,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             console_kwargs = dict(server=server)
             if CONF.feature.driver.is_platform_ec2:
                 console_kwargs.update({'password': 'scalr'})
-        console_kwargs.update({'timeout': 300})
+        console_kwargs.update({'timeout': 900})
         # Install scalarizr
         url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
