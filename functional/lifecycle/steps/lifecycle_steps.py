@@ -331,10 +331,6 @@ def verify_attached_disk_types(step):
 @step(r"instance vcpus info not empty for ([\w\d]+)")
 def checking_info_instance_vcpus(step, serv_as):
     server = getattr(world, serv_as)
-    server_details = server.details()
-    try:
-        vcpus = int(server_details.get('info.instance_vcpus', -1))
-    except (ValueError, TypeError):
-        vcpus = -1
+    vcpus = int(server.details()['info.instance_vcpus'])
     LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
     assert vcpus > 0, 'info.instance_vcpus: %s not valid for %s' % (vcpus, server.id)
