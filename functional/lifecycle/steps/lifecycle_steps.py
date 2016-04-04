@@ -326,3 +326,11 @@ def verify_attached_disk_types(step):
             raise AssertionError(
                 'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
                 volume_ids['/media/diskmount'][0].extra['type'])
+
+
+@step(r"instance vcpus info not empty for ([\w\d]+)")
+def checking_info_instance_vcpus(step, serv_as):
+    server = getattr(world, serv_as)
+    vcpus = int(server.details['info.instance_vcpus'])
+    LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
+    assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id
