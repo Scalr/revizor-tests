@@ -7,7 +7,7 @@ Feature: Linux server lifecycle
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
-        And I add role to this farm with deploy,storages,noiptables
+        And I add role to this farm with storages,noiptables
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
