@@ -178,6 +178,7 @@ def creating_image(step):
     if CONF.feature.driver.is_platform_ec2:
         kwargs.update({'reboot': False})
     image = world.cloud.create_template(**kwargs)
+    assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
     setattr(world, 'image', image)
