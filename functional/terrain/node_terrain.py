@@ -575,7 +575,7 @@ def run_sysprep(uuid, console):
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
-    end_time = time.time() + 300
+    end_time = time.time() + 900
     while time.time() <= end_time:
         node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
         LOG.debug('Obtained node after sysprep running: %s' % node)
@@ -583,7 +583,8 @@ def run_sysprep(uuid, console):
         if node.state == 5:
             break
         time.sleep(10)
-    else: raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
+    else:
+        raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
 
 
 def get_user_name():

@@ -134,7 +134,7 @@ def waiting_new_package(step):
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
-            status = res.statuses[0]
+            status = filter(lambda x: x['context'] == 'Drone', res.statuses)[0]
             LOG.debug('Patch commit build status: %s' % status)
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
@@ -154,7 +154,7 @@ def having_clean_image(step):
         search_cond = dict(
             dist=CONF.feature.dist,
             platform=CONF.feature.platform)
-        image_id = table.filter(search_cond).first().keys()[0].encode('ascii','ignore')
+        image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
         image = world.cloud.find_image(use_hvm=USE_VPC)
