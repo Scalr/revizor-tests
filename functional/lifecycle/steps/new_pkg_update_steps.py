@@ -178,12 +178,6 @@ def creating_image(step):
     if CONF.feature.driver.is_platform_ec2:
         kwargs.update({'reboot': False})
     image = world.cloud.create_template(**kwargs)
-    for i in range(3):
-        new_image_id = getattr(image, 'id', False)
-        if new_image_id:
-            break
-        time.sleep(2)
-    assert new_image_id, 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
     setattr(world, 'image', image)
@@ -272,11 +266,15 @@ def setting_farm(step):
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
     server = getattr(world, serv_as)
-    try:
-        res = IMPL.server.update_scalarizr(server_id=server.id)
-        LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
-    except  Exception as e:
-        LOG.error('Scalarizr update status : %s ' % e.message)
+    for i in range(3):
+        try:
+            res = IMPL.server.update_scalarizr(server_id=server.id)
+            LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
+        except Exception as e:
+            LOG.error('Scalarizr update status : %s ' % e.message)
+            time.sleep(15)
+    if not res['successMessage']:
+        raise Exception("Scalarizr update failed 3 times with error: %s" % e)
 
 
 @step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
