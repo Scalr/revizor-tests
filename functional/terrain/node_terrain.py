@@ -10,6 +10,8 @@ import re
 
 from lettuce import world, step
 
+from libcloud.compute.types import NodeState
+
 from revizor2 import consts
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
@@ -580,11 +582,11 @@ def run_sysprep(uuid, console):
         node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
         LOG.debug('Obtained node after sysprep running: %s' % node)
         LOG.debug('Obtained node status after sysprep running: %s' % node.state)
-        if node.state == 5:
+        if node.state == NodeState.STOPPED:
             break
         time.sleep(10)
     else:
-        raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
+        raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed, it state: %s' % node.state)
 
 
 def get_user_name():

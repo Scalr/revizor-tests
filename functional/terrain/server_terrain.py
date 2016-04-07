@@ -13,7 +13,6 @@ from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
 from revizor2.exceptions import MessageFailed, EventNotFounded
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -79,7 +78,8 @@ def server_state_action(step, action, reboot_type, serv_as):
     elif isinstance(res, dict):
         error_message = res.get('errorMessage', None)
     # Workaround for SCALRCORE-1576
-    if error_message == [u'Unable to perform request to scalarizr: A server error occurred.  Please contact the administrator. (500)']:
+    if error_message == [
+        u'Unable to perform request to scalarizr: A server error occurred.  Please contact the administrator. (500)']:
         error_message = None
     assert not error_message, error_message
     LOG.info('Server %s was %sed' % (server.id, action))
@@ -139,6 +139,7 @@ def assert_server_event_again_fired(step, events, serv_as):
     assert not any(e.lower() in duplicated_server_events for e in events.split(',')), \
         'Some events from %s were fired by %s more than one time' % (events, server.id)
 
+
 @step("I execute( local)? script '(.+)' (.+) on (.+)")
 def execute_script(step, local, script_name, exec_type, serv_as):
     synchronous = 1 if exec_type.strip() == 'synchronous' else 0
@@ -156,6 +157,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
+
 @step(r"I execute '([\w\W]+)?' '([\w\W]+)' '([\w]+)' on ([\w\d]+)")
 def script_executing(step, script_type, script_name, execute_type, serv_as):
     if script_type:
@@ -170,14 +172,16 @@ def script_executing(step, script_type, script_name, execute_type, serv_as):
     LOG.debug('Run external step: %s' % external_step)
     step.when(external_step)
 
+
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
     server = getattr(world, serv_as)
     last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
     server.scriptlogs.reload()
     for i in range(6):
-        if not len(server.scriptlogs) == last_count+1:
-            LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (last_count, len(server.scriptlogs), last_count+1))
+        if not len(server.scriptlogs) == last_count + 1:
+            LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (
+            last_count, len(server.scriptlogs), last_count + 1))
             time.sleep(15)
             server.scriptlogs.reload()
             continue
@@ -223,7 +227,8 @@ def check_processes(step, count, serv_as):
     list_proc = node.run("pgrep -l scalarizr | awk {print'$1'}")[0]
     LOG.info('Scalarizr count of processes %s' % len(list_proc.strip().splitlines()))
     world.assert_not_equal(len(list_proc.strip().splitlines()), int(count),
-                    'Scalarizr processes is: %s but processes \n%s' % (len(list_proc.strip().splitlines()), list_proc))
+                           'Scalarizr processes is: %s but processes \n%s' % (
+                           len(list_proc.strip().splitlines()), list_proc))
 
 
 @step("file '(.+)' not contain '(.+)' in ([\w\d]+)")
