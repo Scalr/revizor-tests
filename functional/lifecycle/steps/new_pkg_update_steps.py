@@ -38,6 +38,7 @@ GH = github.GitHub(access_token=CONF.main.github_access_token)
 @step(r"I have manually installed scalarizr(?:\s('[\w\W\d]+'))* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
     version = (version or '').replace("'", '')
+    setattr(world, serv_as, None)
     if version:
         setattr(world, 'default_agent', version.strip())
     step.behave_as("""

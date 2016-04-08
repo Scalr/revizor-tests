@@ -675,10 +675,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
-        version = re.findall(
-            '(?:Scalarizr\s)([a-z0-9/./-]+)',
-            world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out)
-        assert version, 'installed scalarizr version not valid %s' % version
+        out = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
+        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', out)
+        assert version, 'installed scalarizr version not valid. Regexp found: "%s", out from server: "%s"' % (version, out)
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
