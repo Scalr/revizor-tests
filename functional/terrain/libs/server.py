@@ -275,6 +275,9 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:
                 LOG.info('We wait Initializing but server already Running')
                 status = ServerStatus.RUNNING
+            if status == ServerStatus.RESUMING and lookup_server.status == ServerStatus.RUNNING:
+                LOG.info('We wait Resuming but server already Running')
+                status = ServerStatus.RUNNING
 
             LOG.debug('Compare server status')
             if lookup_server.status == status:
@@ -431,11 +434,14 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    return '%s-%s-%s' % (
+    if CONF.feature.dist.startswith('win'):
+        return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
+    else:
+        return '%s-%s-%s' % (
             world.farm.name.replace(' ', '-'),
             server.role.name,
             server.index
-    )
+        )
 
 
 @world.absorb
