@@ -321,7 +321,7 @@ def checking_upd_client_version(step, action, serv_as):
 
 
 @step(r'I reboot server')
-def rebooting_server(step):
+def rebooting_server(step): #FIXME: Find usages and rename this step
     if not world.cloud_server.reboot():
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
     world.cloud_server = None

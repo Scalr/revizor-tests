@@ -29,7 +29,7 @@ Feature: Update scalarizr linux test
       And I add created role to the farm
       When I see pending server M2
       Then I install scalarizr to the server M2
-      And I reboot server
+      And I reboot hard server M2
       When I expect server bootstrapping as M3
       Then scalarizr version was updated in M3
       When I execute script 'Linux ping-pong' synchronous on M3

@@ -671,6 +671,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             console_kwargs = dict(server=server)
             if CONF.feature.driver.is_platform_ec2:
                 console_kwargs.update({'password': 'scalr'})
+            LOG.debug('Cloud server not found get node from server')
+            node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
+            LOG.debug('Node get successfully: %s' % node)  # Wait ssh
         console_kwargs.update({'timeout': 900})
         # Install scalarizr
         url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
@@ -679,6 +682,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
         out = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
+        LOG.debug('Installed scalarizr version: %s' % out)
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', out)
         assert version, 'installed scalarizr version not valid. Regexp found: "%s", out from server: "%s"' % (version, out)
         if use_sysprep:
