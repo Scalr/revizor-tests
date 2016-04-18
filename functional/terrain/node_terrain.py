@@ -18,7 +18,7 @@ from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, USE_SYSTEMCTL
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 
@@ -353,14 +353,17 @@ def assert_scalarizr_version(step, branch, serv_as):
         (update_status['state'], update_status['prev_state'])
     assert last_version == installed_version, \
         'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version,
-                                                                                            last_version)
 
 
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
+    if USE_SYSTEMCTL:
+        cmd = "systemctl restart scalarizr"
+    else:
+        cmd = "/etc/init.d/scalarizr restart"
     node = world.cloud.get_node(server)
-    node.run('/etc/init.d/scalarizr restart')
+    node.run(cmd)
     LOG.info('Scalarizr restart complete')
     time.sleep(15)
 
