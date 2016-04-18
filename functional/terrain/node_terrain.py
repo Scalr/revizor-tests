@@ -352,7 +352,7 @@ def assert_scalarizr_version(step, branch, serv_as):
         'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
         (update_status['state'], update_status['prev_state'])
     assert last_version == installed_version, \
-        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version,
+        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version, last_version)
 
 
 @step('I reboot scalarizr in (.+)$')
