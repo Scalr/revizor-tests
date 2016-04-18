@@ -27,13 +27,16 @@ def give_empty_running_farm():
         LOG.info('Clear farm roles')
         IMPL.farm.clear_roles(world.farm.id)
     world.farm.vhosts.reload()
-    world.farm.domains.reload()
     for vhost in world.farm.vhosts:
         LOG.info('Delete vhost: %s' % vhost.name)
         vhost.delete()
-    for domain in world.farm.domains:
-        LOG.info('Delete domain: %s' % domain.name)
-        domain.delete()
+    try:
+        world.farm.domains.reload()
+        for domain in world.farm.domains:
+            LOG.info('Delete domain: %s' % domain.name)
+            domain.delete()
+    except Exception:
+        pass
     if world.farm.terminated:
         world.farm.launch()
     LOG.info('Return empty running farm: %s' % world.farm.id)
