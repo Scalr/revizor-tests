@@ -204,7 +204,7 @@ def verify_hostname_is_valid(step, serv_as):
     if CONF.feature.dist.startswith('win'):
         valid_hostname = '%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.index)
         hostname = hostname.lower()
-    if not hostname == valid_hostname:
+    if not hostname == valid_hostname.lower():
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
 
