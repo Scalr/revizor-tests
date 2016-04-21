@@ -575,8 +575,11 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 raise Exception(error_msg)
         else:
             #Change process status by  calling command service
-            return node.run("{command} {process} {status} && sleep 5".format(
-                command='systemctl' if USE_SYSTEMCTL else 'service',
+            if USE_SYSTEMCTL:
+                cmd = "systemctl {status} {process} && sleep 3"
+            else:
+                cmd = "service {process} {status} && sleep 3"
+            return node.run(cmd.format(
                 process=service['node'],
                 status=status))
 
