@@ -359,7 +359,7 @@ def assert_scalarizr_version(step, branch, serv_as):
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
     if USE_SYSTEMCTL:
-        cmd = "systemctl restart scalarizr"
+        cmd = "systemctl stop scalarizr && systemctl start scalarizr"
     else:
         cmd = "/etc/init.d/scalarizr restart"
     node = world.cloud.get_node(server)
