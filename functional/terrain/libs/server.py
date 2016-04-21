@@ -8,6 +8,7 @@ from datetime import datetime
 import requests
 from lettuce import world
 from libcloud.compute.types import NodeState
+from revizor2.defaults import USE_SYSTEMCTL
 
 try:
     import winrm
@@ -574,8 +575,10 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 raise Exception(error_msg)
         else:
             #Change process status by  calling command service
-            return node.run("service %(process)s %(status)s && sleep 5" %
-                            {'process': service['node'], 'status': status})
+            return node.run("{command} {process} {status} && sleep 5".format(
+                command='systemctl' if USE_SYSTEMCTL else 'service',
+                process=service['node'],
+                status=status))
 
     #Get process pid
     def get_pid():
