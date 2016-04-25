@@ -19,7 +19,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
     setattr(world, serv_as, server)
-    LOG.info('Server succesfully %s' % state)
+    LOG.info('Server %s (%s) succesfully in %s state' % (server.id, serv_as, state))
 
 
 @step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
