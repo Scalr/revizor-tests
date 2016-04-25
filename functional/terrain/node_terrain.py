@@ -105,6 +105,12 @@ class VerifyProcessWork(object):
         LOG.debug('Scalarizr verifying results: %s' % results)
         return all(results)
 
+    @staticmethod
+    def _verify_memcached(server, port):
+        LOG.info('Verify memcached (%s) work in server %s' % (port, server.id))
+        results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
+                   VerifyProcessWork._verify_open_port(server, port)]
+        return all(results)
 
 @step('I change repo in ([\w\d]+)$')
 def change_repo(step, serv_as):
