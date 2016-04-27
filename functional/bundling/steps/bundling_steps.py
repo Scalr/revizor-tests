@@ -12,13 +12,13 @@ from revizor2.utils import wait_until
 LOG = logging.getLogger(__name__)
 
 
-@step('I add to farm role created by last bundle task')
-def add_new_role_to_farm(step):
-    bundled_role = Role.get(world.bundled_role_id)
-    world.farm.add_role(world.bundled_role_id)
-    world.farm.roles.reload()
-    role = world.farm.roles[0]
-    setattr(world, bundled_role.behaviors_as_string() + '_role', role)
+# @step('I add to farm role created by last bundle task')
+# def add_new_role_to_farm(step):
+#     bundled_role = Role.get(world.bundled_role_id)
+#     world.farm.add_role(world.bundled_role_id)
+#     world.farm.roles.reload()
+#     role = world.farm.roles[0]
+#     setattr(world, bundled_role.behaviors_as_string() + '_role', role)
 
 
 @step('I create server snapshot for ([\w]+) via scalarizr api$')
