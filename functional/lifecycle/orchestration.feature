@@ -73,7 +73,7 @@ Feature: Orchestration features test
             | event        | name                               | user     | exitcode | stdout                                                             |
             | HostInit     | Revizor orchestration init         | root     | 0        |                                                                    |
             | HostInit     | /tmp/script.sh                     | root     | 1        |                                                                    |
-            | HostInit     | https://gist.githubusercontent.com | root     | 0        | Script runned from URL                                             |
+            | HostInit     | local                              | root     | 0        | Script runned from URL                                             |
             | BeforeHostUp | Linux ping-pong                    | root     | 0        | pong                                                               |
             | BeforeHostUp | chef                               | root     | 0        | "HOME"=>"/root"; "USER"=>"root"                                    |
             | HostUp       | Linux ping-pong                    | revizor2 | 1        |                                                                    |

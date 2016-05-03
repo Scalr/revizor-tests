@@ -12,6 +12,7 @@
         "app": [],
         "www": [],
         "haproxy": [],
-        "tomcat": []
+        "tomcat": [],
+        "memcached": []
     }
 }

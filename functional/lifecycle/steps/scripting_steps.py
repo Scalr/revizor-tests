@@ -39,6 +39,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                 and log.run_as == user \
                 and ((name == 'chef' and log.name.strip().startswith(name))
                      or (name.startswith('http') and log.name.strip().startswith(name))
+                     or (name.startswith('local') and log.name.strip().startswith(name))
                      or log.name.strip() == name):
 
             LOG.debug('We found event \'%s\' run from user %s' % (log.event, log.run_as))
