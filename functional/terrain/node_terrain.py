@@ -105,6 +105,12 @@ class VerifyProcessWork(object):
         LOG.debug('Scalarizr verifying results: %s' % results)
         return all(results)
 
+    @staticmethod
+    def _verify_memcached(server, port):
+        LOG.info('Verify memcached (%s) work in server %s' % (port, server.id))
+        results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
+                   VerifyProcessWork._verify_open_port(server, port)]
+        return all(results)
 
 @step('I change repo in ([\w\d]+)$')
 def change_repo(step, serv_as):
@@ -648,10 +654,12 @@ def get_repo_type(custom_branch, custom_version=None):
 @step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
 def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
     node = getattr(world, 'cloud_server', None)
+    resave_node = True if node else False
     rv_branch = CONF.feature.branch
     rv_to_branch = CONF.feature.to_branch
     server = getattr(world, (serv_as or '').strip(), None)
-    if server: server.reload()
+    if server:
+        server.reload()
     # Get scalarizr repo type
     if use_rv_to_branch:
         branch = rv_to_branch
@@ -674,7 +682,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             LOG.debug('Cloud server not found get node from server')
             node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
             LOG.debug('Node get successfully: %s' % node)  # Wait ssh
-        console_kwargs.update({'timeout': 900})
+        console_kwargs.update({'timeout': 1200})
         # Install scalarizr
         url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
@@ -695,7 +703,13 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
             LOG.debug('Node get successfully: %s' % node)# Wait ssh
         user = get_user_name()
-        wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
+        start_time = time.time()
+        while (time.time() - start_time) < 300:
+            try:
+                node.get_ssh(user=user)
+            except AssertionError:
+                LOG.warning('Can\'t get ssh for server %s and user: %s' % (node.id, user))
+                time.sleep(10)
         url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
         cmd = '{curl_install} && ' \
             'curl -L {url}/install_scalarizr.sh | bash && ' \
@@ -712,5 +726,6 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', version[0])
-    setattr(world, 'cloud_server', node)
+    if resave_node:
+        setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)

@@ -115,7 +115,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
                'sha': blob.sha}])
     # Create a new commit object using the new tree and point its parent to the current master
     commit = git.commits.post(
-        message='Patch app.py, corrupt windows start',
+        message='Patch app.py, corrupt windows start', #TODOL Change this commit message for linux package too
         parents=[base_sha],
         tree=tree.sha)
     base_sha = commit.sha
