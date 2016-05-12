@@ -506,7 +506,7 @@ def wait_rabbitmq_cp_url(*args, **kwargs):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
-    out = node.run("cat /var/log/scalarizr_debug.log | grep '%s'" % text)[0]
+    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text)[0]
     if text in out:
         return True
     return False
