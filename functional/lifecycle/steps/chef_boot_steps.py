@@ -39,7 +39,7 @@ def verify_chef_hostname(step, serv_as):
         raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
 
 
-@step("chef log in ([\w\d]+) contains '([\w\d_=]+)'")
+@step('chef log in ([\w\d]+) contains "(.+)"')
 def verify_chef_log(step, serv_as, text):
     server = getattr(world, serv_as)
     server.scriptlogs.reload()

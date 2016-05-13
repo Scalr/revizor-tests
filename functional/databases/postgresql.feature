@@ -12,7 +12,7 @@ Feature: PostgreSQL database server functional test
 	@ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr
        When I reboot scalarizr in M1
-       And see 'Scalarizr terminated' in M1 log
+       And see "Scalarizr terminated" in M1 log
        And scalarizr is running on M1
        And not ERROR in M1 scalarizr log
 
@@ -31,7 +31,7 @@ Feature: PostgreSQL database server functional test
     @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle @restart
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
-       And see 'Scalarizr terminated' in M1 log
+       And see "Scalarizr terminated" in M1 log
        And scalarizr is running on M1
        And not ERROR in M1 scalarizr log
 
@@ -94,7 +94,7 @@ Feature: PostgreSQL database server functional test
 	@ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr in slave
        When I reboot scalarizr in M2
-       And see 'Scalarizr terminated' in M2 log
+       And see "Scalarizr terminated" in M2 log
        And scalarizr is running on M2
        And not ERROR in M2 scalarizr log
 

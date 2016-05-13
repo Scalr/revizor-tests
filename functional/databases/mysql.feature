@@ -12,7 +12,7 @@ Feature: MySQL (old behavior) database server
     @ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr
        When I reboot scalarizr in M1
-       And see 'Scalarizr terminated' in M1 log
+       And see "Scalarizr terminated" in M1 log
        And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
@@ -30,7 +30,7 @@ Feature: MySQL (old behavior) database server
     @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle @restart
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
-       And see 'Scalarizr terminated' in M1 log
+       And see "Scalarizr terminated" in M1 log
        And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
@@ -81,7 +81,7 @@ Feature: MySQL (old behavior) database server
     @ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr in slave
         When I reboot scalarizr in M2
-        And see 'Scalarizr terminated' in M2 log
+        And see "Scalarizr terminated" in M2 log
         And not ERROR in M2 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination

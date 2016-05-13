@@ -374,13 +374,13 @@ def reboot_scalarizr(step, serv_as):
     time.sleep(15)
 
 
-@step("see 'Scalarizr terminated' in ([\w]+) log")
-def check_log(step, serv_as):
+@step('see "(.+)" in ([\w]+) log')
+def check_log(step, message, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Check scalarizr log for  termination')
-    wait_until(world.check_text_in_scalarizr_log, timeout=300, args=(node, "Scalarizr terminated"),
-               error_text='Not see "Scalarizr terminated" in debug log')
+    wait_until(world.check_text_in_scalarizr_log, timeout=300, args=(node, message),
+               error_text='Not see %s in debug log' % message)
 
 
 @step('I ([\w\d]+) service ([\w\d]+)(?: and ([\w]+) has been changed)? on ([\w\d]+)(?: by ([\w]+))?')
