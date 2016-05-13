@@ -374,7 +374,7 @@ def reboot_scalarizr(step, serv_as):
     time.sleep(15)
 
 
-@step("see '(.+)' in ([\w]+) log")
+@step('see "(.+)" in ([\w]+) log')
 def check_log(step, message, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
