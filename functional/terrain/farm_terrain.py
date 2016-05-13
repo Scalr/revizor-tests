@@ -223,11 +223,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 # Update role options
                 role_options.update(default_chef_solo_opts)
             elif 'chef' in opt:
-                option = DEFAULT_ROLE_OPTIONS.get(opt.split('-')[0], {})
+                option = DEFAULT_ROLE_OPTIONS.get(opt, {})
                 if option:
                     option['chef.server_id'] = ChefServer.get('https://api.opscode.com/organizations/webta').id
-                if 'fail' in opt:
-                    option['chef.runlist'] = '["role[always_fail]"]'
                 role_options.update(option)
             else:
                 LOG.info('Insert configs for %s' % opt)
