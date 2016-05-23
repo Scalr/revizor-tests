@@ -12,7 +12,7 @@ Feature: Check chef attributes set
         And process 'chef-client' has options '--daemonize' in M1
         And server M1 exists on chef nodes list
         And chef node_name in M1 set by global hostname
-        And chef log in M1 contains 'revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK'
+        And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
     @ec2 @gce @cloudstack @openstack @rackspaceng @openstack
     Scenario: Verify Scalr delete chef-fixtures
