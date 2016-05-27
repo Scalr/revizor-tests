@@ -4,16 +4,17 @@
 Created on 01.22.2014
 @author: Eugeny Kurkovich
 """
-
-import logging
-import yaml
+import json
 import time
+import logging
+
+import yaml
+
 from xml.etree import ElementTree as ET
 from collections import defaultdict
 from lettuce import world, step
 
 LOG = logging.getLogger(__name__)
-########################################
 
 
 class SzrAdmResultsParser(object):
@@ -129,7 +130,6 @@ class SzrAdmResultsParser(object):
 
     @staticmethod
     def parser(data):
-
         if data.startswith('+----'):
             return SzrAdmResultsParser.tables_parser(data)
         elif data.startswith('<?xml'):
@@ -173,6 +173,9 @@ def run_command(step, command, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
+    if command == 'szradm list-farm-role-params':
+        farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
+        command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
     result = node.run(command)
     if result[2]:
         raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %
