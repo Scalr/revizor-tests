@@ -158,7 +158,10 @@ def having_clean_image(step):
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        image = world.cloud.find_image(use_hvm=USE_VPC)
+        if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+            image = world.cloud.find_image(use_hvm=True)
+        else:
+            image = world.cloud.find_image(use_hvm=USE_VPC)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
 
