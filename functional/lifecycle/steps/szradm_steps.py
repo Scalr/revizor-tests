@@ -173,7 +173,7 @@ def run_command(step, command, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
-    if command == 'szradm list-farm-role-params':
+    if command == 'szradm q list-farm-role-params':
         farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
         command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
     result = node.run(command)
