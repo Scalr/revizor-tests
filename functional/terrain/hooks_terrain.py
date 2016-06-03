@@ -16,6 +16,8 @@ from revizor2.fixtures import manifests
 
 LOG = logging.getLogger(__name__)
 
+OUTLINE_ITERATOR = {}
+
 
 def get_all_logs(scenario, outline=''):
     if CONF.feature.driver.current_cloud == Platform.AZURE:
@@ -137,9 +139,12 @@ def exclude_steps_by_options(feature):
 
 @after.outline
 def get_logs_after_outline(*args, **kwargs):
-    outline = args[2].values()[0]
     scenario = args[0]
-    get_all_logs(scenario, outline=outline)
+    if scenario.name in OUTLINE_ITERATOR:
+        OUTLINE_ITERATOR[scenario.name] += 1
+    else:
+        OUTLINE_ITERATOR[scenario.name] = 1
+    get_all_logs(scenario, outline=str(OUTLINE_ITERATOR[scenario.name]))
 
 
 @after.each_scenario
