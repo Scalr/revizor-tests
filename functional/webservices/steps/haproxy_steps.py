@@ -16,6 +16,7 @@ LOG = logging.getLogger(__name__)
 GLOBAL_TEMPLATE = 'global \n    log 127.0.0.1   local0 \n    log 127.0.0.1   local1 notice \n    maxconn     256000\n'
 PROXY_TEMPLATE = '    stats enable \n    option forwardfor \n    stats uri'
 
+
 def parse_haproxy_config(node):
     config = [l for l in node.run('cat /etc/haproxy/haproxy.cfg')[0].splitlines() if l.strip()]
     parameters = {'listens': {},
@@ -41,6 +42,7 @@ def parse_haproxy_config(node):
         if tmp_section:
             parameters[tmp_section.split()[0]+'s'][int(tmp_section.split()[1].split(':')[-1])] = tmp_opts
     return parameters
+
 
 def check_config_for_option(node, section, port):
     config = parse_haproxy_config(node)
@@ -275,8 +277,8 @@ def check_global_in_config(step, serv_as):
     c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
     section_start = c.find('##### main template start #####') + len('##### main template start #####')
     section_end = c.find('##### main template end #####')
-    config = [i.strip() for i in c[section_start:section_end].replace('   ',' ').split('\n')]
-    global_template = [i.strip() for i in GLOBAL_TEMPLATE.replace('   ',' ').split('\n')]
+    config = [i.strip() for i in c[section_start:section_end].replace('   ', ' ').split('\n')]
+    global_template = [i.strip() for i in GLOBAL_TEMPLATE.replace('   ', ' ').split('\n')]
     options_in_config = [i for i in global_template if i in config]
     if options_in_config == global_template:
         LOG.info('Haproxy server "%s" contains global config: %s' % (serv_as, global_template))

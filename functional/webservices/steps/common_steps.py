@@ -98,11 +98,11 @@ def start_basehttpserver(step, port, serv_as):
     LOG.debug('Put base_server.py script')
     node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
     LOG.debug('Run BaseHttpServer script')
-    if node.os[0] in ['ubuntu', 'debian']:
+    if node.os[0].lower() in ['ubuntu', 'debian']:
         node.run('apt-get install screen -y')
-    elif node.os[0] in ['centos', 'redhat', 'oel']:
+    elif node.os[0].lower() in ['centos', 'redhat', 'oel']:
         node.run('yum install screen -y')
-    node.run('iptables -A INPUT -p tcp --dport %s -j ACCEPT' % port)
+    node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
     node.run('screen -d -m python /tmp/base_server.py %s' % port)
 
 

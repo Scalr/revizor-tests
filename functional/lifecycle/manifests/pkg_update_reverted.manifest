@@ -4,6 +4,6 @@
         "gce": [],
         "idcf": [],
         "rackspacengus": [],
-        "ecs": ["openstack"]
+        "ecs": []
     }
 }

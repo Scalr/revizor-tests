@@ -10,13 +10,15 @@ import re
 
 from lettuce import world, step
 
+from libcloud.compute.types import NodeState
+
 from revizor2 import consts
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, USE_SYSTEMCTL
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 
@@ -103,6 +105,12 @@ class VerifyProcessWork(object):
         LOG.debug('Scalarizr verifying results: %s' % results)
         return all(results)
 
+    @staticmethod
+    def _verify_memcached(server, port):
+        LOG.info('Verify memcached (%s) work in server %s' % (port, server.id))
+        results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
+                   VerifyProcessWork._verify_open_port(server, port)]
+        return all(results)
 
 @step('I change repo in ([\w\d]+)$')
 def change_repo(step, serv_as):
@@ -350,26 +358,29 @@ def assert_scalarizr_version(step, branch, serv_as):
         'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
         (update_status['state'], update_status['prev_state'])
     assert last_version == installed_version, \
-        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version,
-                                                                                            last_version)
+        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version, last_version)
 
 
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
+    if USE_SYSTEMCTL:
+        cmd = "systemctl restart scalarizr"
+    else:
+        cmd = "/etc/init.d/scalarizr restart"
     node = world.cloud.get_node(server)
-    node.run('/etc/init.d/scalarizr restart')
+    node.run(cmd)
     LOG.info('Scalarizr restart complete')
     time.sleep(15)
 
 
-@step("see 'Scalarizr terminated' in ([\w]+) log")
-def check_log(step, serv_as):
+@step('see "(.+)" in ([\w]+) log')
+def check_log(step, message, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Check scalarizr log for  termination')
-    wait_until(world.check_text_in_scalarizr_log, timeout=300, args=(node, "Scalarizr terminated"),
-               error_text='Not see "Scalarizr terminated" in debug log')
+    wait_until(world.check_text_in_scalarizr_log, timeout=300, args=(node, message),
+               error_text='Not see %s in debug log' % message)
 
 
 @step('I ([\w\d]+) service ([\w\d]+)(?: and ([\w]+) has been changed)? on ([\w\d]+)(?: by ([\w]+))?')
@@ -575,15 +586,16 @@ def run_sysprep(uuid, console):
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
-    end_time = time.time() + 300
+    end_time = time.time() + 900
     while time.time() <= end_time:
         node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
         LOG.debug('Obtained node after sysprep running: %s' % node)
         LOG.debug('Obtained node status after sysprep running: %s' % node.state)
-        if node.state == 5:
+        if node.state == NodeState.STOPPED:
             break
         time.sleep(10)
-    else: raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed')
+    else:
+        raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed, it state: %s' % node.state)
 
 
 def get_user_name():
@@ -642,10 +654,12 @@ def get_repo_type(custom_branch, custom_version=None):
 @step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
 def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
     node = getattr(world, 'cloud_server', None)
+    resave_node = True if node else False
     rv_branch = CONF.feature.branch
     rv_to_branch = CONF.feature.to_branch
     server = getattr(world, (serv_as or '').strip(), None)
-    if server: server.reload()
+    if server:
+        server.reload()
     # Get scalarizr repo type
     if use_rv_to_branch:
         branch = rv_to_branch
@@ -665,17 +679,20 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             console_kwargs = dict(server=server)
             if CONF.feature.driver.is_platform_ec2:
                 console_kwargs.update({'password': 'scalr'})
-        console_kwargs.update({'timeout': 900})
+            LOG.debug('Cloud server not found get node from server')
+            node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
+            LOG.debug('Node get successfully: %s' % node)  # Wait ssh
+        console_kwargs.update({'timeout': 1200})
         # Install scalarizr
         url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
-        version = re.findall(
-            '(?:Scalarizr\s)([a-z0-9/./-]+)',
-            world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out)
-        assert version, 'installed scalarizr version not valid %s' % version
+        out = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
+        LOG.debug('Installed scalarizr version: %s' % out)
+        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', out)
+        assert version, 'installed scalarizr version not valid. Regexp found: "%s", out from server: "%s"' % (version, out)
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
@@ -686,7 +703,13 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
             LOG.debug('Node get successfully: %s' % node)# Wait ssh
         user = get_user_name()
-        wait_until(node.get_ssh, kwargs=dict(user=user), timeout=300, logger=LOG)
+        start_time = time.time()
+        while (time.time() - start_time) < 300:
+            try:
+                node.get_ssh(user=user)
+            except AssertionError:
+                LOG.warning('Can\'t get ssh for server %s and user: %s' % (node.id, user))
+                time.sleep(10)
         url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
         cmd = '{curl_install} && ' \
             'curl -L {url}/install_scalarizr.sh | bash && ' \
@@ -703,5 +726,6 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', version[0])
-    setattr(world, 'cloud_server', node)
+    if resave_node:
+        setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)

@@ -8,6 +8,7 @@ from datetime import datetime
 import requests
 from lettuce import world
 from libcloud.compute.types import NodeState
+from revizor2.defaults import USE_SYSTEMCTL
 
 try:
     import winrm
@@ -275,6 +276,9 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if status == ServerStatus.INIT and lookup_server.status == ServerStatus.RUNNING:
                 LOG.info('We wait Initializing but server already Running')
                 status = ServerStatus.RUNNING
+            if status == ServerStatus.RESUMING and lookup_server.status == ServerStatus.RUNNING:
+                LOG.info('We wait Resuming but server already Running')
+                status = ServerStatus.RUNNING
 
             LOG.debug('Compare server status')
             if lookup_server.status == status:
@@ -431,11 +435,14 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    return '%s-%s-%s' % (
+    if CONF.feature.dist.startswith('win'):
+        return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
+    else:
+        return '%s-%s-%s' % (
             world.farm.name.replace(' ', '-'),
             server.role.name,
             server.index
-    )
+        )
 
 
 @world.absorb
@@ -499,7 +506,7 @@ def wait_rabbitmq_cp_url(*args, **kwargs):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
-    out = node.run("cat /var/log/scalarizr_debug.log | grep '%s'" % text)[0]
+    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text)[0]
     if text in out:
         return True
     return False
@@ -568,8 +575,13 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 raise Exception(error_msg)
         else:
             #Change process status by  calling command service
-            return node.run("service %(process)s %(status)s && sleep 5" %
-                            {'process': service['node'], 'status': status})
+            if USE_SYSTEMCTL:
+                cmd = "systemctl {status} {process} && sleep 3"
+            else:
+                cmd = "service {process} {status} && sleep 3"
+            return node.run(cmd.format(
+                process=service['node'],
+                status=status))
 
     #Get process pid
     def get_pid():

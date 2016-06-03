@@ -19,7 +19,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
     setattr(world, serv_as, server)
-    LOG.info('Server succesfully %s' % state)
+    LOG.info('Server %s (%s) succesfully in %s state' % (server.id, serv_as, state))
 
 
 @step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
@@ -228,7 +228,7 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US)
+@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.driver.current_cloud in [Platform.IDCF,
@@ -326,3 +326,11 @@ def verify_attached_disk_types(step):
             raise AssertionError(
                 'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
                 volume_ids['/media/diskmount'][0].extra['type'])
+
+
+@step(r"instance vcpus info not empty for ([\w\d]+)")
+def checking_info_instance_vcpus(step, serv_as):
+    server = getattr(world, serv_as)
+    vcpus = int(server.details['info.instance_vcpus'])
+    LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
+    assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id

@@ -48,9 +48,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
+    if CONF.feature.dist == 'scientific6':
+        DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.startswith('win'):
-        role_options["base.hostname_format"] = "{SCALR_FARM_NAME}"
+        role_options["base.hostname_format"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
 
     if saved_role:
         role_id = getattr(world, '%s_id' % saved_role.strip())

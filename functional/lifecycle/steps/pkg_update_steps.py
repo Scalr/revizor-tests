@@ -38,6 +38,7 @@ GH = github.GitHub(access_token=CONF.main.github_access_token)
 @step(r"I have manually installed scalarizr(?:\s('[\w\W\d]+'))* on ([\w\d]+)")
 def havinng_installed_scalarizr(step, version=None, serv_as=None):
     version = (version or '').replace("'", '')
+    setattr(world, serv_as, None)
     if version:
         setattr(world, 'default_agent', version.strip())
     step.behave_as("""
@@ -114,7 +115,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
                'sha': blob.sha}])
     # Create a new commit object using the new tree and point its parent to the current master
     commit = git.commits.post(
-        message='Patch app.py, corrupt windows start',
+        message='Patch app.py, corrupt windows start', #TODOL Change this commit message for linux package too
         parents=[base_sha],
         tree=tree.sha)
     base_sha = commit.sha
@@ -134,7 +135,7 @@ def waiting_new_package(step):
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
-            status = res.statuses[0]
+            status = filter(lambda x: x['context'] == 'Drone', res.statuses)[0]
             LOG.debug('Patch commit build status: %s' % status)
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
@@ -154,10 +155,13 @@ def having_clean_image(step):
         search_cond = dict(
             dist=CONF.feature.dist,
             platform=CONF.feature.platform)
-        image_id = table.filter(search_cond).first().keys()[0].encode('ascii','ignore')
+        image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        image = world.cloud.find_image(use_hvm=USE_VPC)
+        if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+            image = world.cloud.find_image(use_hvm=True)
+        else:
+            image = world.cloud.find_image(use_hvm=USE_VPC)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
 
@@ -324,7 +328,7 @@ def checking_upd_client_version(step, action, serv_as):
 
 
 @step(r'I reboot server')
-def rebooting_server(step):
+def rebooting_server(step): #FIXME: Find usages and rename this step
     if not world.cloud_server.reboot():
         raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
     world.cloud_server = None

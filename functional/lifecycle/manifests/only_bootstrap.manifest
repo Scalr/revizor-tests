@@ -6,5 +6,13 @@
         "rackspacengus": [],
         "ecs": [],
         "azure": []
+    },
+    "RV_BEHAVIOR": {
+        "base": [],
+        "app": [],
+        "www": [],
+        "haproxy": [],
+        "tomcat": [],
+        "memcached": []
     }
 }

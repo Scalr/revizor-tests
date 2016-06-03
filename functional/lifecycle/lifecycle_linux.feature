@@ -7,10 +7,11 @@ Feature: Linux server lifecycle
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
-        And I add role to this farm with deploy,storages,noiptables
+        And I add role to this farm with storages,noiptables
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
+        And instance vcpus info not empty for M1
         And scalarizr version is last in M1
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
@@ -68,7 +69,7 @@ Feature: Linux server lifecycle
     Scenario: Restart scalarizr
         Given I have running server M1
         When I reboot scalarizr in M1
-        And see 'Scalarizr terminated' in M1 log
+        And see "Scalarizr terminated" in M1 log
         And not ERROR in M1 scalarizr log
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @event

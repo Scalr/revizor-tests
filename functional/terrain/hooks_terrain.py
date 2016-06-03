@@ -6,6 +6,7 @@ from datetime import datetime
 
 from lettuce import world, after, before
 
+
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
@@ -14,6 +15,62 @@ from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
 
 LOG = logging.getLogger(__name__)
+
+OUTLINE_ITERATOR = {}
+
+
+def get_all_logs(scenario, outline=''):
+    if CONF.feature.driver.current_cloud == Platform.AZURE:
+        return
+    # Get Farm
+    LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
+    farm = getattr(world, 'farm', None)
+    if not farm:
+        LOG.error("Farm does not exists. Can't get logs. Exit from step.")
+        return
+    farm.servers.reload()
+    # Get servers
+    servers = farm.servers
+    # Get test
+    test_name = scenario.described_at.file.split('/')[-1].split('.')[0]
+    LOG.debug('Test name: %s' % test_name)
+    # Get path
+    start_time = world.test_start_time
+    path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
+                                         test_name,
+                                         start_time.strftime('%m%d-%H:%M'),
+                                         scenario.name.replace('/', '-'),
+                                         outline))
+    LOG.debug('Path to save log: %s' % path)
+    if not os.path.exists(path):
+        os.makedirs(path, 0755)
+    # Get logs && configs
+    for server in servers:
+        logs = [
+            # debug log
+            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_debug.log'))),
+             'log_type': 'debug',
+             'compress': True},
+            # update log
+            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_update.log'))),
+             'log_type': 'update',
+             'compress': True}]
+        if server.status == ServerStatus.RUNNING or \
+            server.status == ServerStatus.INIT or \
+            server.status == ServerStatus.PENDING:
+            try:
+                #Get log from remote host
+                for log in logs:
+                    server.get_log_by_api(**log)
+                    LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
+                    #Get configs and role behavior from remote host only for linux family
+                    if not Dist.is_windows_family(server.role.dist):
+                        file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
+                        server.get_configs(file, compress=True)
+                        LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
+            except BaseException, e:
+                LOG.error('Error in downloading configs: %s' % e)
+                continue
 
 
 @before.all
@@ -80,59 +137,20 @@ def exclude_steps_by_options(feature):
             feature.scenarios.remove(scenario)
 
 
+@after.outline
+def get_logs_after_outline(*args, **kwargs):
+    scenario = args[0]
+    if scenario.name in OUTLINE_ITERATOR:
+        OUTLINE_ITERATOR[scenario.name] += 1
+    else:
+        OUTLINE_ITERATOR[scenario.name] = 1
+    get_all_logs(scenario, outline=str(OUTLINE_ITERATOR[scenario.name]))
+
+
 @after.each_scenario
-def get_all_logs(scenario):
+def get_logs_after_scenario(scenario):
     """Give scalarizr_debug.log logs from servers"""
-    if CONF.feature.driver.current_cloud == Platform.AZURE:
-        return
-    # Get Farm
-    LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
-    farm = getattr(world, 'farm', None)
-    if not farm:
-        LOG.error("Farm does not exists. Can't get logs. Exit from step.")
-        return
-    farm.servers.reload()
-    # Get servers
-    servers = farm.servers
-    # Get test
-    test_name = scenario.described_at.file.split('/')[-1].split('.')[0]
-    LOG.debug('Test name: %s' % test_name)
-    # Get path
-    start_time = world.test_start_time
-    path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
-                                         test_name,
-                                         start_time.strftime('%m%d-%H:%M'),
-                                         scenario.name.replace('/', '-')))
-    LOG.debug('Path to save log: %s' % path)
-    if not os.path.exists(path):
-        os.makedirs(path, 0755)
-    # Get logs && configs
-    for server in servers:
-        logs = [
-            # debug log
-            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_debug.log'))),
-             'log_type': 'debug',
-             'compress': True},
-            # update log
-            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_update.log'))),
-             'log_type': 'update',
-             'compress': True}]
-        if server.status == ServerStatus.RUNNING or \
-            server.status == ServerStatus.INIT or \
-            server.status == ServerStatus.PENDING:
-            try:
-                #Get log from remote host
-                for log in logs:
-                    server.get_log_by_api(**log)
-                    LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
-                    #Get configs and role behavior from remote host only for linux family
-                    if not Dist.is_windows_family(server.role.dist):
-                        file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
-                        server.get_configs(file, compress=True)
-                        LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
-            except BaseException, e:
-                LOG.error('Error in downloading configs: %s' % e)
-                continue
+    get_all_logs(scenario)
 
 
 @after.all

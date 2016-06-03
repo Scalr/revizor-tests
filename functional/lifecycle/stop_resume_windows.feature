@@ -25,6 +25,7 @@ Feature: Windows server resume strategy
         Then I wait and see new running server M2
         When I resume server M1
         Then I wait server M1 in resuming state
+        And I wait server M1 in running state
         Then Scalr receives RebootFinish from M1
         And ResumeComplete event was fired by M1
         Then I wait server M1 in running state

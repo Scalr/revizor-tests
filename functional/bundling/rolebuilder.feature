@@ -18,4 +18,3 @@ Feature: Build all behaviors via rolebuilder and check server running
       | redis,haproxy                 |
       | postgresql,memcached,rabbitmq |
       | mongodb                       |
-
