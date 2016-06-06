@@ -4,7 +4,7 @@ Feature: SzrAdm check backward compatibility
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping two servers with the app role
         Given I have a an empty running farm
-        When I add app role to this farm with branch_latest
+        When I add app role to this farm with branch_latest, storages
         Then I expect server bootstrapping as A1
         And scalarizr version from latest is last in A1
         When I change branch to system for app role
@@ -86,12 +86,13 @@ Feature: SzrAdm check backward compatibility
         Then I compare all obtained results of A1,A2
         And the key "cert" has 0 record on A1
 
+  @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm show volumes
         When I run "szradm q list-farm-role-params" on A1
         And I run "szradm q list-farm-role-params" on A2
         Then I compare obtained results of A1,A2
-        And the key "volumes" has 5 record on A1
-        And the key "volumes" has 5 record on A2
+        And the key "scalr_storage_id" has 3 record on A1
+        And the key "scalr_storage_id" has 3 record on A2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-messages
