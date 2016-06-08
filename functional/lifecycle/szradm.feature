@@ -91,8 +91,8 @@ Feature: SzrAdm check backward compatibility
         When I run "szradm q list-farm-role-params" on A1
         And I run "szradm q list-farm-role-params" on A2
         Then I compare obtained results of A1,A2
-        And the key "scalr_storage_id" has 3 record on A1
-        And the key "scalr_storage_id" has 3 record on A2
+        And obtained result has all configured storages on A1
+        And obtained result has all configured storages on A2
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify szradm list-messages

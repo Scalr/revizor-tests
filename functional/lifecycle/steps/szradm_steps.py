@@ -14,6 +14,9 @@ from xml.etree import ElementTree as ET
 from collections import defaultdict
 from lettuce import world, step
 
+from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES as storages
+from revizor2.conf import CONF
+
 LOG = logging.getLogger(__name__)
 
 
@@ -349,3 +352,12 @@ def set_environment_variable(step, pattern, name, command, serv_as):
     except (ValueError, KeyError) as e:
         raise AssertionError("Can't get %s id from command result on a remote host: %s\nError on:%s" %
                              (pattern, server.id, e))
+
+
+@step(r'obtained result has all configured storages on ([\w\d]+)')
+def check_volumes(step, serv_as):
+    server = getattr(world, serv_as)
+    node_volumes = getattr(world, '%s_result' % serv_as)['response']['volumes']['item']
+    LOG.debug('Server %s configured volumes: %s' % (server.id, node_volumes))
+    configured_volumes_count = len(storages.get(CONF.feature.driver.cloud_family))
+    assert len(node_volumes) == configured_volumes_count, 'Server volumes mismatch'
