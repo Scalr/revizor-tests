@@ -20,7 +20,7 @@ LOG = logging.getLogger(__name__)
 OUTLINE_ITERATOR = {}
 
 
-def get_all_logs(scenario, outline='', outline_failed=None):
+def get_all_logs_and_info(scenario, outline='', outline_failed=None):
     if CONF.feature.driver.current_cloud == Platform.AZURE:
         return
     # Get Farm
@@ -72,25 +72,24 @@ def get_all_logs(scenario, outline='', outline_failed=None):
             except BaseException, e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
-
+    # Save farm, domains and messages info if scenario has failed
     if scenario.failed or outline_failed:
         messages = []
         domains = IMPL.domain.list(farm_id=farm.id)
+        LOG.warning("Get farm settings after test failure")
         farm_settings = IMPL.farm.get_settings(farm_id=farm.id)
         if servers:
+            LOG.warning("Get scalarizr messages for every server after test failure")
             for server in servers:
                 node = world.cloud.get_node(server)
                 messages.append({server.id: world.get_szr_messages(node)})
-
         # Save farm settings
         with open(os.path.join(path, 'farm_settings.json'), "w+") as f:
             f.write(json.dumps(farm_settings, indent=2))
-
         # Save domains list
         if domains:
             with open(os.path.join(path, 'domains.json'), "w+") as f:
                 f.write(json.dumps(domains, indent=2))
-
         # Save messages
         with open(os.path.join(path, 'messages.json'), "w+") as f:
             f.write(json.dumps(messages, indent=2))
@@ -161,20 +160,21 @@ def exclude_steps_by_options(feature):
 
 
 @after.outline
-def get_logs_after_outline(*args, **kwargs):
+def get_logs_and_info_after_outline(*args, **kwargs):
+    """Collect logs and additional info if outline failed"""
     scenario = args[0]
     outline_error = args[3]
     if scenario.name in OUTLINE_ITERATOR:
         OUTLINE_ITERATOR[scenario.name] += 1
     else:
         OUTLINE_ITERATOR[scenario.name] = 1
-    get_all_logs(scenario, outline=str(OUTLINE_ITERATOR[scenario.name]), outline_failed=outline_error)
+    get_all_logs_and_info(scenario, outline=str(OUTLINE_ITERATOR[scenario.name]), outline_failed=outline_error)
 
 
 @after.each_scenario
-def get_logs_after_scenario(scenario):
+def get_logs_and_info_after_scenario(scenario):
     """Give scalarizr_debug.log logs from servers"""
-    get_all_logs(scenario)
+    get_all_logs_and_info(scenario)
 
 
 @after.all
