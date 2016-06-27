@@ -259,7 +259,7 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if CONF.feature.driver.is_platform_ec2 and Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.driver.is_platform_ec2 and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
@@ -278,6 +278,9 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
             break
         except Exception as e:
             LOG.error('Scalarizr update status: %s ' % e.message)
+            if 'errorMessage' in e.message and 'AlreadyInProgressError' in e.message:
+                LOG.warning('Scalarizr update process in progress')
+                break
             time.sleep(15)
     else:
         raise Exception("Scalarizr update failed 3 times with error: %s" % e)
