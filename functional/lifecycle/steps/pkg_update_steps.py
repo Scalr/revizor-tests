@@ -275,12 +275,12 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
         try:
             res = IMPL.server.update_scalarizr(server_id=server.id)
             LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
+            break
         except Exception as e:
-            LOG.error('Scalarizr update status : %s ' % e.message)
+            LOG.error('Scalarizr update status: %s ' % e.message)
             time.sleep(15)
-    if not res['successMessage']:
+    else:
         raise Exception("Scalarizr update failed 3 times with error: %s" % e)
-
 
 
 @step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
