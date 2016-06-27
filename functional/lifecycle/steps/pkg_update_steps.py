@@ -282,6 +282,7 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
         raise Exception("Scalarizr update failed 3 times with error: %s" % e)
 
 
+
 @step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
 def asserting_version(step, version, serv_as):
     server = getattr(world, serv_as)
