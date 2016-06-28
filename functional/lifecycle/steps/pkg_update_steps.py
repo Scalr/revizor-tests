@@ -135,7 +135,7 @@ def waiting_new_package(step):
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
-            status = filter(lambda x: x['context'] == 'Drone', res.statuses)[0]
+            status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
             LOG.debug('Patch commit build status: %s' % status)
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
