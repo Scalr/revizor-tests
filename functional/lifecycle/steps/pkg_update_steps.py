@@ -135,7 +135,7 @@ def waiting_new_package(step):
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
-            status = filter(lambda x: x['context'] == 'Drone', res.statuses)[0]
+            status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
             LOG.debug('Patch commit build status: %s' % status)
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
@@ -259,7 +259,7 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if CONF.feature.driver.is_platform_ec2 and Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.driver.is_platform_ec2 and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
@@ -275,10 +275,14 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
         try:
             res = IMPL.server.update_scalarizr(server_id=server.id)
             LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
+            break
         except Exception as e:
-            LOG.error('Scalarizr update status : %s ' % e.message)
+            LOG.error('Scalarizr update status: %s ' % e.message)
+            if 'errorMessage' in e.message and 'AlreadyInProgressError' in e.message:
+                LOG.warning('Scalarizr update process in progress')
+                break
             time.sleep(15)
-    if not res['successMessage']:
+    else:
         raise Exception("Scalarizr update failed 3 times with error: %s" % e)
 
 

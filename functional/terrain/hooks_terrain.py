@@ -56,9 +56,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
             {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_update.log'))),
              'log_type': 'update',
              'compress': True}]
-        if server.status == ServerStatus.RUNNING or \
-            server.status == ServerStatus.INIT or \
-            server.status == ServerStatus.PENDING:
+        if server.status in [ServerStatus.PENDING, ServerStatus.INIT, ServerStatus.RUNNING]:
             try:
                 #Get log from remote host
                 for log in logs:
