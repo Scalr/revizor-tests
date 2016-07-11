@@ -72,7 +72,6 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 continue
     # Save farm, domains and messages info if scenario has failed
     if scenario.failed or outline_failed:
-        messages = []
         domains = IMPL.domain.list(farm_id=farm.id)
         LOG.warning("Get farm settings after test failure")
         farm_settings = IMPL.farm.get_settings(farm_id=farm.id)
@@ -88,7 +87,9 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                         'status': msg.status,
                         'type': msg.type,
                         'id': msg.id}})
-                messages.append({server.id: server_messages})
+                # Save server messages
+                with open(os.path.join(path, '%s_messages.json' % server.id), "w+") as f:
+                    f.write(json.dumps(server_messages, indent=2))
         # Save farm settings
         with open(os.path.join(path, 'farm_settings.json'), "w+") as f:
             f.write(json.dumps(farm_settings, indent=2))
@@ -96,9 +97,6 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
         if domains:
             with open(os.path.join(path, 'domains.json'), "w+") as f:
                 f.write(json.dumps(domains, indent=2))
-        # Save messages
-        with open(os.path.join(path, 'messages.json'), "w+") as f:
-            f.write(json.dumps(messages, indent=2))
 
 
 @before.all
