@@ -79,8 +79,16 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
         if servers:
             LOG.warning("Get scalarizr messages for every server after test failure")
             for server in servers:
-                node = world.cloud.get_node(server)
-                messages.append({server.id: world.get_szr_messages(node)})
+                server.messages.reload()
+                server_messages = []
+                for msg in server.messages:
+                    server_messages.append({msg.name: {'message': msg.message,
+                        'date': str(msg.date),
+                        'delivered': msg.delivered,
+                        'status': msg.status,
+                        'type': msg.type,
+                        'id': msg.id}})
+                messages.append({server.id: server_messages})
         # Save farm settings
         with open(os.path.join(path, 'farm_settings.json'), "w+") as f:
             f.write(json.dumps(farm_settings, indent=2))
