@@ -54,4 +54,4 @@ Feature: Check chef attributes set
         And I see pending server M1
         And I wait server M1 in failed state
         And chef log in M1 contains "ERROR: undefined method `fatal!'"
-        And see "001-chef.bootstrap/bin/chef.sh']] exited with code 1" in M1 log
+        And chef bootstrap failed in M1

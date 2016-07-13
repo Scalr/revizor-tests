@@ -22,8 +22,7 @@ def assert_check_script(step, message, state, serv_as):
 @step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
     LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\nuser: %s\nexitcode: %s\ncontain: %s' %
-              (name, event, user, exitcode, contain)
-    )
+              (name, event, user, exitcode, contain))
     contain = contain.split(';') if contain else []
     time.sleep(5)
     server = getattr(world, serv_as)
@@ -44,12 +43,20 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
 
             LOG.debug('We found event \'%s\' run from user %s' % (log.event, log.run_as))
             if log.exitcode == int(exitcode):
-                LOG.debug('Log message output: %s' % log.message)
+                message = log.message
+                truncated = False
+                LOG.debug('Log message output: %s' % message)
+                if 'Log file truncated. See the full log in' in message:
+                    full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
+                    node = world.cloud.get_node(server)
+                    message = node.run('cat %s' % full_log_path)
+                    truncated = True
                 for cond in contain:
-                    cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
-                    if not cond.strip() in log.message:
+                    if not truncated:
+                        cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                    if not cond.strip() in message:
                         raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: "%s"'
-                                             % (event, user, log.message, cond))
+                                             % (event, user, message, cond))
                 LOG.debug('This event exitcode: %s' % log.exitcode)
                 return True
             else:
@@ -87,6 +94,7 @@ def assert_check_message_in_log_table_view(step, script_output, serv_as):
             LOG.debug('Run external step: %s' % external_step)
             step.when(external_step)
 
+
 @step("([\w\d]+) chef runlist has only recipes \[([\w\d,.]+)\]")
 def verify_recipes_in_runlist(step, serv_as, recipes):
     recipes = recipes.split(',')
@@ -101,3 +109,13 @@ def verify_recipes_in_runlist(step, serv_as, recipes):
                              (len(run_list), len(recipes), run_list))
     if not all(recipe in ','.join(run_list) for recipe in recipes):
         raise AssertionError('Recipe "%s" not exist in run list!' % run_list)
+
+
+@step("chef bootstrap failed in ([\w\d]+)")
+def chef_bootstrap_failed(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    out = node.run('tail -n 50 /var/log/scalarizr_debug.log')
+    if "001-chef.bootstrap/bin/chef.sh']] exited with code 1" not in out or \
+        "Command /usr/bin/chef-client exited with code 1" not in out:
+        raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
