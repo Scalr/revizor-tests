@@ -116,6 +116,6 @@ def chef_bootstrap_failed(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     out = node.run('tail -n 50 /var/log/scalarizr_debug.log')[0]
-    if "001-chef.bootstrap/bin/chef.sh']] exited with code 1" not in out or \
+    if "001-chef.bootstrap/bin/chef.sh']] exited with code 1" not in out and \
         "Command /usr/bin/chef-client exited with code 1" not in out:
         raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
