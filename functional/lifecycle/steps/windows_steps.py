@@ -53,11 +53,9 @@ def check_terminated_in_log(step, serv_as):
 @step(r"not ERROR in ([\w\d]+) scalarizr windows log")
 def check_errors_in_log(step, serv_as):
     server = getattr(world, serv_as)
-    if CONF.feature.ci_repo == 'buildbot':
-        out = world.run_cmd_command(server, "findstr /c:\"ERROR\" \"C:\\Program Files\\Scalarizr\\var\\log\\scalarizr_debug.log\"").std_out
-    else:
-        out = world.run_cmd_command(server,
-                              "findstr /c:\"ERROR\" \"C:\\opt\\scalarizr\\var\\log\\scalarizr_debug.log\"").std_out
+    out = world.run_cmd_command(server,
+                                "findstr /c:\"ERROR\" \"C:\\opt\\scalarizr\\var\\log\\scalarizr_debug.log\"",
+                                raise_exc=False).std_out
     errors = []
     if 'ERROR' in out:
         log = out.splitlines()

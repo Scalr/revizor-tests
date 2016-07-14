@@ -98,12 +98,12 @@ def run_cmd_command_until(command, server=None, public_ip=None, password=None, t
 
 
 @world.absorb
-def run_cmd_command(server, command):
+def run_cmd_command(server, command, raise_exc=True):
     console = get_windows_session(server)
     LOG.info('Run command: %s in server %s' % (command, server.id))
     out = console.run_cmd(command)
     LOG.debug('Result of command: %s\n%s' % (out.std_out, out.std_err))
-    if not out.status_code == 0:
+    if not out.status_code == 0 and raise_exc:
         raise AssertionError('Command: "%s" exit with status code: %s and stdout: %s\n stderr:%s' % (command, out.status_code, out.std_out, out.std_err))
     return out
 
