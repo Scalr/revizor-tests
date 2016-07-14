@@ -55,7 +55,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                     if not truncated:
                         cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
                     if not cond.strip() in message:
-                        raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: "%s"'
+                        raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: \'%s\''
                                              % (event, user, message, cond))
                 LOG.debug('This event exitcode: %s' % log.exitcode)
                 return True
