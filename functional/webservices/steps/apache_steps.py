@@ -30,6 +30,9 @@ def create_vhost_to_role(step, ssl, vhost_as, key_name, role_type, domain_as):
                                                                        else ''))
     vhost = role.add_vhost(domain.name, document_root='/var/www/%s' % vhost_as, ssl=ssl, cert=key_name)
     setattr(world, vhost_as, vhost)
+    if not hasattr(world, 'vhosts_list'):
+        setattr(world, 'vhosts_list', [])
+    world.vhosts_list.append(vhost)
 
 
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
