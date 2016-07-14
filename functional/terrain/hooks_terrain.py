@@ -172,7 +172,8 @@ def get_logs_and_info_after_outline(*args, **kwargs):
         OUTLINE_ITERATOR[scenario.name] += 1
     else:
         OUTLINE_ITERATOR[scenario.name] = 1
-    get_all_logs_and_info(scenario, outline=str(OUTLINE_ITERATOR[scenario.name]), outline_failed=outline_error)
+    if outline_error:
+        get_all_logs_and_info(scenario, outline=str(OUTLINE_ITERATOR[scenario.name]), outline_failed=outline_error)
 
 
 @after.each_scenario
