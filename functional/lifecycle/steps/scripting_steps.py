@@ -49,7 +49,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                 if 'Log file truncated. See the full log in' in message:
                     full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
                     node = world.cloud.get_node(server)
-                    message = node.run('cat %s' % full_log_path)
+                    message = node.run('cat %s' % full_log_path)[0]
                     truncated = True
                 for cond in contain:
                     if not truncated:

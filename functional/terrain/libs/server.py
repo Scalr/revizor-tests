@@ -645,6 +645,7 @@ def is_log_rotate(server, process, rights, group=None):
                              (process, logrotate_conf[1]))
     return True
 
+
 @world.absorb
 def value_for_os_family(debian, centos, server=None, node=None):
     if server:
@@ -653,12 +654,14 @@ def value_for_os_family(debian, centos, server=None, node=None):
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get node os name
-    node_os = getattr(node, 'os', [''])[0]
+    # node_os = getattr(node, 'os', [''])[0]
+    node_os = CONF.feature.dist
     # Get os family result
-    os_family_res =  dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os))
+    os_family_res = dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os))
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node_os)
     return os_family_res
+
 
 @world.absorb
 def get_service_paths(service_name, server=None, node=None, service_conf=None, service_conf_base_path=None):
