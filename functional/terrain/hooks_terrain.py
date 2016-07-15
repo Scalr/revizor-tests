@@ -211,9 +211,10 @@ def cleanup_all(total):
         world.farm.terminate()
 
         world.farm.vhosts.reload()
-        for vhost in world.vhosts_list:
-            LOG.info('Delete vhost: %s' % vhost.name)
-            vhost.delete()
+        if hasattr(world, 'vhosts_list'):
+            for vhost in world.vhosts_list:
+                LOG.info('Delete vhost: %s' % vhost.name)
+                vhost.delete()
 
         try:
             world.farm.domains.reload()
