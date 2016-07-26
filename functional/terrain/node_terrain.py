@@ -219,7 +219,7 @@ def verify_port_status(step, port, closed, serv_as):
 
 
 @step(r'([\w-]+(?!process)) is( not)? running on (.+)')
-def assert_check_service(step, service, closed, serv_as):
+def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this ugly logic
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
     if isinstance(port, collections.Iterable):

@@ -154,6 +154,9 @@ def get_external_local_ip():
         try:
             LOG.debug('Try get external IP address from site %s' % site)
             my_ip = requests.get(site).text.strip()
+            if not re.match('\d+\.\d+\.\d+\.\d+', my_ip):
+                LOG.warning('Site %s not return my ip' % site)
+                continue
             break
         except requests.ConnectionError:
             LOG.warning("Can't get external IP from site: %s, try next" % site)
