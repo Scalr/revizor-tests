@@ -51,7 +51,6 @@ Feature: Check chef attributes set
         Given I have a clean and stopped farm
         When I add role to this farm with chef-fail
         When I start farm
-        And I see pending server M1
-        And I wait server M1 in failed state
+        And I see failed server M1
         And chef log in M1 contains "ERROR: undefined method `fatal!'"
         And chef bootstrap failed in M1
