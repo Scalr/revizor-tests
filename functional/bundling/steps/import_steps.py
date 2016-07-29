@@ -296,7 +296,8 @@ def install_chef_on_windows(step):
     node =  getattr(world, 'cloud_server', None)
     console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
     #TODO: Change to installation via Fatmouse task
-    command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+    # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+    command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
     console.run_cmd(command)
     chef_version = console.run_cmd("chef-client --version")
     assert chef_version.std_out, "Chef was not installed"
