@@ -77,19 +77,22 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
         farm_settings = IMPL.farm.get_settings(farm_id=farm.id)
         if servers:
             LOG.warning("Get scalarizr messages for every server after test failure")
-            for server in servers:
-                server.messages.reload()
-                server_messages = []
-                for msg in server.messages:
-                    server_messages.append({msg.name: {'message': msg.message,
-                        'date': str(msg.date),
-                        'delivered': msg.delivered,
-                        'status': msg.status,
-                        'type': msg.type,
-                        'id': msg.id}})
-                # Save server messages
-                with open(os.path.join(path, '%s_messages.json' % server.id), "w+") as f:
-                    f.write(json.dumps(server_messages, indent=2))
+            try:
+                for server in servers:
+                    server.messages.reload()
+                    server_messages = []
+                    for msg in server.messages:
+                        server_messages.append({msg.name: {'message': msg.message,
+                            'date': str(msg.date),
+                            'delivered': msg.delivered,
+                            'status': msg.status,
+                            'type': msg.type,
+                            'id': msg.id}})
+                    # Save server messages
+                    with open(os.path.join(path, '%s_messages.json' % server.id), "w+") as f:
+                        f.write(json.dumps(server_messages, indent=2))
+            except:
+                pass
         # Save farm settings
         with open(os.path.join(path, 'farm_settings.json'), "w+") as f:
             f.write(json.dumps(farm_settings, indent=2))
@@ -198,7 +201,7 @@ def cleanup_all(total):
         if bundled_role_id:
             LOG.info('Delete bundled role: %s' % bundled_role_id)
             try:
-                IMPL.role.delete(bundled_role_id, delete_image=True)
+                IMPL.role.delete(bundled_role_id)
             except BaseException, e:
                 LOG.exception('Error on deletion role %s' % bundled_role_id)
         cloud_node = getattr(world, 'cloud_server', None)
