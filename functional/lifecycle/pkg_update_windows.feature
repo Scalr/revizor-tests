@@ -9,6 +9,7 @@ Feature: Windows update for new package test
         And I add created role to the farm
         When I see pending server M1
         Then I install scalarizr to the server M1 from the branch stable
+        And I wait 2 minutes
         And I reboot hard server M1
         When I expect server bootstrapping as M1
         Then scalarizr version was updated in M1
@@ -24,6 +25,7 @@ Feature: Windows update for new package test
         And I add created role to the farm
         When I see pending server M2
         Then I install scalarizr to the server M2 from the branch latest
+        And I wait 2 minutes
         And I reboot hard server M2
         When I expect server bootstrapping as M2
         Then scalarizr version was updated in M2
@@ -73,6 +75,7 @@ Feature: Windows update for new package test
         Then I add created role to the farm with branch_stable
         And I see pending server M5
         Then I install scalarizr to the server M5
+        And I wait 2 minutes
         And I reboot hard server M5
         When I expect server bootstrapping as M5
         Then scalarizr version was updated in M5
@@ -88,6 +91,7 @@ Feature: Windows update for new package test
         And I add created role to the farm
         When I see pending server M6
         Then I install scalarizr to the server M6 from the branch stable
+        And I wait 2 minutes
         And I reboot hard server M6
         When I expect server bootstrapping as M6
         Then scalarizr version was updated in M6
