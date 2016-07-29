@@ -4,7 +4,7 @@ import json
 import logging
 from itertools import chain
 
-from lettuce import world, step
+from lettuce import world, step, after
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
@@ -334,3 +334,16 @@ def checking_info_instance_vcpus(step, serv_as):
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
     assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id
+
+
+@after.each_scenario
+def save_scalarizr_memory_rss(scenario):
+    LOG.info('----- SCALARIZR MEMORY INFO AFTER SCENARIO: "%s" -----' % scenario.name)
+    try:
+        for s in world.farm.servers:
+            if s.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
+                node = world.cloud.get_node(s)
+                rss = node.run("ps aux | grep 'bin/scal' | awk '{print $6}'")[0].splitlines()[:2]
+                LOG.info('Server "%s" scalarizr + scalr-upd-client: %s / %s' % (s.id, rss[0], rss[1]))
+    except:
+        pass

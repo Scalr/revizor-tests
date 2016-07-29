@@ -128,7 +128,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
-    time_until = time.time() + 1200
+    time_until = time.time() + 2400
     error = 'Timeout or build status failed.'
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
     while True:
@@ -145,7 +145,7 @@ def waiting_new_package(step):
                 error = 'Drone status is failed'
         if time.time() >= time_until:
             raise AssertionError(error)
-        time.sleep(30)
+        time.sleep(60)
 
 
 @step(r'I have a clean image')
