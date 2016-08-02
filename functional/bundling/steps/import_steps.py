@@ -293,7 +293,7 @@ def add_new_role_to_farm(step):
 
 @step(r'I install Chef on windows server')
 def install_chef_on_windows(step):
-    node =  getattr(world, 'cloud_server', None)
+    node = getattr(world, 'cloud_server', None)
     console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
     #TODO: Change to installation via Fatmouse task
     # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"

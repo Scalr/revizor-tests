@@ -72,7 +72,12 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 continue
     # Save farm, domains and messages info if scenario has failed
     if scenario.failed or outline_failed:
-        domains = IMPL.domain.list(farm_id=farm.id)
+        domains = None
+        try:
+            domains = IMPL.domain.list(farm_id=farm.id)
+        except Exception as e:
+            if not 'You do not have permission to view this component' in str(e):
+                raise
         LOG.warning("Get farm settings after test failure")
         farm_settings = IMPL.farm.get_settings(farm_id=farm.id)
         if servers:
