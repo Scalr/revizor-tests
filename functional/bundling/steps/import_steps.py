@@ -167,7 +167,7 @@ def given_server_in_cloud(step, user_data):
 @step('I initiate the installation behaviors on the server')
 def install_behaviors(step):
     #Set recipe's
-    cookbooks = ['base']
+    cookbooks = ['apt', 'base']
     for behavior in CONF.feature.behaviors:
         if behavior in cookbooks:
             continue
