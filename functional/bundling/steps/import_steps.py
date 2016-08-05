@@ -270,8 +270,15 @@ def assert_role_task_created(step,  timeout=1400):
         LOG.info('Port Forwarding Rule was successfully removed.')
     #Destroy virtual machine in Cloud
     LOG.info('Destroying virtual machine %s in Cloud' % world.cloud_server.id)
-    if not world.cloud_server.destroy():
-        raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
+    try:
+        if not world.cloud_server.destroy():
+            raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
+    except Exception as e:
+        if CONF.feature.driver.current_cloud == Platform.GCE:
+            if world.cloud_server.name in str(e):
+                pass
+        else:
+            raise
     LOG.info('Virtual machine %s was successfully destroyed.' % world.cloud_server.id)
     world.cloud_server = None
 
@@ -290,6 +297,7 @@ def add_new_role_to_farm(step):
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
+
 
 @step(r'I install Chef on windows server')
 def install_chef_on_windows(step):
