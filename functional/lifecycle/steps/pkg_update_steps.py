@@ -18,14 +18,12 @@ except ImportError:
 from datetime import datetime
 from revizor2.api import IMPL, Platform
 from revizor2.conf import CONF
-from collections import namedtuple
 from lettuce import step, world, after
 from urllib2 import URLError
 
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
-from revizor2.utils import wait_until
 from revizor2.fixtures import tables, resources
 
 LOG = logging.getLogger(__name__)
@@ -331,11 +329,12 @@ def checking_upd_client_version(step, action, serv_as):
         "Scalr update client version not valid curr: %s prev: %s" % (upd_client_current_version, upd_client_version)
 
 
-@step(r'I reboot server')
-def rebooting_server(step): #FIXME: Find usages and rename this step
-    if not world.cloud_server.reboot():
-        raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
-    world.cloud_server = None
+@step(r'I reboot server in the cloud')
+def rebooting_server(step): #FIXME: Find usages
+    cloud_server = getattr(world, 'cloud_server')
+    if cloud_server:
+        assert cloud_server.reboot(), "Can't reboot node: %s" % cloud_server.name
+        setattr(world, 'cloud_server', None)
 
 
 @step(r"I forbid ([\w]+\s)?scalarizr update at startup and run it on ([\w\d]+)$")
