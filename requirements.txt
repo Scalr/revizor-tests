@@ -1,5 +1,5 @@
 git+https://github.com/Scalr/lettuce.git
-pywinrm
+pywinrm==0.0.3
 PyChef
 semver
 githubpy==1.1.0
