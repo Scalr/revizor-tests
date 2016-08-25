@@ -600,14 +600,14 @@ def run_sysprep(uuid, console):
 
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
-        user_name = 'scalr'
+        user_name = ['scalr']
     elif 'ubuntu' in CONF.feature.dist:
-        user_name = ['ubuntu', 'root']
+        user_name = ['root', 'ubuntu']
     elif 'amzn' in CONF.feature.dist or \
             ('rhel' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
-        user_name = 'ec2-user'
+        user_name = ['root', 'ec2-user']
     else:
-        user_name = 'root'
+        user_name = ['root']
     return user_name
 
 
@@ -701,14 +701,15 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         if not node:
             LOG.debug('Cloud server not found get node from server')
             node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-            LOG.debug('Node get successfully: %s' % node)# Wait ssh
-        user = get_user_name()
+            LOG.debug('Node get successfully: %s' % node)
+        # Wait ssh
         start_time = time.time()
         while (time.time() - start_time) < 300:
             try:
-                node.get_ssh(user=user)
+                if node.get_ssh():
+                    break
             except AssertionError:
-                LOG.warning('Can\'t get ssh for server %s and user: %s' % (node.id, user))
+                LOG.warning('Can\'t get ssh for server %s' % node.id)
                 time.sleep(10)
         url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
         cmd = '{curl_install} && ' \
@@ -722,7 +723,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 ),
                 url=url)
         LOG.debug('Install script body: %s' % cmd)
-        res = node.run(cmd, user=user)[0]
+        res = node.run(cmd)[0]
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', version[0])
