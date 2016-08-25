@@ -127,7 +127,7 @@ COOKBOOKS_BEHAVIOR = {
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
-    LOG.info('Create node in cloud. User_date:%s' % user_data)
+    LOG.info('Create node in cloud. User_data:%s' % user_data)
     #Convert dict to formatted str
     if user_data:
         dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
