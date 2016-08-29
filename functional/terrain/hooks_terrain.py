@@ -71,7 +71,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
             except BaseException, e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
-        if server.status == ServerStatus.RUNNING:
+        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
             node = world.cloud.get_node(server)
             out = node.run("ps aux | grep 'bin/scal'")[0]
             for line in out.splitlines():
