@@ -1,5 +1,6 @@
 Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/docker_steps
 Feature: Docker compatibility
+# WARNING! Only CentOS/RedHat 7 or higher
 
     @ec2 @gce
     Scenario: Bootstraping
@@ -11,11 +12,13 @@ Feature: Docker compatibility
         And I start docker containers on M1
         Then verify containers on Scalr and M1 are identical
 
+    @ec2 @gce
     Scenario: Delete docker containers
         Given I have running server M1
         When I delete 10 of the running containers on M1
         Then verify containers on Scalr and M1 are identical
 
+    @ec2 @gce
     Scenario: Stop/resume docker containers
         Given I have running server M1
         When I stop 10 of the running containers on M1
