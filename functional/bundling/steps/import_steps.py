@@ -127,7 +127,7 @@ COOKBOOKS_BEHAVIOR = {
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
-    LOG.info('Create node %s in cloud' % user_data)
+    LOG.info('Create node in cloud. User_data:%s' % user_data)
     #Convert dict to formatted str
     if user_data:
         dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
@@ -167,7 +167,7 @@ def given_server_in_cloud(step, user_data):
 @step('I initiate the installation behaviors on the server')
 def install_behaviors(step):
     #Set recipe's
-    cookbooks = ['apt', 'base']
+    cookbooks = ['base']
     for behavior in CONF.feature.behaviors:
         if behavior in cookbooks:
             continue

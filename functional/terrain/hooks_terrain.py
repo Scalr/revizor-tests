@@ -1,4 +1,3 @@
-__author__ = 'gigimon'
 import os
 import re
 import logging
@@ -7,6 +6,7 @@ from datetime import datetime
 
 from lettuce import world, after, before
 
+from lxml import etree
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
@@ -14,6 +14,7 @@ from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
+
 
 LOG = logging.getLogger(__name__)
 
@@ -70,6 +71,19 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
             except BaseException, e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
+        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
+            node = world.cloud.get_node(server)
+            out = node.run("ps aux | grep 'bin/scal'")[0]
+            for line in out.splitlines():
+                ram = line.split()[5]
+                if len(ram) > 3:
+                    ram = '%sMB' % ram[:-3]
+                if 'bin/scalr-upd-client' in line:
+                    LOG.info('Server %s use %s RAM for update-client' % (server.id, ram))
+                    world.wrt(etree.Element('meta', name='szrupdateram', value=ram, serverid=server.id))
+                elif 'bin/scalarizr' in line:
+                    LOG.info('Server %s use %s RAM for scalarizr' % (server.id, ram))
+                    world.wrt(etree.Element('meta', name='szrram', value=ram, serverid=server.id))
     # Save farm, domains and messages info if scenario has failed
     if scenario.failed or outline_failed:
         domains = None

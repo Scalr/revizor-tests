@@ -12,8 +12,8 @@ from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES, Platform
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
-
 from lxml import etree
+
 
 LOG = logging.getLogger(__name__)
 
