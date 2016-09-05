@@ -7,11 +7,42 @@ from lettuce import world, step
 
 from revizor2.utils import wait_until
 from revizor2.fixtures import tables
-from revizor2.api import CONF, Dist
+from revizor2.api import CONF
+from revizor2.backend import IMPL
 
 
 LOG = logging.getLogger(__name__)
 
+
+def get_server_containers(serv_as):
+    server = getattr(world, serv_as)
+    client = getattr(world, serv_as + '_client')
+    containers = client.containers()
+    server_containers = []
+    for container in containers:
+        container = {
+            'command': container['Command'],
+            'containerId': container['Id'],
+            'image': container['Image'],
+            'labels': sorted([{
+                'containerId': container['Id'],
+                'name': l[0],
+                'value': l[1]} for l in container['Labels'].items()]),
+            'name': container['Names'][0],
+            'network': container['HostConfig']['NetworkMode'],
+            'ports': sorted([{
+                'destination': str(p['PrivatePort']),
+                'hostIp': p['IP'] if 'IP' in p else None,
+                'protocol': p['Type'],
+                'source': str(p['PublicPort']) if 'PublicPort' in p else None} for p in container['Ports']]),
+            'privileged': client.inspect_container(container['Id'])['HostConfig']['Privileged'],
+            'serverId': server.id,
+            'volumes': sorted([{
+                'containerId': container['Id'],
+                'destination': v['Destination'],
+                'source': v['Source']} for v in container['Mounts']])}
+        server_containers.append(container)
+    return server_containers
 
 @step('I install docker on (.+)$')
 def install_docker(step, serv_as):
@@ -26,7 +57,7 @@ def install_docker(step, serv_as):
         restart_cmd = 'sudo systemctl daemon-reload; sudo systemctl restart docker'
     else:
         conf_file = '/etc/default/docker'
-        echo_line = 'DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://0.0.0.0:9999"'
+        echo_line = """'DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://0.0.0.0:9999"'"""
     command = '''curl -fsSL https://get.docker.com/ | sh; {}\
         echo -e {} >> {};\
         {}; \
@@ -35,12 +66,14 @@ def install_docker(step, serv_as):
         docker pull alpine'''.format(conf_folder, echo_line, conf_file, restart_cmd)
     node.run(command)
     assert node.run('docker --version')
+    client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
+    setattr(world, serv_as + '_client', client)
 
 
 @step('I start docker containers on (.+)$')
 def start_containers(step, serv_as):
     server = getattr(world, serv_as)
-    client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
+    client = getattr(world, serv_as + '_client')
     configs = tables('docker').data
     images = ['ubuntu', 'alpine', 'nginx']
     ports_delta = 1
@@ -87,67 +120,23 @@ def start_containers(step, serv_as):
 @step('verify containers on Scalr and (.+) are identical')
 def verify_containers(step, serv_as):
     server = getattr(world, serv_as)
-    scalr_containers = wait_until(server.get_containers,
+    scalr_containers = wait_until(
+        IMPL.containers.list,
+        args={'server_id': server.id},
         timeout=120,
         logger=LOG,
-        error_text="No docker containers were found on Scalr for server %s" % server.id)['containers']
-    client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
-    server_containers = client.containers()
-    scalr_container_ids = []
-    for scalr_container in scalr_containers:
-        scalr_container_ids.append(scalr_container['containerId'])
-    for server_container in server_containers:
+        error_text="No docker containers were found on Scalr for server %s" % server.id)
+    server_containers = get_server_containers(serv_as)
+    for serv_container in server_containers:
         for scalr_container in scalr_containers:
-            if server_container['Id'] == scalr_container['containerId']:
-                # Assert volume mounts
-                server_volumes = []
-                for serv_vol in server_container['Mounts']:
-                    server_volumes.append({
-                        'destination': serv_vol['Destination'],
-                        'source': serv_vol['Source']})
-                scalr_volumes = []
-                for scalr_vol in scalr_container['volumes']:
-                    scalr_vol.pop('containerId')
-                    scalr_volumes.append(scalr_vol)
-                assert not any(volume not in scalr_volumes for volume in server_volumes), "Volumes for container %s are incorrect.\
-                    \nScalr:\n%s\nInstance:\n%s" % (server_container['Id'], scalr_volumes, server_volumes)
-
-                # Assert ports
-                server_ports = []
-                for serv_port in server_container['Ports']:
-                    port = {
-                        'destination': str(serv_port['PrivatePort']),
-                        'protocol': serv_port['Type'],
-                        'source': str(serv_port['PublicPort']) if 'PublicPort' in serv_port.keys() else None,
-                        'hostIp': serv_port['IP'] if 'IP' in serv_port.keys() else None}
-                    server_ports.append(port)
-                scalr_ports = []
-                for scalr_port in scalr_container['ports']:
-                    scalr_port.pop('containerId')
-                    scalr_port.pop('uuid')
-                    scalr_ports.append(scalr_port)
-                assert not any(port not in scalr_ports for port in server_ports), "Ports for container %s are incorrect.\
-                    \nScalr:\n%s\nInstance:\n%s" % (server_container['Id'], scalr_ports, server_ports)
-
-                # Assert labels
-                scalr_labels = {}
-                for label in scalr_container['labels']:
-                    scalr_labels[label['name']] = ''
-                assert scalr_labels == server_container['Labels'], "Labels for container %s are incorrect.\
-                    \nScalr:\n%s\nInstance:\n%s" % (server_container['Id'], scalr_labels, server_container['Labels'])
-
-                # Assert privileged status
-                assert scalr_container['privileged'] == client.inspect_container(server_container['Id'])['HostConfig']['Privileged']
-
-                # Assert entrypoint and no command
-                if not client.inspect_container(server_container['Id'])['Config']['Cmd']:
-                    assert scalr_container['command'].split(' ') == client.inspect_container(server_container['Id'])['Config']['Entrypoint']
+            if serv_container['containerId'] == scalr_container['containerId']:
+                assert serv_container == scalr_container, "Containers don't match! Server: \n{}\nScalr: \n{}".format(serv_container, scalr_container)
 
 
 @step('I (delete|stop) (\d+) of the running containers on (.+)$')
 def modify_random_containers(step, action, amount, serv_as):
     server = getattr(world, serv_as)
-    client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
+    client = getattr(world, serv_as + '_client')
     server_containers = client.containers()
     stopped_containers = []
     for _ in range(int(amount)):
@@ -164,6 +153,6 @@ def modify_random_containers(step, action, amount, serv_as):
 @step('I start stopped containers on (.+)$')
 def start_stopped_containers(step, serv_as):
     server = getattr(world, serv_as)
-    client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
+    client = getattr(world, serv_as + '_client')
     for container in getattr(world, 'stopped_containers'):
         client.start(container)
