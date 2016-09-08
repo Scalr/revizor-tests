@@ -2,6 +2,7 @@ import logging
 import docker
 import random
 import copy
+import time
 
 from lettuce import world, step
 
@@ -44,17 +45,18 @@ def get_server_containers(serv_as):
         server_containers.append(container)
     return server_containers
 
+
 @step('I install docker on (.+)$')
 def install_docker(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     conf_folder = ''
-    restart_cmd = 'sudo service docker restart'
-    if CONF.feature.dist in ['centos7', 'ubuntu1604', 'debian8', 'rhel7']:
+    restart_cmd = 'service docker restart'
+    if CONF.feature.dist in ['centos7', 'ubuntu1604', 'debian8', 'rhel7']:  # SystemD-based OS
         conf_file = '/etc/systemd/system/docker.service.d/docker.conf'
         echo_line = '''"[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:9999"'''
-        conf_folder = 'sudo mkdir /etc/systemd/system/docker.service.d;'
-        restart_cmd = 'sudo systemctl daemon-reload; sudo systemctl restart docker'
+        conf_folder = 'mkdir /etc/systemd/system/docker.service.d;'
+        restart_cmd = 'systemctl daemon-reload; systemctl restart docker'
     else:
         conf_file = '/etc/default/docker'
         echo_line = """'DOCKER_OPTS="-H unix:///var/run/docker.sock -H tcp://0.0.0.0:9999"'"""
@@ -72,13 +74,11 @@ def install_docker(step, serv_as):
 
 @step('I start docker containers on (.+)$')
 def start_containers(step, serv_as):
-    server = getattr(world, serv_as)
     client = getattr(world, serv_as + '_client')
     configs = tables('docker').data
     images = ['ubuntu', 'alpine', 'nginx']
     ports_delta = 1
     for image in images:
-        # client.get_image(image)
         base_config = {
             "image": image,
             "command": "sleep 1d",
@@ -93,6 +93,7 @@ def start_containers(step, serv_as):
                 ports = {}
                 for p in range(configs[conf]):
                     ports.update({9980 + ports_delta: 9980 + ports_delta})
+                    ports.update({str(9981 + ports_delta) + '/udp': 9985 + ports_delta})
                     ports_delta += 1
                 container = client.create_container(
                     host_config=client.create_host_config(port_bindings=ports),
@@ -120,22 +121,30 @@ def start_containers(step, serv_as):
 @step('verify containers on Scalr and (.+) are identical')
 def verify_containers(step, serv_as):
     server = getattr(world, serv_as)
-    scalr_containers = wait_until(
-        IMPL.containers.list,
-        args={'server_id': server.id},
-        timeout=120,
-        logger=LOG,
-        error_text="No docker containers were found on Scalr for server %s" % server.id)
     server_containers = get_server_containers(serv_as)
+
+    start_time = time.time()
+    while time.time() < (start_time + 300):
+        scalr_containers = wait_until(
+            IMPL.containers.list,
+            args={'server_id': server.id},
+            timeout=120,
+            logger=LOG,
+            error_text="No docker containers were found on Scalr for server %s" % server.id)
+        if len(server_containers) == len(scalr_containers):
+            break
+        else:
+            time.sleep(10)
+
     for serv_container in server_containers:
         for scalr_container in scalr_containers:
             if serv_container['containerId'] == scalr_container['containerId']:
-                assert serv_container == scalr_container, "Containers don't match! Server: \n{}\nScalr: \n{}".format(serv_container, scalr_container)
+                assert serv_container == scalr_container,\
+                    "Containers don't match! Server: \n{}\nScalr: \n{}".format(serv_container, scalr_container)
 
 
 @step('I (delete|stop) (\d+) of the running containers on (.+)$')
 def modify_random_containers(step, action, amount, serv_as):
-    server = getattr(world, serv_as)
     client = getattr(world, serv_as + '_client')
     server_containers = client.containers()
     stopped_containers = []
@@ -152,7 +161,6 @@ def modify_random_containers(step, action, amount, serv_as):
 
 @step('I start stopped containers on (.+)$')
 def start_stopped_containers(step, serv_as):
-    server = getattr(world, serv_as)
     client = getattr(world, serv_as + '_client')
     for container in getattr(world, 'stopped_containers'):
         client.start(container)
