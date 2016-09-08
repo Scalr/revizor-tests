@@ -1,6 +1,6 @@
 Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/docker_steps
 Feature: Docker compatibility
-# WARNING! Only CentOS/RedHat 7 or higher
+# WARNING! Does NOT support CentOS/RHEL 6 or lower!
 
     @ec2 @gce
     Scenario: Bootstraping
