@@ -228,6 +228,8 @@ def creating_role(step):
         LOG.debug('Register image %s to the Scalr' % name)
         image_kwargs.update(dict(software=behaviors, name=name, is_scalarized=True))
         image = IMPL.image.create(**image_kwargs)
+    else:
+        image = IMPL.image.get(image_id=image_id)
     # Create new role
     role_kwargs = dict(
         name=name,
@@ -235,7 +237,7 @@ def creating_role(step):
         images=[dict(
             platform=CONF.feature.driver.scalr_cloud,
             cloudLocation=cloud_location,
-            imageId=image_id)])
+            hash=image['hash'])])
     LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
     role = IMPL.role.create(**role_kwargs)
     setattr(world, 'role', role['role'])
