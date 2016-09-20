@@ -257,7 +257,7 @@ def create_role(step):
 @step('Role has successfully been created$')
 def assert_role_task_created(step,  timeout=1400):
     res = wait_until(IMPL.bundle.assert_role_task_created, args=(world.bundle_task_id, ), timeout=timeout,
-                     error_text="Time out error. Can't create role with sent behaviors: $s." % CONF.feature.behaviors)
+                     error_text="Time out error. Can't create role with behaviors: %s." % CONF.feature.behaviors)
     if res['failure_reason']:
         raise AssertionError("Can't create role. Original error: %s" % res['failure_reason'])
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
