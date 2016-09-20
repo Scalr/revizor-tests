@@ -97,7 +97,7 @@ class VerifyProcessWork(object):
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
-        if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
             port = server.details['scalarizr.ctrl_port']
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
@@ -204,7 +204,7 @@ def verify_port_status(step, port, closed, serv_as):
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.startswith('win'):
         world.set_iptables_rule(server, port)
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
 
     results = []
@@ -243,7 +243,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.startswith('win'):
         world.set_iptables_rule(server, port)
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         #TODO: Change login on this behavior
         port = world.cloud.open_port(node, port, ip=server.public_ip)
     if service in BEHAVIORS_ALIASES.values():
