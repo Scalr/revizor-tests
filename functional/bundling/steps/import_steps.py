@@ -167,7 +167,7 @@ def given_server_in_cloud(step, user_data):
 @step('I initiate the installation behaviors on the server')
 def install_behaviors(step):
     #Set recipe's
-    cookbooks = ['base']
+    cookbooks = []
     for behavior in CONF.feature.behaviors:
         if behavior in cookbooks:
             continue
@@ -201,7 +201,7 @@ def start_building(step):
     world.server = Server(**{'id': res['server_id']})
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
-    #and then run scalarizr on new screen
+    #and then run scalari4zr on new screen
     if Dist.is_windows_family(CONF.feature.dist):
         console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
         def call_in_background(command):
