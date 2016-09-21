@@ -28,7 +28,9 @@ def create_vhost_to_role(step, ssl, vhost_as, key_name, role_type, domain_as):
                                                                        'with key {0}'.format(key_name)
                                                                        if key_name
                                                                        else ''))
-    vhost = role.add_vhost(domain.name, document_root='/var/www/%s' % vhost_as, ssl=ssl, cert=key_name)
+    role.add_vhost(domain.name, document_root='/var/www/%s' % vhost_as, ssl=ssl, cert=key_name)
+    world.farm.vhosts.reload()
+    vhost = filter(lambda x: x.name == domain.name, world.farm.vhosts)[0]
     setattr(world, vhost_as, vhost)
     if not hasattr(world, 'vhosts_list'):
         setattr(world, 'vhosts_list', [])
