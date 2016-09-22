@@ -3,15 +3,17 @@ import time
 import logging
 import requests
 
-from revizor2.conf import CONF
 from requests import exceptions
 from lettuce import world, step
-from revizor2.consts import Platform
+
+from revizor2.conf import CONF
+from revizor2.consts import Platform, Dist
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.defaults import DEFAULT_SSL_CERTS
 
 LOG = logging.getLogger(__name__)
+
 
 @step(r'([\w]+) resolves into (.+) new ip address')
 def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
@@ -84,9 +86,16 @@ def check_matches_in_domain(step, proto, domain_as, matched_text):
         url = 'http://%s:%s/%s' % (domain.name, proto, uri)
     else:
         url = '%s://%s/%s' % (proto, domain.name, uri)
-    LOG.info('Try open url: %s' % url)
-    resp = requests.get(url).text
-    if not resp == matched_text:
+    for i in range(3):
+        LOG.info('Try open url: "%s" attempt: %s' % (url, i))
+        try:
+            resp = requests.get(url).text
+            if resp == matched_text:
+                break
+        except:
+            pass
+        time.sleep(5)
+    else:
         raise AssertionError('Text "%s" not matched with "%s"' % (resp, matched_text))
 
 
@@ -98,9 +107,9 @@ def start_basehttpserver(step, port, serv_as):
     LOG.debug('Put base_server.py script')
     node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
     LOG.debug('Run BaseHttpServer script')
-    if node.os[0].lower() in ['ubuntu', 'debian']:
+    if Dist.is_debian_family(CONF.feature.dist):
         node.run('apt-get install screen -y')
-    elif node.os[0].lower() in ['centos', 'redhat', 'oel']:
+    elif Dist.is_centos_family(CONF.feature.dist.is_centos_family):
         node.run('yum install screen -y')
     node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
     node.run('screen -d -m python /tmp/base_server.py %s' % port)

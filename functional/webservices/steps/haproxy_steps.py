@@ -14,7 +14,7 @@ from revizor2.fixtures import resources
 LOG = logging.getLogger(__name__)
 
 GLOBAL_TEMPLATE = 'global \n    log 127.0.0.1   local0 \n    log 127.0.0.1   local1 notice \n    maxconn     256000\n'
-PROXY_TEMPLATE = '    stats enable \n    option forwardfor \n    stats uri'
+PROXY_TEMPLATE = '    stats enable \n    option forwardfor \n    stats uri /haproxy'
 
 
 def parse_haproxy_config(node):
@@ -52,6 +52,7 @@ def check_config_for_option(node, section, port):
         pass
     if section:
         return config
+
 
 @step(r"I add proxy ([\w\d]+) to ([\w\d]+) role for ([\d]+) port with ([\w\d]+) role backend([\w ]+)?")
 def add_proxy_to_role(step, proxy_name, proxy_role, port, backend_role, options):
