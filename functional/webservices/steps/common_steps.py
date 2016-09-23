@@ -109,7 +109,7 @@ def start_basehttpserver(step, port, serv_as):
     LOG.debug('Run BaseHttpServer script')
     if Dist.is_debian_family(CONF.feature.dist):
         node.run('apt-get install screen -y')
-    elif Dist.is_centos_family(CONF.feature.dist.is_centos_family):
+    elif Dist.is_centos_family(CONF.feature.dist):
         node.run('yum install screen -y')
     node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
     node.run('screen -d -m python /tmp/base_server.py %s' % port)
