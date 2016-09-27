@@ -288,6 +288,7 @@ def create_database_user(step, username, serv_as):
 def having_small_database(step, db_name, serv_as, username=None):
     server = getattr(world, serv_as)
     db_role = world.get_role()
+    time.sleep(60)
     if username:
         LOG.info("Create database %s in server %s by user %s" % (db_name, server, username))
         setattr(world, 'data_insert_result', db_role.db.insert_data_to_database(db_name, server, (username, db_role.db.credentials[username])))
