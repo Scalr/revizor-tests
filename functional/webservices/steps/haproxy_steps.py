@@ -278,10 +278,9 @@ def check_global_in_config(step, serv_as):
     c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
     section_start = c.find('##### main template start #####') + len('##### main template start #####')
     section_end = c.find('##### main template end #####')
-    config = [i.strip() for i in c[section_start:section_end].replace('   ', ' ').split('\n')]
-    global_template = [i.strip() for i in GLOBAL_TEMPLATE.replace('   ', ' ').split('\n')]
-    options_in_config = [i for i in global_template if i in config]
-    if options_in_config == global_template:
-        LOG.info('Haproxy server "%s" contains global config: %s' % (serv_as, global_template))
-    else:
-        raise AssertionError("%s server does not contain global config: %s" % (serv_as, global_template))
+    if section_start == -1 or section_end == -1:
+        raise AssertionError('HAProxy config doesn\'t has a main template markers: [%s:%s]' % (section_start, section_end))
+    origin_config = [l.strip() for l in re.sub(r'[ ]+', ' ', GLOBAL_TEMPLATE).splitlines() if l.strip()]
+    config = [str(l.strip()) for l in re.sub(r'[ ]+', ' ', c[section_start:section_end]).splitlines() if l.strip()]
+    if not config == origin_config:
+        raise AssertionError("%s server has invalid global config: %s" % (serv_as, config))
