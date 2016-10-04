@@ -243,6 +243,7 @@ def create_role(step):
     kwargs = dict(
         server_id=world.server.id,
         bundle_task_id=world.bundle_task['id'],
+        os_id=world.bundle_task['os'][0]['id']
     )
     if Dist.is_windows_family(CONF.feature.dist):
         kwargs.update({'behaviors': 'chef'})
@@ -251,10 +252,6 @@ def create_role(step):
     else:
         raise AssertionError(
             'Transmitted behavior: %s, not in the list received from the server' % CONF.feature.behaviors)
-    if world.bundle_task.get('os'):
-        kwargs.update({'os_id': world.bundle_task['os'][0]['id']})
-    else:
-        kwargs.update({'os_id': Dist.get_os_id(CONF.feature.dist)})
 
     if not IMPL.bundle.create_role(**kwargs):
         raise AssertionError('Create role initi`alization is failed.')
