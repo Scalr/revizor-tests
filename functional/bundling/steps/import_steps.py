@@ -219,47 +219,53 @@ def start_building(step):
 def is_scalarizr_connected(step, timeout=1400):
     LOG.info('Establish connection with scalarizr.')
     #Whait outbound request from scalarizr
-    res = wait_until(IMPL.bundle.check_scalarizr_connection, args=(world.server.id, ), timeout=timeout,
-                     error_text="Time out error. Can't establish connection with scalarizr.")
-    if not res['failure_reason']:
-        world.bundle_task_id = res['bundle_task_id']
-        if not res['behaviors']:
-            world.behaviors = ['base']
-        elif 'base' not in res['behaviors']:
-            world.behaviors = ','.join((','.join(res['behaviors']), 'base')).split(',')
-        else:
-            world.behaviors = res['behaviors']
-        LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.behaviors)
+    res = wait_until(
+        IMPL.bundle.check_scalarizr_connection,
+        args=(world.server.id, ),
+        timeout=timeout,
+        error_text="Time out error. Can't establish connection with scalarizr.")
+    if res.get('failure_reason'):
+        raise AssertionError("Bundle task {id} failed. Error: {msg}".format(
+            id=res['id'],
+            msg=res['failure_reason']))
+    world.bundle_task = res
+    if not res['behaviors']:
+        world.bundle_task.update({'behaviors': ['base']})
+    elif 'base' not in res['behaviors']:
+        world.bundle_task.update({'behaviors': ','.join((','.join(res['behaviors']), 'base')).split(',')})
     else:
-        raise AssertionError("Can't establish connection with scalarizr. Original error: %s" % res['failure_reason'])
+        world.bundle_task.update({'behaviors': res['behaviors']})
+    LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.bundle_task['behaviors'])
 
 
 @step('I trigger the Create role')
 def create_role(step):
-    behaviors_name = CONF.feature.behaviors
+    kwargs = dict(
+        server_id=world.server.id,
+        bundle_task_id=world.bundle_task['id'],
+        os_id=world.bundle_task['os'][0]['id']
+    )
     if Dist.is_windows_family(CONF.feature.dist):
-        behaviors = 'chef'
+        kwargs.update({'behaviors': 'chef'})
+    elif all(behavior in world.bundle_task['behaviors'] for behavior in CONF.feature.behaviors):
+        kwargs.update({'behaviors': ','.join(CONF.feature.behaviors)})
     else:
-        behaviors = ','.join(behaviors_name)
-        LOG.info('Create new role with %s behaviors.' % ','.join(behaviors_name))
-        for behavior in behaviors_name:
-            if not behavior in world.behaviors:
-                raise AssertionError('Transmitted behavior: %s, not in the list received from the server' % behavior)
+        raise AssertionError(
+            'Transmitted behavior: %s, not in the list received from the server' % CONF.feature.behaviors)
 
-    res = IMPL.bundle.create_role(server_id=world.server.id,
-                                  bundle_task_id=world.bundle_task_id,
-                                  behaviors=behaviors,
-                                  os_id=Dist.get_os_id(CONF.feature.dist))
-    if not res:
-        raise AssertionError('Create role initialization is failed.')
+    if not IMPL.bundle.create_role(**kwargs):
+        raise AssertionError('Create role initi`alization is failed.')
 
 
 @step('Role has successfully been created$')
 def assert_role_task_created(step,  timeout=1400):
-    res = wait_until(IMPL.bundle.assert_role_task_created, args=(world.bundle_task_id, ), timeout=timeout,
-                     error_text="Time out error. Can't create role with behaviors: %s." % CONF.feature.behaviors)
-    if res['failure_reason']:
-        raise AssertionError("Can't create role. Original error: %s" % res['failure_reason'])
+    res = wait_until(
+        IMPL.bundle.assert_role_task_created,
+        args=(world.bundle_task.get('id'), ),
+        timeout=timeout,
+        error_text="Time out error. Can't create role with behaviors: %s." % CONF.feature.behaviors)
+    if res.get('failure_reason'):
+        raise AssertionError("Can't create role: %s. Error: %s" % (res['role_id'],res['failure_reason']))
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
     world.bundled_role_id = res['role_id']
     #Remove port forward rule for Cloudstack
