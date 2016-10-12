@@ -112,7 +112,11 @@ def start_basehttpserver(step, port, serv_as):
     elif Dist.is_centos_family(CONF.feature.dist):
         node.run('yum install screen -y')
     node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
-    node.run('screen -d -m python /tmp/base_server.py %s' % port)
+    if node.run('which python3')[2] == 0:
+        python_alias = 'python3'
+    else:
+        python_alias = 'python'
+    node.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
 
 
 @step(r'([\w]+) resolves into (.+) ip address')
