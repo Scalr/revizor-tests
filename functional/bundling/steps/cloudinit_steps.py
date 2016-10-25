@@ -5,7 +5,7 @@ from lettuce import world, step
 LOG = logging.getLogger(__name__)
 
 
-@step('I check that cloudinit is installed')
+@step(r"I check that cloudinit is installed")
 def check_cloudinit(step):
     node = getattr(world, 'cloud_server')
     out = node.run('cloud-init -v')[2]
@@ -13,7 +13,7 @@ def check_cloudinit(step):
         raise AssertionError('Cloud-init is not installed!')
 
 
-@step("I rebundle ([\w]+)")
+@step(r"I rebundle ([\w]+)")
 def rebundle_server(step, serv_as):
     step.behave_as("""
         When I create server snapshot for {serv_as}
