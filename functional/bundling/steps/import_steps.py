@@ -124,7 +124,7 @@ COOKBOOKS_BEHAVIOR = {
 }
 
 BEHAVIOR_SETS = {
-    'cloudinit': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
     'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
 }
 
@@ -175,12 +175,16 @@ def install_behaviors(step, behavior_set=None):
     cookbooks = []
     if behavior_set:
         cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        installed_behaviors = []
+        for c in cookbooks:
+            match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
+            installed_behaviors.append(match[0]) if match else installed_behaviors.append(c)
+        setattr(world, 'installed_behaviors', installed_behaviors)
     else:
         for behavior in CONF.feature.behaviors:
             if behavior in cookbooks:
                 continue
             cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
-    setattr(world, 'used_cookbooks', cookbooks)
     LOG.info('Initiate the installation behaviors on the server: %s' %
              world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks,
