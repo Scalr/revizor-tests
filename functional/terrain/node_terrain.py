@@ -574,8 +574,10 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         pid_after)
     assert not any(pid in pid_before for pid in pid_after), assertion_message
 
-@step(r'I create (\w+ )?image from deployed server')
-def creating_image(step, image_type='base'):
+@step(r'I create (\w+-?\w+? )?image from deployed server')
+def creating_image(step, image_type):
+    if not image_type:
+        image_type = 'base'
     cloud_server = getattr(world, 'cloud_server')
     # Create an image
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
@@ -608,7 +610,7 @@ def creating_image(step, image_type='base'):
     setattr(world, 'cloud_server', None)
 
 
-@step(r'I add (\w+ )?image to the new role')
+@step(r'I add (\w+-?\w+? )?image to the new roles?')
 def creating_role(step, image_type):
     if not image_type:
         image_type = 'base'
@@ -628,9 +630,8 @@ def creating_role(step, image_type):
             image_type.strip(),
             CONF.feature.dist,
             datetime.now())
-    if image_type.strip() == 'cloudinit':
-        behaviors = getattr(world, 'used_cookbooks', None)
-        behaviors = [b.replace('::server', '').strip('2') for b in behaviors]
+    if image_type != 'base':
+        behaviors = getattr(world, 'installed_behaviors', None)
     else:
         behaviors = ['chef']
     # Checking an image
@@ -644,8 +645,8 @@ def creating_role(step, image_type):
     if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
-        is_scalarized = False if image_type.strip() == 'cloudinit' else True
-        has_cloudinit = True if image_type.strip() == 'cloudinit' else False
+        is_scalarized = False if 'cloudinit' in image_type.strip() else True
+        has_cloudinit = True if 'cloudinit' in image_type.strip() else False
         image_kwargs.update(dict(
             software=behaviors,
             name=name,
@@ -656,10 +657,9 @@ def creating_role(step, image_type):
         image = IMPL.image.get(image_id=image_id)
     # Create new role
     for behavior in behaviors:
-        if image_type != 'base':
-            role_name = name.replace(image_type.strip(), behavior + '-' + image_type.strip())
-            if behavior in BEHAVIORS_ALIASES.values():
-                role_behaviors = [[x[0] for x in BEHAVIORS_ALIASES.items() if behavior in x][0]]
+        if 'cloudinit' in image_type.strip():
+            role_name = name.replace(image_type.strip(), behavior + '-cloudinit')
+            role_behaviors = [behavior]
             role_behaviors.append('chef')
         else:
             role_name = name
