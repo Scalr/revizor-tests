@@ -4,17 +4,23 @@ Feature: Discovery manager service
     As a scalr user
     I use Discovery manager service
 
-    @ec2 @rackspaceng @openstack @agentless
-    Scenario: Import running instances into scalr
+    @ec2 @gce @agentless
+    Scenario: Bootstraping
         Given I have a server running in cloud
-        Then I install scalarizr to the server
-        Given I have a an empty running farm
-        And I add image to the new role
+        And I have a clean and stopped farm
+        When I have a clean image
+        Then I add image to the new role as non scalarized
         And I add created role to the farm
-        Then I trigger the import and deploy scalr agent
+        And I start farm
+
+    @ec2 @gce @agentless
+    Scenario: Import running instances into scalr
+        Given I run the server imports running in the cloud
         When I see running server M1
-        And scalarizr version is last in M1
-        Then I reboot hard server M1
+        Then I install scalarizr to the server M1
+        Then I trigger the deploy scalr agent
+        When scalarizr version is last in M1
+        Then I reboot server M1
         When I expect server bootstrapping as M1
         Then I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1

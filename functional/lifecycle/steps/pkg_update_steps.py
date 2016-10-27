@@ -148,7 +148,13 @@ def waiting_new_package(step):
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    if Dist.is_windows_family(CONF.feature.dist):
+    node = getattr(world, 'cloud_server', None)
+    if node:
+        if CONF.feature.driver.is_platform_ec2:
+            image = node.driver.get_image(node.extra['image_id'])
+        elif CONF.feature.driver.is_platform_gce:
+            image = node.driver.ex_get_image(node.extra['selfLink'])
+    elif Dist.is_windows_family(CONF.feature.dist):
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist,
@@ -156,7 +162,7 @@ def having_clean_image(step):
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
             image = world.cloud.find_image(use_hvm=True)
         else:
             image = world.cloud.find_image(use_hvm=USE_VPC)
@@ -197,15 +203,15 @@ def creating_image(step):
     setattr(world, 'cloud_server', None)
 
 
-@step(r'I add image to the new role')
-def creating_role(step):
-    image_registered = False
+@step(r'I add image to the new role(\sas non scalarized)*$')
+def creating_role(step, use_scalarizr=None):
+    image = getattr(world, 'image')
     if CONF.feature.driver.is_platform_gce:
         cloud_location = ""
-        image_id = world.image.extra['selfLink'].split('projects')[-1][1:]
+        image_id = image.extra['selfLink'].split('projects')[-1][1:]
     else:
          cloud_location = CONF.platforms[CONF.feature.platform]['location']
-         image_id = world.image.id
+         image_id = image.id
     image_kwargs = dict(
         platform=CONF.feature.driver.scalr_cloud,
         cloud_location=cloud_location,
@@ -219,14 +225,19 @@ def creating_role(step):
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
         IMPL.image.check(**image_kwargs)
+        image_registered = False
     except Exception as e:
         if not ('Image has already been registered' in e.message):
             raise
         image_registered = True
+    is_scalarized = False if use_scalarizr else True
     if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
-        image_kwargs.update(dict(software=behaviors, name=name, is_scalarized=True))
+        image_kwargs.update(dict(
+            software=behaviors,
+            name=name,
+            is_scalarized=is_scalarized))
         image = IMPL.image.create(**image_kwargs)
     else:
         image = IMPL.image.get(image_id=image_id)
@@ -234,6 +245,7 @@ def creating_role(step):
     role_kwargs = dict(
         name=name,
         behaviors=behaviors,
+        is_scalarized = int(is_scalarized),
         images=[dict(
             platform=CONF.feature.driver.scalr_cloud,
             cloudLocation=cloud_location,
