@@ -5,10 +5,10 @@ Feature: Cloudinit roles bootstrapping
     Scenario: Create test roles with cloudinit
         Given I have a server running in cloud
         Then I install Chef on server
-        When I initiate the installation cloudinit behaviors on the server
+        When I initiate the installation mbeh1 behaviors on the server
         And I check that cloudinit is installed
-        Then I create cloudinit image from deployed server
-        And I add cloudinit image to the new role
+        Then I create mbeh1-cloudinit image from deployed server
+        And I add mbeh1-cloudinit image to the new roles
 
     @ec2 @cloudstack
     Scenario: Check roles and rebundle
@@ -27,8 +27,8 @@ Feature: Cloudinit roles bootstrapping
 
     Examples:
       | behavior                      |
-      | mysql                         |
-      | apache                        |
+      | mysql2                        |
+      | app                           |
       | redis                         |
       | haproxy                       |
       | postgresql                    |
