@@ -32,6 +32,12 @@ def waiting_server(step, state, serv_as, timeout=1400):
     setattr(world, serv_as, server)
 
 
+@step('scalarizr(\snot)* installed on the ([\w\d]+) server')
+def is_server_scalarized(step, negation, serv_as):
+    server = getattr(world, serv_as)
+    assert (not negation) is server.is_scalarized
+
+
 @step('I have (.+) server ([\w\d]+)$')
 def having_server(step, state, serv_as):
     server = getattr(world, serv_as)

@@ -148,13 +148,7 @@ def waiting_new_package(step):
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    node = getattr(world, 'cloud_server', None)
-    if node:
-        if CONF.feature.driver.is_platform_ec2:
-            image = node.driver.get_image(node.extra['image_id'])
-        elif CONF.feature.driver.is_platform_gce:
-            image = node.driver.ex_get_image(node.extra['selfLink'])
-    elif Dist.is_windows_family(CONF.feature.dist):
+    if Dist.is_windows_family(CONF.feature.dist):
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist,
@@ -204,7 +198,7 @@ def creating_image(step):
 
 
 @step(r'I add image to the new role(\sas non scalarized)*$')
-def creating_role(step, use_scalarizr=None):
+def creating_role(step, non_scalarized=None):
     image = getattr(world, 'image')
     if CONF.feature.driver.is_platform_gce:
         cloud_location = ""
@@ -230,7 +224,7 @@ def creating_role(step, use_scalarizr=None):
         if not ('Image has already been registered' in e.message):
             raise
         image_registered = True
-    is_scalarized = False if use_scalarizr else True
+    is_scalarized = False if non_scalarized else True
     if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
@@ -255,8 +249,8 @@ def creating_role(step, use_scalarizr=None):
     setattr(world, 'role', role['role'])
 
 
-@step(r'I add created role to the farm')
-def setting_farm(step):
+@step(r'I add created role to the farm(\swith custom deploy options)*$')
+def setting_farm(step, use_manual_scaling=None):
     farm = world.farm
     branch = CONF.feature.to_branch
     release = branch in ['latest', 'stable']
@@ -271,8 +265,14 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if CONF.feature.driver.is_platform_ec2 and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
+    if CONF.feature.driver.is_platform_ec2 \
+            and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
+    if use_manual_scaling:
+        manual_scaling = {
+            "scaling.one_by_one": 0,
+            "scaling.enabled": 0}
+        role_kwargs['options'].update(manual_scaling)
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
     farm.roles.reload()
