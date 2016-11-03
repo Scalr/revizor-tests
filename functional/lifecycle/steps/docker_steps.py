@@ -3,6 +3,7 @@ import docker
 import random
 import copy
 import time
+import string
 
 from lettuce import world, step
 
@@ -14,6 +15,10 @@ from revizor2.backend import IMPL
 
 LOG = logging.getLogger(__name__)
 
+NON_ASCII_SCRIPT = u'\u0442\u0435\u0441\u0442.sh'.encode('utf-8')
+
+NON_ASCII_COMMAND = u'bash /test/\u0442\u0435\u0441\u0442.sh'.encode('utf-8')
+
 
 def get_server_containers(serv_as):
     server = getattr(world, serv_as)
@@ -21,8 +26,9 @@ def get_server_containers(serv_as):
     containers = client.containers()
     server_containers = []
     for container in containers:
+        printable = set(string.printable)
         container = {
-            'command': container['Command'],
+            'command': filter(lambda x: x in printable, container['Command']),
             'containerId': container['Id'],
             'image': container['Image'],
             'labels': sorted([{
@@ -40,8 +46,8 @@ def get_server_containers(serv_as):
             'serverId': server.id,
             'volumes': sorted([{
                 'containerId': container['Id'],
-                'destination': v['Destination'],
-                'source': v['Source']} for v in container['Mounts']])}
+                'destination': filter(lambda x: x in printable, v['Destination']),
+                'source': filter(lambda x: x in printable, v['Source'])} for v in container['Mounts']])}
         server_containers.append(container)
     return server_containers
 
@@ -67,6 +73,7 @@ def install_docker(step, serv_as):
         docker pull nginx; \
         docker pull alpine'''.format(conf_folder, echo_line, conf_file, restart_cmd)
     node.run(command)
+    node.run('echo "sleep 1d" >> /home/scalr/{}'.format(NON_ASCII_SCRIPT))
     assert node.run('docker --version')
     client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
     setattr(world, serv_as + '_client', client)
@@ -85,9 +92,14 @@ def start_containers(step, serv_as):
             "detach": True}
         for conf in configs:
             if conf.startswith('vol'):
-                container = client.create_container(
-                    host_config=client.create_host_config(binds=configs[conf]),
-                    **base_config)
+                if conf == 'vol1' and image != 'alpine':
+                    container = client.create_container(
+                        host_config=client.create_host_config(binds=configs[conf]),
+                        image=image, command=NON_ASCII_COMMAND, detach=True)
+                else:
+                    container = client.create_container(
+                        host_config=client.create_host_config(binds=configs[conf]),
+                        **base_config)
 
             elif conf.startswith('ports'):
                 ports = {}
