@@ -32,4 +32,4 @@ Feature: Cloudinit roles bootstrapping
       | redis                         |
       | haproxy                       |
       | postgresql                    |
-      | rabbitmq                      |
+      # | rabbitmq                      | FAM-480
