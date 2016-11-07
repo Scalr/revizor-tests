@@ -123,6 +123,11 @@ COOKBOOKS_BEHAVIOR = {
 
 }
 
+BEHAVIOR_SETS = {
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
+    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
+}
+
 
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
@@ -164,14 +169,22 @@ def given_server_in_cloud(step, user_data):
                                  'an installed port is: %s' % new_port)
 
 
-@step('I initiate the installation behaviors on the server')
-def install_behaviors(step):
+@step('I initiate the installation (\w+ )?behaviors on the server')
+def install_behaviors(step, behavior_set=None):
     #Set recipe's
     cookbooks = []
-    for behavior in CONF.feature.behaviors:
-        if behavior in cookbooks:
-            continue
-        cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
+    if behavior_set:
+        cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        installed_behaviors = []
+        for c in cookbooks:
+            match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
+            installed_behaviors.append(match[0]) if match else installed_behaviors.append(c)
+        setattr(world, 'installed_behaviors', installed_behaviors)
+    else:
+        for behavior in CONF.feature.behaviors:
+            if behavior in cookbooks:
+                continue
+            cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
     LOG.info('Initiate the installation behaviors on the server: %s' %
              world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks,
@@ -305,16 +318,23 @@ def add_new_role_to_farm(step):
     setattr(world, '%s_role' % role.alias, role)
 
 
-@step(r'I install Chef on windows server')
-def install_chef_on_windows(step):
+@step(r'I install Chef on server')
+def install_chef(step):
     node = getattr(world, 'cloud_server', None)
-    console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
-    #TODO: Change to installation via Fatmouse task
-    # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
-    command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
-    console.run_cmd(command)
-    chef_version = console.run_cmd("chef-client --version")
-    assert chef_version.std_out, "Chef was not installed"
+    if Dist.is_windows_family(CONF.feature.dist):
+        console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
+        #TODO: Change to installation via Fatmouse task
+        # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+        command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
+        console.run_cmd(command)
+        chef_version = console.run_cmd("chef-client --version")
+        assert chef_version.std_out, "Chef was not installed"
+    else:
+        command = "curl -L https://www.opscode.com/chef/install.sh | \
+            bash && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
+        node.run(command)
+        chef_version = node.run("chef-client --version")
+        assert chef_version[2] == 0, "Chef was not installed"
 
 
 @after.each_scenario

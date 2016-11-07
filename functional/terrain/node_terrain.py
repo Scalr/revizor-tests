@@ -11,8 +11,10 @@ import re
 from lettuce import world, step
 
 from libcloud.compute.types import NodeState
+from datetime import datetime
 
 from revizor2 import consts
+from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
@@ -571,6 +573,108 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         pid_before,
         pid_after)
     assert not any(pid in pid_before for pid in pid_after), assertion_message
+
+@step(r'I create (\w+-?\w+? )?image from deployed server')
+def creating_image(step, image_type):
+    if not image_type:
+        image_type = 'base'
+    cloud_server = getattr(world, 'cloud_server')
+    # Create an image
+    image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
+        image_type.strip(),
+        CONF.feature.dist,
+        datetime.now()
+    )
+    # Set credentials to image creation
+    kwargs = dict(
+        node=cloud_server,
+        name=image_name,
+    )
+    if CONF.feature.driver.is_platform_ec2:
+        kwargs.update({'reboot': False})
+    image = world.cloud.create_template(**kwargs)
+    assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
+    # Remove cloud server
+    LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
+    setattr(world, 'image', image)
+    LOG.debug('Image attrs: %s' % dir(image))
+    LOG.debug('Image Name: %s' % image.name)
+    if CONF.feature.driver.is_platform_cloudstack:
+        forwarded_port = world.forwarded_port
+        ip = world.ip
+        assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
+    LOG.info('Port forwarding rule was successfully removed.')
+    if not CONF.feature.driver.is_platform_gce:
+        assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
+    LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
+    setattr(world, 'cloud_server', None)
+
+
+@step(r'I add (\w+-?\w+? )?image to the new roles?')
+def creating_role(step, image_type):
+    if not image_type:
+        image_type = 'base'
+    image_registered = False
+    if CONF.feature.driver.is_platform_gce:
+        cloud_location = ""
+        image_id = world.image.extra['selfLink'].split('projects')[-1][1:]
+    else:
+         cloud_location = CONF.platforms[CONF.feature.platform]['location']
+         image_id = world.image.id
+    image_kwargs = dict(
+        platform=CONF.feature.driver.scalr_cloud,
+        cloud_location=cloud_location,
+        image_id=image_id
+    )
+    name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
+            image_type.strip(),
+            CONF.feature.dist,
+            datetime.now())
+    if image_type != 'base':
+        behaviors = getattr(world, 'installed_behaviors', None)
+    else:
+        behaviors = ['chef']
+    # Checking an image
+    try:
+        LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
+        IMPL.image.check(**image_kwargs)
+    except Exception as e:
+        if not ('Image has already been registered' in e.message):
+            raise
+        image_registered = True
+    if not image_registered:
+        # Register image to the Scalr
+        LOG.debug('Register image %s to the Scalr' % name)
+        is_scalarized = False if 'cloudinit' in image_type.strip() else True
+        has_cloudinit = True if 'cloudinit' in image_type.strip() else False
+        image_kwargs.update(dict(
+            software=behaviors,
+            name=name,
+            is_scalarized=is_scalarized,
+            has_cloudinit=has_cloudinit))
+        image = IMPL.image.create(**image_kwargs)
+    else:
+        image = IMPL.image.get(image_id=image_id)
+    # Create new role
+    for behavior in behaviors:
+        if 'cloudinit' in image_type.strip():
+            role_name = name.replace(image_type.strip(), behavior + '-cloudinit')
+            role_behaviors = [behavior]
+            role_behaviors.append('chef')
+        else:
+            role_name = name
+            role_behaviors = behaviors
+        role_kwargs = dict(
+            name=role_name,
+            behaviors=role_behaviors,
+            images=[dict(
+                platform=CONF.feature.driver.scalr_cloud,
+                cloudLocation=cloud_location,
+                hash=image['hash'])])
+        LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
+        LOG.debug(role_kwargs)
+        role = IMPL.role.create(**role_kwargs)
+    setattr(world, 'role', role['role'])
 
 
 def run_sysprep(uuid, console):
