@@ -18,8 +18,8 @@ Feature: Discovery manager service
         Given I see running server M1
         And scalarizr not installed on the M1 server
         Then I install scalarizr to the server M1
-        When I trigger the deploy and run scalr agent
-        Then connection with scalarizr was established
+        When I trigger the deploy and run scalr agent on the M1 server
+        Then connection with agent on the M1 server was established
         And scalarizr version is last in M1
         When I reboot server M1
         Then I expect server bootstrapping as M1

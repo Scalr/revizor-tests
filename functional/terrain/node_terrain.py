@@ -726,6 +726,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         res = node.run(cmd)[0]
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
+        cv2_init = 'touch /etc/scalr/private.d/scalr_labs_corev2'
+        LOG.info('Init scalarizr corev2. Run command %s' % cv2_init)
+        node.run(cv2_init)
     setattr(world, 'pre_installed_agent', version[0])
     if resave_node:
         setattr(world, 'cloud_server', node)

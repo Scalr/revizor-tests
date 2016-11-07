@@ -48,6 +48,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
         os.makedirs(path, 0755)
     # Get logs && configs
     for server in servers:
+        if not server.is_scalarized: continue
         logs = [
             # debug log
             {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_debug.log'))),
