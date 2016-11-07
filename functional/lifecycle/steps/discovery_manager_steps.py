@@ -68,4 +68,3 @@ def handle_agent_status(step, serv_as):
     else:
         msg = 'Timeout: %d seconds reached' % (timeout,)
         raise exceptions.TimeoutError(msg, timeout)
-

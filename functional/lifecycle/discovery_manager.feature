@@ -22,7 +22,7 @@ Feature: Discovery manager service
         Then connection with agent on the M1 server was established
         And scalarizr version is last in M1
         When I reboot server M1
-        Then I expect server bootstrapping as M1
+        And Scalr receives RebootFinish from M1
         When I execute script 'Linux ping-pong' synchronous on M1
         Then I see script result in M1
         And script output contains 'pong' in M1
