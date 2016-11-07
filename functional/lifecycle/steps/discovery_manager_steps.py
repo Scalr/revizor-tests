@@ -7,7 +7,7 @@ import time
 import logging
 import exceptions
 
-from lettuce import world, step, after
+from lettuce import world, step
 from revizor2.conf import CONF
 from revizor2.api import IMPL
 
