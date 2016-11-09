@@ -70,7 +70,7 @@ Feature: Linux update for new package test
         Given I have a clean image
         And I add image to the new role
         When I have a an empty running farm
-        Then I add created role to the farm with branch_stable
+        Then I add created role to the farm
         And I see pending server M5
         Then I install scalarizr to the server M5
         And I reboot hard server M5
