@@ -1,0 +1,6 @@
+{
+    "DISTS": ["ubuntu1404", "ubuntu1204", "ubuntu1604", "centos6", "centos7",  "rhel6", "rhel7", "amzn1603"],
+    "RV_PLATFORM": {
+        "ec2": {"tags": [], "default": true}
+    }
+}
