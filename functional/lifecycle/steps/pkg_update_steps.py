@@ -282,6 +282,7 @@ def setting_farm(step, use_manual_scaling=None):
 
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
+    #FIXME: wait longer for update finished
     server = getattr(world, serv_as)
     for i in range(3):
         try:

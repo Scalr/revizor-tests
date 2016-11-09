@@ -2,6 +2,7 @@ import os
 import re
 import logging
 import json
+import semver
 from datetime import datetime
 
 from lettuce import world, after, before
@@ -14,6 +15,8 @@ from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
+from revizor2.defaults import DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+from revizor2.helpers.parsers import parser_for_os_family
 
 
 LOG = logging.getLogger(__name__)
@@ -184,6 +187,44 @@ def exclude_steps_by_options(feature):
             scenario.steps.remove(step)
         if len(scenario.steps) == 0:
             feature.scenarios.remove(scenario)
+
+
+@before.each_feature
+def exclude_update_from_latest(feature):
+    """
+    Exclude 'update from latest' scenario if branch version is lower than latest
+    """
+    if feature.name in ['Linux update for new package test', 'Windows update for new package test']:
+        os_family = Dist.get_os_family(CONF.feature.dist)
+        to_branch = CONF.feature.branch
+        if to_branch == 'latest':  # Excludes when trying to update from latest to latest
+            match = True
+        else:
+            for branch in [to_branch, 'latest']:
+                if branch in ['stable', 'latest']:
+                    default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+                else:
+                    url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+                    path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+                    default_repo = url.format(path=path)
+                index_url = default_repo.format(branch=branch)
+                repo_data = parser_for_os_family(os_family)(branch=branch, index_url=index_url)
+                versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+                versions.sort(reverse=True)
+                last_version = versions[0]
+                if last_version.strip().endswith('-1'):
+                    last_version = last_version.strip()[:-2]
+                if branch == to_branch:
+                    to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
+                    LOG.debug("Testing branch version: %s" % to_version)
+                else:
+                    latest_version = last_version
+                    LOG.debug("Latest version: %s" % latest_version)
+            match = semver.match(latest_version, '>' + to_version)
+        if match:
+            scenario = [s for s in feature.scenarios if s.name == 'Update from latest to branch from ScalrUI'][0]
+            feature.scenarios.remove(scenario)
+            LOG.info("Removed scenario: %s" % scenario)
 
 
 @after.outline
