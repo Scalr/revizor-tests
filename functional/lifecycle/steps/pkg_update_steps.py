@@ -164,10 +164,10 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I add created role to the farm')
-def setting_farm(step):
+@step(r'I add created role to the farm( with branch_stable)?')
+def setting_farm(step, stable=False):
     farm = world.farm
-    branch = CONF.feature.to_branch
+    branch = CONF.feature.to_branch if not stable else 'stable'
     release = branch in ['latest', 'stable']
     role_kwargs = dict(
         location=CONF.platforms[CONF.feature.platform]['location'] \
