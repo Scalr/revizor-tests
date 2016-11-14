@@ -68,6 +68,7 @@ Feature: Windows server lifecycle
         | Windows ping-pong. PS  | synchronous  |              | pong   |
         | Windows ping-pong. PS  | asynchronous |              | pong   |
         | https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt| asynchronous | local | Script runned from URL |
+        | https://gist.githubusercontent.com/Theramas/48753f91f4af72be12c03c0485b27f7d/raw/97caf55e74c8db6c5bf96b6a29e48c043ac873ed/test| asynchronous | local | Multiplatform script successfully executed |
 
     @ec2 @gce @openstack
     Scenario: Restart farm
