@@ -194,7 +194,10 @@ def exclude_update_from_latest(feature):
     Exclude 'update from latest' scenario if branch version is lower than latest
     """
     if feature.name in ['Linux update for new package test', 'Windows update for new package test']:
-        os_family = Dist.get_os_family(CONF.feature.dist)
+        if Dist.is_windows_family(CONF.feature.dist):
+            os_family = 'windows'
+        else:
+            os_family = Dist.get_os_family(CONF.feature.dist)
         to_branch = CONF.feature.branch
         if to_branch == 'latest':  # Excludes when trying to update from latest to latest
             match = True
