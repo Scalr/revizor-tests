@@ -24,7 +24,6 @@ Feature: Cloudinit roles bootstrapping
         And <behavior> is running on M2
         And scalarizr version is last in M2
 
-
     Examples:
       | behavior                      |
       | mysql2                        |

@@ -1,7 +1,6 @@
 __author__ = 'gigimon'
 
 import os
-import sys
 import time
 import logging
 import urllib2
