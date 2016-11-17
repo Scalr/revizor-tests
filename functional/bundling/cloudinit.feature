@@ -8,10 +8,10 @@ Feature: Cloudinit roles bootstrapping
         When I initiate the installation mbeh1 behaviors on the server
         And I check that cloudinit is installed
         Then I create mbeh1-cloudinit image from deployed server
-        And I add mbeh1-cloudinit image to the new roles
+        And I add mbeh1-cloudinit image to the new roles as non scalarized
 
     @ec2 @cloudstack
-    Scenario: Check roles and rebundle
+    Scenario Outline: Check roles and rebundle
         Given I have a an empty running farm
         When I add <behavior>-cloudinit role to this farm
         Then I expect server bootstrapping as M1
@@ -23,7 +23,6 @@ Feature: Cloudinit roles bootstrapping
         Then I expect server bootstrapping as M2
         And <behavior> is running on M2
         And scalarizr version is last in M2
-
 
     Examples:
       | behavior                      |
