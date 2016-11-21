@@ -216,7 +216,8 @@ def start_building(step):
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
     #and then run scalari4zr on new screen
     if Dist.is_windows_family(CONF.feature.dist):
-        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
+        password = 'Scalrtest123' if CONF.feature.dist == 'win2016' else 'scalr'
+        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
         def call_in_background(command):
             try:
                 console.run_cmd(command)
@@ -322,7 +323,8 @@ def add_new_role_to_farm(step):
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
     if Dist.is_windows_family(CONF.feature.dist):
-        console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
+        password = 'Scalrtest123' if CONF.feature.dist == 'win2016' else 'scalr'
+        console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
         #TODO: Change to installation via Fatmouse task
         # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
         command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
