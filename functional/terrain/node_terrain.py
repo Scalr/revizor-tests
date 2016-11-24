@@ -774,14 +774,15 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
+        password = 'Scalrtest123' if CONF.feature.dist == 'win2016' else 'scalr'
         if node:
             console_kwargs = dict(
                 public_ip=node.public_ips[0],
-                password='scalr')
+                password=password)
         else:
             console_kwargs = dict(server=server)
             if CONF.feature.driver.is_platform_ec2:
-                console_kwargs.update({'password': 'scalr'})
+                console_kwargs.update({'password': password})
             LOG.debug('Cloud server not found get node from server')
             node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
             LOG.debug('Node get successfully: %s' % node)  # Wait ssh
