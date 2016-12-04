@@ -273,15 +273,19 @@ def add_global_config(step, proxy_role):
 
 @step(r'([\w\d]+) config should contain global section')
 def check_global_in_config(step, serv_as):
-    time.sleep(5)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
-    section_start = c.find('##### main template start #####') + len('##### main template start #####')
-    section_end = c.find('##### main template end #####')
-    if section_start == -1 or section_end == -1:
-        raise AssertionError('HAProxy config doesn\'t has a main template markers: [%s:%s]. Config: \n %s' % (section_start, section_end, c))
-    origin_config = [l.strip() for l in re.sub(r'[ ]+', ' ', GLOBAL_TEMPLATE).splitlines() if l.strip()]
-    config = [str(l.strip()) for l in re.sub(r'[ ]+', ' ', c[section_start:section_end]).splitlines() if l.strip()]
-    if not config == origin_config:
-        raise AssertionError("%s server has invalid global config: %s" % (serv_as, config))
+    for _ in range(6):
+        c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
+        section_start = c.find('##### main template start #####') + len('##### main template start #####')
+        section_end = c.find('##### main template end #####')
+        if section_start == -1 or section_end == -1:
+            time.sleep(10)
+        elif section_start > 0 and section_end > 0:
+            origin_config = [l.strip() for l in re.sub(r'[ ]+', ' ', GLOBAL_TEMPLATE).splitlines() if l.strip()]
+            config = [str(l.strip()) for l in re.sub(r'[ ]+', ' ', c[section_start:section_end]).splitlines() if
+                      l.strip()]
+            if not config == origin_config:
+                raise AssertionError("%s server has invalid global config: %s" % (serv_as, config))
+    else:
+        raise AssertionError('HAProxy config doesn\'t has a main template markers. Config: \n %s' % c)
