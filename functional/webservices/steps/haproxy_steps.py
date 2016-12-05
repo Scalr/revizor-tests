@@ -285,7 +285,11 @@ def check_global_in_config(step, serv_as):
             origin_config = [l.strip() for l in re.sub(r'[ ]+', ' ', GLOBAL_TEMPLATE).splitlines() if l.strip()]
             config = [str(l.strip()) for l in re.sub(r'[ ]+', ' ', c[section_start:section_end]).splitlines() if
                       l.strip()]
+            LOG.debug('Origin haproxy config:\n%s' % origin_config)
+            LOG.debug('Haproxy config from server:\n%s' % config)
             if not config == origin_config:
                 raise AssertionError("%s server has invalid global config: %s" % (serv_as, config))
+            else:
+                return
     else:
         raise AssertionError('HAProxy config doesn\'t has a main template markers. Config: \n %s' % c)
