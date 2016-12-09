@@ -1,6 +1,7 @@
 import logging
 
 from lettuce import world, step
+from revizor2.api import Dist, CONF
 
 LOG = logging.getLogger(__name__)
 
@@ -10,7 +11,13 @@ def check_cloudinit(step):
     node = getattr(world, 'cloud_server')
     out = node.run('cloud-init -v')[2]
     if out != 0:
-        raise AssertionError('Cloud-init is not installed!')
+        if Dist.is_centos_family(CONF.feature.dist):
+            node.run('yum install cloud-init -y')
+        else:
+            node.run('sudo apt-get install cloud-init -y')
+        out = node.run('cloud-init -v')[2]
+        if out != 0:
+            raise AssertionError('Cloud-init is not installed!')
 
 
 @step(r"I rebundle ([\w]+)")
