@@ -32,6 +32,12 @@ def waiting_server(step, state, serv_as, timeout=1400):
     setattr(world, serv_as, server)
 
 
+@step('scalarizr(\snot)* installed on the ([\w\d]+) server')
+def is_server_scalarized(step, negation, serv_as):
+    server = getattr(world, serv_as)
+    assert (not negation) is server.is_scalarized
+
+
 @step('I have (.+) server ([\w\d]+)$')
 def having_server(step, state, serv_as):
     server = getattr(world, serv_as)
@@ -228,7 +234,7 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6', '!centos7'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.driver.current_cloud in [Platform.IDCF,
@@ -334,16 +340,3 @@ def checking_info_instance_vcpus(step, serv_as):
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
     assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id
-
-
-@after.each_scenario
-def save_scalarizr_memory_rss(scenario):
-    LOG.info('----- SCALARIZR MEMORY INFO AFTER SCENARIO: "%s" -----' % scenario.name)
-    try:
-        for s in world.farm.servers:
-            if s.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
-                node = world.cloud.get_node(s)
-                rss = node.run("ps aux | grep 'bin/scal' | awk '{print $6}'")[0].splitlines()[:2]
-                LOG.info('Server "%s" scalarizr + scalr-upd-client: %s / %s' % (s.id, rss[0], rss[1]))
-    except:
-        pass

@@ -54,10 +54,10 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 public_ip = server.public_ip
                 password = password or server.windows_password
                 if not password:
-                    password = 'scalr'
+                    password = 'Scalrtest123'
             if CONF.feature.driver.is_platform_gce:
                 username = 'scalr'
-            elif CONF.feature.driver.is_platform_cloudstack:
+            elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
                 port = world.cloud.open_port(node, port)
             LOG.info('Used credentials for windows session: %s:%s %s:%s' % (public_ip, port, username, password))

@@ -16,7 +16,7 @@ Feature: Linux server lifecycle
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
-    @ec2 @cloudstack @gce @openstack @storages
+    @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -26,7 +26,7 @@ Feature: Linux server lifecycle
         And I create 100 files in '/media/diskmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
-    @ec2 @cloudstack @gce @openstack @storages @fstab
+    @ec2 @cloudstack @gce @storages @fstab
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
@@ -38,7 +38,7 @@ Feature: Linux server lifecycle
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @cloudstack @openstack @storages @fstab
+    @ec2 @cloudstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
@@ -63,6 +63,13 @@ Feature: Linux server lifecycle
         When I execute script 'Non ascii script wrong interpreter' synchronous on M1
         And I see script result in M1
         And script result contains 'Interpreter not found u'/no/\xc3\xa7\xc3\xa3o'' on M1
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
+    Scenario: Check non-ascii script output on Linux
+        Given I have running server M1
+        When I execute script 'non-ascii-output' synchronous on M1
+        Then I see script result in M1
+        And script output contains 'Ã¼' in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @scripting
     Scenario: Verify hidden global variable
@@ -111,7 +118,7 @@ Feature: Linux server lifecycle
         When I stop farm
         And wait all servers are terminated
 
-    @ec2 @cloudstack @openstack @gce @storages
+    @ec2 @cloudstack @gce @storages
     Scenario: Delete attached storage
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
@@ -122,7 +129,7 @@ Feature: Linux server lifecycle
         Then I expect server bootstrapping as M1
         And scalarizr version from system repo is last in M1
 
-    @ec2 @cloudstack @gce @openstack @storages
+    @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old

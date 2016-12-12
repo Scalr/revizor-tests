@@ -4,7 +4,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
     @ec2 @gce @cloudstack @rackspaceng @openstack @import
     Scenario: Import server with scalarizr installed from branch
         Given I have a server running in cloud
-        Then I initiate the installation behaviors on the server
+        Then I install scalarizr to the server
         Then I trigger the Start building and run scalarizr
         And connection with scalarizr was established
         Then I trigger the Create role

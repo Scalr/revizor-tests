@@ -12,8 +12,8 @@ from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES, Platform
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
-
 from lxml import etree
+
 
 LOG = logging.getLogger(__name__)
 
@@ -65,6 +65,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
             elif USE_VPC:
                 mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
+            elif '-cloudinit' in behavior:
+                mask = 'tmp-%s-%s-*-*' % (behavior, dist)
             else:
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -78,6 +80,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             elif USE_VPC:
                 role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
+            elif '-cloudinit' in behavior:
+                role_name = 'tmp-%s-%s-%s' % (behavior, dist, versions[0])
             else:
                 role_name = '%s%s-%s-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)

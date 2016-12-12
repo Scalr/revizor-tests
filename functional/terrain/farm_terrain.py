@@ -37,7 +37,7 @@ def having_a_stopped_farm(step):
         world.farm.terminate()
 
 
-@step(r"I add(?P<behavior> \w+)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
+@step(r"I add(?P<behavior> \w+-?\w+?)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
 def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=None):
     additional_storages = None
     options = options or []
@@ -48,7 +48,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
-    if CONF.feature.dist == 'scientific6':
+    if CONF.feature.dist == 'scientific6' or (CONF.feature.dist == 'centos7' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.startswith('win'):

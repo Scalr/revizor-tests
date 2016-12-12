@@ -261,11 +261,13 @@ def assert_check_databundle_date(step, back_type):
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
         LOG.info('Platform is cloudstack-family, backup not doing')
         return True
-    info = world.get_role().db.info()
-    if info['last_%s' % back_type] == 'In progress...':
-        while world.get_role().db.info()['last_%s' % back_type] == 'In progress...':
-            LOG.debug('Last %s in progress, wait 10 seconds' % back_type)
-            time.sleep(10)
+    for attempt in range(6):
+        LOG.debug('%s attempt to check databnundle status' % attempt)
+        info = world.get_role().db.info()
+        LOG.info('%s now in %s state' % (back_type, info['last_%s' % back_type]))
+        if info['last_%s' % back_type] not in ['In progress...', 'Never']:
+            break
+        time.sleep(10)
     if not info['last_%s' % back_type] == getattr(world, 'last_%s' % back_type, 'Never'):
         return
     else:
@@ -286,6 +288,7 @@ def create_database_user(step, username, serv_as):
 def having_small_database(step, db_name, serv_as, username=None):
     server = getattr(world, serv_as)
     db_role = world.get_role()
+    time.sleep(60)
     if username:
         LOG.info("Create database %s in server %s by user %s" % (db_name, server, username))
         setattr(world, 'data_insert_result', db_role.db.insert_data_to_database(db_name, server, (username, db_role.db.credentials[username])))

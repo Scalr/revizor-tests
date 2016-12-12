@@ -115,7 +115,11 @@ def verify_recipes_in_runlist(step, serv_as, recipes):
 def chef_bootstrap_failed(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    out = node.run('tail -n 50 /var/log/scalarizr_debug.log')[0]
-    if "001-chef.bootstrap/bin/chef.sh']] exited with code 1" not in out and \
-        "Command /usr/bin/chef-client exited with code 1" not in out:
-        raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
+    failure_markers = [
+        'Command "/usr/bin/chef-client" exited with code 1',
+        'Command /usr/bin/chef-client exited with code 1']
+    for m in failure_markers:
+        out = node.run('grep %s /var/log/scalarizr_debug.log' % m)[0]
+        if out.strip():
+            return
+    raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")

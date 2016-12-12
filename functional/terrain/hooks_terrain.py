@@ -1,12 +1,13 @@
-__author__ = 'gigimon'
 import os
 import re
 import logging
 import json
+import semver
 from datetime import datetime
 
 from lettuce import world, after, before
 
+from lxml import etree
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
@@ -14,6 +15,9 @@ from revizor2.cloud import Cloud
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
+from revizor2.defaults import DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+from revizor2.helpers.parsers import parser_for_os_family
+
 
 LOG = logging.getLogger(__name__)
 
@@ -47,6 +51,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
         os.makedirs(path, 0755)
     # Get logs && configs
     for server in servers:
+        if not server.is_scalarized: continue
         logs = [
             # debug log
             {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_debug.log'))),
@@ -70,9 +75,27 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
             except BaseException, e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
+        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
+            node = world.cloud.get_node(server)
+            out = node.run("ps aux | grep 'bin/scal'")[0]
+            for line in out.splitlines():
+                ram = line.split()[5]
+                if len(ram) > 3:
+                    ram = '%sMB' % ram[:-3]
+                if 'bin/scalr-upd-client' in line:
+                    LOG.info('Server %s use %s RAM for update-client' % (server.id, ram))
+                    world.wrt(etree.Element('meta', name='szrupdateram', value=ram, serverid=server.id))
+                elif 'bin/scalarizr' in line:
+                    LOG.info('Server %s use %s RAM for scalarizr' % (server.id, ram))
+                    world.wrt(etree.Element('meta', name='szrram', value=ram, serverid=server.id))
     # Save farm, domains and messages info if scenario has failed
     if scenario.failed or outline_failed:
-        domains = IMPL.domain.list(farm_id=farm.id)
+        domains = None
+        try:
+            domains = IMPL.domain.list(farm_id=farm.id)
+        except Exception as e:
+            if not 'You do not have permission to view this component' in str(e):
+                raise
         LOG.warning("Get farm settings after test failure")
         farm_settings = IMPL.farm.get_settings(farm_id=farm.id)
         if servers:
@@ -164,6 +187,47 @@ def exclude_steps_by_options(feature):
             scenario.steps.remove(step)
         if len(scenario.steps) == 0:
             feature.scenarios.remove(scenario)
+
+
+@before.each_feature
+def exclude_update_from_latest(feature):
+    """
+    Exclude 'update from latest' scenario if branch version is lower than latest
+    """
+    if feature.name in ['Linux update for new package test', 'Windows update for new package test']:
+        if Dist.is_windows_family(CONF.feature.dist):
+            os_family = 'windows'
+        else:
+            os_family = Dist.get_os_family(CONF.feature.dist)
+        to_branch = CONF.feature.branch
+        if to_branch == 'latest':  # Excludes when trying to update from latest to latest
+            match = True
+        else:
+            for branch in [to_branch, 'latest']:
+                if branch in ['stable', 'latest']:
+                    default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+                else:
+                    url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+                    path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+                    default_repo = url.format(path=path)
+                index_url = default_repo.format(branch=branch)
+                repo_data = parser_for_os_family(os_family)(branch=branch, index_url=index_url)
+                versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+                versions.sort(reverse=True)
+                last_version = versions[0]
+                if last_version.strip().endswith('-1'):
+                    last_version = last_version.strip()[:-2]
+                if branch == to_branch:
+                    to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
+                    LOG.debug("Testing branch version: %s" % to_version)
+                else:
+                    latest_version = last_version
+                    LOG.debug("Latest version: %s" % latest_version)
+            match = semver.match(latest_version, '>' + to_version)
+        if match:
+            scenario = [s for s in feature.scenarios if s.name == 'Update from latest to branch from ScalrUI'][0]
+            feature.scenarios.remove(scenario)
+            LOG.info("Removed scenario: %s" % scenario)
 
 
 @after.outline

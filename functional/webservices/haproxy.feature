@@ -77,11 +77,11 @@ Feature: HAProxy load balancer role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Check network options
         Given I have a clean and stopped farm
-        When I add app role to this farm
-        And I add haproxy role to this farm
+        When I add haproxy role to this farm
+        And I add app role to this farm
         Then I start farm
-        And I expect server bootstrapping as W1
-        And bootstrap 1 servers as (A1) in app role
+        And I expect server bootstrapping as W1 in haproxy role
+        And I expect server bootstrapping as A1 in app role
         Then I add proxy P1 to haproxy role for 80 port with app role backend and public network
         And I add proxy P2 to haproxy role for 100 port with app role backend and private network
         When I reboot server W1
@@ -94,11 +94,11 @@ Feature: HAProxy load balancer role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Check templates
         Given I have a clean and stopped farm
-        When I add app role to this farm
-        And I add haproxy role to this farm
+        When I add haproxy role to this farm
+        And I add app role to this farm
         Then I start farm
-        And I expect server bootstrapping as W1
-        And bootstrap 1 servers as (A1) in app role
+        And I expect server bootstrapping as W1 in haproxy role
+        And I expect server bootstrapping as A1 in app role
         Then I add proxy P1 to haproxy role for 80 port with app role backend and proxy template
         And I add global config to haproxy role
         And I reboot server W1 

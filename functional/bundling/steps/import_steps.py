@@ -123,11 +123,16 @@ COOKBOOKS_BEHAVIOR = {
 
 }
 
+BEHAVIOR_SETS = {
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
+    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
+}
+
 
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
-    LOG.info('Create node %s in cloud' % user_data)
+    LOG.info('Create node in cloud. User_data:%s' % user_data)
     #Convert dict to formatted str
     if user_data:
         dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
@@ -164,14 +169,22 @@ def given_server_in_cloud(step, user_data):
                                  'an installed port is: %s' % new_port)
 
 
-@step('I initiate the installation behaviors on the server')
-def install_behaviors(step):
+@step('I initiate the installation (\w+ )?behaviors on the server')
+def install_behaviors(step, behavior_set=None):
     #Set recipe's
-    cookbooks = ['base']
-    for behavior in CONF.feature.behaviors:
-        if behavior in cookbooks:
-            continue
-        cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
+    cookbooks = []
+    if behavior_set:
+        cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        installed_behaviors = []
+        for c in cookbooks:
+            match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
+            installed_behaviors.append(match[0]) if match else installed_behaviors.append(c)
+        setattr(world, 'installed_behaviors', installed_behaviors)
+    else:
+        for behavior in CONF.feature.behaviors:
+            if behavior in cookbooks:
+                continue
+            cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
     LOG.info('Initiate the installation behaviors on the server: %s' %
              world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks,
@@ -201,9 +214,10 @@ def start_building(step):
     world.server = Server(**{'id': res['server_id']})
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
-    #and then run scalarizr on new screen
+    #and then run scalari4zr on new screen
     if Dist.is_windows_family(CONF.feature.dist):
-        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password='scalr')
+        password = 'Scalrtest123'
+        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
         def call_in_background(command):
             try:
                 console.run_cmd(command)
@@ -219,47 +233,53 @@ def start_building(step):
 def is_scalarizr_connected(step, timeout=1400):
     LOG.info('Establish connection with scalarizr.')
     #Whait outbound request from scalarizr
-    res = wait_until(IMPL.bundle.check_scalarizr_connection, args=(world.server.id, ), timeout=timeout,
-                     error_text="Time out error. Can't establish connection with scalarizr.")
-    if not res['failure_reason']:
-        world.bundle_task_id = res['bundle_task_id']
-        if not res['behaviors']:
-            world.behaviors = ['base']
-        elif 'base' not in res['behaviors']:
-            world.behaviors = ','.join((','.join(res['behaviors']), 'base')).split(',')
-        else:
-            world.behaviors = res['behaviors']
-        LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.behaviors)
+    res = wait_until(
+        IMPL.bundle.check_scalarizr_connection,
+        args=(world.server.id, ),
+        timeout=timeout,
+        error_text="Time out error. Can't establish connection with scalarizr.")
+    if res.get('failure_reason'):
+        raise AssertionError("Bundle task {id} failed. Error: {msg}".format(
+            id=res['id'],
+            msg=res['failure_reason']))
+    world.bundle_task = res
+    if not res['behaviors']:
+        world.bundle_task.update({'behaviors': ['base']})
+    elif 'base' not in res['behaviors']:
+        world.bundle_task.update({'behaviors': ','.join((','.join(res['behaviors']), 'base')).split(',')})
     else:
-        raise AssertionError("Can't establish connection with scalarizr. Original error: %s" % res['failure_reason'])
+        world.bundle_task.update({'behaviors': res['behaviors']})
+    LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.bundle_task['behaviors'])
 
 
 @step('I trigger the Create role')
 def create_role(step):
-    behaviors_name = CONF.feature.behaviors
+    kwargs = dict(
+        server_id=world.server.id,
+        bundle_task_id=world.bundle_task['id'],
+        os_id=world.bundle_task['os'][0]['id']
+    )
     if Dist.is_windows_family(CONF.feature.dist):
-        behaviors = 'chef'
+        kwargs.update({'behaviors': 'chef'})
+    elif all(behavior in world.bundle_task['behaviors'] for behavior in CONF.feature.behaviors):
+        kwargs.update({'behaviors': ','.join(CONF.feature.behaviors)})
     else:
-        behaviors = ','.join(behaviors_name)
-        LOG.info('Create new role with %s behaviors.' % ','.join(behaviors_name))
-        for behavior in behaviors_name:
-            if not behavior in world.behaviors:
-                raise AssertionError('Transmitted behavior: %s, not in the list received from the server' % behavior)
+        raise AssertionError(
+            'Transmitted behavior: %s, not in the list received from the server' % CONF.feature.behaviors)
 
-    res = IMPL.bundle.create_role(server_id=world.server.id,
-                                  bundle_task_id=world.bundle_task_id,
-                                  behaviors=behaviors,
-                                  os_id=Dist.get_os_id(CONF.feature.dist))
-    if not res:
-        raise AssertionError('Create role initialization is failed.')
+    if not IMPL.bundle.create_role(**kwargs):
+        raise AssertionError('Create role initi`alization is failed.')
 
 
 @step('Role has successfully been created$')
 def assert_role_task_created(step,  timeout=1400):
-    res = wait_until(IMPL.bundle.assert_role_task_created, args=(world.bundle_task_id, ), timeout=timeout,
-                     error_text="Time out error. Can't create role with sent behaviors: $s." % CONF.feature.behaviors)
-    if res['failure_reason']:
-        raise AssertionError("Can't create role. Original error: %s" % res['failure_reason'])
+    res = wait_until(
+        IMPL.bundle.assert_role_task_created,
+        args=(world.bundle_task.get('id'), ),
+        timeout=timeout,
+        error_text="Time out error. Can't create role with behaviors: %s." % CONF.feature.behaviors)
+    if res.get('failure_reason'):
+        raise AssertionError("Can't create role: %s. Error: %s" % (res['role_id'],res['failure_reason']))
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
     world.bundled_role_id = res['role_id']
     #Remove port forward rule for Cloudstack
@@ -270,8 +290,15 @@ def assert_role_task_created(step,  timeout=1400):
         LOG.info('Port Forwarding Rule was successfully removed.')
     #Destroy virtual machine in Cloud
     LOG.info('Destroying virtual machine %s in Cloud' % world.cloud_server.id)
-    if not world.cloud_server.destroy():
-        raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
+    try:
+        if not world.cloud_server.destroy():
+            raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
+    except Exception as e:
+        if CONF.feature.driver.current_cloud == Platform.GCE:
+            if world.cloud_server.name in str(e):
+                pass
+        else:
+            raise
     LOG.info('Virtual machine %s was successfully destroyed.' % world.cloud_server.id)
     world.cloud_server = None
 
@@ -291,16 +318,25 @@ def add_new_role_to_farm(step):
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
 
-@step(r'I install Chef on windows server')
-def install_chef_on_windows(step):
-    node =  getattr(world, 'cloud_server', None)
-    console = world.get_windows_session(public_ip=node.public_ips[0], password='scalr')
-    #TODO: Change to installation via Fatmouse task
-    # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
-    command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
-    console.run_cmd(command)
-    chef_version = console.run_cmd("chef-client --version")
-    assert chef_version.std_out, "Chef was not installed"
+
+@step(r'I install Chef on server')
+def install_chef(step):
+    node = getattr(world, 'cloud_server', None)
+    if Dist.is_windows_family(CONF.feature.dist):
+        password = 'Scalrtest123'
+        console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
+        #TODO: Change to installation via Fatmouse task
+        # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+        command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
+        console.run_cmd(command)
+        chef_version = console.run_cmd("chef-client --version")
+        assert chef_version.std_out, "Chef was not installed"
+    else:
+        command = "curl -L https://www.opscode.com/chef/install.sh | \
+            bash && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
+        node.run(command)
+        chef_version = node.run("chef-client --version")
+        assert chef_version[2] == 0, "Chef was not installed"
 
 
 @after.each_scenario

@@ -42,7 +42,7 @@ Feature: Orchestration features test
 
         Examples:
             | script_name                   | execute_type | script_type | output                                    |
-            | Restart scalarizr             | synchronous  |             |                                           |
+#            | Restart scalarizr             | synchronous  |             |                                           |
             | Linux ping-pong               | asynchronous |             | pong                                      |
             | Linux ping-pong               | synchronous  |             | pong                                      |
             | /home/revizor/local_script.sh | synchronous  | local       | Local script work!; USER=root; HOME=/root |

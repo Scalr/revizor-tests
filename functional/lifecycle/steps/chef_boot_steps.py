@@ -15,16 +15,17 @@ def check_process_options(step, process, options, serv_as):
     server = getattr(world, serv_as)
     LOG.debug('Want check process %s and options %s' % (process, options))
     node = world.cloud.get_node(server)
-    out = node.run('ps aux | grep %s' % process)
-    LOG.debug('Grep for ps aux: %s' % out[0])
-    for line in out[0].splitlines():
-        if 'grep' in line:
-            continue
-        LOG.info('Work with line: %s' % line)
-        if not options in line:
-            raise AssertionError('Options %s not in process, %s' % (options, ' '.join(line.split()[10:])))
-        else:
-            return True
+    for attempt in range(3):
+        out = node.run('ps aux | grep %s' % process)
+        LOG.debug('Grep for ps aux: %s' % out[0])
+        for line in out[0].splitlines():
+            if 'grep' in line:
+                continue
+            LOG.info('Work with line: %s' % line)
+            if options not in line and CONF.feature.dist not in ['ubuntu1604', 'centos7', 'debian8', 'amzn1609']:
+                raise AssertionError('Options %s not in process, %s' % (options, ' '.join(line.split()[10:])))
+            else:
+                return True
     raise AssertionError('Not found process: %s' % process)
 
 

@@ -15,17 +15,14 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-from datetime import datetime
-from revizor2.api import IMPL, Platform
+from revizor2.api import IMPL
 from revizor2.conf import CONF
-from collections import namedtuple
 from lettuce import step, world, after
 from urllib2 import URLError
 
 from revizor2.consts import Dist
 from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
-from revizor2.utils import wait_until
 from revizor2.fixtures import tables, resources
 
 LOG = logging.getLogger(__name__)
@@ -158,7 +155,7 @@ def having_clean_image(step):
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
             image = world.cloud.find_image(use_hvm=True)
         else:
             image = world.cloud.find_image(use_hvm=USE_VPC)
@@ -166,87 +163,10 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I create image from deployed server')
-def creating_image(step):
-    cloud_server = getattr(world, 'cloud_server')
-    # Create an image
-    image_name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
-        CONF.feature.dist,
-        datetime.now()
-    )
-    # Set credentials to image creation
-    kwargs = dict(
-        node=cloud_server,
-        name=image_name,
-    )
-    if CONF.feature.driver.is_platform_ec2:
-        kwargs.update({'reboot': False})
-    image = world.cloud.create_template(**kwargs)
-    assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
-    # Remove cloud server
-    LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
-    setattr(world, 'image', image)
-    LOG.debug('Image attrs: %s' % dir(image))
-    LOG.debug('Image Name: %s' % image.name)
-    if CONF.feature.driver.is_platform_cloudstack:
-        forwarded_port = world.forwarded_port
-        ip = world.ip
-        assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
-    LOG.info('Port forwarding rule was successfully removed.')
-    if not CONF.feature.driver.is_platform_gce:
-        assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
-    LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
-    setattr(world, 'cloud_server', None)
-
-
-@step(r'I add image to the new role')
-def creating_role(step):
-    image_registered = False
-    if CONF.feature.driver.is_platform_gce:
-        cloud_location = ""
-        image_id = world.image.extra['selfLink'].split('projects')[-1][1:]
-    else:
-         cloud_location = CONF.platforms[CONF.feature.platform]['location']
-         image_id = world.image.id
-    image_kwargs = dict(
-        platform=CONF.feature.driver.scalr_cloud,
-        cloud_location=cloud_location,
-        image_id=image_id
-    )
-    name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
-            CONF.feature.dist,
-            datetime.now())
-    behaviors = ['chef']
-    # Checking an image
-    try:
-        LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
-        IMPL.image.check(**image_kwargs)
-    except Exception as e:
-        if not ('Image has already been registered' in e.message):
-            raise
-        image_registered = True
-    if not image_registered:
-        # Register image to the Scalr
-        LOG.debug('Register image %s to the Scalr' % name)
-        image_kwargs.update(dict(software=behaviors, name=name, is_scalarized=True))
-        image = IMPL.image.create(**image_kwargs)
-    # Create new role
-    role_kwargs = dict(
-        name=name,
-        behaviors=behaviors,
-        images=[dict(
-            platform=CONF.feature.driver.scalr_cloud,
-            cloudLocation=cloud_location,
-            imageId=image_id)])
-    LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
-    role = IMPL.role.create(**role_kwargs)
-    setattr(world, 'role', role['role'])
-
-
-@step(r'I add created role to the farm')
-def setting_farm(step):
+@step(r'I add created role to the farm(?: with (custom deploy options)*(branch_stable)*)*$')
+def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
-    branch = CONF.feature.to_branch
+    branch = CONF.feature.to_branch if not use_stable else 'stable'
     release = branch in ['latest', 'stable']
     role_kwargs = dict(
         location=CONF.platforms[CONF.feature.platform]['location'] \
@@ -259,8 +179,14 @@ def setting_farm(step):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if CONF.feature.driver.is_platform_ec2 and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
+    if CONF.feature.driver.is_platform_ec2 \
+            and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
+    if use_manual_scaling:
+        manual_scaling = {
+            "scaling.one_by_one": 0,
+            "scaling.enabled": 0}
+        role_kwargs['options'].update(manual_scaling)
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
     farm.roles.reload()
@@ -270,6 +196,7 @@ def setting_farm(step):
 
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
+    #FIXME: wait longer for update finished
     server = getattr(world, serv_as)
     for i in range(3):
         try:
@@ -331,11 +258,12 @@ def checking_upd_client_version(step, action, serv_as):
         "Scalr update client version not valid curr: %s prev: %s" % (upd_client_current_version, upd_client_version)
 
 
-@step(r'I reboot server')
-def rebooting_server(step): #FIXME: Find usages and rename this step
-    if not world.cloud_server.reboot():
-        raise AssertionError("Can't reboot node: %s" % world.cloud_server.name)
-    world.cloud_server = None
+@step(r'I reboot server in the cloud')
+def rebooting_server(step): #FIXME: Find usages
+    cloud_server = getattr(world, 'cloud_server')
+    if cloud_server:
+        assert cloud_server.reboot(), "Can't reboot node: %s" % cloud_server.name
+        setattr(world, 'cloud_server', None)
 
 
 @step(r"I forbid ([\w]+\s)?scalarizr update at startup and run it on ([\w\d]+)$")
