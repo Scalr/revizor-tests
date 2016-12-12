@@ -774,7 +774,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
-        password = 'Scalrtest123' if CONF.feature.dist == 'win2016' else 'scalr'
+        password = 'Scalrtest123'
         if node:
             console_kwargs = dict(
                 public_ip=node.public_ips[0],
