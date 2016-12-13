@@ -68,6 +68,7 @@ Feature: Windows server lifecycle
         | Windows ping-pong. PS  | synchronous  |              | pong   |
         | Windows ping-pong. PS  | asynchronous |              | pong   |
         | https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt| asynchronous | local | Script runned from URL |
+        | Non ascii script wrong interpreter windows | asynchronous | | 'ascii' codec can't encode characters in position 3-6: ordinal not in range(128) |
 
     @ec2 @gce @openstack
     Scenario: Restart farm
