@@ -1,7 +1,6 @@
 __author__ = 'gigimon'
 
 import os
-import sys
 import time
 import logging
 import urllib2
@@ -574,10 +573,10 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         pid_after)
     assert not any(pid in pid_before for pid in pid_after), assertion_message
 
-@step(r'I create (\w+-?\w+? )?image from deployed server')
-def creating_image(step, image_type):
-    if not image_type:
-        image_type = 'base'
+
+@step(r'I create ([\w]+-?[\w]+?\s)?image from deployed server')
+def creating_image(step, image_type=None):
+    image_type = image_type or 'base'
     cloud_server = getattr(world, 'cloud_server')
     # Create an image
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
@@ -610,24 +609,23 @@ def creating_image(step, image_type):
     setattr(world, 'cloud_server', None)
 
 
-@step(r'I add (\w+-?\w+? )?image to the new roles?')
-def creating_role(step, image_type):
-    if not image_type:
-        image_type = 'base'
-    image_registered = False
+@step(r'I add ([\w]+-?[\w]+?\s)?image to the new roles?(\sas non scalarized)*$')
+def creating_role(step, image_type=None, non_scalarized=None):
+    image = getattr(world, 'image')
+    image_type = (image_type or 'base').strip()
     if CONF.feature.driver.is_platform_gce:
         cloud_location = ""
-        image_id = world.image.extra['selfLink'].split('projects')[-1][1:]
+        image_id = image.extra['selfLink'].split('projects')[-1][1:]
     else:
          cloud_location = CONF.platforms[CONF.feature.platform]['location']
-         image_id = world.image.id
+         image_id = image.id
     image_kwargs = dict(
         platform=CONF.feature.driver.scalr_cloud,
         cloud_location=cloud_location,
         image_id=image_id
     )
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
-            image_type.strip(),
+            image_type,
             CONF.feature.dist,
             datetime.now())
     if image_type != 'base':
@@ -638,15 +636,16 @@ def creating_role(step, image_type):
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
         IMPL.image.check(**image_kwargs)
+        image_registered = False
     except Exception as e:
         if not ('Image has already been registered' in e.message):
             raise
         image_registered = True
+    is_scalarized = False if non_scalarized else True
+    has_cloudinit = True if ('cloudinit' in image_type and not is_scalarized) else False
     if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
-        is_scalarized = False if 'cloudinit' in image_type.strip() else True
-        has_cloudinit = True if 'cloudinit' in image_type.strip() else False
         image_kwargs.update(dict(
             software=behaviors,
             name=name,
@@ -657,24 +656,24 @@ def creating_role(step, image_type):
         image = IMPL.image.get(image_id=image_id)
     # Create new role
     for behavior in behaviors:
-        if 'cloudinit' in image_type.strip():
-            role_name = name.replace(image_type.strip(), behavior + '-cloudinit')
-            role_behaviors = [behavior]
-            role_behaviors.append('chef')
+        if has_cloudinit:
+            role_name = name.replace(image_type, '-'.join((behavior,'cloudinit')))
+            role_behaviors = list((behavior, 'chef'))
         else:
             role_name = name
             role_behaviors = behaviors
         role_kwargs = dict(
             name=role_name,
+            is_scalarized = int(is_scalarized or has_cloudinit),
             behaviors=role_behaviors,
             images=[dict(
                 platform=CONF.feature.driver.scalr_cloud,
                 cloudLocation=cloud_location,
                 hash=image['hash'])])
         LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
-        LOG.debug(role_kwargs)
         role = IMPL.role.create(**role_kwargs)
-    setattr(world, 'role', role['role'])
+        if not has_cloudinit:
+            setattr(world, 'role', role['role'])
 
 
 def run_sysprep(uuid, console):
@@ -775,14 +774,15 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
     if Dist.is_windows_family(CONF.feature.dist):
+        password = 'Scalrtest123'
         if node:
             console_kwargs = dict(
                 public_ip=node.public_ips[0],
-                password='scalr')
+                password=password)
         else:
             console_kwargs = dict(server=server)
             if CONF.feature.driver.is_platform_ec2:
-                console_kwargs.update({'password': 'scalr'})
+                console_kwargs.update({'password': password})
             LOG.debug('Cloud server not found get node from server')
             node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
             LOG.debug('Node get successfully: %s' % node)  # Wait ssh
@@ -830,6 +830,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         res = node.run(cmd)[0]
         version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
         assert version, 'Scalarizr version is invalid. Command returned: %s' % res
+        cv2_init = 'touch /etc/scalr/private.d/scalr_labs_corev2'
+        LOG.info('Init scalarizr corev2. Run command %s' % cv2_init)
+        node.run(cv2_init)
     setattr(world, 'pre_installed_agent', version[0])
     if resave_node:
         setattr(world, 'cloud_server', node)

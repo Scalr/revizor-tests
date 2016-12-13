@@ -15,8 +15,7 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-from datetime import datetime
-from revizor2.api import IMPL, Platform
+from revizor2.api import IMPL
 from revizor2.conf import CONF
 from lettuce import step, world, after
 from urllib2 import URLError
@@ -156,7 +155,7 @@ def having_clean_image(step):
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
             image = world.cloud.find_image(use_hvm=True)
         else:
             image = world.cloud.find_image(use_hvm=USE_VPC)
@@ -164,10 +163,10 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I add created role to the farm( with branch_stable)?')
-def setting_farm(step, stable=False):
+@step(r'I add created role to the farm(?: with (custom deploy options)*(branch_stable)*)*$')
+def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
-    branch = CONF.feature.to_branch if not stable else 'stable'
+    branch = CONF.feature.to_branch if not use_stable else 'stable'
     release = branch in ['latest', 'stable']
     role_kwargs = dict(
         location=CONF.platforms[CONF.feature.platform]['location'] \
@@ -180,8 +179,14 @@ def setting_farm(step, stable=False):
         alias=world.role['name'],
         use_vpc=USE_VPC
     )
-    if CONF.feature.driver.is_platform_ec2 and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
+    if CONF.feature.driver.is_platform_ec2 \
+            and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
+    if use_manual_scaling:
+        manual_scaling = {
+            "scaling.one_by_one": 0,
+            "scaling.enabled": 0}
+        role_kwargs['options'].update(manual_scaling)
     LOG.debug('Add created role to farm with options %s' % role_kwargs)
     farm.add_role(world.role['id'], **role_kwargs)
     farm.roles.reload()
