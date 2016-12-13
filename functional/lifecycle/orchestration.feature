@@ -20,12 +20,12 @@ Feature: Orchestration features test
             | HostInit     | https://gist.githubusercontent.com | root     | 0        | Script runned from URL                                             |
             | BeforeHostUp | Linux ping-pong                    | root     | 0        | pong                                                               |
             | BeforeHostUp | chef                               | root     | 0        | "HOME"=>"/root"; "USER"=>"root"                                    |
-            | HostUp     | https://gist.githubusercontent.com | root     | 0        | Multiplatform script successfully executed                                             |
             | HostUp       | Linux ping-pong                    | revizor2 | 1        |                                                                    |
             | HostUp       | /home/revizor/local_script.sh      | revizor  | 0        | Local script work! User: revizor; USER=revizor; HOME=/home/revizor |
             | HostUp       | Linux ping-pong                    | revizor  | 0        | pong                                                               |
             | HostUp       | chef                               | root     | 0        |                                                                    |
             | HostUp       | /bin/uname                         | root     | 0        | Linux                                                              |
+            | HostUp       | https://gist.githubusercontent.com | root     | 0        | Multiplatform script successfully executed                                              |
             | HostUp       | Sleep 10                           | root     | 130      | printing dot each second; .....                                    |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
@@ -48,6 +48,8 @@ Feature: Orchestration features test
             | Linux ping-pong               | synchronous  |             | pong                                      |
             | /home/revizor/local_script.sh | synchronous  | local       | Local script work!; USER=root; HOME=/root |
             | /home/revizor/local_script.sh | asynchronous | local       | Local script work!; USER=root; HOME=/root |
+            | https://gist.githubusercontent.com/Theramas/1c7fbc1dbee082e1bdd4b36b755b5c56/raw/fbe2804a5ea13b98febdbc465ad63105535cc7f5/cross_platform_script | asynchronous | local | Multiplatform script successfully executed                                             |
+            | Cross-platform script          | asynchronous |            | Multiplatform script successfully executed                                             |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role with failed script
