@@ -54,3 +54,14 @@ Feature: Check chef attributes set
         And I see failed server M1
         And chef log in M1 contains "ERROR: undefined method `fatal!'"
         And chef bootstrap failed in M1
+
+    @ec2 @gce @cloudstack @openstack @rackspaceng
+    Scenario: Bootstrapping from chef role
+        Given I have a clean and stopped farm
+        When I add role to this farm with chef-role
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
+        And server M1 exists on chef nodes list
+        And chef node_name in M1 set by global hostname
+        And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"

@@ -96,3 +96,14 @@ Feature: Windows server lifecycle
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
+
+    @ec2 @gce @openstack
+    Scenario: Bootstraping from chef-role
+        Given I have a clean and stopped farm
+        And I add role to this farm with winchef-role
+        When I start farm
+        Then I see pending server M1
+        And I wait and see running server M1
+        And file 'C:\chef_result_file' exist in M1 windows
+        And hostname in M1 is valid
+        And scalarizr version is last in M1
