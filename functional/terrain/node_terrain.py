@@ -76,7 +76,7 @@ class VerifyProcessWork(object):
         node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server,
                                                              DEFAULT_SERVICES_CONFIG['app'][
-                                                                 Dist.get_os_family(node.os[0])]['service_name']),
+                                                                 Dist(node.os[0]).os_family]['service_name']),
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
 
@@ -288,9 +288,9 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     elif repo == 'role':
         repo = CONF.feature.to_branch
     server = getattr(world, serv_as)
-    if consts.Dist.is_centos_family(server.role.dist):
+    if consts.Dist(server.role.dist).is_centos:
         repo_data = parse_rpm_repository(repo)
-    elif consts.Dist.is_debian_family(server.role.dist):
+    elif consts.Dist(server.role.dist).is_debian:
         repo_data = parse_apt_repository(repo)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
@@ -322,7 +322,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
-    os_family = Dist.get_os_family(server.role.os_family)
+    os_family = Dist(server.role.os_family).os_family
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
@@ -405,7 +405,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as
         service.update({'node': common_config.get('service_name')})
         if not service['node']:
-            service.update({'node': common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')})
+            service.update({'node': common_config.get(consts.Dist(node.os[0]).os_family).get('service_name')})
         if is_api:
             service.update({'api': common_config['api_endpoint'].get('name')})
             if not service['api']:
@@ -475,20 +475,20 @@ def change_branch_in_sources(step, serv_as, branch):
         branch = branch.replace('/', '-').replace('.', '').strip()
     server = getattr(world, serv_as)
     LOG.info('Change branches in sources list in server %s to %s' % (server.id, branch))
-    if Dist.is_debian_family(server.role.dist):
+    if Dist(server.role.dist).is_debian:
         LOG.debug('Change in debian')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
-    elif Dist.is_centos_family(server.role.dist):
+    elif Dist(server.role.dist).is_centos:
         LOG.debug('Change in centos')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/yum.repos.d/scalr-stable.repo']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "[scalr-branch]\nname=scalr-branch\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
         node.run('echo > /etc/yum.repos.d/scalr-latest.repo')
-    elif Dist.is_windows_family(server.role.dist):
+    elif Dist(server.role.dist).is_windows:
         # LOG.debug('Change in windows')
         import winrm
         console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
@@ -553,7 +553,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         behavior = server.role.behaviors[0]
         common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
         pattern = common_config.get('service_name',
-                                    common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name'))
+                                    common_config.get(consts.Dist(node.os[0]).os_family).get('service_name'))
     LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
     pid_before = get_pid(pattern)

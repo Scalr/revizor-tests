@@ -91,7 +91,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
         return role
-    dist = CONF.feature.dist
+    dist = CONF.feature.dist.os_id
     if CONF.feature.role_id:
         LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():
@@ -115,12 +115,12 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'rhel7' and not CONF.feature.use_vpc:
+    if dist == 'redhat-7-x' and not CONF.feature.use_vpc:
         options['instance_type'] = 'm3.medium'
-    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.EC2:
+    if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.EC2:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'm3.medium'
-    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
+    if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
     world.farm.add_role(role['id'],

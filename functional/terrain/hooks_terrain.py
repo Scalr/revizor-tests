@@ -68,7 +68,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                     server.get_log_by_api(**log)
                     LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
                     #Get configs and role behavior from remote host only for linux family
-                    if not Dist.is_windows_family(server.role.dist):
+                    if not Dist(server.role.dist).is_windows:
                         file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
                         server.get_configs(file, compress=True)
                         LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
