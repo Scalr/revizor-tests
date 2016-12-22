@@ -19,7 +19,7 @@ from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, USE_SYSTEMCTL
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 
@@ -365,7 +365,7 @@ def assert_scalarizr_version(step, branch, serv_as):
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
-    if USE_SYSTEMCTL:
+    if CONF.feature.dist.is_systemd:
         cmd = "systemctl restart scalarizr"
     else:
         cmd = "/etc/init.d/scalarizr restart"

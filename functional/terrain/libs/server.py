@@ -8,7 +8,6 @@ from datetime import datetime
 import requests
 from lettuce import world
 from libcloud.compute.types import NodeState
-from revizor2.defaults import USE_SYSTEMCTL
 
 try:
     import winrm
@@ -575,7 +574,7 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 raise Exception(error_msg)
         else:
             #Change process status by  calling command service
-            if USE_SYSTEMCTL:
+            if CONF.feature.dist.is_systemd:
                 cmd = "systemctl {status} {process} && sleep 3"
             else:
                 cmd = "service {process} {status} && sleep 3"
