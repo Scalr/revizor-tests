@@ -31,7 +31,7 @@ def rebundle_server_via_api(step, serv_as):
     LOG.info('Create image via scalarizr api from server %s and image name %s' % (server.id, name))
 
     if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE)\
-            and not Dist.is_windows_family(CONF.feature.dist)\
+            and not CONF.feature.dist.is_windows\
             and not CONF.feature.dist.startswith('rhel')\
             or (CONF.feature.driver.current_cloud == Platform.GCE
                 and CONF.feature.dist.startswith('rhel')):

@@ -143,7 +143,7 @@ def given_server_in_cloud(step, user_data):
         user_data = None
     #Create node
     image = None
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist,
@@ -215,7 +215,7 @@ def start_building(step):
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
     #and then run scalari4zr on new screen
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         password = 'Scalrtest123'
         console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
         def call_in_background(command):
@@ -259,7 +259,7 @@ def create_role(step):
         bundle_task_id=world.bundle_task['id'],
         os_id=world.bundle_task['os'][0]['id']
     )
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         kwargs.update({'behaviors': 'chef'})
     elif all(behavior in world.bundle_task['behaviors'] for behavior in CONF.feature.behaviors):
         kwargs.update({'behaviors': ','.join(CONF.feature.behaviors)})
@@ -306,7 +306,7 @@ def assert_role_task_created(step,  timeout=1400):
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
     options = getattr(world, 'role_options', {})
-    if Dist.is_windows_family(CONF.feature.dist) and CONF.feature.platform == 'ec2':
+    if CONF.feature.dist.is_windows and CONF.feature.platform == 'ec2':
         options['aws.instance_type'] = 'm3.medium'
     bundled_role = Role.get(world.bundled_role_id)
     world.farm.add_role(
@@ -322,7 +322,7 @@ def add_new_role_to_farm(step):
 @step(r'I install Chef on server')
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         password = 'Scalrtest123'
         console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
         #TODO: Change to installation via Fatmouse task

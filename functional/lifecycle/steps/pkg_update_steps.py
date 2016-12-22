@@ -147,7 +147,7 @@ def waiting_new_package(step):
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist,
@@ -180,7 +180,7 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
         use_vpc=USE_VPC
     )
     if CONF.feature.driver.is_platform_ec2 \
-            and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
+            and (CONF.feature.dist.is_windows or CONF.feature.dist == 'centos7'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
     if use_manual_scaling:
         manual_scaling = {
@@ -222,7 +222,7 @@ def asserting_version(step, version, serv_as):
     command = 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         res = world.run_cmd_command_until(command, server=server, timeout=300).std_out
     # Linux handler
     else:

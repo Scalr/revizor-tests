@@ -107,9 +107,9 @@ def start_basehttpserver(step, port, serv_as):
     LOG.debug('Put base_server.py script')
     node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
     LOG.debug('Run BaseHttpServer script')
-    if Dist.is_debian_family(CONF.feature.dist):
+    if CONF.feature.dist.is_debian:
         node.run('apt-get install screen -y')
-    elif Dist.is_centos_family(CONF.feature.dist):
+    elif CONF.feature.dist.is_centos:
         node.run('yum install screen -y')
     node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
     if node.run('which python3')[2] == 0:

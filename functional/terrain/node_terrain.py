@@ -734,7 +734,7 @@ def get_repo_type(custom_branch, custom_version=None):
         def __getitem__(self, key):
             if self.has_key(key):
                 value = dict.__getitem__(self, key)
-                if not Dist.is_windows_family(CONF.feature.dist):
+                if not CONF.feature.dist.is_windows:
                     value = self.__extend_repo_type(value)
                 return value
             raise AssertionError('Repo type: "%s" not valid' % key)
@@ -773,7 +773,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     repo_type = get_repo_type(branch, custom_version)
     LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         password = 'Scalrtest123'
         if node:
             console_kwargs = dict(
