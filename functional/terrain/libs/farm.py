@@ -8,7 +8,7 @@ from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
 from revizor2.defaults import USE_VPC
-from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES, Platform
+from revizor2.consts import BEHAVIORS_ALIASES, Platform
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
@@ -54,7 +54,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
-            role = tables('roles-shared').filter({'dist': CONF.feature.dist,
+            role = tables('roles-shared').filter({'dist': CONF.feature.dist.os_id,
                                                   'behavior': behavior,
                                                   'platform': CONF.feature.driver.scalr_cloud}).first()
             role = IMPL.role.get(role.keys()[0])
@@ -91,10 +91,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
         return role
-    if CONF.feature.dist in DIST_ALIASES:
-        dist = DIST_ALIASES[CONF.feature.dist]
-    else:
-        dist = CONF.feature.dist
+    dist = CONF.feature.dist
     if CONF.feature.role_id:
         LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():

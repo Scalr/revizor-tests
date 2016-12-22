@@ -146,7 +146,7 @@ def given_server_in_cloud(step, user_data):
     if CONF.feature.dist.is_windows:
         table = tables('images-clean')
         search_cond = dict(
-            dist=CONF.feature.dist,
+            dist=CONF.feature.dist.os_id,
             platform=CONF.feature.platform)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
     node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)

@@ -435,7 +435,7 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
     else:
         return '%s-%s-%s' % (
@@ -655,9 +655,8 @@ def value_for_os_family(debian, centos, server=None, node=None):
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get node os name
     # node_os = getattr(node, 'os', [''])[0]
-    node_os = CONF.feature.dist
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os))
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.os_family)
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node_os)
     return os_family_res

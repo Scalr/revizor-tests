@@ -24,7 +24,7 @@ def start_rolebuild(step):
         platform = 'rackspacengus'
     else:
         platform = CONF.feature.platform
-    os_id = Dist.get_os_id(CONF.feature.dist)
+    os_id = CONF.feature.dist.os_id
     image = filter(lambda x: x['cloud_location'] == CONF.platforms[CONF.feature.platform]['location']
                              and x['os_id']==os_id,
                    images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
@@ -34,7 +34,7 @@ def start_rolebuild(step):
                                         behaviors=CONF.feature.behaviors,
                                         os_id=image['os_id'],
                                         os_version=image['os_version'],
-                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.os_id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,)
     setattr(world, 'role_type', CONF.feature.behaviors[0])
@@ -61,7 +61,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
     platform = CONF.feature.driver.scalr_cloud
-    os_id = Dist.get_os_id(CONF.feature.dist)
+    os_id = CONF.feature.dist.os_id
     try:
         if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
             image = filter(lambda x: x['os_id'] == os_id,
@@ -78,7 +78,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
-                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.os_id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql',

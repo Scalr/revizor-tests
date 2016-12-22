@@ -150,12 +150,12 @@ def having_clean_image(step):
     if CONF.feature.dist.is_windows:
         table = tables('images-clean')
         search_cond = dict(
-            dist=CONF.feature.dist,
+            dist=CONF.feature.dist.os_id,
             platform=CONF.feature.platform)
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist.os_id in ['ubuntu-16-04', 'centos-7-x']:
             image = world.cloud.find_image(use_hvm=True)
         else:
             image = world.cloud.find_image(use_hvm=USE_VPC)
@@ -180,7 +180,7 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
         use_vpc=USE_VPC
     )
     if CONF.feature.driver.is_platform_ec2 \
-            and (CONF.feature.dist.is_windows or CONF.feature.dist == 'centos7'):
+            and (CONF.feature.dist.is_windows or CONF.feature.dist.os_id == 'centos-7-x'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
     if use_manual_scaling:
         manual_scaling = {

@@ -53,7 +53,7 @@ def run_only_if(*args, **kwargs):
     if kwargs.get('storage'):
         current.append(CONF.feature.storage)
     if kwargs.get('dist'):
-        current.append(CONF.feature.dist)
+        current.append(CONF.feature.dist.os_id)
     options = []
     pass_list = []
     skip_list = []

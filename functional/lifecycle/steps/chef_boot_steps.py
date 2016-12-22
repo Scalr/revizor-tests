@@ -3,7 +3,7 @@ import logging
 import time
 
 from revizor2.conf import CONF
-from revizor2.consts import Platform
+from revizor2.consts import Platform, Dist
 from lettuce import world, step
 
 
@@ -22,7 +22,7 @@ def check_process_options(step, process, options, serv_as):
             if 'grep' in line:
                 continue
             LOG.info('Work with line: %s' % line)
-            if options not in line and CONF.feature.dist not in ['ubuntu1604', 'centos7', 'debian8', 'amzn1609']:
+            if options not in line and not CONF.feature.dist == Dist('amzn1609') and not CONF.feature.dist.is_systemd:
                 raise AssertionError('Options %s not in process, %s' % (options, ' '.join(line.split()[10:])))
             else:
                 return True

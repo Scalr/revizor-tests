@@ -54,13 +54,13 @@ def remember_scalarizr_version(step, serv_as):
 
 @step('I have reverted and working branch')
 def verify_repository_is_working(step):
-    if Dist.is_centos_family(Dist.from_name(CONF.feature.dist)):
+    if CONF.feature.dist.is_centos:
         branch = 'test/update-system-rpm'
         commits = ["@update-system @rpm @postinst", "@update-system @rpm @fatal-error"]
-    elif Dist.is_debian_family(Dist.from_name(CONF.feature.dist)):
+    elif CONF.feature.dist.is_debian:
         branch = 'test/update-system-deb'
         commits = ["@update-system @deb @postinst", "@update-system @deb @fatal-error"]
-    elif CONF.feature.dist.startswith('win'):
+    elif CONF.feature.dist.is_windows:
         branch = 'test/update-system-win'
         commits = ["@update-system @win @postinst", "@update-system @win @fatal-error"]
     else:
@@ -120,11 +120,11 @@ def broke_scalarizr_branch(step, comment):
     LOG.debug('Git work dir: %s' % SCALARIZR_REPO_PATH)
     os.chdir(SCALARIZR_REPO_PATH)
 
-    if Dist.is_centos_family(Dist.from_name(CONF.feature.dist)):
+    if CONF.feature.dist.is_centos:
         tag = '@rpm'
-    elif Dist.is_debian_family(Dist.from_name(CONF.feature.dist)):
+    elif CONF.feature.dist.is_debian:
         tag = '@deb'
-    elif CONF.feature.dist.startswith('win'):
+    elif CONF.feature.dist.is_windows:
         tag = '@win'
 
     comment = comment.split()

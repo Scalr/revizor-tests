@@ -48,10 +48,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
-    if CONF.feature.dist == 'scientific6' or (CONF.feature.dist == 'centos7' and CONF.feature.driver.current_cloud == Platform.EC2):
+    if CONF.feature.dist.os_id == 'scientific-6-x' or (CONF.feature.dist.os_id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         role_options["base.hostname_format"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
 
     if saved_role:
@@ -138,7 +138,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 ]
             elif opt == 'storages':
                 LOG.info('Insert additional storages config')
-                if CONF.feature.dist.startswith('win'):
+                if CONF.feature.dist.is_windows:
                     additional_storages = {
                         'configs': DEFAULT_WINDOWS_ADDITIONAL_STORAGES.get(
                             CONF.feature.driver.cloud_family, [])}

@@ -203,7 +203,7 @@ def verify_port_status(step, port, closed, serv_as):
         port, 'closed' if closed else 'open', server.id
     ))
     node = world.cloud.get_node(server)
-    if not CONF.feature.dist.startswith('win'):
+    if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
@@ -229,7 +229,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     LOG.info('Verify port %s is %s on server %s' % (
         port, 'closed' if closed else 'open', server.id
     ))
-    if service == 'scalarizr' and CONF.feature.dist.startswith('win'):
+    if service == 'scalarizr' and CONF.feature.dist.is_windows:
         status = None
         for _ in range(5):
             try:
@@ -242,7 +242,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
         else:
             raise AssertionError('Scalarizr is not running in windows, status: %s' % status)
     node = world.cloud.get_node(server)
-    if not CONF.feature.dist.startswith('win'):
+    if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         #TODO: Change login on this behavior
@@ -581,7 +581,7 @@ def creating_image(step, image_type=None):
     # Create an image
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
         image_type.strip(),
-        CONF.feature.dist,
+        CONF.feature.dist.os_id,
         datetime.now()
     )
     # Set credentials to image creation
@@ -626,7 +626,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     )
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
             image_type,
-            CONF.feature.dist,
+            CONF.feature.dist.os_id,
             datetime.now())
     if image_type != 'base':
         behaviors = getattr(world, 'installed_behaviors', None)
@@ -704,10 +704,10 @@ def run_sysprep(uuid, console):
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
         user_name = ['scalr']
-    elif 'ubuntu' in CONF.feature.dist:
+    elif CONF.feature.dist.dist_info['family'] == 'ubuntu':
         user_name = ['root', 'ubuntu']
-    elif 'amzn' in CONF.feature.dist or \
-            ('rhel' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
+    elif CONF.feature.dist.dist_info['family'] == 'amazon' or \
+            (CONF.feature.dist.dist_info['family'] == 'redhat' and CONF.feature.driver.is_platform_ec2):
         user_name = ['root', 'ec2-user']
     else:
         user_name = ['root']
