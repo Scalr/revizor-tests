@@ -322,7 +322,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
-    os_family = Dist(server.role.os_family).os_family
+    os_family = Dist(server.role.dist).os_family
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
