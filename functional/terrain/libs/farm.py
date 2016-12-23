@@ -91,7 +91,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
         return role
-    dist = CONF.feature.dist.os_id
+    dist = os.environ.get('RV_DIST', 'ubuntu1204')
     if CONF.feature.role_id:
         LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():
