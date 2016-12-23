@@ -208,7 +208,8 @@ def exclude_update_from_latest(feature):
                     path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
                     default_repo = url.format(path=path)
                 index_url = default_repo.format(branch=branch)
-                repo_data = parser_for_os_family(os_family)(branch=branch, index_url=index_url)
+                # WORKAROUND!
+                repo_data = parser_for_os_family(os.environ.get('RV_DIST', 'ubuntu1204'))(branch=branch, index_url=index_url)
                 versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
                 versions.sort(reverse=True)
                 last_version = versions[0]

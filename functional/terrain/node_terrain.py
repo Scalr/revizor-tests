@@ -335,7 +335,7 @@ def assert_scalarizr_version(step, branch, serv_as):
         # Get last scalarizr version from custom repo
         index_url = default_repo.format(branch=branch)
         LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.os_family)(branch=branch, index_url=index_url)
+        repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
         versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
         versions.sort(reverse=True)
         last_version = versions[0]
