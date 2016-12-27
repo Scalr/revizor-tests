@@ -236,15 +236,6 @@ def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
     raise AssertionError("Healthcheck parameters not found in backends for port: %s" % port)
 
 
-@step(r'([\w\d]+) backend list should be clean')
-def verify_backend_list_clean(step, serv_as):
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    config = parse_haproxy_config(node)
-    if config['backends'] or config['listens']:
-        raise AssertionError("HAProxy config contains backends/listeners section: %s" % config)
-
-
 @step(r'I delete proxy ([\w\d]+) in ([\w\d]+) role')
 def delete_haproxy_proxy(step, proxy_name, proxy_role):
     LOG.info("Delete haproxy proxy %s" % proxy_name)

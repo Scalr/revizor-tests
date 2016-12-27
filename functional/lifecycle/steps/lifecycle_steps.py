@@ -112,29 +112,6 @@ def check_file_count(step, directory, file_count, serv_as):
         raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
 
-@step("I deploy app with name '(.+)'")
-def deploy_app(step, app_name):
-    LOG.info('Deploy app %s' % app_name)
-    old_tasks_ids = [task['id'] for task in IMPL.deploy.tasks_list()]
-    LOG.debug('Old tasks %s' % old_tasks_ids)
-    world.farm.deploy_app(app_name, path='/tmp/%s' % app_name)
-    time.sleep(10)
-    new_tasks_ids = [task['id'] for task in IMPL.deploy.tasks_list()]
-    LOG.debug('New tasks %s' % new_tasks_ids)
-    task_id = [task for task in new_tasks_ids if not task in old_tasks_ids]
-    world.task_id = task_id[0]
-    LOG.info('Task id is %s' % world.task_id)
-
-
-@step('And deploy task deployed')
-def check_deploy_status(step):
-    time.sleep(30)
-    LOG.info('Check task status')
-    LOG.debug('All tasks %s' % IMPL.deploy.tasks_list())
-    task = filter(lambda x: x['id'] == world.task_id, IMPL.deploy.tasks_list())[0]
-    world.assert_not_equal(task['status'], 'deployed', 'Task not deployed, status: %s' % task['status'])
-
-
 @step('I define event \'(.+)\'$')
 def define_event_to_role(step, event):
     events = IMPL.event.list()

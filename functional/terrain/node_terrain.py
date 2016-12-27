@@ -113,13 +113,6 @@ class VerifyProcessWork(object):
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
 
-@step('I change repo in ([\w\d]+)$')
-def change_repo(step, serv_as):
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    branch = CONF.feature.to_branch
-    change_repo_to_branch(node, branch)
-
 
 @step('I change repo in ([\w\d]+) to system$')
 def change_repo(step, serv_as):
