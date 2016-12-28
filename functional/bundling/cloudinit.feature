@@ -1,4 +1,4 @@
-Using step definitions from: steps/bundling_steps, steps/import_steps, steps/cloudinit_steps
+Using step definitions from: steps/bundling_steps, steps/import_steps, steps/cloudinit_steps, terrain/node_terrain, terrain/server_terrain
 Feature: Cloudinit roles bootstrapping
 #TODO: Add/Check Cloudstack support
     @ec2 @cloudstack

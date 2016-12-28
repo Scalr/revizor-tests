@@ -6,6 +6,7 @@ import logging
 import urllib2
 import collections
 import re
+from datetime import datetime
 
 from lettuce import world, step
 
@@ -22,6 +23,7 @@ from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as 
     DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, USE_SYSTEMCTL
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
+from revizor2.defaults import USE_VPC
 
 try:
     import winrm
@@ -34,6 +36,105 @@ PLATFORM_TERMINATED_STATE = collections.namedtuple('terminated_state', ('gce', '
     'stopped')
 
 LOG = logging.getLogger(__name__)
+
+#User data fixtures
+#ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
+USER_DATA = {
+                Platform.EC2: {
+                    "behaviors": "base,chef",
+                    "farmid": "16674",
+                    "message_format": "json",
+                    "owner_email": "stunko@scalr.com",
+                    "szr_key": "9gRW4akJmHYvh6W3vd6GzxOPtk/iQHL+8aZRZZ1u",
+                    "s3bucket": "",
+                    "cloud_server_id": "",
+                    "env_id": "3414",
+                    "server_index": "1",
+                    "platform": "ec2",
+                    "role": "base,chef",
+                    "hash": "e6f1bfd5bbf612",
+                    "custom.scm_branch": "master",
+                    "roleid": "36318",
+                    "farm_roleid": "60818",
+                    "serverid": "96e52104-f5c4-4ce7-a018-c8c2eb571c99",
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "realrolename": "base-ubuntu1204-devel",
+                    "region": "us-east-1",
+                    "httpproto": "https",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "cloud_storage_path": "s3://"
+                },
+
+                Platform.GCE: {
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "behaviors": "app",
+                    "owner_email": "stunko@scalr.com",
+                    "hash": "e6f1bfd5bbf612",
+                    "farmid": "16674",
+                    "farm_roleid": "60832",
+                    "message_format": "json",
+                    "realrolename": "apache-ubuntu1204-devel",
+                    "region": "x-scalr-custom",
+                    "httpproto": "https",
+                    "szr_key": "NiR2xOZKVbvdMPgdxuayLjEK2xC7mtLkVTc0vpka",
+                    "platform": "gce",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "role": "app",
+                    "cloud_server_id": "",
+                    "roleid": "36319",
+                    "env_id": "3414",
+                    "serverid": "c2bc7273-6618-4702-9ea1-f290dca3b098",
+                    "cloud_storage_path": "gcs://",
+                    "custom.scm_branch": "master",
+                    "server_index": "1"
+                },
+
+                Platform.OPENSTACK: {
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "behaviors": "base,chef",
+                    "owner_email": "stunko@scalr.com",
+                    "hash": "e6f1bfd5bbf612",
+                    "farmid": "16674",
+                    "farm_roleid": "60821",
+                    "message_format": "json",
+                    "realrolename": "base-ubuntu1204-devel",
+                    "region": "ItalyMilano1",
+                    "httpproto": "https",
+                    "szr_key": "iyLO/+iOGFFcuSIxbr0IJteRwDjaP1t6NQ8kXbX6",
+                    "platform": "ecs",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "role": "base,chef",
+                    "roleid": "36318",
+                    "env_id": "3414",
+                    "serverid": "59ddbdbf-6d69-4c53-a6b7-76ab391a8465",
+                    "cloud_storage_path": "swift://",
+                    "custom.scm_branch": "master",
+                    "server_index": "1"
+                },
+
+                Platform.CLOUDSTACK: {
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "behaviors": "base,chef",
+                    "owner_email": "stunko@scalr.com",
+                    "hash": "e6f1bfd5bbf612",
+                    "farmid": "16674",
+                    "farm_roleid": "60826",
+                    "message_format": "json",
+                    "realrolename": "base-ubuntu1204-devel",
+                    "region": "jp-east-f2v",
+                    "httpproto": "https",
+                    "szr_key": "cg3uuixg4jTUDz/CexsKpoNn0VZ9u6EluwpV+Mgi",
+                    "platform": "idcf",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "role": "base,chef",
+                    "cloud_server_id": "",
+                    "roleid": "36318",
+                    "env_id": "3414",
+                    "serverid": "feab131b-711e-4f4a-a7dc-ba083c28e5fc",
+                    "custom.scm_branch": "master",
+                    "server_index": "1"
+                }
+}
 
 
 class VerifyProcessWork(object):
@@ -830,3 +931,43 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     if resave_node:
         setattr(world, 'cloud_server', node)
     LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
+
+
+@step('I have a server([\w ]+)? running in cloud$')
+def given_server_in_cloud(step, user_data):
+    #TODO: Add install behaviors
+    LOG.info('Create node in cloud. User_data:%s' % user_data)
+    #Convert dict to formatted str
+    if user_data:
+        dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
+        user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family])
+        if CONF.feature.driver.current_cloud == Platform.GCE:
+            user_data = {'scalr': user_data}
+    else:
+        user_data = None
+    #Create node
+    image = None
+    if Dist.is_windows_family(CONF.feature.dist):
+        table = tables('images-clean')
+        search_cond = dict(
+            dist=CONF.feature.dist,
+            platform=CONF.feature.platform)
+        image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
+    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
+    setattr(world, 'cloud_server', node)
+    LOG.info('Cloud server was set successfully node name: %s' % node.name)
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+        #Run command
+        out = node.run('wget -qO- ifconfig.me/ip')
+        if not out[1]:
+            ip_address = out[0].rstrip("\n")
+            LOG.info('Received external ip address of the node. IP:%s' % ip_address)
+            setattr(world, 'ip', ip_address)
+        else:
+            raise AssertionError("Can't get node external ip address. Original error: %s" % out[1])
+        #Open port, set firewall rule
+        new_port = world.cloud.open_port(node, 8013, ip=ip_address)
+        setattr(world, 'forwarded_port', new_port)
+        if not new_port == 8013:
+            raise AssertionError('Import will failed, because opened port is not 8013, '
+                                 'an installed port is: %s' % new_port)

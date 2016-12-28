@@ -16,6 +16,7 @@ from revizor2.exceptions import MessageFailed, EventNotFounded
 LOG = logging.getLogger(__name__)
 
 
+
 @step('I expect (?:new\s)*server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
@@ -291,3 +292,125 @@ def verify_attached_volume_size(step, volume_as, size):
     if not size == volume_size:
         raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
                              % (volume.id, volume.size, size))
+
+
+@step('connection with scalarizr was established')
+def is_scalarizr_connected(step, timeout=1400):
+    LOG.info('Establish connection with scalarizr.')
+    #Whait outbound request from scalarizr
+    res = wait_until(
+        IMPL.bundle.check_scalarizr_connection,
+        args=(world.server.id, ),
+        timeout=timeout,
+        error_text="Time out error. Can't establish connection with scalarizr.")
+    if res.get('failure_reason'):
+        raise AssertionError("Bundle task {id} failed. Error: {msg}".format(
+            id=res['id'],
+            msg=res['failure_reason']))
+    world.bundle_task = res
+    if not res['behaviors']:
+        world.bundle_task.update({'behaviors': ['base']})
+    elif 'base' not in res['behaviors']:
+        world.bundle_task.update({'behaviors': ','.join((','.join(res['behaviors']), 'base')).split(',')})
+    else:
+        world.bundle_task.update({'behaviors': res['behaviors']})
+    LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.bundle_task['behaviors'])
+
+
+@step('I initiate the installation (\w+ )?behaviors on the server')
+def install_behaviors(step, behavior_set=None):
+    #Set recipe's
+    cookbooks = []
+    if behavior_set:
+        cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        installed_behaviors = []
+        for c in cookbooks:
+            match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
+            installed_behaviors.append(match[0]) if match else installed_behaviors.append(c)
+        setattr(world, 'installed_behaviors', installed_behaviors)
+    else:
+        for behavior in CONF.feature.behaviors:
+            if behavior in cookbooks:
+                continue
+            cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
+    LOG.info('Initiate the installation behaviors on the server: %s' %
+             world.cloud_server.name)
+    install_behaviors_on_node(world.cloud_server, cookbooks,
+                              CONF.feature.driver.scalr_cloud.lower(),
+                              branch=CONF.feature.branch)
+
+
+@step('I trigger the Create role')
+def create_role(step):
+    kwargs = dict(
+        server_id=world.server.id,
+        bundle_task_id=world.bundle_task['id'],
+        os_id=world.bundle_task['os'][0]['id']
+    )
+    if Dist.is_windows_family(CONF.feature.dist):
+        kwargs.update({'behaviors': 'chef'})
+    elif all(behavior in world.bundle_task['behaviors'] for behavior in CONF.feature.behaviors):
+        kwargs.update({'behaviors': ','.join(CONF.feature.behaviors)})
+    else:
+        raise AssertionError(
+            'Transmitted behavior: %s, not in the list received from the server' % CONF.feature.behaviors)
+
+    if not IMPL.bundle.create_role(**kwargs):
+        raise AssertionError('Create role initi`alization is failed.')
+
+
+@step('I trigger the Start building and run scalarizr')
+def start_building(step):
+    time.sleep(180)
+    LOG.info('Initiate Start building')
+
+    #Emulation pressing the 'Start building' key on the form 'Create role from
+    #Get CloudServerId, Command to run scalarizr
+    if CONF.feature.driver.current_cloud == Platform.GCE:
+        server_id = world.cloud_server.name
+    else:
+        server_id = world.cloud_server.id
+    res = IMPL.bundle.import_start(platform=CONF.feature.driver.scalr_cloud,
+                                   location=CONF.platforms[CONF.feature.platform]['location'],
+                                   cloud_id=server_id,
+                                   name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
+    if not res:
+        raise AssertionError("The import process was not started. Scalarizr run command was not received.")
+    LOG.info('Start scalarizr on remote host. ServerId is: %s' % res['server_id'])
+    LOG.info('Scalarizr run command is: %s' % res['scalarizr_run_command'])
+    world.server = Server(**{'id': res['server_id']})
+
+    #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
+    #and then run scalari4zr on new screen
+    if Dist.is_windows_family(CONF.feature.dist):
+        password = 'Scalrtest123'
+        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
+        def call_in_background(command):
+            try:
+                console.run_cmd(command)
+            except:
+                pass
+        t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
+        t1.start()
+    else:
+        world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
+
+
+@step(r'I install Chef on server')
+def install_chef(step):
+    node = getattr(world, 'cloud_server', None)
+    if Dist.is_windows_family(CONF.feature.dist):
+        password = 'Scalrtest123'
+        console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
+        #TODO: Change to installation via Fatmouse task
+        # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+        command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
+        console.run_cmd(command)
+        chef_version = console.run_cmd("chef-client --version")
+        assert chef_version.std_out, "Chef was not installed"
+    else:
+        command = "curl -L https://www.opscode.com/chef/install.sh | \
+            bash && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
+        node.run(command)
+        chef_version = node.run("chef-client --version")
+        assert chef_version[2] == 0, "Chef was not installed"

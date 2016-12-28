@@ -119,14 +119,6 @@ def start_basehttpserver(step, port, serv_as):
     node.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
 
 
-@step(r'([\w]+) resolves into (.+) ip address')
-def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
-    domain = getattr(world, domain_as)
-    server = getattr(world, serv_as)
-    domain_ip = wait_until(world.check_resolving, args=(domain.name,), timeout=timeout, error_text="Not see domain resolve")
-    world.assert_not_equal(domain_ip, server.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, server.public_ip))
-
-
 @world.run_only_if(dist=['!centos5'])
 @step(r'virtual host has a valid SSL certificate')
 def check_virtual_host_certificate(step):

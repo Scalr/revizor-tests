@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/apache_steps, steps/haproxy_steps
+Using step definitions from: steps/common_steps, steps/apache_steps, steps/haproxy_steps, terrain/apache_terrain
 Feature: HAProxy load balancer role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

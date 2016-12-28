@@ -9,34 +9,6 @@ from revizor2.consts import Platform
 LOG = logging.getLogger(__name__)
 
 
-@step('I create domain ([\w\d]+) to ([\w\d]+) role')
-def create_domain_to_role(step, domain_as, role_type):
-    LOG.info('Create new domain for role %s as %s' % (role_type, domain_as))
-    role = world.get_role(role_type)
-    domain = role.create_domain()
-    LOG.info('New domain: %s' % domain.name)
-    setattr(world, domain_as, domain)
-
-
-@step('I add(?: (ssl))? virtual host ([\w\d]+)(?: with key ([\w\d-]+))? to ([\w\d]+) role and domain ([\w\d]+)')
-def create_vhost_to_role(step, ssl, vhost_as, key_name, role_type, domain_as):
-    ssl = True if ssl else False
-    key_name = key_name if key_name else None
-    role = world.get_role(role_type)
-    domain = getattr(world, domain_as)
-    LOG.info('Add new virtual host for role %s, domain %s as %s %s' % (role, domain.name, vhost_as,
-                                                                       'with key {0}'.format(key_name)
-                                                                       if key_name
-                                                                       else ''))
-    role.add_vhost(domain.name, document_root='/var/www/%s' % vhost_as, ssl=ssl, cert=key_name)
-    world.farm.vhosts.reload()
-    vhost = filter(lambda x: x.name == domain.name, world.farm.vhosts)[0]
-    setattr(world, vhost_as, vhost)
-    if not hasattr(world, 'vhosts_list'):
-        setattr(world, 'vhosts_list', [])
-    world.vhosts_list.append(vhost)
-
-
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
 def assert_check_vhost(step, serv_as, vhost_as):
     node = world.cloud.get_node(getattr(world, serv_as))

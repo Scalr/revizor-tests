@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/new_szr_upd_system, steps/import_steps
+Using step definitions from: steps/common_steps, steps/new_szr_upd_system, steps/import_steps, terrain/server_terrain, terrain/node_terrain
 Feature: New scalarizr update policy test for broke the system with postinstall/fatal error
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @import
