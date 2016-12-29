@@ -16,7 +16,6 @@ from revizor2.exceptions import MessageFailed, EventNotFounded
 LOG = logging.getLogger(__name__)
 
 
-
 @step('I expect (?:new\s)*server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""

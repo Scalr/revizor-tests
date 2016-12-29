@@ -12,9 +12,6 @@ from lettuce import world, step
 
 LOG = logging.getLogger(__name__)
 
-
-
-
 APACHE_MESSAGES = (
     'It works!',
     'Apache HTTP Server',
