@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/pkg_update_steps, steps/import_steps, steps/discovery_manager_steps, terrain/node_terrain
+Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/pkg_update_steps, steps/import_steps, steps/discovery_manager_steps
 Feature: Discovery manager service
     In order to manage non Scalr resources
     As a scalr user

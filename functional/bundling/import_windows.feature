@@ -1,4 +1,4 @@
-Using step definitions from: steps/import_steps, terrain/server_terrain, terrain/farm_terrain, terrain/node_terrain
+Using step definitions from: steps/import_steps
 Feature: Import server to scalr and use this role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

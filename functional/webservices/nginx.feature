@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/apache_steps, steps/nginx_steps, terrain/apache_terrain
+Using step definitions from: steps/common_steps, steps/apache_steps, steps/nginx_steps, apache_terrain
 Feature: Nginx load balancer role test with apache backends
 
     @ec2 @gce @cloudstack @rackspaceng @openstack

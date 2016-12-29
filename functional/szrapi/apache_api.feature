@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_api_steps, steps/apache_api_steps, terrain/apache_terrain
+Using step definitions from: steps/common_api_steps, steps/apache_api_steps
 Feature: Apache application server role, api tests
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
