@@ -4,13 +4,16 @@ import re
 import time
 import json
 import logging
+from datetime import datetime
 
 from lettuce import world, step
 
+from revizor2.api import Role
+from revizor2.defaults import USE_VPC
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.api import Script, Farm, Metrics, ChefServer
-from revizor2.consts import Platform, DATABASE_BEHAVIORS
+from revizor2.consts import Platform, DATABASE_BEHAVIORS, Dist
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
     SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS, \
@@ -279,3 +282,19 @@ def farm_launch(step):
         time.sleep(1800)
     world.farm.launch()
     LOG.info('Launch farm \'%s\' (%s)' % (world.farm.id, world.farm.name))
+
+
+@step('I add to farm imported role$')
+def add_new_role_to_farm(step):
+    options = getattr(world, 'role_options', {})
+    if Dist.is_windows_family(CONF.feature.dist) and CONF.feature.platform == 'ec2':
+        options['aws.instance_type'] = 'm3.medium'
+    bundled_role = Role.get(world.bundled_role_id)
+    world.farm.add_role(
+        world.bundled_role_id,
+        options=options,
+        alias=bundled_role.name,
+        use_vpc=USE_VPC)
+    world.farm.roles.reload()
+    role = world.farm.roles[0]
+    setattr(world, '%s_role' % role.alias, role)

@@ -326,17 +326,6 @@ def assert_check_slave(step, slave_serv, master_serv):
     raise AssertionError('%s is not slave, all slaves: %s' % (slave_serv, info['slaves']))
 
 
-@step('I create a ([\w]+)$')
-def do_action(step, action):
-    """
-    Run databundle or backup process in farm
-    """
-    action = action.strip()
-    db_role = world.get_role()
-    getattr(db_role.db, 'create_%s' % action)()
-    LOG.info("Create %s" % action)
-
-
 @step('I create a ([\w]+) databundle on ([\w]+)')
 def create_databundle(step, bundle_type, when):
     LOG.info('Create a %s databundle on %s' % (bundle_type, when))
@@ -390,19 +379,6 @@ def create_new_database(step, db_name, serv_as, username=None):
     db_role.db.database_create(db_name, server, credentials)
     LOG.info('Database was success created')
     time.sleep(15)
-
-
-@step('And databundle type in ([\w\d]+) is ([\w]+)')
-def check_bundle_type(step, serv_as, bundle_type):
-    LOG.info('Check databundle type')
-    time.sleep(10)
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    out = node.run("cat /var/log/scalarizr_debug.log | grep 'name=\"DbMsr_CreateDataBundle\"'")
-    bundle = out[0].split('<backup_type>')[1].split('</backup_type>')[0]
-    LOG.info('Databundle type in server messages: %s' % bundle)
-    if not bundle == bundle_type:
-        raise AssertionError('Bundle type in scalarizr message is not %s it %s' % (bundle_type, bundle))
 
 
 @step('I increase storage to ([\d]+) Gb in ([\w\d]+) role$')

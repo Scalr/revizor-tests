@@ -126,19 +126,6 @@ def update_vhost(step, domain_as, serv_as):
     LOG.info('Virtual hosts on domain {0} was updated:\n{1}'.format(domain.name, res))
 
 
-@step(r'([\w]+) resolves into (.+) ip address')
-def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
-    domain = getattr(world, domain_as)
-    server = getattr(world, serv_as)
-    domain_ip = wait_until(world.check_resolving,
-                           args=(domain.name,),
-                           timeout=timeout,
-                           error_text='Domain: {0} not resolve'.format(domain.name))
-    assert domain_ip == server.public_ip, 'Domain IP {0} != server IP {1}'.format(
-        domain_ip,
-        server.public_ip)
-
-
 @step(r'domain ([\w\d]+) contain default ([\w]+) web page on ([\w\d]+)')
 def assert_default_page(step, domain_as, proto, serv_as):
     # Get domain name
