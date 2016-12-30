@@ -16,6 +16,20 @@ from revizor2.exceptions import MessageFailed, EventNotFounded
 LOG = logging.getLogger(__name__)
 
 
+COOKBOOKS_BEHAVIOR = {
+    'app': 'apache2',
+    'www': 'nginx',
+    'mysql': 'mysql::server',
+    'mysql2': 'mysql::server'
+
+}
+
+BEHAVIOR_SETS = {
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
+    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
+}
+
+
 @step('I expect (?:new\s)*server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""

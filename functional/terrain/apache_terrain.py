@@ -9,6 +9,7 @@ import requests
 from requests.exceptions import HTTPError, ConnectionError, SSLError
 import logging
 from lettuce import world, step
+from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
 
