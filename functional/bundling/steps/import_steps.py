@@ -16,19 +16,6 @@ from revizor2.fixtures import tables
 
 LOG = logging.getLogger(__name__)
 
-COOKBOOKS_BEHAVIOR = {
-    'app': 'apache2',
-    'www': 'nginx',
-    'mysql': 'mysql::server',
-    'mysql2': 'mysql::server'
-
-}
-
-BEHAVIOR_SETS = {
-    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
-    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
-}
-
 
 @step('Role has successfully been created$')
 def assert_role_task_created(step,  timeout=1400):
