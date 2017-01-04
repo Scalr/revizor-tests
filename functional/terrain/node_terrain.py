@@ -704,10 +704,10 @@ def run_sysprep(uuid, console):
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
         user_name = ['scalr']
-    elif CONF.feature.dist.dist_info['family'] == 'ubuntu':
+    elif CONF.feature.dist.os_dist == 'ubuntu':
         user_name = ['root', 'ubuntu']
-    elif CONF.feature.dist.dist_info['family'] == 'amazon' or \
-            (CONF.feature.dist.dist_info['family'] == 'redhat' and CONF.feature.driver.is_platform_ec2):
+    elif CONF.feature.dist.os_dist == 'amazon' or \
+            (CONF.feature.dist.os_dist == 'redhat' and CONF.feature.driver.is_platform_ec2):
         user_name = ['root', 'ec2-user']
     else:
         user_name = ['root']
