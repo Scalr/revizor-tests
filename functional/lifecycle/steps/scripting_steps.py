@@ -12,13 +12,6 @@ from revizor2.utils import wait_until
 LOG = logging.getLogger(__name__)
 
 
-@step("([\w]+) script executed scalarizr is in '(.+)' state in (.+)")
-def assert_check_script(step, message, state, serv_as):
-    serv = getattr(world, serv_as)
-    wait_until(world.wait_script_execute, args=(serv, message, state), timeout=600,
-               error_text='I\'m not see %s scripts execution for server %s' % (message, serv.id))
-
-
 @step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
     LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\nuser: %s\nexitcode: %s\ncontain: %s' %

@@ -41,13 +41,6 @@ def increase_instances(step, count, role_type):
     role.edit(options)
 
 
-@step('I start a new server for(?: ([\w\d+]))? role')
-def start_new_instance(step, role_type):
-    role = world.get_role(role_type)
-    LOG.info('Start new instance for role %s' % role)
-    role.launch_instance()
-
-
 @step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)(?: in (\w+) role)?$')
 def bootstrap_many_servers(step, serv_count, serv_names, role_type, timeout=1400):
     serv_names = [s.strip() for s in serv_names.split(',')]
@@ -97,8 +90,3 @@ def add_new_role_to_farm(step, alias=None):
     setattr(world, '%s_role' % alias, role)
 
 
-@step('I change suspend policy in role to (\w+)')
-def change_suspend_policy(step, policy):
-    role = world.get_role()
-    LOG.info('Change suspend policy for role %s to %s' % (role.alias, policy))
-    role.edit(options={"base.resume_strategy": policy})
