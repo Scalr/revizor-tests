@@ -32,9 +32,9 @@ def rebundle_server_via_api(step, serv_as):
 
     if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE)\
             and not CONF.feature.dist.is_windows\
-            and not CONF.feature.dist.os_dist == 'redhat'\
+            and not CONF.feature.dist.dist == 'redhat'\
             or (CONF.feature.driver.current_cloud == Platform.GCE
-                and CONF.feature.dist.os_dist == 'redhat'):
+                and CONF.feature.dist.dist == 'redhat'):
         LOG.info('Image creation in this platform doing in one step')
         operation_id = server.api.image.create(name=name, async=True)
         LOG.info('Image creation operation_id - %s' % operation_id)
