@@ -655,7 +655,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     # Get node os name
     # node_os = getattr(node, 'os', [''])[0]
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.os_family)
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node_os)
     return os_family_res

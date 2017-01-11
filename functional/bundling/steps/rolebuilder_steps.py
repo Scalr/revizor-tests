@@ -36,7 +36,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
     platform = CONF.feature.driver.scalr_cloud
-    os_id = CONF.feature.dist.os_id
+    os_id = CONF.feature.dist.id
     try:
         if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
             image = filter(lambda x: x['os_id'] == os_id,
@@ -53,7 +53,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
-                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.os_id,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql',

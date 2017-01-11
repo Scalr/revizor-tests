@@ -176,7 +176,7 @@ class VerifyProcessWork(object):
         node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server,
                                                              DEFAULT_SERVICES_CONFIG['app'][
-                                                                 Dist(node.os[0]).os_family]['service_name']),
+                                                                 Dist(node.os[0]).family]['service_name']),
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
 
@@ -415,7 +415,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
-    os_family = Dist(server.role.dist).os_family
+    os_family = Dist(server.role.dist).family
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
@@ -498,7 +498,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as
         service.update({'node': common_config.get('service_name')})
         if not service['node']:
-            service.update({'node': common_config.get(consts.Dist(node.os[0]).os_family).get('service_name')})
+            service.update({'node': common_config.get(consts.Dist(node.os[0]).family).get('service_name')})
         if is_api:
             service.update({'api': common_config['api_endpoint'].get('name')})
             if not service['api']:
@@ -646,7 +646,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         behavior = server.role.behaviors[0]
         common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
         pattern = common_config.get('service_name',
-                                    common_config.get(consts.Dist(node.os[0]).os_family).get('service_name'))
+                                    common_config.get(consts.Dist(node.os[0]).family).get('service_name'))
     LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
     pid_before = get_pid(pattern)
@@ -674,7 +674,7 @@ def creating_image(step, image_type=None):
     # Create an image
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
         image_type.strip(),
-        CONF.feature.dist.os_id,
+        CONF.feature.dist.id,
         datetime.now()
     )
     # Set credentials to image creation
@@ -719,7 +719,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     )
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
             image_type,
-            CONF.feature.dist.os_id,
+            CONF.feature.dist.id,
             datetime.now())
     if image_type != 'base':
         behaviors = getattr(world, 'installed_behaviors', None)

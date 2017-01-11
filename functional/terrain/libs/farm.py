@@ -53,7 +53,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
-            role = tables('roles-shared').filter({'dist': CONF.feature.dist.os_id,
+            role = tables('roles-shared').filter({'dist': CONF.feature.dist.id,
                                                   'behavior': behavior,
                                                   'platform': CONF.feature.driver.scalr_cloud}).first()
             role = IMPL.role.get(role.keys()[0])

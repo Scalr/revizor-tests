@@ -50,7 +50,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
-    if CONF.feature.dist.os_id == 'scientific-6-x' or (CONF.feature.dist.os_id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
+    if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.is_windows:
