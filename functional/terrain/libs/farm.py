@@ -7,7 +7,6 @@ from lettuce import world
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
-from revizor2.defaults import USE_VPC
 from revizor2.consts import BEHAVIORS_ALIASES, Platform
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
@@ -63,7 +62,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 behavior = BEHAVIORS_ALIASES[behavior]
             if CONF.feature.role_type == 'instance':
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-            elif USE_VPC:
+            elif CONF.feature.use_vpc:
                 mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
                 mask = 'tmp-%s-%s-*-*' % (behavior, dist)
@@ -77,7 +76,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
-            elif USE_VPC:
+            elif CONF.feature.use_vpc:
                 role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
@@ -130,7 +129,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=USE_VPC)
+                        use_vpc=CONF.feature.use_vpc)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

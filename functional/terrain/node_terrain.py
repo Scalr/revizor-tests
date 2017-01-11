@@ -23,7 +23,6 @@ from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as 
     DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
-from revizor2.defaults import USE_VPC
 
 try:
     import winrm
@@ -953,7 +952,7 @@ def given_server_in_cloud(step, user_data):
             dist=CONF.feature.dist,
             platform=CONF.feature.platform)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
-    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
+    node = world.cloud.create_node(userdata=user_data, use_hvm=CONF.feature.use_vpc, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:

@@ -9,7 +9,6 @@ from datetime import datetime
 from lettuce import world, step
 
 from revizor2.api import Role
-from revizor2.defaults import USE_VPC
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.api import Script, Farm, Metrics, ChefServer
@@ -294,7 +293,7 @@ def add_new_role_to_farm(step):
         world.bundled_role_id,
         options=options,
         alias=bundled_role.name,
-        use_vpc=USE_VPC)
+        use_vpc=CONF.feature.use_vpc)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)

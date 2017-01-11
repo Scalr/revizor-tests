@@ -11,7 +11,6 @@ from revizor2.fixtures import images
 from revizor2.utils import wait_until
 from revizor2.exceptions import NotFound
 from revizor2.consts import Platform, Dist
-from revizor2.defaults import USE_VPC
 
 
 LOG = logging.getLogger('rolebuilder')
@@ -25,7 +24,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if not 'chef' in behaviors:
         behaviors.append('chef')
 
-    if USE_VPC:
+    if CONF.feature.use_vpc:
         use_hvm = True
         if 'mongodb' in behaviors:
             behaviors.remove('mongodb')

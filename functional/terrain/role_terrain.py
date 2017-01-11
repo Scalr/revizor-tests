@@ -9,7 +9,6 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
-from revizor2.defaults import USE_VPC
 from revizor2.consts import Platform, ServerStatus
 
 
@@ -83,7 +82,7 @@ def add_new_role_to_farm(step, alias=None):
                         'db.msr.redis.use_password': True})
 
     world.farm.add_role(world.bundled_role_id, options=options,
-                        scripting=scripting, alias=alias, use_vpc=USE_VPC)
+                        scripting=scripting, alias=alias, use_vpc=CONF.feature.use_vpc)
     world.farm.roles.reload()
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
