@@ -91,7 +91,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             role = roles[0]
         return role
     # WORKAROUND!
-    dist = os.environ.get('RV_DIST', 'ubuntu1204')
+    dist = CONF.feature.dist.mask
     if CONF.feature.role_id:
         LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():
