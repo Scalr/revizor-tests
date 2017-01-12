@@ -8,7 +8,6 @@ from datetime import datetime
 import requests
 from lettuce import world
 from libcloud.compute.types import NodeState
-from revizor2.defaults import USE_SYSTEMCTL
 
 try:
     import winrm
@@ -254,7 +253,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status in ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
-                if not Dist.is_windows_family(lookup_server.role.dist):
+                if not Dist(lookup_server.role.dist).is_windows:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
                     verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
@@ -267,7 +266,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 LOG.debug('Check scalarizr debug log in lookup server')
-                if not Dist.is_windows_family(lookup_server.role.dist):
+                if not Dist(lookup_server.role.dist).is_windows:
                     verify_scalarizr_log(lookup_node)
                 else:
                     verify_scalarizr_log(lookup_node, windows=True, server=lookup_server)
@@ -435,7 +434,7 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
     else:
         return '%s-%s-%s' % (
@@ -575,7 +574,7 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 raise Exception(error_msg)
         else:
             #Change process status by  calling command service
-            if USE_SYSTEMCTL:
+            if CONF.feature.dist.is_systemd:
                 cmd = "systemctl {status} {process} && sleep 3"
             else:
                 cmd = "service {process} {status} && sleep 3"
@@ -655,9 +654,8 @@ def value_for_os_family(debian, centos, server=None, node=None):
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get node os name
     # node_os = getattr(node, 'os', [''])[0]
-    node_os = CONF.feature.dist
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os))
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node_os)
     return os_family_res

@@ -11,7 +11,6 @@ from revizor2.fixtures import images
 from revizor2.utils import wait_until
 from revizor2.exceptions import NotFound
 from revizor2.consts import Platform, Dist
-from revizor2.defaults import USE_VPC
 
 
 LOG = logging.getLogger('rolebuilder')
@@ -25,7 +24,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if not 'chef' in behaviors:
         behaviors.append('chef')
 
-    if USE_VPC:
+    if CONF.feature.use_vpc:
         use_hvm = True
         if 'mongodb' in behaviors:
             behaviors.remove('mongodb')
@@ -37,7 +36,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
     platform = CONF.feature.driver.scalr_cloud
-    os_id = Dist.get_os_id(CONF.feature.dist)
+    os_id = CONF.feature.dist.id
     try:
         if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
             image = filter(lambda x: x['os_id'] == os_id,
@@ -54,7 +53,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
-                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql',

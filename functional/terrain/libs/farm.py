@@ -7,8 +7,7 @@ from lettuce import world
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
-from revizor2.defaults import USE_VPC
-from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES, Platform
+from revizor2.consts import BEHAVIORS_ALIASES, Platform
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
@@ -54,7 +53,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
-            role = tables('roles-shared').filter({'dist': CONF.feature.dist,
+            role = tables('roles-shared').filter({'dist': CONF.feature.dist.id,
                                                   'behavior': behavior,
                                                   'platform': CONF.feature.driver.scalr_cloud}).first()
             role = IMPL.role.get(role.keys()[0])
@@ -63,7 +62,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 behavior = BEHAVIORS_ALIASES[behavior]
             if CONF.feature.role_type == 'instance':
                 mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-            elif USE_VPC:
+            elif CONF.feature.use_vpc:
                 mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
                 mask = 'tmp-%s-%s-*-*' % (behavior, dist)
@@ -77,7 +76,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
-            elif USE_VPC:
+            elif CONF.feature.use_vpc:
                 role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
@@ -91,10 +90,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
         return role
-    if CONF.feature.dist in DIST_ALIASES:
-        dist = DIST_ALIASES[CONF.feature.dist]
-    else:
-        dist = CONF.feature.dist
+    # WORKAROUND!
+    dist = os.environ.get('RV_DIST', 'ubuntu1204')
     if CONF.feature.role_id:
         LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():
@@ -118,12 +115,12 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'rhel7' and not CONF.feature.use_vpc:
+    if dist == 'redhat-7-x' and not CONF.feature.use_vpc:
         options['instance_type'] = 'm3.medium'
-    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.EC2:
+    if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.EC2:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'm3.medium'
-    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
+    if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
     world.farm.add_role(role['id'],
@@ -132,7 +129,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=USE_VPC)
+                        use_vpc=CONF.feature.use_vpc)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

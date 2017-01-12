@@ -9,7 +9,6 @@ from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.api import IMPL, Server
 from revizor2.consts import Platform, Dist
-from revizor2.defaults import USE_VPC
 from revizor2.utils import wait_until
 from revizor2.helpers import install_behaviors_on_node
 from revizor2.fixtures import tables

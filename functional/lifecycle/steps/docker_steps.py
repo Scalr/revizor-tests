@@ -58,7 +58,7 @@ def install_docker(step, serv_as):
     node = world.cloud.get_node(server)
     conf_folder = ''
     restart_cmd = 'service docker restart'
-    if CONF.feature.dist in ['centos7', 'ubuntu1604', 'debian8', 'rhel7']:  # SystemD-based OS
+    if CONF.feature.dist.is_systemd:
         conf_file = '/etc/systemd/system/docker.service.d/docker.conf'
         echo_line = '''"[Service]\nExecStart=\nExecStart=/usr/bin/dockerd -H unix:///var/run/docker.sock -H tcp://0.0.0.0:9999"'''
         conf_folder = 'mkdir /etc/systemd/system/docker.service.d;'

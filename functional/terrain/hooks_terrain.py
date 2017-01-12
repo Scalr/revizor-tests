@@ -68,14 +68,14 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                     server.get_log_by_api(**log)
                     LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
                     #Get configs and role behavior from remote host only for linux family
-                    if not Dist.is_windows_family(server.role.dist):
+                    if not Dist(server.role.dist).is_windows:
                         file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
                         server.get_configs(file, compress=True)
                         LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
             except BaseException, e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
-        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
+        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.is_windows:
             node = world.cloud.get_node(server)
             out = node.run("ps aux | grep 'bin/scal'")[0]
             for line in out.splitlines():
@@ -195,10 +195,7 @@ def exclude_update_from_latest(feature):
     Exclude 'update from latest' scenario if branch version is lower than latest
     """
     if feature.name in ['Linux update for new package test', 'Windows update for new package test']:
-        if Dist.is_windows_family(CONF.feature.dist):
-            os_family = 'windows'
-        else:
-            os_family = Dist.get_os_family(CONF.feature.dist)
+        os_family = CONF.feature.dist.family
         to_branch = CONF.feature.branch
         if to_branch == 'latest':  # Excludes when trying to update from latest to latest
             match = True
@@ -211,7 +208,8 @@ def exclude_update_from_latest(feature):
                     path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
                     default_repo = url.format(path=path)
                 index_url = default_repo.format(branch=branch)
-                repo_data = parser_for_os_family(os_family)(branch=branch, index_url=index_url)
+                # WORKAROUND!
+                repo_data = parser_for_os_family(os.environ.get('RV_DIST', 'ubuntu1204'))(branch=branch, index_url=index_url)
                 versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
                 versions.sort(reverse=True)
                 last_version = versions[0]

@@ -21,7 +21,6 @@ from lettuce import step, world, after
 from urllib2 import URLError
 
 from revizor2.consts import Dist
-from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.fixtures import tables, resources
 
@@ -147,18 +146,18 @@ def waiting_new_package(step):
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         table = tables('images-clean')
         search_cond = dict(
-            dist=CONF.feature.dist,
+            dist=CONF.feature.dist.id,
             platform=CONF.feature.platform)
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
+        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x']:
             image = world.cloud.find_image(use_hvm=True)
         else:
-            image = world.cloud.find_image(use_hvm=USE_VPC)
+            image = world.cloud.find_image(use_hvm=CONF.feature.use_vpc)
     LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
     setattr(world, 'image', image)
 
@@ -177,10 +176,10 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
             "base.devel_repository": '' if release else CONF.feature.ci_repo
         },
         alias=world.role['name'],
-        use_vpc=USE_VPC
+        use_vpc=CONF.feature.use_vpc
     )
     if CONF.feature.driver.is_platform_ec2 \
-            and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
+            and (CONF.feature.dist.is_windows or CONF.feature.dist.id == 'centos-7-x'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
     if use_manual_scaling:
         manual_scaling = {
@@ -222,7 +221,7 @@ def asserting_version(step, version, serv_as):
     command = 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         res = world.run_cmd_command_until(command, server=server, timeout=300).std_out
     # Linux handler
     else:

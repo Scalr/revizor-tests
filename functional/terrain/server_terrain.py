@@ -215,7 +215,7 @@ def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
     hostname = server.api.system.get_hostname()
     valid_hostname = '%s-%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         valid_hostname = '%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.index)
         hostname = hostname.lower()
     if not hostname.lower() == valid_hostname.lower():
@@ -227,7 +227,7 @@ def check_scalarizr_log(step, serv_as):
     """Check scalarizr log for errors"""
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         world.verify_scalarizr_log(node, windows=True, server=server)
     else:
         world.verify_scalarizr_log(node)

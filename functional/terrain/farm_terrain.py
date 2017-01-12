@@ -9,7 +9,6 @@ from datetime import datetime
 from lettuce import world, step
 
 from revizor2.api import Role
-from revizor2.defaults import USE_VPC
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.api import Script, Farm, Metrics, ChefServer
@@ -51,10 +50,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_options = {
         "base.hostname_format": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
-    if CONF.feature.dist == 'scientific6' or (CONF.feature.dist == 'centos7' and CONF.feature.driver.current_cloud == Platform.EC2):
+    if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         role_options["base.hostname_format"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
 
     if saved_role:
@@ -141,7 +140,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 ]
             elif opt == 'storages':
                 LOG.info('Insert additional storages config')
-                if CONF.feature.dist.startswith('win'):
+                if CONF.feature.dist.is_windows:
                     additional_storages = {
                         'configs': DEFAULT_WINDOWS_ADDITIONAL_STORAGES.get(
                             CONF.feature.driver.cloud_family, [])}
@@ -294,7 +293,7 @@ def add_new_role_to_farm(step):
         world.bundled_role_id,
         options=options,
         alias=bundled_role.name,
-        use_vpc=USE_VPC)
+        use_vpc=CONF.feature.use_vpc)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)

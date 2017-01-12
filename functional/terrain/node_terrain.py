@@ -20,10 +20,9 @@ from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, USE_SYSTEMCTL
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
-from revizor2.defaults import USE_VPC
 
 try:
     import winrm
@@ -177,7 +176,7 @@ class VerifyProcessWork(object):
         node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server,
                                                              DEFAULT_SERVICES_CONFIG['app'][
-                                                                 Dist.get_os_family(node.os[0])]['service_name']),
+                                                                 Dist(node.os[0]).family]['service_name']),
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
 
@@ -297,7 +296,7 @@ def verify_port_status(step, port, closed, serv_as):
         port, 'closed' if closed else 'open', server.id
     ))
     node = world.cloud.get_node(server)
-    if not CONF.feature.dist.startswith('win'):
+    if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
@@ -323,7 +322,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     LOG.info('Verify port %s is %s on server %s' % (
         port, 'closed' if closed else 'open', server.id
     ))
-    if service == 'scalarizr' and CONF.feature.dist.startswith('win'):
+    if service == 'scalarizr' and CONF.feature.dist.is_windows:
         status = None
         for _ in range(5):
             try:
@@ -336,7 +335,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
         else:
             raise AssertionError('Scalarizr is not running in windows, status: %s' % status)
     node = world.cloud.get_node(server)
-    if not CONF.feature.dist.startswith('win'):
+    if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         #TODO: Change login on this behavior
@@ -382,9 +381,9 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     elif repo == 'role':
         repo = CONF.feature.to_branch
     server = getattr(world, serv_as)
-    if consts.Dist.is_centos_family(server.role.dist):
+    if consts.Dist(server.role.dist).is_centos:
         repo_data = parse_rpm_repository(repo)
-    elif consts.Dist.is_debian_family(server.role.dist):
+    elif consts.Dist(server.role.dist).is_debian:
         repo_data = parse_apt_repository(repo)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
@@ -416,7 +415,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
-    os_family = Dist.get_os_family(server.role.os_family)
+    os_family = Dist(server.role.dist).family
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
@@ -429,7 +428,7 @@ def assert_scalarizr_version(step, branch, serv_as):
         # Get last scalarizr version from custom repo
         index_url = default_repo.format(branch=branch)
         LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.os_family)(branch=branch, index_url=index_url)
+        repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
         versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
         versions.sort(reverse=True)
         last_version = versions[0]
@@ -459,7 +458,7 @@ def assert_scalarizr_version(step, branch, serv_as):
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
-    if USE_SYSTEMCTL:
+    if CONF.feature.dist.is_systemd:
         cmd = "systemctl restart scalarizr"
     else:
         cmd = "/etc/init.d/scalarizr restart"
@@ -499,7 +498,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as
         service.update({'node': common_config.get('service_name')})
         if not service['node']:
-            service.update({'node': common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')})
+            service.update({'node': common_config.get(consts.Dist(node.os[0]).family).get('service_name')})
         if is_api:
             service.update({'api': common_config['api_endpoint'].get('name')})
             if not service['api']:
@@ -569,20 +568,20 @@ def change_branch_in_sources(step, serv_as, branch):
         branch = branch.replace('/', '-').replace('.', '').strip()
     server = getattr(world, serv_as)
     LOG.info('Change branches in sources list in server %s to %s' % (server.id, branch))
-    if Dist.is_debian_family(server.role.dist):
+    if Dist(server.role.dist).is_debian:
         LOG.debug('Change in debian')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
-    elif Dist.is_centos_family(server.role.dist):
+    elif Dist(server.role.dist).is_centos:
         LOG.debug('Change in centos')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/yum.repos.d/scalr-stable.repo']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "[scalr-branch]\nname=scalr-branch\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
         node.run('echo > /etc/yum.repos.d/scalr-latest.repo')
-    elif Dist.is_windows_family(server.role.dist):
+    elif Dist(server.role.dist).is_windows:
         # LOG.debug('Change in windows')
         import winrm
         console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
@@ -647,7 +646,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         behavior = server.role.behaviors[0]
         common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
         pattern = common_config.get('service_name',
-                                    common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name'))
+                                    common_config.get(consts.Dist(node.os[0]).family).get('service_name'))
     LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
     pid_before = get_pid(pattern)
@@ -675,7 +674,7 @@ def creating_image(step, image_type=None):
     # Create an image
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
         image_type.strip(),
-        CONF.feature.dist,
+        CONF.feature.dist.id,
         datetime.now()
     )
     # Set credentials to image creation
@@ -720,7 +719,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     )
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
             image_type,
-            CONF.feature.dist,
+            CONF.feature.dist.id,
             datetime.now())
     if image_type != 'base':
         behaviors = getattr(world, 'installed_behaviors', None)
@@ -798,10 +797,10 @@ def run_sysprep(uuid, console):
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
         user_name = ['scalr']
-    elif 'ubuntu' in CONF.feature.dist:
+    elif CONF.feature.dist.dist == 'ubuntu':
         user_name = ['root', 'ubuntu']
-    elif 'amzn' in CONF.feature.dist or \
-            ('rhel' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
+    elif CONF.feature.dist.dist == 'amazon' or \
+            (CONF.feature.dist.dist == 'redhat' and CONF.feature.driver.is_platform_ec2):
         user_name = ['root', 'ec2-user']
     else:
         user_name = ['root']
@@ -828,7 +827,7 @@ def get_repo_type(custom_branch, custom_version=None):
         def __getitem__(self, key):
             if self.has_key(key):
                 value = dict.__getitem__(self, key)
-                if not Dist.is_windows_family(CONF.feature.dist):
+                if not CONF.feature.dist.is_windows:
                     value = self.__extend_repo_type(value)
                 return value
             raise AssertionError('Repo type: "%s" not valid' % key)
@@ -867,7 +866,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     repo_type = get_repo_type(branch, custom_version)
     LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         password = 'Scalrtest123'
         if node:
             console_kwargs = dict(
@@ -953,7 +952,7 @@ def given_server_in_cloud(step, user_data):
             dist=CONF.feature.dist,
             platform=CONF.feature.platform)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
-    node = world.cloud.create_node(userdata=user_data, use_hvm=USE_VPC, image=image)
+    node = world.cloud.create_node(userdata=user_data, use_hvm=CONF.feature.use_vpc, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
