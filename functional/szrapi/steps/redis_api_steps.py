@@ -117,10 +117,10 @@ def check_instance_configs(step, instance_port, search_condition, serv_as):
     node = world.cloud.get_node(server)
     # Get redis instance search condition
     if search_condition == 'configuration':
-        path = redis_path.get(Dist(node.os[0]).family)['conf']
+        path = redis_path.get(Dist(node.os).family)['conf']
         file = 'redis.{0}.conf'.format(instance_port)
     else:
-        path = redis_path.get(Dist(node.os[0]).family)['data']
+        path = redis_path.get(Dist(node.os).family)['data']
         file = 'appendonly.{0}.aof'.format(instance_port)
     command = 'find {0} -name {1}'.format(path, file)
     LOG.debug('Search condition: ({0}/{1}) to find config for redis instance {2}'.format(path, file, instance_port))
