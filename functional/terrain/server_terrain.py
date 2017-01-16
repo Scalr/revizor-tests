@@ -4,11 +4,12 @@ import time
 import copy
 import logging
 from datetime import datetime
+from threading import Thread
 
 from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.api import Script
+from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
 from revizor2.exceptions import MessageFailed, EventNotFounded
