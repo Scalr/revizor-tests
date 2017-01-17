@@ -53,8 +53,6 @@ Feature: Orchestration features test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstrapping role with failed non-ascii script
-        When I stop farm
-        And wait all servers are terminated
         Given I have a clean and stopped farm
         When I add role to this farm with failed_script
         When I start farm
