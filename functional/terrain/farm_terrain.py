@@ -97,12 +97,12 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                                       'SCRIPT_PONG_PS_ID': script_pong_ps_id})
 
             elif opt == 'failed_script':
-                script_id = Script.get_id('test_return_nonzero')['id']
+                script_id = Script.get_id('non-ascii-output')['id']
                 scripting = [
                     {
                         "script_type": "scalr",
                         "script_id": script_id,
-                        "script": "test_return_nonzero",
+                        "script": "non-ascii-output",
                         "os": "linux",
                         "event": "BeforeHostUp",
                         "target": "instance",
