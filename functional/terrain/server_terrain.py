@@ -424,6 +424,7 @@ def install_chef(step):
         chef_version = console.run_cmd("chef-client --version")
         assert chef_version.std_out, "Chef was not installed"
     else:
+        node.run('rm -rf /tmp/chef-solo/cookbooks/*')
         command = "curl -L https://www.opscode.com/chef/install.sh | \
             bash && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
         node.run(command)
