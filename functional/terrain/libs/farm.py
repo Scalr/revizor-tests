@@ -65,7 +65,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             elif CONF.feature.use_vpc:
                 mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
-                mask = 'tmp-%s-%s-*-*' % (behavior, dist)
+                mask = 'tmp-%s-%s-*-*' % (behavior, CONF.feature.dist.id)
             else:
                 mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -80,7 +80,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
-                role_name = 'tmp-%s-%s-%s' % (behavior, dist, versions[0])
+                role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
                 role_name = '%s%s-%s-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
