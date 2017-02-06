@@ -77,21 +77,24 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
-    branch = branch or ''
     if 'system' in branch:
         branch = os.environ.get('RV_BRANCH')
+    elif 'new' in branch:
+        branch = world.test_branch_copy
     elif not branch:
         branch = os.environ.get('RV_TO_BRANCH')
     else:
         branch = branch.strip()
-    world.test_branch_copy= 'test-{}/{}'.format(int(time.time()), branch)
+    world.test_branch_copy = 'test-{}'.format(int(time.time()))
     if is_patched:
         fixture_path = 'scripts/scalarizr_app.py'
         script_path = 'src/scalarizr/app.py'
         content = resources(fixture_path).get()
+        commit_msg = 'Patch app.py, corrupt windows start'
     else:
         script_path = 'README.md'
-        content = 'Scalarizr\n=========\nTested build for: [%s]()' % branch
+        commit_msg = 'Tested build for: [%s]' % branch
+        content = 'Scalarizr\n=========\n%s()' % commit_msg
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
     git = GH.repos(ORG)(SCALARIZR_REPO).git
     # Get the SHA the current test branch points to
@@ -111,7 +114,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
                'sha': blob.sha}])
     # Create a new commit object using the new tree and point its parent to the current master
     commit = git.commits.post(
-        message='Patch app.py, corrupt windows start', #TODOL Change this commit message for linux package too
+        message=commit_msg,
         parents=[base_sha],
         tree=tree.sha)
     base_sha = commit.sha
@@ -162,18 +165,19 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I add created role to the farm(?: with (custom deploy options)*(branch_stable)*)*$')
+@step(r'I add created role to the farm(?: with (manual scaling)*(stable branch)*)*$')
 def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
-    branch = CONF.feature.to_branch if not use_stable else 'stable'
-    release = branch in ['latest', 'stable']
+    branch = CONF.feature.branch
+    cloud_location = CONF.platforms[CONF.feature.platform]['location']
+    if CONF.feature.driver.is_platform_gce:
+        cloud_location = ""
     role_kwargs = dict(
-        location=CONF.platforms[CONF.feature.platform]['location'] \
-            if not CONF.feature.driver.is_platform_gce else "",
+        location=cloud_location,
         options={
-            "user-data.scm_branch": '' if release else branch,
-            "base.upd.repository": branch if release else '',
-            "base.devel_repository": '' if release else CONF.feature.ci_repo
+            "user-data.scm_branch": branch if not use_stable else "",
+            "base.upd.repository": "stable" if use_stable else "",
+            "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
         },
         alias=world.role['name'],
         use_vpc=CONF.feature.use_vpc
@@ -228,10 +232,10 @@ def asserting_version(step, version, serv_as):
         node = world.cloud.get_node(server)
         res = node.run(command)[0]
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    assert installed_agent , "Can't get scalarizr version: %s" % res
+    assert installed_agent, "Can't get scalarizr version: %s" % res
     installed_agent = installed_agent[0]
     if default_installed_agent:
-        assert  LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
+        assert LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
             err_msg % (default_installed_agent, installed_agent)
         world.default_agent = None
         return
