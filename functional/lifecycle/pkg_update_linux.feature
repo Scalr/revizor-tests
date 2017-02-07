@@ -155,7 +155,6 @@ Feature: Linux update for new package test
         And script output contains 'pong' in M7
         When I have a copy of the new branch
         Then I wait for new package was built
-        And I set branch with new package for role
         When I trigger scalarizr update by Scalr UI on M7
         Then update process is finished on M7 with status completed
         When I execute script 'Linux ping-pong' synchronous on M7

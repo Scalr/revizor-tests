@@ -77,12 +77,14 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
-    if branch is 'system':
-        branch = CONF.feature.branch
-    elif branch is 'new':
+    if branch == 'system':
+        # Use environ because CONF.feature replace '/' to '-'
+        branch = os.environ.get('RV_BRANCH')
+    elif branch == 'new':
         branch = world.test_branch_copy
     elif not branch:
-        branch = CONF.feature.to_branch
+        # Use environ because CONF.feature replace '/' to '-'
+        branch = os.environ.get('RV_TO_BRANCH')
     else:
         branch = branch.strip()
     world.test_branch_copy = getattr(world, 'test_branch_copy', 'test-{}'.format(int(time.time())))
@@ -94,7 +96,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
     else:
         script_path = 'README.md'
         commit_msg = 'Tested build for %s at %s ' % (branch, time.strftime('%-H:%M:%S'))
-        content = 'Scalarizr\n=========\n%s()' % commit_msg
+        content = 'Scalarizr\n=========\n%s' % commit_msg
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
     git = GH.repos(ORG)(SCALARIZR_REPO).git
     # Get the SHA the current test branch points to
@@ -120,8 +122,12 @@ def having_branch_copy(step, branch=None, is_patched=False):
     base_sha = commit.sha
     LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
     # Finally update the heads/master reference to point to the new commit
-    cloned_branch = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
-    LOG.debug('New branch was created. %s' % cloned_branch)
+    try:
+        res = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
+        LOG.debug('New branch was created. %s' % res)
+    except github.ApiError:
+        res = git.refs('heads/%s' % world.test_branch_copy).patch(sha=base_sha)
+        LOG.debug('New created branch %s was updated.' % res.get('ref'))
     world.build_commit_sha = base_sha
 
 
