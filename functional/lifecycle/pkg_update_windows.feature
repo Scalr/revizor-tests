@@ -18,11 +18,11 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M1
         When I reboot windows scalarizr in M1
         And see 'Scalarizr terminated' in M1 windows log
-        And not ERROR in M1 scalarizr log
-        And not ERROR in M1 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M1
-        And I see script result in M1
+        Then I see script result in M1
         And script output contains 'pong' in M1
+        Then not ERROR in M1 scalarizr log
+        And not ERROR in M1 scalarizr update log
 
     @ec2 @gce
     Scenario: Update from latest to branch on startup
@@ -41,11 +41,11 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M2
         When I reboot windows scalarizr in M2
         And see 'Scalarizr terminated' in M2 windows log
-        And not ERROR in M2 scalarizr log
-        And not ERROR in M2 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M2
-        And I see script result in M2
+        Then I see script result in M2
         And script output contains 'pong' in M2
+        Then not ERROR in M2 scalarizr log
+        And not ERROR in M2 scalarizr update log
 
     @ec2 @gce
     Scenario: Update from stable to branch from ScalrUI
@@ -65,11 +65,11 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M3
         When I reboot windows scalarizr in M3
         And see 'Scalarizr terminated' in M3 windows log
-        And not ERROR in M3 scalarizr log
-        And not ERROR in M3 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M3
-        And I see script result in M3
+        Then I see script result in M3
         And script output contains 'pong' in M3
+        Then not ERROR in M3 scalarizr log
+        And not ERROR in M3 scalarizr update log
 
     @ec2 @gce
     Scenario: Update from latest to branch from ScalrUI
@@ -89,11 +89,11 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M4
         When I reboot windows scalarizr in M4
         And see 'Scalarizr terminated' in M4 windows log
-        And not ERROR in M4 scalarizr log
-        And not ERROR in M4 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M4
-        And I see script result in M4
+        Then I see script result in M4
         And script output contains 'pong' in M4
+        Then not ERROR in M4 scalarizr log
+        And not ERROR in M4 scalarizr update log
 
     @ec2 @gce
     Scenario: Update from branch to stable
@@ -112,11 +112,11 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M5
         When I reboot windows scalarizr in M5
         And see 'Scalarizr terminated' in M5 windows log
-        And not ERROR in M5 scalarizr log
-        And not ERROR in M5 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M5
-        And I see script result in M5
+        Then I see script result in M5
         And script output contains 'pong' in M5
+        Then  not ERROR in M5 scalarizr log
+        And not ERROR in M5 scalarizr update log
 
     @ec2 @gce
     Scenario: Update from stable to branch on startup and new package
@@ -140,14 +140,14 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M6
         When I reboot windows scalarizr in M6
         And see 'Scalarizr terminated' in M6 windows log
-        And not ERROR in M6 scalarizr log
-        And not ERROR in M6 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M6
-        And I see script result in M6
+        Then I see script result in M6
         And script output contains 'pong' in M6
+        Then not ERROR in M6 scalarizr log
+        And not ERROR in M6 scalarizr update log
 
     @ec2 @gce @v2
-    Scenario: Update from branch to branch on startup
+    Scenario: Update from branch to branch on startup and ScalrUI
         Given I have a clean image
         And I add image to the new role
         Given I have a an empty running farm
@@ -174,8 +174,8 @@ Feature: Windows update for new package test
         And script output contains 'pong' in M7
         When I reboot windows scalarizr in M7
         And see 'Scalarizr terminated' in M7 windows log
-        And not ERROR in M7 scalarizr log
-        And not ERROR in M7 scalarizr update log
         When I execute script 'Windows ping-pong. CMD' synchronous on M7
-        And I see script result in M7
+        Then I see script result in M7
         And script output contains 'pong' in M7
+        Then not ERROR in M7 scalarizr log
+        And not ERROR in M7 scalarizr update log

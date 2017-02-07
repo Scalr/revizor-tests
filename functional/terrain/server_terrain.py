@@ -224,7 +224,7 @@ def verify_hostname_is_valid(step, serv_as):
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
 
-@step('not ERROR in ([\w]+) scalarizr(?: ([\w]+))? log$')
+@step('not ERROR in ([\w]+) scalarizr(?: (debug|update))? log$')
 def check_scalarizr_log(step, serv_as, log_type=None):
     """Check scalarizr log for errors"""
     server = getattr(world, serv_as)

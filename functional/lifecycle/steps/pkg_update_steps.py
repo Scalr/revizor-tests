@@ -77,15 +77,15 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
-    if 'system' in branch:
-        branch = os.environ.get('RV_BRANCH')
-    elif 'new' in branch:
+    if branch is 'system':
+        branch = CONF.feature.branch
+    elif branch is 'new':
         branch = world.test_branch_copy
     elif not branch:
-        branch = os.environ.get('RV_TO_BRANCH')
+        branch = CONF.feature.to_branch
     else:
         branch = branch.strip()
-    world.test_branch_copy = 'test-{}'.format(int(time.time()))
+    world.test_branch_copy = getattr(world, 'test_branch_copy', 'test-{}'.format(int(time.time())))
     if is_patched:
         fixture_path = 'scripts/scalarizr_app.py'
         script_path = 'src/scalarizr/app.py'
@@ -93,7 +93,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
         commit_msg = 'Patch app.py, corrupt windows start'
     else:
         script_path = 'README.md'
-        commit_msg = 'Tested build for: [%s]' % branch
+        commit_msg = 'Tested build for %s at %s ' % (branch, time.strftime('%-H:%M:%S'))
         content = 'Scalarizr\n=========\n%s()' % commit_msg
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
     git = GH.repos(ORG)(SCALARIZR_REPO).git
