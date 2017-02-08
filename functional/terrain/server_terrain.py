@@ -224,15 +224,15 @@ def verify_hostname_is_valid(step, serv_as):
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
 
-@step('not ERROR in ([\w]+) scalarizr log$')
-def check_scalarizr_log(step, serv_as):
+@step('not ERROR in ([\w]+) scalarizr(?: (debug|update))? log$')
+def check_scalarizr_log(step, serv_as, log_type=None):
     """Check scalarizr log for errors"""
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     if CONF.feature.dist.is_windows:
-        world.verify_scalarizr_log(node, windows=True, server=server)
+        world.verify_scalarizr_log(node, windows=True, server=server, log_type=log_type)
     else:
-        world.verify_scalarizr_log(node)
+        world.verify_scalarizr_log(node, log_type=log_type)
 
 
 @step('scalarizr process is (.+) in (.+)$')

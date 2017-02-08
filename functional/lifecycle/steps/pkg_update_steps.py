@@ -77,21 +77,26 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
-    branch = branch or ''
-    if 'system' in branch:
+    if branch == 'system':
+        # Use environ because CONF.feature replace '/' to '-'
         branch = os.environ.get('RV_BRANCH')
+    elif branch == 'new':
+        branch = world.test_branch_copy
     elif not branch:
+        # Use environ because CONF.feature replace '/' to '-'
         branch = os.environ.get('RV_TO_BRANCH')
     else:
         branch = branch.strip()
-    world.test_branch_copy= 'test-{}/{}'.format(int(time.time()), branch)
+    world.test_branch_copy = getattr(world, 'test_branch_copy', 'test-{}'.format(int(time.time())))
     if is_patched:
         fixture_path = 'scripts/scalarizr_app.py'
         script_path = 'src/scalarizr/app.py'
         content = resources(fixture_path).get()
+        commit_msg = 'Patch app.py, corrupt windows start'
     else:
         script_path = 'README.md'
-        content = 'Scalarizr\n=========\nTested build for: [%s]()' % branch
+        commit_msg = 'Tested build for %s at %s ' % (branch, time.strftime('%-H:%M:%S'))
+        content = 'Scalarizr\n=========\n%s' % commit_msg
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
     git = GH.repos(ORG)(SCALARIZR_REPO).git
     # Get the SHA the current test branch points to
@@ -111,23 +116,27 @@ def having_branch_copy(step, branch=None, is_patched=False):
                'sha': blob.sha}])
     # Create a new commit object using the new tree and point its parent to the current master
     commit = git.commits.post(
-        message='Patch app.py, corrupt windows start', #TODOL Change this commit message for linux package too
+        message=commit_msg,
         parents=[base_sha],
         tree=tree.sha)
     base_sha = commit.sha
     LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
     # Finally update the heads/master reference to point to the new commit
-    cloned_branch = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
-    LOG.debug('New branch was created. %s' % cloned_branch)
+    try:
+        res = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
+        LOG.debug('New branch was created. %s' % res)
+    except github.ApiError:
+        res = git.refs('heads/%s' % world.test_branch_copy).patch(sha=base_sha)
+        LOG.debug('New created branch %s was updated.' % res.get('ref'))
     world.build_commit_sha = base_sha
 
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
     time_until = time.time() + 2400
-    error = 'Timeout or build status failed.'
+    err_msg = ''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while True:
+    while time.time() <= time_until:
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
@@ -137,11 +146,10 @@ def waiting_new_package(step):
                 LOG.info('Drone status: %s' % status.description)
                 return
             elif status.state == 'failure':
-                time_until = None
-                error = 'Drone status is failed'
-        if time.time() >= time_until:
-            raise AssertionError(error)
+                err_msg = 'Drone status is failed'
+                break
         time.sleep(60)
+    raise AssertionError(err_msg or 'Timeout or build status failed.')
 
 
 @step(r'I have a clean image')
@@ -162,18 +170,19 @@ def having_clean_image(step):
     setattr(world, 'image', image)
 
 
-@step(r'I add created role to the farm(?: with (custom deploy options)*(branch_stable)*)*$')
+@step(r'I add created role to the farm(?: with (manual scaling)*(stable branch)*)*$')
 def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
-    branch = CONF.feature.to_branch if not use_stable else 'stable'
-    release = branch in ['latest', 'stable']
+    branch = CONF.feature.branch
+    cloud_location = CONF.platforms[CONF.feature.platform]['location']
+    if CONF.feature.driver.is_platform_gce:
+        cloud_location = ""
     role_kwargs = dict(
-        location=CONF.platforms[CONF.feature.platform]['location'] \
-            if not CONF.feature.driver.is_platform_gce else "",
+        location=cloud_location,
         options={
-            "user-data.scm_branch": '' if release else branch,
-            "base.upd.repository": branch if release else '',
-            "base.devel_repository": '' if release else CONF.feature.ci_repo
+            "user-data.scm_branch": branch if not use_stable else "",
+            "base.upd.repository": "stable" if use_stable else "",
+            "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
         },
         alias=world.role['name'],
         use_vpc=CONF.feature.use_vpc
@@ -195,9 +204,8 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
 
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
-    #FIXME: wait longer for update finished
     server = getattr(world, serv_as)
-    for i in range(3):
+    for i in range(5):
         try:
             res = IMPL.server.update_scalarizr(server_id=server.id)
             LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
@@ -207,7 +215,7 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
             if 'errorMessage' in e.message and 'AlreadyInProgressError' in e.message:
                 LOG.warning('Scalarizr update process in progress')
                 break
-            time.sleep(15)
+            time.sleep(24)
     else:
         raise Exception("Scalarizr update failed 3 times with error: %s" % e)
 
@@ -228,10 +236,10 @@ def asserting_version(step, version, serv_as):
         node = world.cloud.get_node(server)
         res = node.run(command)[0]
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    assert installed_agent , "Can't get scalarizr version: %s" % res
+    assert installed_agent, "Can't get scalarizr version: %s" % res
     installed_agent = installed_agent[0]
     if default_installed_agent:
-        assert  LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
+        assert LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
             err_msg % (default_installed_agent, installed_agent)
         world.default_agent = None
         return
