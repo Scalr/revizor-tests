@@ -134,9 +134,9 @@ def having_branch_copy(step, branch=None, is_patched=False):
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
     time_until = time.time() + 2400
-    error = 'Timeout or build status failed.'
+    err_msg = ''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while True:
+    while time.time() <= time_until:
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
@@ -146,11 +146,10 @@ def waiting_new_package(step):
                 LOG.info('Drone status: %s' % status.description)
                 return
             elif status.state == 'failure':
-                time_until = None
-                error = 'Drone status is failed'
-        if time.time() >= time_until:
-            raise AssertionError(error)
+                err_msg = 'Drone status is failed'
+                break
         time.sleep(60)
+    raise AssertionError(err_msg or 'Timeout or build status failed.')
 
 
 @step(r'I have a clean image')
@@ -205,9 +204,8 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
 
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
-    #FIXME: wait longer for update finished
     server = getattr(world, serv_as)
-    for i in range(3):
+    for i in range(5):
         try:
             res = IMPL.server.update_scalarizr(server_id=server.id)
             LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
@@ -217,7 +215,7 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
             if 'errorMessage' in e.message and 'AlreadyInProgressError' in e.message:
                 LOG.warning('Scalarizr update process in progress')
                 break
-            time.sleep(15)
+            time.sleep(24)
     else:
         raise Exception("Scalarizr update failed 3 times with error: %s" % e)
 
