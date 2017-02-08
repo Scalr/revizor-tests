@@ -887,10 +887,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
-        out = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
-        LOG.debug('Installed scalarizr version: %s' % out)
-        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', out)
-        assert version, 'installed scalarizr version not valid. Regexp found: "%s", out from server: "%s"' % (version, out)
+        res = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
@@ -922,16 +919,16 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 url=url)
         LOG.debug('Install script body: %s' % cmd)
         res = node.run(cmd)[0]
-        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-        assert version, 'Scalarizr version is invalid. Command returned: %s' % res
         if CONF.feature.core_v2:
             cv2_init = 'touch /etc/scalr/private.d/scalr_labs_corev2'
             LOG.info('Init scalarizr corev2. Run command %s' % cv2_init)
             node.run(cv2_init)
-    setattr(world, 'pre_installed_agent', version[0])
+    scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
+    assert scalarizr_ver, 'Scalarizr version is invalid. Command returned: %s' % res
+    setattr(world, 'pre_installed_agent', scalarizr_ver[1])
     if resave_node:
         setattr(world, 'cloud_server', node)
-    LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
+    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver[1])
 
 
 @step('I have a server([\w ]+)? running in cloud$')
