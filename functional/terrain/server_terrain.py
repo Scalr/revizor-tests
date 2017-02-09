@@ -232,7 +232,7 @@ def check_scalarizr_log(step, serv_as, log_type=None):
     if CONF.feature.dist.is_windows:
         world.verify_scalarizr_log(node, windows=True, server=server, log_type=log_type)
     else:
-        world.verify_scalarizr_log(node, log_type=log_type)
+        world.verify_scalarizr_log(node, log_type=log_type or 'debug')
 
 
 @step('scalarizr process is (.+) in (.+)$')
