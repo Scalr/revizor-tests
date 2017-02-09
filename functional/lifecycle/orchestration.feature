@@ -48,7 +48,7 @@ Feature: Orchestration features test
             | Linux ping-pong               | synchronous  |             | pong                                      |
             | /home/revizor/local_script.sh | synchronous  | local       | Local script work!; USER=root; HOME=/root |
             | /home/revizor/local_script.sh | asynchronous | local       | Local script work!; USER=root; HOME=/root |
-            | https://gist.githubusercontent.com/Theramas/1c7fbc1dbee082e1bdd4b36b755b5c56/raw/fbe2804a5ea13b98febdbc465ad63105535cc7f5/cross_platform_script | asynchronous | local | Multiplatform script successfully executed                                             |
+            | https://gist.githubusercontent.com/Theramas/3fa35bbd53ad14f997218aa3a208eb4b/raw/4db5ef2bb91787a586f87635a11f7bb70cef6bc0/gistfile1.txt | asynchronous | local | Multiplatform script successfully executed                                             |
             | Cross-platform script          | asynchronous |            | Multiplatform script successfully executed                                             |
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
