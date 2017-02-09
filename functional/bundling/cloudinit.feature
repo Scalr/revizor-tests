@@ -26,9 +26,9 @@ Feature: Cloudinit roles bootstrapping
 
     Examples:
       | behavior                      |
-      | mysql2                        |
       | app                           |
       | redis                         |
       | haproxy                       |
       | postgresql                    |
+      | mysql2                        |
       # | rabbitmq                      | FAM-480

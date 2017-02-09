@@ -5,11 +5,11 @@ Created on 27.10.16
 """
 import time
 import logging
-import exceptions
 
 from lettuce import world, step
 from revizor2.conf import CONF
 from revizor2.api import IMPL
+from revizor2.exceptions import TimeoutError
 
 
 LOG = logging.getLogger(__name__)
@@ -67,4 +67,4 @@ def handle_agent_status(step, serv_as):
         time.sleep(5)
     else:
         msg = 'Timeout: %d seconds reached' % (timeout,)
-        raise exceptions.TimeoutError(msg, timeout)
+        raise TimeoutError(msg, timeout)
