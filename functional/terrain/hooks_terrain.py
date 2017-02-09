@@ -5,9 +5,9 @@ import json
 import semver
 from datetime import datetime
 
-from lettuce import world, after, before
-
 from lxml import etree
+from lettuce import world, after, before
+from distutils.version import LooseVersion
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
@@ -22,7 +22,7 @@ from revizor2.helpers.parsers import parser_for_os_family
 LOG = logging.getLogger(__name__)
 
 OUTLINE_ITERATOR = {}
-
+PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
     if CONF.feature.driver.current_cloud == Platform.AZURE:
@@ -125,6 +125,21 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 f.write(json.dumps(domains, indent=2))
 
 
+def get_scalaraizr_latest_version(branch):
+    os_family = CONF.feature.dist.family
+    if branch in ['stable', 'latest']:
+        default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+    else:
+        url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+        path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+        default_repo = url.format(path=path)
+    index_url = default_repo.format(branch=branch)
+    repo_data = parser_for_os_family(CONF.feature.dist.mask)(branch=branch, index_url=index_url)
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+    versions.sort(reverse=True)
+    return versions[0]
+
+
 @before.all
 def initialize_world():
     setattr(world, 'test_start_time', datetime.now())
@@ -190,32 +205,39 @@ def exclude_steps_by_options(feature):
 
 
 @before.each_feature
+def exclude_update_from_branch_to_stable(feature):
+    """
+    Exclude 'Update from branch to stable' scenario if branch version > 5.3 and stable < 5.4
+    """
+    if feature.name not in PKG_UPDATE_SUITES:
+        return
+    excluded_scenario = "Update from branch to stable"
+    # get latest scalarizr ver for stable
+    stable_ver = get_scalaraizr_latest_version('stable')
+    # get latest scalarizr ver for tested branch
+    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch)
+
+    if LooseVersion(stable_ver) < LooseVersion('5.4') and LooseVersion(branch_ver) > LooseVersion('5.3'):
+        scenario = filter(lambda s: s.name == excluded_scenario, feature.scenarios)[0]
+        feature.scenarios.remove(scenario)
+        LOG.info('Remove "%s" scenario from test suite  "%s"' % (scenario.name, feature.name))
+
+
+@before.each_feature
 def exclude_update_from_latest(feature):
     """
     Exclude 'update from latest' scenario if branch version is lower than latest
     """
-    if feature.name in ['Linux update for new package test', 'Windows update for new package test']:
-        os_family = CONF.feature.dist.family
-        to_branch = CONF.feature.branch
-        if to_branch == 'latest':  # Excludes when trying to update from latest to latest
+    if feature.name in PKG_UPDATE_SUITES:
+        branch = CONF.feature.branch
+        if branch == 'latest':  # Excludes when trying to update from latest to latest
             match = True
         else:
-            for branch in [to_branch, 'latest']:
-                if branch in ['stable', 'latest']:
-                    default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
-                else:
-                    url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
-                    path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-                    default_repo = url.format(path=path)
-                index_url = default_repo.format(branch=branch)
-                # WORKAROUND!
-                repo_data = parser_for_os_family(os.environ.get('RV_DIST', 'ubuntu1204'))(branch=branch, index_url=index_url)
-                versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
-                versions.sort(reverse=True)
-                last_version = versions[0]
+            for br in [branch, 'latest']:
+                last_version = get_scalaraizr_latest_version(br)
                 if last_version.strip().endswith('-1'):
                     last_version = last_version.strip()[:-2]
-                if branch == to_branch:
+                if br == branch:
                     to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
                     LOG.debug("Testing branch version: %s" % to_version)
                 else:
