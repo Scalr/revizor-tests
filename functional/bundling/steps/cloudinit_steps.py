@@ -8,6 +8,7 @@ LOG = logging.getLogger(__name__)
 
 @step(r"I check that cloudinit is installed")
 def check_cloudinit(step):
+    #TODO: Add support for centos6
     node = getattr(world, 'cloud_server')
     out = node.run('cloud-init -v')[2]
     if out != 0:

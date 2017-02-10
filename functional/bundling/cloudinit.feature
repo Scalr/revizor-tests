@@ -23,6 +23,8 @@ Feature: Cloudinit roles bootstrapping
         Then I expect server bootstrapping as M2
         And <behavior> is running on M2
         And scalarizr version is last in M2
+        And not ERROR in M2 scalarizr debug log
+        And not ERROR in M2 scalarizr update log
 
     Examples:
       | behavior                      |
