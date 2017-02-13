@@ -241,7 +241,7 @@ def exclude_update_from_latest(feature):
                     to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
                     LOG.debug("Testing branch version: %s" % to_version)
                 else:
-                    latest_version = last_version
+                    latest_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
                     LOG.debug("Latest version: %s" % latest_version)
             match = semver.match(latest_version, '>' + to_version)
         if match:
