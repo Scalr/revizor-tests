@@ -1,4 +1,4 @@
-Using step definitions from: steps/pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system
+Using step definitions from: steps/pkg_update_steps, steps/import_steps, steps/lifecycle_steps, steps/scripting_steps, steps/new_szr_upd_system, steps/windows_steps
 Feature: Windows update for new package test
 
     @ec2 @gce
