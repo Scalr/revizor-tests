@@ -1,6 +1,6 @@
 # coding: utf-8
 """
-Created on 27.10.16 
+Created on 27.10.16
 @author: Eugeny Kurkovich
 """
 import time
@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 def get_node_image(step):
     node = getattr(world, 'cloud_server')
     if CONF.feature.driver.is_platform_gce:
-        image = node.driver.ex_get_image(node.extra['selfLink'])
+        image = node.driver.ex_get_image(node.extra['image'])
     elif CONF.feature.driver.is_platform_ec2:
         image = node.driver.get_image(node.extra['image_id'])
     LOG.debug('Obtained image (%s - %s) from cloud instance %s' %(image.name, image.id, node.id))
