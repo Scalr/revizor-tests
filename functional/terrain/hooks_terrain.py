@@ -229,15 +229,15 @@ def exclude_update_from_branch_to_stable(feature):
         git = GH.repos(ORG)(repo)
         downgrade_content = git.contents(downgrade_blacklist_path).get(ref=os.environ.get('RV_BRANCH')).content
     except github.ApiNotFoundError as e:
-        LOG.error(e.message)
+        LOG.error("Downgrade blacklist path not valid: [%s]" % e.message)
     if downgrade_content:
         downgrade_blacklist = map(itemgetter('version'), json.loads(b64decode(downgrade_content)))
     LOG.info('Packages downgrade blacklist: %s' % downgrade_blacklist)
     # get latest scalarizr ver for stable
-    stable_ver = get_scalaraizr_latest_version('stable').replace('-1', '')
+    stable_ver = get_scalaraizr_latest_version('stable').rsplit('-1')[0]
     # get latest scalarizr ver for tested branch
-    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch).replace('-1', '')
-    LOG.info('Last package version from stable-%s; branch-%s' % (stable_ver, branch_ver))
+    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch).rsplit('-1')[0]
+    LOG.info('Last package version from stable-[%s]; branch-[%s]' % (stable_ver, branch_ver))
     if LooseVersion(stable_ver) < LooseVersion('5.4') \
             and LooseVersion(branch_ver) > LooseVersion('5.3') \
             or stable_ver in downgrade_blacklist:
