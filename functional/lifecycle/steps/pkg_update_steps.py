@@ -217,7 +217,7 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
                 break
             time.sleep(24)
     else:
-        raise Exception("Scalarizr update failed 3 times with error: %s" % e)
+        raise Exception("Scalarizr update failed with error: %s" % e)
 
 
 @step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
