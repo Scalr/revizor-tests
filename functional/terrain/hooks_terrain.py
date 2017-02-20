@@ -1,13 +1,16 @@
 import os
 import re
-import logging
 import json
+import github
 import semver
+import logging
 from datetime import datetime
 
+from base64 import b64decode
 from lxml import etree
 from lettuce import world, after, before
 from distutils.version import LooseVersion
+from operator import itemgetter
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
@@ -23,6 +26,9 @@ LOG = logging.getLogger(__name__)
 
 OUTLINE_ITERATOR = {}
 PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
+
+ORG = 'Scalr'
+GH = github.GitHub(access_token=CONF.main.github_access_token)
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
     if CONF.feature.driver.current_cloud == Platform.AZURE:
@@ -211,13 +217,30 @@ def exclude_update_from_branch_to_stable(feature):
     """
     if feature.name not in PKG_UPDATE_SUITES:
         return
-    excluded_scenario = "Update from branch to stable"
-    # get latest scalarizr ver for stable
-    stable_ver = get_scalaraizr_latest_version('stable')
-    # get latest scalarizr ver for tested branch
-    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch)
 
-    if LooseVersion(stable_ver) < LooseVersion('5.4') and LooseVersion(branch_ver) > LooseVersion('5.3'):
+    repo = "fatmouse"
+    # Path to package versions excluded from test
+    downgrade_blacklist_path = "agent/tasks/downgrade_blacklist.json"
+    downgrade_content = ""
+    downgrade_blacklist = list()
+    excluded_scenario = "Update from branch to stable"
+
+    try:
+        git = GH.repos(ORG)(repo)
+        downgrade_content = git.contents(downgrade_blacklist_path).get(ref=os.environ.get('RV_BRANCH')).content
+    except github.ApiNotFoundError as e:
+        LOG.error(e.message)
+    if downgrade_content:
+        downgrade_blacklist = map(itemgetter('version'), json.loads(b64decode(downgrade_content)))
+    LOG.info('Packages downgrade blacklist: %s' % downgrade_blacklist)
+    # get latest scalarizr ver for stable
+    stable_ver = get_scalaraizr_latest_version('stable').replace('-1', '')
+    # get latest scalarizr ver for tested branch
+    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch).replace('-1', '')
+    LOG.info('Last package version from stable-%s; branch-%s' % (stable_ver, branch_ver))
+    if LooseVersion(stable_ver) < LooseVersion('5.4') \
+            and LooseVersion(branch_ver) > LooseVersion('5.3') \
+            or stable_ver in downgrade_blacklist:
         scenario = filter(lambda s: s.name == excluded_scenario, feature.scenarios)[0]
         feature.scenarios.remove(scenario)
         LOG.info('Remove "%s" scenario from test suite  "%s"' % (scenario.name, feature.name))
