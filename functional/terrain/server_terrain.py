@@ -194,11 +194,11 @@ def assert_check_script_work(step, serv_as):
     server = getattr(world, serv_as)
     last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
     server.scriptlogs.reload()
-    for i in range(6):
+    for i in range(60):
         if not len(server.scriptlogs) == last_count + 1:
             LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (
             last_count, len(server.scriptlogs), last_count + 1))
-            time.sleep(15)
+            time.sleep(10)
             server.scriptlogs.reload()
             continue
         break
