@@ -174,18 +174,18 @@ def delete_nginx_proxy(step, proxy_name, proxy_role):
 
 @step(r"'([\w\d_ =:\.]+)' in ([\w\d]+) upstream file")
 def check_options_in_nginx_upstream(step, option, serv_as):
+    option = option.split()
     host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
+    server = getattr(world, serv_as)
 
     if CONF.feature.dist.is_centos and CONF.feature.dist.version >= 7:
         wait_until(world.check_open_port,
-                   args=(host, backend_port),
+                   args=(server, backend_port),
                    timeout=60,
-                   error_text="Port %s on host %s is not open" % backend_port % host)
+                   error_text="Port %s on host %s is not open" % (backend_port, host))
 
-    server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Verify %s in upstream config' % option)
-    option = option.split()
     if len(option) == 1:
         wait_until(check_config_for_option,
                    args=[node, 'app-servers.include', option[0]],
