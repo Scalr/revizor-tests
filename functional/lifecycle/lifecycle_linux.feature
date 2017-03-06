@@ -23,6 +23,7 @@ Feature: Linux server lifecycle
         And disk types in role are valid
         And directory '/media/diskmount' exist in M1
         And directory '/media/raidmount' exist in M1
+        And directory '/media/partition' exist in M1
         And I create 100 files in '/media/diskmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
@@ -40,6 +41,7 @@ Feature: Linux server lifecycle
 
     @ec2 @cloudstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
+        When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
@@ -132,6 +134,12 @@ Feature: Linux server lifecycle
         And count of files in directory '/media/raidmount' is 100 in M1
         And saved device for '/media/diskmount' for role is another
 
+    @ec2 @cloudstack @gce
+    Scenario: Create volume snapshot
+        When I reconfigure device partitions for '/media/partition' on M1
+        And I triger snapshot creating from volume for '/media/partition' on role
+        Then Volume snapshot become completed
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
     Scenario: Reboot on bootstraping
         Given I have a clean and stopped farm
@@ -149,6 +157,15 @@ Feature: Linux server lifecycle
     Scenario: Failed bootsrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
+        When I start farm
+        And I see pending server M1
+        And I wait server M1 in failed state
+
+    @ec2 @cloudstack @gce
+    Scenario: Check partition table recognized as a non-blank volume
+        Given I have a clean and stopped farm
+        And I add role to this farm
+        And I add new storage from volume snapshot to role
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
