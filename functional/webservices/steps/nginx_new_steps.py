@@ -5,9 +5,8 @@ import requests
 from lettuce import world, step
 
 from revizor2.api import Certificate, IMPL
-
+from revizor2.conf import CONF
 from revizor2.utils import wait_until
-
 
 LOG = logging.getLogger(__name__)
 
@@ -30,8 +29,10 @@ def check_config_for_option(node, config_file, option):
         return config
 
 
-@step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
-def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash, network_type='private'):
+@step(
+    r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
+def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash,
+                             network_type='private'):
     """This step add to nginx new proxy to any role with http/https and ip_hash
     :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
     :type proto: str
@@ -173,18 +174,25 @@ def delete_nginx_proxy(step, proxy_name, proxy_role):
 
 @step(r"'([\w\d_ =:\.]+)' in ([\w\d]+) upstream file")
 def check_options_in_nginx_upstream(step, option, serv_as):
-    time.sleep(60) #TODO: Change this behavior (wait scalarizr open port in selinux)
+    option = option.split()
+    host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
     server = getattr(world, serv_as)
+
+    if CONF.feature.dist.is_centos and CONF.feature.dist.version >= 7:
+        wait_until(world.check_open_port,
+                   args=(server, backend_port),
+                   timeout=60,
+                   error_text="Port %s on host %s is not open" % (backend_port, host))
+
     node = world.cloud.get_node(server)
     LOG.info('Verify %s in upstream config' % option)
-    option = option.split()
     if len(option) == 1:
         wait_until(check_config_for_option,
                    args=[node, 'app-servers.include', option[0]],
                    timeout=180,
-                   error_text="Options '%s' not in upstream config: %s" % (option, node.run('cat /etc/nginx/app-servers.include')[0]))
+                   error_text="Options '%s' not in upstream config: %s" % (
+                       option, node.run('cat /etc/nginx/app-servers.include')[0]))
     elif len(option) > 1:
-        host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
         hostname = serv.private_ip if serv else host
         if option[1] == 'default':
