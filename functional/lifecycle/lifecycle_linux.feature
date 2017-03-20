@@ -27,6 +27,12 @@ Feature: Linux server lifecycle
         And I create 100 files in '/media/diskmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
+    @ec2 @cloudstack @gce
+    Scenario: Create volume snapshot
+        When I reconfigure device partitions for '/media/partition' on M1
+        And I triger snapshot creating from volume for '/media/partition' on role
+        #Then Volume snapshot become completed
+
     @ec2 @cloudstack @gce @storages @fstab
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
@@ -133,12 +139,6 @@ Feature: Linux server lifecycle
         And directory '/media/raidmount' exist in M1
         And count of files in directory '/media/raidmount' is 100 in M1
         And saved device for '/media/diskmount' for role is another
-
-    @ec2 @cloudstack @gce
-    Scenario: Create volume snapshot
-        When I reconfigure device partitions for '/media/partition' on M1
-        And I triger snapshot creating from volume for '/media/partition' on role
-        Then Volume snapshot become completed
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
     Scenario: Reboot on bootstraping

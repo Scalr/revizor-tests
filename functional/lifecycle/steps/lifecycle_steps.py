@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import json
@@ -9,6 +10,7 @@ from lettuce import world, step, after
 from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
+from revizor2.fixtures import resources
 
 
 LOG = logging.getLogger(__name__)
@@ -317,3 +319,23 @@ def checking_info_instance_vcpus(step, serv_as):
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
     assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id
+
+
+@step(r"I reconfigure device partitions for '([\W\w]+)' on ([\w\d]+)")
+def create_partitions_on_volume(step, mnt_point, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    script_name = "create_partitions.sh"
+    script_src = resources(os.path.join("scripts", script_name)).get()
+    path = os.path.join('/tmp', script_name)
+    node.put_file(path, script_src % mnt_point)
+    LOG.debug('Creating partitions for volume on %s' % mnt_point)
+    out = node.run('source %s' % path)
+    if out[2] and not "Device contains neither a valid DOS partition table" in out[1]:
+        raise AssertionError("Create volume partitions failed: %s" % out[1])
+    LOG.debug('Create partition result %s' % out[0])
+
+
+@step(r"I triger snapshot creating from volume for '([\W\w]+)' on role")
+def creste_volume_snapshot(step, mnt_point):
+    pass
