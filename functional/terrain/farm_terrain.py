@@ -21,6 +21,7 @@ from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
 
 LOG = logging.getLogger(__name__)
 
+is_raid_supported = CONF.feature.dist.id == '<ubuntu1604' or '<centos7'or '<amzn1609'
 
 @step('I have a an empty running farm')
 def having_empty_running_farm(step):
@@ -50,6 +51,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_options = {
         "base.hostname_template": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
+
     if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
@@ -240,7 +242,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                              'db.msr.redis.use_password': True})
     if behavior in DATABASE_BEHAVIORS:
         storages = DEFAULT_STORAGES.get(CONF.feature.driver.current_cloud, None)
-        if storages:
+        if CONF.feature.storage.startswith('raid') and is_raid_supported:
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
             role_options.update(storages.get(CONF.feature.storage, {}))
     LOG.debug('All farm settings: %s' % role_options)
