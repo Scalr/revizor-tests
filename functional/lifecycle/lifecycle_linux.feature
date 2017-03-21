@@ -11,10 +11,10 @@ Feature: Linux server lifecycle
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
-        And instance vcpus info not empty for M1
-        And scalarizr version is last in M1
-        And hostname in M1 is valid
-        And ports [8008,8010,8012,8013,8014] not in iptables in M1
+        #And instance vcpus info not empty for M1
+        #And scalarizr version is last in M1
+        #And hostname in M1 is valid
+        #And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
     @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages
@@ -30,8 +30,8 @@ Feature: Linux server lifecycle
     @ec2 @cloudstack @gce
     Scenario: Create volume snapshot
         When I reconfigure device partitions for '/media/partition' on M1
-        And I triger snapshot creating from volume for '/media/partition' on role
-        #Then Volume snapshot become completed
+        And I triger snapshot creation from volume for '/media/partition' on role
+        Then Volume snapshot creation become completed
 
     @ec2 @cloudstack @gce @storages @fstab
     Scenario: Verify attached storages in fstab

@@ -11,6 +11,7 @@ from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
+from revizor2.utils import wait_until
 
 
 LOG = logging.getLogger(__name__)
@@ -165,14 +166,7 @@ def check_file(step, serv_as, path):
 
 @step("I save device for '(.+)' for role")
 def save_device_for_additional_storage(step, mount_point):
-    role = world.get_role()
-    devices = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
-    device = filter(lambda x: x['mountPoint'] == mount_point, devices['configs'])
-    if device:
-        device = device[0]['id']
-    else:
-        raise AssertionError('Can\'t found device for mount point: %s' % mount_point)
-    device_id = devices['devices'][device][0]['storageId']
+    device_id = world.get_storage_device_by_mnt_point(mount_point)[0]['storageId']
     LOG.info('Volume Id for mount point "%s" is "%s"' % (mount_point, device_id))
     setattr(world, 'device_%s' % mount_point.replace('/', '_'), device_id)
 
@@ -199,16 +193,8 @@ def delete_volume(step, mount_point):
 
 @step("saved device for '(.+)' for role is another")
 def verify_saved_and_new_volumes(step, mount_point):
-    role = world.get_role()
-    devices = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
-    device = filter(lambda x: x['mountPoint'] == mount_point, devices['configs'])
-    if device:
-        device = device[0]['id']
-    else:
-        raise AssertionError('Can\'t found device for mount point: %s' % mount_point)
-    device_id = devices['devices'][device][0]['storageId']
-    old_device_id = getattr(world, 'device_%s' % mount_point.replace('/', '_'))
-    if device_id == old_device_id:
+    device = world.get_storage_device_by_mnt_point(mount_point)[0]
+    if device['storageId'] == getattr(world, 'device_%s' % mount_point.replace('/', '_')):
         raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
 
 
@@ -323,19 +309,49 @@ def checking_info_instance_vcpus(step, serv_as):
 
 @step(r"I reconfigure device partitions for '([\W\w]+)' on ([\w\d]+)")
 def create_partitions_on_volume(step, mnt_point, serv_as):
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
     script_name = "create_partitions.sh"
     script_src = resources(os.path.join("scripts", script_name)).get()
     path = os.path.join('/tmp', script_name)
+
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+
+    LOG.info('Creating partitions table for volume on %s' % mnt_point)
     node.put_file(path, script_src % mnt_point)
-    LOG.debug('Creating partitions for volume on %s' % mnt_point)
     out = node.run('source %s' % path)
-    if out[2] and not "Device contains neither a valid DOS partition table" in out[1]:
+    if out[2] and "Device contains neither a valid DOS partition table" not in out[1]:
         raise AssertionError("Create volume partitions failed: %s" % out[1])
-    LOG.debug('Create partition result %s' % out[0])
+    LOG.info('Partitions table for volume was successfully created')
 
 
-@step(r"I triger snapshot creating from volume for '([\W\w]+)' on role")
+@step(r"I triger snapshot creation from volume for '([\W\w]+)' on role")
 def creste_volume_snapshot(step, mnt_point):
-    pass
+    device = world.get_storage_device_by_mnt_point(mnt_point)[0]
+    LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
+    kwargs = dict(
+        cloud_location=CONF.platforms[CONF.feature.platform]['location'],
+        volume_id=device['storageId']
+    )
+    platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud
+    volume_snapshot_id = getattr(IMPL, '%s_tools' % platform).create_volume_snapshot(**kwargs)
+    assert volume_snapshot_id, 'Volume snapshot creating failed'
+    LOG.info('Volume snapshot: "%s" created, state pending' % volume_snapshot_id)
+    setattr(world, 'volume_snapshot_id', volume_snapshot_id)
+
+
+@step(r"Volume snapshot creation become completed")
+def wait_voume_snapshot(step):
+    def is_snapshot_completed(**kwargs):
+        platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud
+        status = getattr(IMPL, '%s_tools' % platform).snapshots_list(**kwargs)[0]['status']
+        LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)
+        return status == 'completed'
+
+    wait_until(
+        is_snapshot_completed,
+        kwargs=dict(
+            location=CONF.platforms[CONF.feature.platform]['location'],
+            snapshot_id=getattr(world, 'volume_snapshot_id')),
+        timeout=600,
+        logger=LOG)
+

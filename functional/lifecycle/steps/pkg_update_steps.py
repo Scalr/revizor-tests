@@ -20,7 +20,6 @@ from revizor2.conf import CONF
 from lettuce import step, world, after
 from urllib2 import URLError
 
-from revizor2.consts import Dist
 from distutils.version import LooseVersion
 from revizor2.fixtures import tables, resources
 
@@ -166,7 +165,7 @@ def having_clean_image(step):
             image = world.cloud.find_image(use_hvm=True)
         else:
             image = world.cloud.find_image(use_hvm=CONF.feature.use_vpc)
-    LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
+    LOG.debug('Obtained clean image %s, Id: %s' % (image.name, image.id))
     setattr(world, 'image', image)
 
 
