@@ -334,18 +334,22 @@ def creste_volume_snapshot(step, mnt_point):
     )
     platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud
     volume_snapshot_id = getattr(IMPL, '%s_tools' % platform).create_volume_snapshot(**kwargs)
-    assert volume_snapshot_id, 'Volume snapshot creating failed'
-    LOG.info('Volume snapshot: "%s" created, state pending' % volume_snapshot_id)
+    assert volume_snapshot_id, 'Volume snapshot creation failed'
+    LOG.info('Volume snapshot create was started. Snapshot: %s' % volume_snapshot_id)
     setattr(world, 'volume_snapshot_id', volume_snapshot_id)
 
 
 @step(r"Volume snapshot creation become completed")
 def wait_voume_snapshot(step):
     def is_snapshot_completed(**kwargs):
+        completed_states = dict(
+            ec2='completed',
+            cloudstack='BackedUp'
+        )
         platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud
         status = getattr(IMPL, '%s_tools' % platform).snapshots_list(**kwargs)[0]['status']
         LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)
-        return status == 'completed'
+        return status == completed_states.get(CONF.feature.driver.scalr_cloud)
 
     wait_until(
         is_snapshot_completed,
@@ -354,4 +358,29 @@ def wait_voume_snapshot(step):
             snapshot_id=getattr(world, 'volume_snapshot_id')),
         timeout=600,
         logger=LOG)
+
+
+@step(r"I add new storage from volume snapshot to role")
+def add_storage_to_role(step):
+    role = world.get_role()
+    volume_snapshot_id = getattr(world, 'volume_snapshot_id', None)
+    assert volume_snapshot_id, 'No volume snapshot found in world object'
+    LOG.info('Add new storage spanshot based: %s to role' % volume_snapshot_id)
+    storage_settings = {'configs': [
+        {
+            "id": None,
+            "type": "ebs",
+            "fs": None,
+            "settings": {
+                "ebs.size": "1",
+                "ebs.type": "standard",
+                "ebs.snapshot": None,
+                "ebs.snapshot": volume_snapshot_id},
+            "mount": False,
+            "reUse": False,
+            "status": "",
+            "rebuild": False
+        }
+    ]}
+    role.edit(storages=storage_settings)
 

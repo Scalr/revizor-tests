@@ -11,10 +11,10 @@ Feature: Linux server lifecycle
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
-        #And instance vcpus info not empty for M1
-        #And scalarizr version is last in M1
-        #And hostname in M1 is valid
-        #And ports [8008,8010,8012,8013,8014] not in iptables in M1
+        And instance vcpus info not empty for M1
+        And scalarizr version is last in M1
+        And hostname in M1 is valid
+        And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
     @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages
@@ -27,7 +27,7 @@ Feature: Linux server lifecycle
         And I create 100 files in '/media/diskmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
-    @ec2 @cloudstack @gce
+    @ec2 @cloudstack @partition
     Scenario: Create volume snapshot
         When I reconfigure device partitions for '/media/partition' on M1
         And I triger snapshot creation from volume for '/media/partition' on role
@@ -161,7 +161,7 @@ Feature: Linux server lifecycle
         And I see pending server M1
         And I wait server M1 in failed state
 
-    @ec2 @cloudstack @gce
+    @ec2 @cloudstack @partition
     Scenario: Check partition table recognized as a non-blank volume
         Given I have a clean and stopped farm
         And I add role to this farm
