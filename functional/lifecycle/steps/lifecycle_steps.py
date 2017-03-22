@@ -344,6 +344,7 @@ def wait_voume_snapshot(step):
     def is_snapshot_completed(**kwargs):
         completed_states = dict(
             ec2='completed',
+            gce='ready',
             cloudstack='BackedUp'
         )
         platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud

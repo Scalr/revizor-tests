@@ -27,7 +27,7 @@ Feature: Linux server lifecycle
         And I create 100 files in '/media/diskmount' in M1
         And I create 100 files in '/media/raidmount' in M1
 
-    @ec2 @cloudstack @partition
+    @ec2 @partition
     Scenario: Create volume snapshot
         When I reconfigure device partitions for '/media/partition' on M1
         And I triger snapshot creation from volume for '/media/partition' on role
@@ -161,7 +161,7 @@ Feature: Linux server lifecycle
         And I see pending server M1
         And I wait server M1 in failed state
 
-    @ec2 @cloudstack @partition
+    @ec2 @partition
     Scenario: Check partition table recognized as a non-blank volume
         Given I have a clean and stopped farm
         And I add role to this farm
