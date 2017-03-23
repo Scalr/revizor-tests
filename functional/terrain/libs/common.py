@@ -13,7 +13,7 @@ from lxml import etree
 
 from revizor2.api import Server
 from revizor2.conf import CONF
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Dist
 
 LOG = logging.getLogger(__name__)
 
@@ -28,18 +28,10 @@ IP_RESOLVER_SITES = (
 
 @world.absorb
 def is_raid_supported():
-    dist_id = CONF.feature.dist.id
-
-    if dist_id.startswith('ubuntu') and dist_id < 'ubuntu-16-04':
-        return True
-
-    if dist_id.startswith('centos') and dist_id < 'centos-7-x':
-        return True
-
-    if dist_id.startswith('amazon') and dist_id < 'amazon-2016-09':
-        return True
-
-    return False
+    return\
+        CONF.feature.dist < Dist('ubuntu-16-04') or\
+        CONF.feature.dist < Dist('centos-7-x') or\
+        CONF.feature.dist < Dist('amazon-2016-09')
 
 
 @world.absorb
