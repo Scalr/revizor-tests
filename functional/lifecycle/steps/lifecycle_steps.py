@@ -76,7 +76,6 @@ def check_message_config(step, config_group, message, serv_as):
 
 
 @step("[directory|file] '([\W\w]+)' exist in ([\w\d]+)$")
-@world.run_only_if(dist=['<ubuntu1604', '<centos7', '<amzn1609'])
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
@@ -93,7 +92,6 @@ def check_path(step, path, serv_as):
 
 
 @step("I create (\d+) files in '(.+)' in ([\w\d]+)")
-@world.run_only_if(dist=['<ubuntu1604', '<centos7', '<amzn1609'])
 def create_files(step, file_count, directory, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
@@ -102,7 +100,6 @@ def create_files(step, file_count, directory, serv_as):
 
 
 @step("count of files in directory '(.+)' is (\d+) in ([\w\d]+)")
-@world.run_only_if(dist=['<ubuntu1604', '<centos7', '<amzn1609'])
 def check_file_count(step, directory, file_count, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
@@ -245,7 +242,6 @@ def save_mount_table(step, serv_as):
 
 
 @step("disk from ([\w\d]+) mount points for '([\W\w]+)' exist in fstab on ([\w\d]+)")
-@world.run_only_if(dist=['<ubuntu1604', '<centos7', '<amzn1609'])
 def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     to_server = getattr(world, to_serv_as)
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
@@ -321,4 +317,3 @@ def checking_info_instance_vcpus(step, serv_as):
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
     assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id
-

@@ -57,11 +57,13 @@ def run_only_if(*args, **kwargs):
     options = []
     pass_list = []
     skip_list = []
+    predicate = kwargs.get('predicate', None)
+
     for v in kwargs.values():
         if isinstance(v, (dict, list, tuple)):
             for i in v:
                 options.append(i)
-        else:
+        elif not callable(v):
             options.append(v)
     for v in options:
         if v.startswith('!'):
@@ -70,6 +72,11 @@ def run_only_if(*args, **kwargs):
             pass_list.append(v)
 
     def wrapper(func):
+        if predicate and predicate() is False:
+            LOG.debug('Exclude step by predicate: %s' % func.func_name)
+            func._exclude = True
+            return func
+
         for v in current:
             if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
                 LOG.debug('Exclude step: %s' % func.func_name)
