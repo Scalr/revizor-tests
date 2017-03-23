@@ -325,15 +325,14 @@ def create_partitions_on_volume(step, mnt_point, serv_as):
 
 
 @step(r"I triger snapshot creation from volume for '([\W\w]+)' on role")
-def creste_volume_snapshot(step, mnt_point):
+def create_volume_snapshot(step, mnt_point):
     device = world.get_storage_device_by_mnt_point(mnt_point)[0]
     LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
     kwargs = dict(
         cloud_location=CONF.platforms[CONF.feature.platform]['location'],
         volume_id=device['storageId']
     )
-    platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud
-    volume_snapshot_id = getattr(IMPL, '%s_tools' % platform).create_volume_snapshot(**kwargs)
+    volume_snapshot_id = IMPL.aws_tools.create_volume_snapshot(**kwargs)
     assert volume_snapshot_id, 'Volume snapshot creation failed'
     LOG.info('Volume snapshot create was started. Snapshot: %s' % volume_snapshot_id)
     setattr(world, 'volume_snapshot_id', volume_snapshot_id)
@@ -342,15 +341,9 @@ def creste_volume_snapshot(step, mnt_point):
 @step(r"Volume snapshot creation become completed")
 def wait_voume_snapshot(step):
     def is_snapshot_completed(**kwargs):
-        completed_states = dict(
-            ec2='completed',
-            gce='ready',
-            cloudstack='BackedUp'
-        )
-        platform = 'aws' if CONF.feature.driver.is_platform_ec2 else CONF.feature.driver.scalr_cloud
-        status = getattr(IMPL, '%s_tools' % platform).snapshots_list(**kwargs)[0]['status']
+        status = IMPL.aws_tools.snapshots_list(**kwargs)[0]['status']
         LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)
-        return status == completed_states.get(CONF.feature.driver.scalr_cloud)
+        return status == "completed"
 
     wait_until(
         is_snapshot_completed,
@@ -366,7 +359,7 @@ def add_storage_to_role(step):
     role = world.get_role()
     volume_snapshot_id = getattr(world, 'volume_snapshot_id', None)
     assert volume_snapshot_id, 'No volume snapshot found in world object'
-    LOG.info('Add new storage spanshot based: %s to role' % volume_snapshot_id)
+    LOG.info('Add volume from spanshot: %s to role' % volume_snapshot_id)
     storage_settings = {'configs': [
         {
             "id": None,

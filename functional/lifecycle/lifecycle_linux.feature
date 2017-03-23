@@ -47,7 +47,6 @@ Feature: Linux server lifecycle
 
     @ec2 @cloudstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
-        When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
