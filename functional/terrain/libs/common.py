@@ -28,10 +28,13 @@ IP_RESOLVER_SITES = (
 
 @world.absorb
 def is_raid_supported():
-    return\
-        CONF.feature.dist < Dist('ubuntu-16-04') or\
-        CONF.feature.dist < Dist('centos-7-x') or\
-        CONF.feature.dist < Dist('amazon-2016-09')
+    if CONF.feature.dist.family == 'debian' and CONF.feature.dist < Dist('ubuntu-16-04'):
+        return True
+    if CONF.feature.dist.family == 'centos' and CONF.feature.dist < Dist('centos-7-x'):
+        return True
+    if CONF.feature.dist.family == 'centos' and CONF.feature.dist < Dist('amazon-2016-09'):
+        return True
+    return False
 
 
 @world.absorb
