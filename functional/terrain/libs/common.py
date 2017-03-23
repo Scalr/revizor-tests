@@ -27,6 +27,22 @@ IP_RESOLVER_SITES = (
 
 
 @world.absorb
+def is_raid_supported():
+    dist_id = CONF.feature.dist.id
+
+    if dist_id.startswith('ubuntu') and dist_id < 'ubuntu-16-04':
+        return True
+
+    if dist_id.startswith('centos') and dist_id < 'centos-7-x':
+        return True
+
+    if dist_id.startswith('amazon') and dist_id < 'amazon-2016-09':
+        return True
+
+    return False
+
+
+@world.absorb
 def wrt(what):
     what = etree.tostring(what)
     if isinstance(what, unicode):
@@ -57,7 +73,7 @@ def run_only_if(*args, **kwargs):
     options = []
     pass_list = []
     skip_list = []
-    predicate = kwargs.get('predicate', None)
+    check_func = kwargs.get('check_func', None)
 
     for v in kwargs.values():
         if isinstance(v, (dict, list, tuple)):
@@ -72,20 +88,21 @@ def run_only_if(*args, **kwargs):
             pass_list.append(v)
 
     def wrapper(func):
-        if predicate and predicate() is False:
-            LOG.debug('Exclude step by predicate: %s' % func.func_name)
-            func._exclude = True
-            return func
+        def wrapper_for_arguments(*args, **kwargs):
+            if check_func and check_func(*args, **kwargs) is False:
+                LOG.debug('Exclude step by predicate: %s' % func.func_name)
+                func._exclude = True
+                return func
 
-        for v in current:
-            if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
+            for v in current:
+                if (not skip_list and v not in pass_list) or (skip_list and v in skip_list):
+                    LOG.debug('Exclude step: %s' % func.func_name)
+                    func._exclude = True
+                    break
+            if kwargs.get('szr_version') and not semver.match(version, kwargs.get('szr_version')):
                 LOG.debug('Exclude step: %s' % func.func_name)
                 func._exclude = True
-                break
-        if kwargs.get('szr_version') and not semver.match(version, kwargs.get('szr_version')):
-            LOG.debug('Exclude step: %s' % func.func_name)
-            func._exclude = True
-        return func
+        return wrapper_for_arguments
     return wrapper
 
 

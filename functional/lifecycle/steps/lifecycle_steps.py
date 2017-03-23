@@ -76,6 +76,7 @@ def check_message_config(step, config_group, message, serv_as):
 
 
 @step("[directory|file] '([\W\w]+)' exist in ([\w\d]+)$")
+@world.run_only_if(check_func=lambda *args, **kwargs: world.is_raid_supported() or args[1] != '/media/raidmount')
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
