@@ -1,10 +1,10 @@
 {
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2", "-stopresume"], "default": true},
-        "gce": ["gce", "-stopresume"],
-        "idcf": ["cloudstack", "-stopresume"],
-        "openstack": ["openstack", "-storages"],
-        "rackspacengus": ["rackspaceng", "-storages", "-stopresume"],
-        "ecs": ["openstack", "-stopresume"]
+        "gce": ["gce", "-stopresume", "-partition"],
+        "idcf": ["cloudstack", "-stopresume", "-partition"],
+        "openstack": ["openstack", "-storages", "-partition"],
+        "rackspacengus": ["rackspaceng", "-storages", "-stopresume", "-partition"],
+        "ecs": ["openstack", "-stopresume", "-partition"]
     }
 }
