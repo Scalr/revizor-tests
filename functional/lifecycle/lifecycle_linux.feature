@@ -30,7 +30,7 @@ Feature: Linux server lifecycle
     @ec2 @partition
     Scenario: Create volume snapshot
         When I reconfigure device partitions for '/media/partition' on M1
-        And I triger snapshot creation from volume for '/media/partition' on role
+        And I trigger snapshot creation from volume for '/media/partition' on role
         Then Volume snapshot creation become completed
 
     @ec2 @cloudstack @gce @storages @fstab

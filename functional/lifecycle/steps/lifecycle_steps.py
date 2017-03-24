@@ -324,7 +324,7 @@ def create_partitions_on_volume(step, mnt_point, serv_as):
     LOG.info('Partitions table for volume was successfully created')
 
 
-@step(r"I triger snapshot creation from volume for '([\W\w]+)' on role")
+@step(r"I trigger snapshot creation from volume for '([\W\w]+)' on role")
 def create_volume_snapshot(step, mnt_point):
     device = world.get_storage_device_by_mnt_point(mnt_point)[0]
     LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
