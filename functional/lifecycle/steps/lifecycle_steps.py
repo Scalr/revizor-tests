@@ -323,8 +323,11 @@ def create_partitions_on_volume(step, mnt_point, serv_as):
     LOG.info('Creating partitions table for volume on %s' % mnt_point)
     node.put_file(path, script_src % mnt_point)
     out = node.run('source %s' % path)
-    if out[2] and "Device contains neither a valid DOS partition table" not in out[1]:
-        raise AssertionError("Create volume partitions failed: %s" % out[1])
+
+    partition_table = out[0].strip("\n").splitlines()[-4:]
+    LOG.debug('Created partitions table for volume:\n%s' % "\n".join(partition_table))
+    assert all(line.startswith('/dev/') for line in partition_table), \
+        "Create volume partitions failed: %s" % out[1]
     LOG.info('Partitions table for volume was successfully created')
 
 
