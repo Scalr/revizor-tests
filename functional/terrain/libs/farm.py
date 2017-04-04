@@ -117,7 +117,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
     if dist == 'redhat-7-x' and not CONF.feature.use_vpc:
         options['instance_type'] = 'm3.medium'
-    if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.EC2:
+    if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist.is_windows:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'm3.medium'
     if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
