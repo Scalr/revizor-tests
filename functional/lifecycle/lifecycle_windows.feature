@@ -14,7 +14,6 @@ Feature: Windows server lifecycle
         And instance vcpus info not empty for M1
         And file 'C:\chef_result_file' exist in M1 windows
         And server M1 has disks E: 1 Gb, D: 2 Gb, Z(test_label): 160 Gb
-        And hostname in M1 is valid
         And scalarizr version is last in M1
 
     @ec2 @gce @openstack
@@ -105,5 +104,4 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
-        And hostname in M1 is valid
         And scalarizr version is last in M1
