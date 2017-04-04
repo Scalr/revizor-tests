@@ -24,15 +24,15 @@ Feature: Windows server lifecycle
         And scalarizr is running on M1
         And not ERROR in M1 scalarizr windows log
 
-    @ec2 @gce @openstack
-    Scenario: Restart scalarizr by script
-      Given I have running server M1
-      When I execute script 'windows restart scalarizr' synchronous on M1
-      And see 'Scalarizr terminated' in M1 windows log
-      And scalarizr is running on M1
-      And not ERROR in M1 scalarizr windows log
-      And I see script result in M1
-      And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
+#    @ec2 @gce @openstack
+#    Scenario: Restart scalarizr by script
+#      Given I have running server M1
+#      When I execute script 'windows restart scalarizr' synchronous on M1
+#      And see 'Scalarizr terminated' in M1 windows log
+#      And scalarizr is running on M1
+#      And not ERROR in M1 scalarizr windows log
+#      And I see script result in M1
+#      And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
 
     @ec2 @gce @openstack
     Scenario: Restart scalarizr during script execution
