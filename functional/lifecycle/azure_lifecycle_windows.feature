@@ -13,13 +13,13 @@ Feature: Windows server lifecycle in Azure
         And I wait and see running server M1
         And scalarizr version is last in M1
 
-    @azure
-    Scenario: Restart scalarizr by script
-        Given I have running server M1
-        When I execute script 'windows restart scalarizr' synchronous on M1
-        And scalarizr is running on M1
-        And I see script result in M1
-        And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
+#    @azure
+#    Scenario: Restart scalarizr by script
+#        Given I have running server M1
+#        When I execute script 'windows restart scalarizr' synchronous on M1
+#        And scalarizr is running on M1
+#        And I see script result in M1
+#        And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
 
     @azure
     Scenario: Windows reboot
