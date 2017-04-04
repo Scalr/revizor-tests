@@ -216,7 +216,7 @@ def get_db_handler(db_name):
 
 ###Testsuite steps
 ##################
-@step(r'I trigger ([\w]+) creation( on slave)?')
+@step(r'I trigger ([\w]+) creation( on slave)?$')
 def trigger_creation(step, action, use_slave=None):
     action = action.strip()
     use_slave = True if use_slave else False
