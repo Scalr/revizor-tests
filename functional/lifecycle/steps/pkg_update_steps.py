@@ -187,7 +187,7 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
         use_vpc=CONF.feature.use_vpc
     )
     if CONF.feature.dist.is_windows:
-        role_kwargs['options']["base.hostname_template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
+        role_kwargs['options']["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
     if CONF.feature.driver.is_platform_ec2 \
             and (CONF.feature.dist.is_windows or CONF.feature.dist.id == 'centos-7-x'):
         role_kwargs['options']['instance_type'] = 'm3.medium'

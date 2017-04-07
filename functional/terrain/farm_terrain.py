@@ -48,13 +48,13 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     scaling_metrics = None
     old_branch = CONF.feature.branch
     role_options = {
-        "base.hostname_template": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
+        "hostname.template": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
     }
     if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.is_windows:
-        role_options["base.hostname_template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
+        role_options["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
 
     if saved_role:
         role_id = getattr(world, '%s_id' % saved_role.strip())
@@ -233,7 +233,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 LOG.info('Insert configs for %s' % opt)
                 role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
     if behavior == 'rabbitmq':
-        del(role_options['base.hostname_template'])
+        del(role_options['hostname.template'])
     if behavior == 'redis':
         LOG.info('Insert redis settings')
         role_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
