@@ -14,6 +14,7 @@ from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
 from revizor2.exceptions import MessageFailed, EventNotFounded
 from revizor2.helpers import install_behaviors_on_node
+from revizor2.fixtures import resources
 
 LOG = logging.getLogger(__name__)
 
@@ -420,14 +421,14 @@ def install_chef(step):
         console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
         #TODO: Change to installation via Fatmouse task
         # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
-        command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
-        console.run_cmd(command)
+        command = ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install -version 12.19.36"
+        console.run_ps(command)
         chef_version = console.run_cmd("chef-client --version")
         assert chef_version.std_out, "Chef was not installed"
     else:
         node.run('rm -rf /tmp/chef-solo/cookbooks/*')
-        command = "curl -L https://www.opscode.com/chef/install.sh | \
-            bash && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
+        command = "curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 12.19.36 \
+            && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
         node.run(command)
         chef_version = node.run("chef-client --version")
         assert chef_version[2] == 0, "Chef was not installed"
