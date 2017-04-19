@@ -4,6 +4,7 @@ Feature: Import server to scalr and use this role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Executing import command on server running without userdata
         Given I have a server running in cloud
+        When I install Chef on server
         Then I initiate the installation behaviors on the server
         And I install scalarizr to the server
         Then I trigger the Start building and run scalarizr
@@ -21,6 +22,7 @@ Feature: Import server to scalr and use this role
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Executing import command on server running with userdata
         Given I have a server with userdata running in cloud
+        When I install Chef on server
         Then I initiate the installation behaviors on the server
         And I install scalarizr to the server
         Then I trigger the Start building and run scalarizr
