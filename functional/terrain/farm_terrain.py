@@ -299,7 +299,7 @@ def add_new_role_to_farm(step):
     setattr(world, '%s_role' % role.alias, role)
 
 
-@step('I suspend farm ([\w\d]+)$')
+@step('I suspend farm')
 def farm_state_action(step, farm_as):
     farm = getattr(world, farm_as)
     LOG.info('%s server %s' % ('Suspend', farm.id))
@@ -310,7 +310,6 @@ def farm_state_action(step, farm_as):
         error_message = "suspend success: %s" % (res)
     elif isinstance(res, dict):
         error_message = res.get('errorMessage', None)
-    # Workaround for SCALRCORE-1576
     if error_message == [
         u'Unable to perform request to scalarizr: A server error occurred.  Please contact the administrator. (500)']:
         error_message = None
