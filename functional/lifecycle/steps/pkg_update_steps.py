@@ -20,7 +20,6 @@ from revizor2.conf import CONF
 from lettuce import step, world, after
 from urllib2 import URLError
 
-from revizor2.consts import Dist
 from distutils.version import LooseVersion
 from revizor2.fixtures import tables, resources
 
@@ -166,7 +165,7 @@ def having_clean_image(step):
             image = world.cloud.find_image(use_hvm=True)
         else:
             image = world.cloud.find_image(use_hvm=CONF.feature.use_vpc)
-    LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
+    LOG.debug('Obtained clean image %s, Id: %s' % (image.name, image.id))
     setattr(world, 'image', image)
 
 
@@ -187,6 +186,8 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
         alias=world.role['name'],
         use_vpc=CONF.feature.use_vpc
     )
+    if CONF.feature.dist.is_windows:
+        role_kwargs['options']["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
     if CONF.feature.driver.is_platform_ec2 \
             and (CONF.feature.dist.is_windows or CONF.feature.dist.id == 'centos-7-x'):
         role_kwargs['options']['instance_type'] = 'm3.medium'
