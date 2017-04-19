@@ -14,7 +14,6 @@ from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
 from revizor2.exceptions import MessageFailed, EventNotFounded
 from revizor2.helpers import install_behaviors_on_node
-from revizor2.fixtures import resources
 
 LOG = logging.getLogger(__name__)
 
