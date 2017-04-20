@@ -13,7 +13,7 @@ def check_cloudinit(step):
     out = node.run('cloud-init -v')[2]
     if out != 0:
         if CONF.feature.dist.is_centos:
-            node.run('yum install cloud-init -y')
+            node.run('yum -y install cloud-init')
         else:
             node.run('sudo apt-get install cloud-init -y')
         out = node.run('cloud-init -v')[2]

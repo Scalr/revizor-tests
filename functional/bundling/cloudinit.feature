@@ -4,9 +4,9 @@ Feature: Cloudinit roles bootstrapping
     @ec2 @cloudstack
     Scenario: Create test roles with cloudinit
         Given I have a server running in cloud
+        And I check that cloudinit is installed
         Then I install Chef on server
         When I initiate the installation mbeh1 behaviors on the server
-        And I check that cloudinit is installed
         Then I create mbeh1-cloudinit image from deployed server
         And I add mbeh1-cloudinit image to the new roles as non scalarized
 
