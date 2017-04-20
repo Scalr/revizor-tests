@@ -27,7 +27,7 @@ COOKBOOKS_BEHAVIOR = {
 }
 
 BEHAVIOR_SETS = {
-    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
     'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
 }
 
@@ -335,10 +335,14 @@ def is_scalarizr_connected(step, timeout=1400):
 
 @step('I initiate the installation (\w+ )?behaviors on the server')
 def install_behaviors(step, behavior_set=None):
-    #Set recipe's
+    #Set recipes
     cookbooks = []
     if behavior_set:
         cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        if CONF.feature.dist.id == 'centos-7-x':  # Switch to mariadb if mysql is not supported
+            cookbooks = ['mariadb' if i == 'mysql::server' else i for i in cookbooks]
+        elif CONF.feature.dist.id == 'ubuntu-16-04':
+            cookbooks.remove('mysql::server')
         installed_behaviors = []
         for c in cookbooks:
             match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
