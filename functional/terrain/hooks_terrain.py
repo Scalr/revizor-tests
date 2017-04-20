@@ -277,6 +277,16 @@ def exclude_update_from_latest(feature):
             LOG.info("Removed scenario: %s" % scenario)
 
 
+
+@before.each_scenario
+def cloudinit_mysql_to_mariadb(scenario):
+    if scenario.name == "Check roles and rebundle":
+        if CONF.feature.dist.id == 'centos-7-x':
+            scenario.outlines = [{u'behavior': u'mariadb'} if o == {u'behavior': u'mysql2'} else o for o in scenario.outlines]
+        elif CONF.feature.dist.id == 'ubuntu-16-04':
+            scenario.outlines.remove({u'behavior': u'mysql2'})
+
+
 @after.outline
 def get_logs_and_info_after_outline(*args, **kwargs):
     """Collect logs and additional info if outline failed"""
