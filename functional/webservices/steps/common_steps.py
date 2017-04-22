@@ -119,7 +119,6 @@ def start_basehttpserver(step, port, serv_as):
     node.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
 
 
-@world.run_only_if(dist=['!centos-5-x'])
 @step(r'virtual host has a valid SSL certificate')
 def check_virtual_host_certificate(step):
     for host_hash in step.hashes:
