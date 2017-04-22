@@ -5,7 +5,7 @@
         "gce": ["gce", "-reboot"],
         "idcf": ["cloudstack", "-backup"],
         "rackspacengus": ["rackspaceng"],
-        "ecs": ["openstack"]
+        "openstack": ["openstack"]
     },
     "RV_STORAGE": {
         "persistent": [],
