@@ -5,7 +5,7 @@
         "gce": [],
         "idcf": [],
         "rackspacengus": [],
-        "ecs": []
+        "openstack": []
     },
     "RV_STORAGE": {
         "persistent": {"tags": [], "default": true},
