@@ -8,7 +8,6 @@ Feature: Check chef attributes set
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And lalala
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
         And server M1 exists on chef nodes list

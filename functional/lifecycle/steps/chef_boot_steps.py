@@ -130,6 +130,3 @@ def chef_runs_time(step, interval, serv_as):
     services = response.split()
     #assert any(map(lambda service: 'chef-client' in s, services))
  	assert some_run_time > (interval * 3)
-
-
-
