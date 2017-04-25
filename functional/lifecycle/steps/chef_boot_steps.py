@@ -92,3 +92,44 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
     node = chef.Node(host_name, api=chef_api)
     node_exists = node.exists
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
+
+
+@step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
+def change_chef_interval(step, interval, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    node.run('echo -e "INTERVAL={%}" >> /etc/default/chef-client'.format(interval))
+
+
+@step('Restart chef-client process on (\w+)')
+def restart_chef_client(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    if CONF.feature.dist.is_systemd:
+        cmd = "systemctl restart chef-client"
+    else:
+        cmd = "/etc/etc/init.d/chef-client restart"
+    node = world.cloud.get_node(server)
+    node.run(cmd)
+    LOG.info('chef-client restart complete')
+
+
+@step('I verify that this value (\d+) appears in the startup line on (\w+)')
+def verify_interval_value(step, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    INTERVAL=*
+    assert 'INTERVAL=15' == node.run(
+		'cat /opt/chef/embedded/bin/ruby --disable-gems /usr/bin/chef-client -i 15 -L /var/log/chef-client.log | grep INTERVAL')
+
+
+@step('I wait and see that chef-client runs more than INTERVAL')
+def chef_runs_time(step, interval, serv_as):
+    time.sleep(interval * 3)
+    response = node.run('systemctl list-units')
+    services = response.split()
+    #assert any(map(lambda service: 'chef-client' in s, services))
+ 	assert some_run_time > (interval * 3)
+
+
+
