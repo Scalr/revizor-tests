@@ -258,9 +258,9 @@ def exclude_update_from_latest(feature):
         else:
             for br in [branch, 'latest']:
                 last_version = get_scalaraizr_latest_version(br)
-                try:
+                if len(last_version.split('.')) == 3:
                     minor = int(last_version.split('.')[2])
-                except:
+                else:
                     minor = '0'
                 if last_version.strip().endswith('-1'):
                     last_version = last_version.strip()[:-2]
@@ -275,16 +275,6 @@ def exclude_update_from_latest(feature):
             scenario = [s for s in feature.scenarios if s.name == 'Update from latest to branch from ScalrUI'][0]
             feature.scenarios.remove(scenario)
             LOG.info("Removed scenario: %s" % scenario)
-
-
-
-@before.each_scenario
-def cloudinit_mysql_to_mariadb(scenario):
-    if scenario.name == "Check roles and rebundle":
-        if CONF.feature.dist.id == 'centos-7-x':
-            scenario.outlines = [{u'behavior': u'mariadb'} if o == {u'behavior': u'mysql2'} else o for o in scenario.outlines]
-        elif CONF.feature.dist.id == 'ubuntu-16-04':
-            scenario.outlines.remove({u'behavior': u'mysql2'})
 
 
 @after.outline

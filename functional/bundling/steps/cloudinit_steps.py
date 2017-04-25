@@ -1,14 +1,23 @@
 import logging
 
-from lettuce import world, step
+from lettuce import world, step, before
 from revizor2.api import Dist, CONF
 
 LOG = logging.getLogger(__name__)
 
 
+@before.each_scenario
+def remove_unsupported_behaviors(scenario):
+    if scenario.name == "Check roles and rebundle":
+        if CONF.feature.dist.id == 'centos-7-x':
+            scenario.outlines.remove({'behavior': 'mysql2'})
+        elif CONF.feature.dist.id == 'ubuntu-16-04':
+            scenario.outlines.remove({'behavior': 'mysql2'})
+            scenario.outlines.remove({'behavior': 'percona'})
+
+
 @step(r"I check that cloudinit is installed")
 def check_cloudinit(step):
-    #TODO: Add support for centos6
     node = getattr(world, 'cloud_server')
     out = node.run('cloud-init -v')[2]
     if out != 0:

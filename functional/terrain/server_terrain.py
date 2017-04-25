@@ -28,7 +28,7 @@ COOKBOOKS_BEHAVIOR = {
 
 BEHAVIOR_SETS = {
     'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
-    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
+    'mbeh2': ['nginx', 'percona', 'tomcat', 'memcached']
 }
 
 
@@ -339,10 +339,10 @@ def install_behaviors(step, behavior_set=None):
     cookbooks = []
     if behavior_set:
         cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
-        if CONF.feature.dist.id == 'centos-7-x':  # Switch to mariadb if mysql is not supported
-            cookbooks = ['mariadb' if i == 'mysql::server' else i for i in cookbooks]
-        elif CONF.feature.dist.id == 'ubuntu-16-04':
+        if CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x'] and behavior_set.strip() == 'mbeh1':
             cookbooks.remove('mysql::server')
+        elif CONF.feature.dist.id == 'ubuntu-16-04' and behavior_set.strip() == 'mbeh2':
+            cookbooks.remove('percona')
         installed_behaviors = []
         for c in cookbooks:
             match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
