@@ -1,5 +1,5 @@
 {
-    "DISTS": ["ubuntu1404", "ubuntu1204", "ubuntu1604", "centos6", "centos7", "debian7", "debian8", "rhel7"],
+    "DISTS": ["ubuntu1404", "ubuntu1604", "centos6", "centos7", "debian7", "debian8", "rhel7"],
     "RV_PLATFORM": {
         "ec2": {"tags": [], "default": true},
         "cloudstack": []
