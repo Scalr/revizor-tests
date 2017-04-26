@@ -60,7 +60,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         else:
             if behavior in BEHAVIORS_ALIASES:
                 behavior = BEHAVIORS_ALIASES[behavior]
-            elif '-cloudinit' in behavior:
+            if '-cloudinit' in behavior:
                 mask = 'tmp-%s-%s-*-*' % (behavior, CONF.feature.dist.id)
             else:
                 if CONF.feature.role_type == 'instance':
