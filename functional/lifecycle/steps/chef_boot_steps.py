@@ -98,7 +98,7 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
 def change_chef_interval(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    node.run('echo -e "INTERVAL={%}" >> /etc/default/chef-client'.format(interval))
+    node.run('echo -e "INTERVAL={}" >> /etc/default/chef-client'.format(interval))
 
 
 @step('Restart chef-client process on (\w+)')
@@ -123,7 +123,7 @@ def verify_interval_value(step, serv_as):
 		'cat /opt/chef/embedded/bin/ruby --disable-gems /usr/bin/chef-client -i 15 -L /var/log/chef-client.log | grep INTERVAL')
 
 
-@step('I wait and see that chef-client runs more than INTERVAL')
+@step('I wait and see that chef-client runs more than 3*INTERVAL')
 def chef_runs_time(step, interval, serv_as):
     time.sleep(interval * 3)
     response = node.run('systemctl list-units')
