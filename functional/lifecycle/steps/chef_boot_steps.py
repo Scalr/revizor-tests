@@ -114,19 +114,19 @@ def restart_chef_client(step, serv_as):
     LOG.info('chef-client restart complete')
 
 
-@step('I verify that this value (\d+) appears in the startup line on (\w+)')
+@step('I verify that this interval appears in the startup line on (\w+)')
 def verify_interval_value(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    INTERVAL=*
-    assert 'INTERVAL=15' == node.run(
-		'cat /opt/chef/embedded/bin/ruby --disable-gems /usr/bin/chef-client -i 15 -L /var/log/chef-client.log | grep INTERVAL')
+    out = node.run(
+        'cat /opt/chef/embedded/bin/ruby --disable-gems /usr/bin/chef-client -i 15 -L /var/log/chef-client.log | grep INTERVAL')
+    assert out == 'INTERVAL=15'
 
 
-@step('I wait and see that chef-client runs more than 3*INTERVAL')
-def chef_runs_time(step, interval, serv_as):
-    time.sleep(interval * 3)
-    response = node.run('systemctl list-units')
-    services = response.split()
-    #assert any(map(lambda service: 'chef-client' in s, services))
- 	assert some_run_time > (interval * 3)
+# @step('I wait and see that chef-client runs more than 3*INTERVAL')
+# def chef_runs_time(step, interval, serv_as):
+#     time.sleep(interval * 3)
+#     response = node.run('systemctl status chef-client')
+#     services = response.split()
+#     assert any(map(lambda service: 'chef-client' in s, services))
+#  	  assert some_run_time > (interval * 3)
