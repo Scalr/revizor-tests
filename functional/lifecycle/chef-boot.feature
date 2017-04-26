@@ -80,3 +80,4 @@ Feature: Check chef attributes set
         And server M1 exists on chef nodes list
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
+        
