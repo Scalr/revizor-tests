@@ -1,6 +1,7 @@
 import chef
 import logging
 import time
+import re
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform, Dist
@@ -98,7 +99,7 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
 def change_chef_interval(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    node.run('echo -e "INTERVAL={}" >> /etc/default/chef-client'.format(interval))
+    node.run('echo -e "INTERVAL=" >> /etc/default/chef-client'.format(interval))
 
 
 @step('Restart chef-client process on (\w+)')
@@ -122,21 +123,19 @@ def verify_interval_value(step, interval, serv_as):
     assert exit == 0
     if stderr:
         raise  AssertionError("stderr is None")
-    assert 'chef-client -i {}'.format(interval) in stdout
+    assert 'chef-client -i'.format(interval) in stdout
     assert interval == '15'
 
 
-# @step('I wait and see that chef-client runs more than INTERVAL (\d+) on (\w+)')
-# def chef_runs_time(step, interval, serv_as):
-#     server = getattr(world, serv_as)
-#     node = world.cloud.get_node(server)
-#     time.sleep(interval * 3)
-#     cmd = "systemctl status chef-client"
-#     stdout, stderr, exit = node.run(cmd)
-#     assert exit == 0
-#     if stderr:
-#         raise AssertionError("stderr is None")
-#     assert 'chef-client -i {}'.format(interval) in stdout
-#     assert interval == '15'
-#
-#     assert some_run_time > (interval * 3)
+@step('I wait and see that chef-client runs more than INTERVAL (\d+) on (\w+)')
+def chef_runs_time(step, interval, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    time.sleep(float(interval * 3))
+    cmd = "systemctl status chef-client"
+    stdout, stderr, exit = node.run(cmd)
+    m = stdout.splitlines()[2]
+    for m in lines:
+        regexp = re.compile(r'(\d+)(s|min)')
+        run_time = int(matches[0][0])
+    assert run_time > (interval * 3)
