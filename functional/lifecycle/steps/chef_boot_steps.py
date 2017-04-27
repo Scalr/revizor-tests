@@ -109,35 +109,34 @@ def restart_chef_client(step, serv_as):
         cmd = "systemctl restart chef-client"
     else:
         cmd = "/etc/etc/init.d/chef-client restart"
-    node = world.cloud.get_node(server)
     node.run(cmd)
     LOG.info('chef-client restart complete')
 
 
-@step('I verify that this interval (\d+) appears in the startup line on (\w+)')
+@step('I verify that this INTERVAL (\d+) appears in the startup line on (\w+)')
 def verify_interval_value(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     cmd = "systemctl status chef-client"
     stdout, stderr, exit = node.run(cmd)
-    lines = stdout.split()
-    value_interval = 0
-    regexp = re.compile('chef-client -i \{(interval)\}')
-    for line in lines:
-        matches = regexp.findall(line)
-        try:
-            value_interval = int(matches.pop())
-        except IndexError as e:
-            pass
-        if value_interval > 0:
-            break
-    assert value_interval == 15
+    assert exit == 0
+    if stderr:
+        raise  AssertionError("stderr is None")
+    assert 'chef-client -i {}'.format(interval) in stdout
+    assert interval == '15'
 
 
-# @step('I wait and see that chef-client runs more than 3*INTERVAL')
+# @step('I wait and see that chef-client runs more than INTERVAL (\d+) on (\w+)')
 # def chef_runs_time(step, interval, serv_as):
+#     server = getattr(world, serv_as)
+#     node = world.cloud.get_node(server)
 #     time.sleep(interval * 3)
-#     response = node.run('systemctl status chef-client')
-#     services = response.split()
-#     assert any(map(lambda service: 'chef-client' in s, services))
-#  	  assert some_run_time > (interval * 3)
+#     cmd = "systemctl status chef-client"
+#     stdout, stderr, exit = node.run(cmd)
+#     assert exit == 0
+#     if stderr:
+#         raise AssertionError("stderr is None")
+#     assert 'chef-client -i {}'.format(interval) in stdout
+#     assert interval == '15'
+#
+#     assert some_run_time > (interval * 3)
