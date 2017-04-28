@@ -286,14 +286,11 @@ def farm_launch(step):
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
     options = getattr(world, 'role_options', {})
-    if CONF.feature.dist.is_windows and CONF.feature.platform == 'ec2':
-        options['aws.instance_type'] = 'm3.medium'
     bundled_role = Role.get(world.bundled_role_id)
     world.farm.add_role(
         world.bundled_role_id,
         options=options,
-        alias=bundled_role.name,
-        use_vpc=CONF.feature.use_vpc)
+        alias=bundled_role.name)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
