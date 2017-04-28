@@ -127,11 +127,11 @@ def verify_interval_value(step, interval, serv_as):
 def chef_runs_time(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    t = int(interval * 3)
+    t = int(interval) * 3
     time.sleep(t)
     cmd = "systemctl status chef-client"
     stdout, stderr, exit = node.run(cmd)
-    m1 = stdout.splitlines()[2]
-    runtime = re.search('(\d+)(s|min)', m1).group(1)
+    active_line = stdout.splitlines()[2]
+    runtime = re.search('(\d+)(s|min)', active_line).group(1)
     raise Exception(runtime)
     assert int(runtime) > t
