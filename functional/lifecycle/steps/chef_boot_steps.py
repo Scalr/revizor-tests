@@ -99,19 +99,15 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
 def change_chef_interval(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    node.run('echo -e "INTERVAL=" >> /etc/default/chef-client'.format(interval))
+    node.run('echo -e "INTERVAL={}" >> /etc/default/chef-client'.format(interval))
 
 
 @step('Restart chef-client process on (\w+)')
 def restart_chef_client(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    if CONF.feature.dist.is_systemd:
-        cmd = "systemctl restart chef-client"
-    else:
-        cmd = "/etc/etc/init.d/chef-client restart"
+    cmd = "systemctl restart chef-client"
     node.run(cmd)
-    LOG.info('chef-client restart complete')
 
 
 @step('I verify that this INTERVAL (\d+) appears in the startup line on (\w+)')
@@ -123,7 +119,7 @@ def verify_interval_value(step, interval, serv_as):
     assert exit == 0
     if stderr:
         raise  AssertionError("stderr is None")
-    assert 'chef-client -i'.format(interval) in stdout
+    assert 'chef-client -i {}'.format(interval) in stdout
     assert interval == '15'
 
 
@@ -136,6 +132,6 @@ def chef_runs_time(step, interval, serv_as):
     cmd = "systemctl status chef-client"
     stdout, stderr, exit = node.run(cmd)
     m1 = stdout.splitlines()[2]
-    runtime = re.search('(\d+)(s|min)', m1).group()
+    runtime = re.search('(\d+)(s|min)', m1).group(1)
     raise Exception(runtime)
     assert int(runtime) > t
