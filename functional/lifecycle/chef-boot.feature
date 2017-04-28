@@ -1,7 +1,7 @@
 Using step definitions from: steps/common_steps, steps/chef_boot_steps, steps/lifecycle_steps, steps/scripting_steps
 Feature: Check chef attributes set
 
-    @ec2 @gce @cloudstack @openstack @rackspaceng
+    @ec2 @gce @cloudstack @openstack @rackspaceng @systemd
     Scenario: Bootstrapping chef role firstly
         Given I have a clean and stopped farm
         When I add role to this farm with chef
