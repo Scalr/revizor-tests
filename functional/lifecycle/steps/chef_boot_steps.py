@@ -133,5 +133,4 @@ def chef_runs_time(step, interval, serv_as):
     stdout, stderr, exit = node.run(cmd)
     active_line = stdout.splitlines()[2]
     runtime = re.search('(\d+)(s|min)', active_line).group(1)
-    raise Exception(runtime)
     assert int(runtime) > t
