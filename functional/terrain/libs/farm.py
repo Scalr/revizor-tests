@@ -65,8 +65,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             else:
                 if CONF.feature.role_type == 'instance':
                     mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-                elif CONF.feature.driver.is_platform_ec2 and not CONF.feature.dist.is_windows:
-                    mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
                 else:
                     mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -80,12 +78,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             elif '-cloudinit' in behavior:
                 role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
-                if CONF.feature.driver.is_platform_ec2 and not CONF.feature.dist.is_windows:
-                    role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
-                                                dist, CONF.feature.role_type)
-                else:
-                    role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                                dist, CONF.feature.role_type)
+                role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
             LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:
