@@ -102,25 +102,21 @@ def change_chef_interval(step, interval, serv_as):
     node.run('echo -e "INTERVAL={}" >> /etc/default/chef-client'.format(interval))
 
 
-@step('Restart chef-client process on (\w+)')
+@step('restart chef-client process on (\w+)')
 def restart_chef_client(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    cmd = "systemctl restart chef-client"
-    node.run(cmd)
+    node.run("systemctl restart chef-client")
 
 
 @step('I verify that this INTERVAL (\d+) appears in the startup line on (\w+)')
 def verify_interval_value(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    cmd = "systemctl status chef-client"
-    stdout, stderr, exit = node.run(cmd)
-    assert exit == 0
-    if stderr:
-        raise  AssertionError("stderr is None")
+    stdout, stderr, exit = node.run("systemctl status chef-client")
+    assert exit == 0, 'chef-client ended with exit code: %s' % exit
+    assert stderr is None, 'Error on chef-client restarting: %s' % stderr
     assert 'chef-client -i {}'.format(interval) in stdout
-    assert interval == '15'
 
 
 @step('I wait and see that chef-client runs more than INTERVAL (\d+) on (\w+)')
@@ -129,8 +125,7 @@ def chef_runs_time(step, interval, serv_as):
     node = world.cloud.get_node(server)
     intervalx3 = int(interval) * 3
     time.sleep(intervalx3)
-    cmd = "systemctl status chef-client"
-    stdout, stderr, exit = node.run(cmd)
+    stdout, stderr, exit = node.run("systemctl status chef-client")
     active_line = stdout.splitlines()[2]
     match = re.search('(?:(\d+)min)? (\d+)s', active_line)
     minutes = match.group(1)
