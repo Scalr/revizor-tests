@@ -14,7 +14,7 @@ Feature: Check chef attributes set
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
-    @ec2 @gce @cloudstack @openstack @rackspaceng @systemd @restart
+    @ec2 @gce @cloudstack @openstack @rackspaceng @systemd
     Scenario: Сhecking changes INTERVAL config
         When I change chef-client INTERVAL to 15 sec on M1
         And Restart chef-client process on M1

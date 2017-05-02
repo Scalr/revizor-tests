@@ -127,14 +127,16 @@ def verify_interval_value(step, interval, serv_as):
 def chef_runs_time(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    t = int(interval) * 3
-    time.sleep(t)
+    intervalx3 = int(interval) * 3
+    time.sleep(intervalx3)
     cmd = "systemctl status chef-client"
     stdout, stderr, exit = node.run(cmd)
     active_line = stdout.splitlines()[2]
-    timeperiod = re.search('EDT; (\d+)(s|min)', active_line).group(2)
-    if timeperiod == "s":
-        runtime = re.search('EDT; (\d+)(s)', active_line).group(1)
+    match = re.search('(?:(\d+)min)? (\d+)s', active_line)
+    minutes = match.group(1)
+    seconds = int(match.group(2))
+    if minutes:
+        runtime = (int(minutes) * 60) + seconds
+        assert int(runtime) > intervalx3
     else:
-        runtime = int(re.search('EDT; (\d+)(min)', active_line).group(1)) * 60
-    assert int(runtime) > t
+        assert seconds  > intervalx3
