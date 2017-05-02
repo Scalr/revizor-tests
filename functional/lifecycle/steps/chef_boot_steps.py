@@ -135,8 +135,5 @@ def chef_runs_time(step, interval, serv_as):
     match = re.search('(?:(\d+)min)? (\d+)s', active_line)
     minutes = match.group(1)
     seconds = int(match.group(2))
-    if minutes:
-        runtime = (int(minutes) * 60) + seconds
-        assert int(runtime) > intervalx3
-    else:
-        assert seconds  > intervalx3
+    runtime = (int(minutes) * 60) + seconds if minutes else seconds
+    assert int(runtime) > intervalx3
