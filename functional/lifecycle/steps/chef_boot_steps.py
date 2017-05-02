@@ -132,5 +132,9 @@ def chef_runs_time(step, interval, serv_as):
     cmd = "systemctl status chef-client"
     stdout, stderr, exit = node.run(cmd)
     active_line = stdout.splitlines()[2]
-    runtime = re.search('(\d+)(s|min)', active_line).group(1)
+    timeperiod = re.search('EDT; (\d+)(s|min)', active_line).group(2)
+    if timeperiod == "s":
+        runtime = re.search('EDT; (\d+)(s)', active_line).group(1)
+    else:
+        runtime = int(re.search('EDT; (\d+)(min)', active_line).group(1)) * 60
     assert int(runtime) > t
