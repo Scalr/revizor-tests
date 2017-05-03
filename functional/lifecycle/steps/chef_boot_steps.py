@@ -4,7 +4,6 @@ import time
 import re
 
 from revizor2.conf import CONF
-from revizor2.api import CONF
 from revizor2.consts import Platform, Dist
 from lettuce import world, step, before
 
@@ -101,7 +100,8 @@ def exclude_scenario_without_systemd(feature):
     if not CONF.feature.dist.is_systemd:
         scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
         feature.scenarios.remove(scenario)
-        LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (feature.dist))
+        LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
+            scenario.name, feature.name))
 
 
 @step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
