@@ -4,8 +4,9 @@ import time
 import re
 
 from revizor2.conf import CONF
+from revizor2.api import CONF
 from revizor2.consts import Platform, Dist
-from lettuce import world, step
+from lettuce import world, step, before
 
 
 LOG = logging.getLogger('chef')
@@ -95,6 +96,14 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
 
 
+@before.each_feature
+def exclude_scenario_without_systemd(feature):
+    if not CONF.feature.dist.is_systemd:
+        scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
+        feature.scenarios.remove(scenario)
+        LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (feature.dist))
+
+
 @step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
 def change_chef_interval(step, interval, serv_as):
     server = getattr(world, serv_as)
@@ -115,7 +124,7 @@ def verify_interval_value(step, interval, serv_as):
     node = world.cloud.get_node(server)
     stdout, stderr, exit = node.run("systemctl status chef-client")
     assert exit == 0, 'chef-client ended with exit code: %s' % exit
-    assert stderr is None, 'Error on chef-client restarting: %s' % stderr
+    assert stderr == '', 'Error on chef-client restarting: %s' % stderr
     assert 'chef-client -i {}'.format(interval) in stdout
 
 

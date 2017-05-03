@@ -15,7 +15,7 @@ Feature: Check chef attributes set
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
     @ec2 @gce @cloudstack @openstack @rackspaceng @systemd
-    Scenario: Сhecking changes INTERVAL config
+    Scenario: Checking changes INTERVAL config
         When I change chef-client INTERVAL to 15 sec on M1
         And restart chef-client process on M1
         Then I verify that this INTERVAL 15 appears in the startup line on M1
