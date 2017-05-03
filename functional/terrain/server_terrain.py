@@ -27,8 +27,8 @@ COOKBOOKS_BEHAVIOR = {
 }
 
 BEHAVIOR_SETS = {
-    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
-    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
+    'mbeh2': ['nginx', 'percona', 'tomcat', 'memcached']
 }
 
 
@@ -335,10 +335,14 @@ def is_scalarizr_connected(step, timeout=1400):
 
 @step('I initiate the installation (\w+ )?behaviors on the server')
 def install_behaviors(step, behavior_set=None):
-    #Set recipe's
+    #Set recipes
     cookbooks = []
     if behavior_set:
         cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        if CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x'] and behavior_set.strip() == 'mbeh1':
+            cookbooks.remove('mysql::server')
+        elif CONF.feature.dist.id == 'ubuntu-16-04' and behavior_set.strip() == 'mbeh2':
+            cookbooks.remove('percona')
         installed_behaviors = []
         for c in cookbooks:
             match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
