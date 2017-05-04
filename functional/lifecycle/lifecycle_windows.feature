@@ -89,14 +89,6 @@ Feature: Windows server lifecycle
         And hostname in M1 is valid
 
     @ec2 @gce @openstack
-    Scenario: Bootstraping with failed hostname
-        Given I have a clean and stopped farm
-        And I add role to this farm with failed_hostname
-        When I start farm
-        And I see pending server M1
-        And I wait server M1 in failed state
-
-    @ec2 @gce @openstack
     Scenario: Bootstraping from chef-role
         Given I have a clean and stopped farm
         And I add role to this farm with winchef-role
