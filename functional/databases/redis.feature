@@ -151,6 +151,7 @@ Feature: Redis database server functional test
         And I expect server bootstrapping as M3
         And M3 contains database 2
         When I create database 3 on M1
+        And all contains database 3
         And I terminate server M1 with decrease
         Then Scalr sends DbMsr_PromoteToMaster to N1
         And Scalr receives DbMsr_PromoteToMasterResult from N1

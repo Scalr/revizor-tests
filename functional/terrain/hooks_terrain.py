@@ -258,13 +258,17 @@ def exclude_update_from_latest(feature):
         else:
             for br in [branch, 'latest']:
                 last_version = get_scalaraizr_latest_version(br)
+                if len(last_version.split('.')) == 3:
+                    minor = int(last_version.split('.')[2])
+                else:
+                    minor = '0'
                 if last_version.strip().endswith('-1'):
                     last_version = last_version.strip()[:-2]
                 if br == branch:
-                    to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
+                    to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + str(minor)
                     LOG.debug("Testing branch version: %s" % to_version)
                 else:
-                    latest_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
+                    latest_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + str(minor)
                     LOG.debug("Latest version: %s" % latest_version)
             match = semver.match(latest_version, '>' + to_version)
         if match:
