@@ -97,7 +97,7 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
 
 @before.each_feature
 def exclude_scenario_without_systemd(feature):
-    if not CONF.feature.dist.is_systemd:
+    if not CONF.feature.dist.is_systemd and feature.name == 'Check chef attributes set':
         scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
         feature.scenarios.remove(scenario)
         LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
