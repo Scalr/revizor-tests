@@ -4,7 +4,7 @@ Feature: Percona 5.5 database server with behavior percona (scalr behavior perco
 	@ec2 @gce @cloudstack @rackspaceng @openstack @boot
     Scenario: Bootstraping percona role
         Given I have a an empty running farm
-        When I add percona role to this farm
+        When I add percona role to this farm with ephemeral
         Then I expect server bootstrapping as M1
         And percona is running on M1
         And scalarizr version is last in M1

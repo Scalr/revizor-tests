@@ -4,7 +4,7 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping MySQL role
         Given I have a an empty running farm
-        When I add mysql2 role to this farm
+        When I add mysql2 role to this farm with ephemeral
         Then I expect server bootstrapping as M1
         And mysql is running on M1
         And scalarizr version is last in M1
