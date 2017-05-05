@@ -299,7 +299,7 @@ def add_new_role_to_farm(step):
     setattr(world, '%s_role' % role.alias, role)
 
 
-@step('I suspend farm')
+@step('I suspend farm ([\w\d]+)$')
 def farm_state_action(step, farm_as):
     farm = getattr(world, farm_as)
     LOG.info('%s server %s' % ('Suspend', farm.id))
