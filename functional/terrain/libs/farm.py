@@ -60,14 +60,15 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
         else:
             if behavior in BEHAVIORS_ALIASES:
                 behavior = BEHAVIORS_ALIASES[behavior]
-            if CONF.feature.role_type == 'instance':
-                mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-            elif CONF.feature.use_vpc:
-                mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
-            elif '-cloudinit' in behavior:
+            if '-cloudinit' in behavior:
                 mask = 'tmp-%s-%s-*-*' % (behavior, CONF.feature.dist.id)
             else:
-                mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
+                if CONF.feature.role_type == 'instance':
+                    mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
+                elif CONF.feature.use_vpc:
+                    mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
+                else:
+                    mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
             versions = get_role_versions(mask)
             versions.sort()
@@ -76,14 +77,15 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
-            elif CONF.feature.use_vpc:
-                role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
-                                            dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
                 role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
-                role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                            dist, CONF.feature.role_type)
+                if CONF.feature.use_vpc:
+                    role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
+                                                dist, CONF.feature.role_type)
+                else:
+                    role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                                dist, CONF.feature.role_type)
             LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:

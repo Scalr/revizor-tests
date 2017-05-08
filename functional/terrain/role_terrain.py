@@ -80,7 +80,8 @@ def add_new_role_to_farm(step, alias=None):
     if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
-
+    if len('{}-{}'.format(world.farm.name, alias)) >= 64:
+        options['hostname.template'] = '%s-{SCALR_INSTANCE_INDEX}' % alias[:32]
     world.farm.add_role(world.bundled_role_id, options=options,
                         scripting=scripting, alias=alias, use_vpc=CONF.feature.use_vpc)
     world.farm.roles.reload()

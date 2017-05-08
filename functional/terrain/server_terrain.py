@@ -27,8 +27,8 @@ COOKBOOKS_BEHAVIOR = {
 }
 
 BEHAVIOR_SETS = {
-    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'rabbitmq', 'haproxy'],
-    'mbeh2': ['base', 'nginx', 'percona', 'tomcat', 'memcached', 'mongodb']
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
+    'mbeh2': ['nginx', 'percona', 'tomcat', 'memcached']
 }
 
 
@@ -335,10 +335,14 @@ def is_scalarizr_connected(step, timeout=1400):
 
 @step('I initiate the installation (\w+ )?behaviors on the server')
 def install_behaviors(step, behavior_set=None):
-    #Set recipe's
+    #Set recipes
     cookbooks = []
     if behavior_set:
         cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        if CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x'] and behavior_set.strip() == 'mbeh1':
+            cookbooks.remove('mysql::server')
+        elif CONF.feature.dist.id == 'ubuntu-16-04' and behavior_set.strip() == 'mbeh2':
+            cookbooks.remove('percona')
         installed_behaviors = []
         for c in cookbooks:
             match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
@@ -420,14 +424,14 @@ def install_chef(step):
         console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
         #TODO: Change to installation via Fatmouse task
         # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
-        command = "msiexec /i https://packages.chef.io/stable/windows/2008r2/chef-client-12.12.15-1-x64.msi /passive"
-        console.run_cmd(command)
+        command = ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install -version 12.19.36"
+        console.run_ps(command)
         chef_version = console.run_cmd("chef-client --version")
         assert chef_version.std_out, "Chef was not installed"
     else:
         node.run('rm -rf /tmp/chef-solo/cookbooks/*')
-        command = "curl -L https://www.opscode.com/chef/install.sh | \
-            bash && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
+        command = "curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 12.19.36 \
+            && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
         node.run(command)
         chef_version = node.run("chef-client --version")
         assert chef_version[2] == 0, "Chef was not installed"

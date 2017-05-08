@@ -5,6 +5,6 @@
         "gce": ["gce", "-stopresume"],
         "idcf": ["cloudstack", "-stopresume"],
         "rackspacengus": ["rackspaceng", "-stopresume"],
-        "ecs": ["openstack", "-stopresume"]
+        "openstack": ["openstack", "-stopresume"]
     }
 }

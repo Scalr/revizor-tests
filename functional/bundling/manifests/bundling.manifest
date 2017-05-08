@@ -2,8 +2,8 @@
     "RV_PLATFORM": {
         "ec2": {"tags": ["-api"], "default": true},
         "gce": ["-api"],
-        "idcf": ["scalr"],
+        "idcf": ["-api"],
         "rackspacengus": ["-api"],
-        "ecs": ["-api"]
+        "openstack": ["-api"]
     }
 }
