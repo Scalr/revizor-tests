@@ -684,7 +684,7 @@ def creating_image(step, image_type=None):
         name=image_name,
     )
     if CONF.feature.driver.is_platform_ec2:
-        kwargs.update({'reboot': False})
+        kwargs.update({'reboot': True})
     cloud_server.run('sync')
     image = world.cloud.create_template(**kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
@@ -757,8 +757,6 @@ def creating_role(step, image_type=None, non_scalarized=None):
         else:
             role_name = name
             role_behaviors = behaviors
-        if len(role_name) >= 52:
-            role_name = role_name[:51]
         role_kwargs = dict(
             name=role_name,
             is_scalarized = int(is_scalarized or has_cloudinit),
