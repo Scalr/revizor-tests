@@ -209,7 +209,8 @@ def assert_check_script_work(step, serv_as):
 @step('wait all servers are ([\w]+)$')
 def wait_for_servers_state(step, state):
     """Wait for state of all servers"""
-    wait_until(world.wait_farm_servers_state, args=(state, ), timeout=1800, error_text='Servers in farm have no status')
+    wait_until(world.wait_farm_servers_state, args=(
+        state, ), timeout=10, error_text=('Servers in farm have no status %s' % state))
 
 
 @step('hostname in ([\w\d]+) is valid$')

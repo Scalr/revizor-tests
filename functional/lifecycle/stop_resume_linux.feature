@@ -74,12 +74,12 @@ Feature: Linux server resume strategy
         And server M1 not exists on chef nodes list
 
     @ec2 @gce @cloudstack @stopresume @suspend
-    Scenario: Farm Suspend
+    Scenario: FarmSuspend
         Given I have a clean and stopped farm
         And I add base role to this farm
         When I start farm
         Then I expect server bootstrapping as M1
-        When I suspend farm M1
+        When I suspend farm
         Then BeforeHostTerminate (Suspend) event was fired by M1
         And Scalr sends BeforeHostTerminate to M1
         Then I wait server M1 in suspended state

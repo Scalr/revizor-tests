@@ -37,3 +37,17 @@ Feature: Windows server resume strategy
         When I stop farm
         And wait all servers are terminated
         And Server M1 not exists on chef nodes list
+
+    @ec2 @gce @cloudstack @stopresume @suspend
+    Scenario: FarmSuspend
+        Given I have a clean and stopped farm
+        And I add base role to this farm
+        When I start farm
+        Then I expect server bootstrapping as M1
+        When I suspend farm
+        Then BeforeHostTerminate (Suspend) event was fired by M1
+        And Scalr sends BeforeHostTerminate to M1
+        Then I wait server M1 in suspended state
+        And HostDown (Suspend) event was fired by M1
+        And I wait 1 minutes
+        And wait all servers are suspended
