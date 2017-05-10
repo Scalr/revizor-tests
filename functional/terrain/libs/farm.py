@@ -7,7 +7,7 @@ from lettuce import world
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
-from revizor2.consts import BEHAVIORS_ALIASES, Platform
+from revizor2.consts import BEHAVIORS_ALIASES, Platform, FarmStatus
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
@@ -138,3 +138,14 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     if not new_role:
         raise AssertionError('Added role "%s" not found in farm' % role['name'])
     return new_role[0]
+
+
+@world.absorb
+def farm_state(state):
+    farm_id = os.environ.get('RV_FARM_ID', CONF.main.farm_id)
+    world.farm = Farm.get(farm_id)
+    d = {'suspended': Suspended,
+         'terminated': Terminated,
+         'running': Running}
+    if not world.farm.status == d[state]:
+        raise AssertionError('Farm is Not in %s state' % state)

@@ -11,6 +11,7 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
+from revizor2.utils import wait_until
 from revizor2.api import Script, Farm, Metrics, ChefServer
 from revizor2.consts import Platform, DATABASE_BEHAVIORS, Dist
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
@@ -300,7 +301,14 @@ def add_new_role_to_farm(step):
 
 
 @step('I suspend farm')
-def farm_state_action(step):
+def farm_state_suspend(step):
     """Suspend farm"""
     world.farm.suspend()
     time.sleep(30)
+
+
+@step('I wait farm in ([\w]+) state')
+def wait_for_farm_state(step, state):
+    """Wait for state of farm"""
+    wait_until(world.farm_state, args=(
+        state, ), timeout=30, error_text=('Farm have no status %s' % state))
