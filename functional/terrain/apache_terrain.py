@@ -10,6 +10,8 @@ from requests.exceptions import HTTPError, ConnectionError, SSLError
 import logging
 from lettuce import world, step
 from revizor2.utils import wait_until
+from revizor2.api import Certificate, IMPL
+import time
 
 LOG = logging.getLogger(__name__)
 
@@ -84,5 +86,78 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
         domain_ip,
         server.public_ip)
 
+
+@step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')
+def check_matches_in_domain(step, proto, domain_as, matched_text):
+    uri = ''
+    if '/' in domain_as:
+        domain_as, uri = domain_as.split('/')
+    domain = getattr(world, domain_as)
+    LOG.info('Match text %s in domain %s' % (matched_text, domain.name))
+
+    if proto.isdigit():
+        url = 'http://%s:%s/%s' % (domain.name, proto, uri)
+    else:
+        url = '%s://%s/%s' % (proto, domain.name, uri)
+    for i in range(3):
+        LOG.info('Try open url: "%s" attempt: %s' % (url, i))
+        try:
+            resp = requests.get(url).text
+            if resp == matched_text:
+                break
+        except:
+            pass
+        time.sleep(5)
+    else:
+        raise AssertionError('Text "%s" not matched with "%s"' % (resp, matched_text))
+
+
+@step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
+def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash,
+                             network_type='private'):
+    """This step add to nginx new proxy to any role with http/https and ip_hash
+    :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
+    :type proto: str
+    :param proxy_name: Name for proxy in scalr interface
+    :type proxy_name: str
+    :param proxy_role: Nginx role name
+    :type proxy_role: str
+    :param backend_role: Role name for backend
+    :type backend_role: str
+    :param vhost_name: Virtual host name
+    :type vhost_name: str
+    """
+    proxy_role = world.get_role(proxy_role)
+    backend_role = world.get_role(backend_role)
+    vhost = getattr(world, vhost_name)
+    opts = {}
+    if proto == 'http':
+        LOG.info('Add http proxy')
+        port = 80
+    elif proto == 'https':
+        LOG.info('Add https proxy')
+        port = 80
+        opts['ssl'] = True
+        opts['ssl_port'] = 443
+        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
+        opts['http'] = True
+    elif proto == 'http/https':
+        LOG.info('Add http/https proxy')
+        port = 80
+        opts['ssl'] = True
+        opts['ssl_port'] = 443
+        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
+    if ip_hash:
+        opts['ip_hash'] = True
+    template = get_nginx_default_server_template()
+    LOG.info('Add proxy to app role for domain %s' % vhost.name)
+    backends = [{"farm_role_id": backend_role.id,
+                 "port": "80",
+                 "backup": "0",
+                 "down": "0",
+                 "location": "/",
+                 "network": network_type}]
+    proxy_role.add_nginx_proxy(vhost.name, port, templates=[template], backends=backends, **opts)
+    setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 
 
