@@ -757,6 +757,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
         else:
             role_name = name
             role_behaviors = behaviors
+        if len(role_name) > 50:
+            role_name = role_name[:50].strip('-')
         role_kwargs = dict(
             name=role_name,
             is_scalarized = int(is_scalarized or has_cloudinit),
