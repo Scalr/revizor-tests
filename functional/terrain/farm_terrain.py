@@ -311,4 +311,4 @@ def farm_state_suspend(step):
 def wait_for_farm_state(step, state):
     """Wait for state of farm"""
     wait_until(world.get_farm_state, args=(
-        state, ), timeout=60, error_text=('Farm have no status %s' % state))
+        state, ), timeout=300, error_text=('Farm have no status %s' % state))
