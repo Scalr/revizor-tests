@@ -259,7 +259,7 @@ def exclude_update_from_latest(feature):
             for br in [branch, 'latest']:
                 last_version = get_scalaraizr_latest_version(br)
                 if len(last_version.split('.')) == 3:
-                    minor = int(last_version.split('.')[2])
+                    minor = int(last_version.split('.')[2][0])
                 else:
                     minor = '0'
                 if last_version.strip().endswith('-1'):
