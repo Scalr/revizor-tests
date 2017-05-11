@@ -141,11 +141,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
 
 
 @world.absorb
-def farm_state(state):
+def get_farm_state(state):
     farm_id = os.environ.get('RV_FARM_ID', CONF.main.farm_id)
     world.farm = Farm.get(farm_id)
-    d = {'suspended': Suspended,
-         'terminated': Terminated,
-         'running': Running}
-    if not world.farm.status == d[state]:
+    if world.farm.status == state:
+        return True
+    else:
         raise AssertionError('Farm is Not in %s state' % state)

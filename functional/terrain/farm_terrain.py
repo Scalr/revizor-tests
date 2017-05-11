@@ -310,5 +310,5 @@ def farm_state_suspend(step):
 @step('I wait farm in ([\w]+) state')
 def wait_for_farm_state(step, state):
     """Wait for state of farm"""
-    wait_until(world.farm_state, args=(
-        state, ), timeout=30, error_text=('Farm have no status %s' % state))
+    wait_until(world.get_farm_state, args=(
+        state, ), timeout=60, error_text=('Farm have no status %s' % state))

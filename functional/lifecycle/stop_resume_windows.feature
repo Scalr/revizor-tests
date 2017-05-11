@@ -45,7 +45,7 @@ Feature: Windows server resume strategy
         When I start farm
         Then I expect server bootstrapping as M1
         When I suspend farm
-        Then I wait farm in suspended state
+        Then I wait farm in Suspended state
         Then BeforeHostTerminate (Suspend) event was fired by M1
         And Scalr sends BeforeHostTerminate to M1
         Then I wait server M1 in suspended state
