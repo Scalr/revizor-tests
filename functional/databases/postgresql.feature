@@ -4,7 +4,7 @@ Feature: PostgreSQL database server functional test
 	@ec2 @gce @cloudstack @rackspaceng @openstack @boot
     Scenario: Bootstraping postgresql role
         Given I have a an empty running farm
-        When I add postgresql role to this farm with ephemeral
+        When I add postgresql role to this farm
         Then I expect server bootstrapping as M1
         And postgresql is running on M1
         And scalarizr version is last in M1

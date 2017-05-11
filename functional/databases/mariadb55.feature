@@ -4,7 +4,7 @@ Feature: mariadb database server with behavior mariadb
     @ec2 @gce @cloudstack @rackspaceng @openstack @boot
     Scenario: Bootstraping mariadb role
         Given I have a an empty running farm
-        When I add mariadb role to this farm with ephemeral
+        When I add mariadb role to this farm
         Then I expect server bootstrapping as M1
         And mariadb is running on M1
         And scalarizr version is last in M1

@@ -4,7 +4,7 @@ Feature: MongoDB replica set
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Bootstraping MongoDB role
         Given I have a an empty running farm
-        When I add mongodb role to this farm with ephemeral
+        When I add mongodb role to this farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And M1 hostname is mongo-0-0
