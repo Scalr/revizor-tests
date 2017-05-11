@@ -150,7 +150,6 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     else:
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
             elif opt == 'ephemeral':
-                role_options.update({'ephemeral': True})
                 if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist.is_windows:
                     eph_disk_conf = {
                         "type": "ec2_ephemeral",
@@ -168,7 +167,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "rebuild": False,
                         "mountPoint": "Z",
                         "label": "test_label"}
-                    additional_storages['configs'].append(eph_disk_conf)
+                    additional_storages = {'configs': [eph_disk_conf]}
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)
