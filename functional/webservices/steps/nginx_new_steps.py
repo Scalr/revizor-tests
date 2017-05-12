@@ -3,10 +3,21 @@ import requests
 
 from lettuce import world, step
 
+from revizor2.api import Certificate, IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
+
+
+def get_nginx_default_server_template():
+    farm_settings = IMPL.farm.get_settings(world.farm.id)
+    template = {
+        "server": True,
+        "content": farm_settings['tabParams']['nginx']['server_section'] +
+                   farm_settings['tabParams']['nginx']['server_section_ssl']
+    }
+    return template
 
 
 def check_config_for_option(node, config_file, option):
