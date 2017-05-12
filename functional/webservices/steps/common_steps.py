@@ -7,7 +7,6 @@ from requests import exceptions
 from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.consts import Platform, Dist
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.defaults import DEFAULT_SSL_CERTS
@@ -33,45 +32,6 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
             return False
     wait_until(check_new_ip, args=(domain.name, server.public_ip), timeout=timeout,
                            error_text="Domain resolve not new IP")
-
-
-@step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
-def check_index(step, proto, revert, domain_as, vhost_as):
-    #TODO: Rewrite this ugly
-    revert = False if not revert else True
-    domain = getattr(world, domain_as)
-    vhost = getattr(world, vhost_as)
-    domain_address = domain.name
-
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
-        domain_server = domain.role.servers[0]
-        public_port = world.cloud.open_port(
-            world.cloud.get_node(domain_server),
-            80 if proto == 'http' else 443
-        )
-        domain_address = '%s:%s' % (domain_address, str(public_port))
-    # Find role by vhost
-    for role in world.farm.roles:
-        if role.id == vhost.farm_roleid:
-            app_role = role
-            break
-    else:
-        raise AssertionError('Can\'t find role for vhost %s' % vhost.id)
-
-    nodes = []
-    app_role.servers.reload()
-    for s in app_role.servers: # delete pre-defined index.html file and upload vhost file
-        if not s.status == 'Running':
-            continue
-        node = world.cloud.get_node(s)
-        nodes.append(node)
-        try:
-            LOG.info('Delete %s/index.html in server %s' % (vhost_as, s.id))
-            node.run('rm /var/www/%s/index.html' % vhost_as)
-        except AttributeError, e:
-            LOG.error('Failed in delete index.html: %s' % e)
-
-    world.check_index_page(nodes, proto, revert, domain_address, vhost_as)
 
 
 @step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')

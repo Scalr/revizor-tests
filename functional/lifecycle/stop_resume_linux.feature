@@ -88,29 +88,24 @@ Feature: Linux server resume strategy
         And I wait 1 minutes
         And wait all servers are suspended
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @suspend
+@ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @suspend
     Scenario: Bootstraping nginx - apache role and suspend farm
         Given I have a clean and stopped farm
         When I add www role to this farm
         When I add app role to this farm
-        When I create domain D1 to www role
         When I start farm
-        Then I expect server bootstrapping as W1 in nginx role
+        Then I expect server bootstrapping as W1 in nginx-ubuntu1204-devel role
         Then I expect server bootstrapping as A2 in app role
         And nginx is running on W1
+        When I create domain D1 to www role
         And I add virtual host H1 to app role and domain D1
         And I add http proxy P1 to www role with H1 host to app role with ip_hash with private network
         When I suspend farm
         Then I wait farm in Suspended state
         Then BeforeHostTerminate (Suspend) event was fired by W1
-        Then BeforeHostTerminate (Suspend) event was fired by A1
         And Scalr sends BeforeHostTerminate to W1
-        And Scalr sends BeforeHostTerminate to A1
         Then I wait server W1 in suspended state
-        Then I wait server A1 in suspended state
         And HostDown (Suspend) event was fired by W1
-        And HostDown (Suspend) event was fired by A1
         And I wait 1 minutes
         And wait all servers are suspended
         And http get domain D1 matches H1 index page
-        

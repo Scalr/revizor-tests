@@ -11,7 +11,8 @@ import logging
 from lettuce import world, step
 from revizor2.utils import wait_until
 from revizor2.api import Certificate, IMPL
-import time
+from revizor2.conf import CONF
+from revizor2.consts import Platform, Dist
 
 LOG = logging.getLogger(__name__)
 
@@ -87,32 +88,57 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
         server.public_ip)
 
 
-@step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')
-def check_matches_in_domain(step, proto, domain_as, matched_text):
-    uri = ''
-    if '/' in domain_as:
-        domain_as, uri = domain_as.split('/')
+def get_nginx_default_server_template():
+    farm_settings = IMPL.farm.get_settings(world.farm.id)
+    template = {
+        "server": True,
+        "content": farm_settings['tabParams']['nginx']['server_section'] +
+                   farm_settings['tabParams']['nginx']['server_section_ssl']
+    }
+    return template
+
+
+@step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
+def check_index(step, proto, revert, domain_as, vhost_as):
+    #TODO: Rewrite this ugly
+    revert = False if not revert else True
     domain = getattr(world, domain_as)
-    LOG.info('Match text %s in domain %s' % (matched_text, domain.name))
+    vhost = getattr(world, vhost_as)
+    domain_address = domain.name
 
-    if proto.isdigit():
-        url = 'http://%s:%s/%s' % (domain.name, proto, uri)
+    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+        domain_server = domain.role.servers[0]
+        public_port = world.cloud.open_port(
+            world.cloud.get_node(domain_server),
+            80 if proto == 'http' else 443
+        )
+        domain_address = '%s:%s' % (domain_address, str(public_port))
+    # Find role by vhost
+    for role in world.farm.roles:
+        if role.id == vhost.farm_roleid:
+            app_role = role
+            break
     else:
-        url = '%s://%s/%s' % (proto, domain.name, uri)
-    for i in range(3):
-        LOG.info('Try open url: "%s" attempt: %s' % (url, i))
+        raise AssertionError('Can\'t find role for vhost %s' % vhost.id)
+
+    nodes = []
+    app_role.servers.reload()
+    for s in app_role.servers: # delete pre-defined index.html file and upload vhost file
+        if not s.status == 'Running':
+            continue
+        node = world.cloud.get_node(s)
+        nodes.append(node)
         try:
-            resp = requests.get(url).text
-            if resp == matched_text:
-                break
-        except:
-            pass
-        time.sleep(5)
-    else:
-        raise AssertionError('Text "%s" not matched with "%s"' % (resp, matched_text))
+            LOG.info('Delete %s/index.html in server %s' % (vhost_as, s.id))
+            node.run('rm /var/www/%s/index.html' % vhost_as)
+        except AttributeError, e:
+            LOG.error('Failed in delete index.html: %s' % e)
+
+    world.check_index_page(nodes, proto, revert, domain_address, vhost_as)
 
 
-@step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
+@step(
+    r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
 def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash,
                              network_type='private'):
     """This step add to nginx new proxy to any role with http/https and ip_hash
