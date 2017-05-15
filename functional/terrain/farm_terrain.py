@@ -55,6 +55,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
 
     if CONF.feature.dist.is_windows:
         role_options["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
+        role_options["base.reboot_after_hostinit_phase"] = "1"
 
     if saved_role:
         role_id = getattr(world, '%s_id' % saved_role.strip())
