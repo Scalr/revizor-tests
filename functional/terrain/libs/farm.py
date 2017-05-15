@@ -65,8 +65,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             else:
                 if CONF.feature.role_type == 'instance':
                     mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-                elif CONF.feature.use_vpc:
-                    mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
                 else:
                     mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -80,12 +78,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             elif '-cloudinit' in behavior:
                 role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
-                if CONF.feature.use_vpc:
-                    role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
-                                                dist, CONF.feature.role_type)
-                else:
-                    role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                                dist, CONF.feature.role_type)
+                role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
             LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:
@@ -117,11 +111,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'redhat-7-x' and not CONF.feature.use_vpc:
-        options['instance_type'] = 'm3.medium'
-    if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist.is_windows:
-        LOG.debug('Dist is windows, set instance type')
-        options['instance_type'] = 'm3.medium'
     if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
@@ -131,7 +120,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=CONF.feature.use_vpc)
+)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

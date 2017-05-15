@@ -13,7 +13,7 @@ Feature: Windows server lifecycle
         And I wait and see running server M1
         And instance vcpus info not empty for M1
         And file 'C:\chef_result_file' exist in M1 windows
-        And server M1 has disks E: 1 Gb, D: 2 Gb, Z(test_label): 4 Gb
+        And server M1 has disks E(test_label2): 1 Gb, D: 2 Gb
         And scalarizr version is last in M1
 
     @ec2 @gce @openstack
@@ -96,4 +96,15 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And file 'C:\chef_result_file' exist in M1 windows
+        And scalarizr version is last in M1
+
+    @ec2
+    Scenario: Bootstraping with ephemeral
+        Given I have a clean and stopped farm
+        And I add role to this farm with ephemeral
+        When I start farm
+        Then I see pending server M1
+        And I wait and see running server M1
+        And instance vcpus info not empty for M1
+        And server M1 has disks Z(test_label): 4 Gb
         And scalarizr version is last in M1
