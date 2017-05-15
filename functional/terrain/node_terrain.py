@@ -955,7 +955,7 @@ def given_server_in_cloud(step, user_data):
             dist=CONF.feature.dist.id,
             platform=CONF.feature.platform)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
-    node = world.cloud.create_node(userdata=user_data, use_hvm=CONF.feature.use_vpc, image=image)
+    node = world.cloud.create_node(userdata=user_data, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
     if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
