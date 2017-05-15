@@ -74,22 +74,18 @@ Feature: Linux server resume strategy
         And server M1 not exists on chef nodes list
 
     @ec2 @gce @cloudstack @stopresume @suspend
-    Scenario: FarmSuspend
+    Scenario: Farm Suspend
         Given I have a clean and stopped farm
         And I add base role to this farm
         When I start farm
         Then I expect server bootstrapping as M1
         When I suspend farm
         Then I wait farm in Suspended state
-        Then BeforeHostTerminate (Suspend) event was fired by M1
-        And Scalr sends BeforeHostTerminate to M1
-        Then I wait server M1 in suspended state
-        And HostDown (Suspend) event was fired by M1
         And I wait 1 minutes
         And wait all servers are suspended
 
 @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @suspend
-    Scenario: Bootstraping nginx - apache role and suspend farm
+    Scenario: Suspend farm with nginx + apache roles configured with virtual host proxying in Apache
         Given I have a clean and stopped farm
         When I add www role to this farm
         When I add app role to this farm
@@ -102,10 +98,6 @@ Feature: Linux server resume strategy
         And I add http proxy P1 to www role with H1 host to app role with ip_hash with private network
         When I suspend farm
         Then I wait farm in Suspended state
-        Then BeforeHostTerminate (Suspend) event was fired by W1
-        And Scalr sends BeforeHostTerminate to W1
-        Then I wait server W1 in suspended state
-        And HostDown (Suspend) event was fired by W1
         And I wait 1 minutes
         And wait all servers are suspended
         And http get domain D1 matches H1 index page
