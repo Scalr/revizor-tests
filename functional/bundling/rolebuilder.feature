@@ -17,4 +17,3 @@ Feature: Build all behaviors via rolebuilder and check server running
       | percona,www                   |
       | redis,haproxy                 |
       | postgresql,memcached,rabbitmq |
-      | mongodb                       |
