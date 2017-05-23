@@ -245,8 +245,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED] \
-                    and CONF.feature.driver.current_cloud != Platform.AZURE:
+                                                                ServerStatus.SUSPENDED]:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
@@ -283,6 +282,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
+                    if CONF.feature.driver.is_platform_azure:
+                        wait_server_message(lookup_server, 'UpdateSshAuthorizedKeys', timeout=2400)
                     LOG.debug('Insert server to previous servers')
                     previous_servers.append(lookup_server)
                 LOG.debug('Return server %s' % lookup_server)
@@ -294,7 +295,6 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             raise TimeoutError('Server %s not in state "%s" it has status: "%s"'
                                % (lookup_server.id, status, lookup_server.status))
         raise TimeoutError('New server in role "%s" was not founding' % role)
-
 
 
 @world.absorb
@@ -657,7 +657,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     # Get os family result
     os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
     if not os_family_res:
-        raise OSFamilyValueFailed('No value for node os: %s' % node_os)
+        raise OSFamilyValueFailed('No value for node os: %s' % node)
     return os_family_res
 
 

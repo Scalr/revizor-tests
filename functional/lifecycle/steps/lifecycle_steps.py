@@ -27,7 +27,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
 
 @step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
 def waiting_server(step, state, serv_as, timeout=1400):
-    if CONF.feature.dist.is_windows:
+    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
