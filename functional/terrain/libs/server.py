@@ -359,7 +359,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                     raise MessageFailed('Message %s / %s (%s) unsupported' % (message.type, message.name, message.id))
         return False
 
-    message_type = 'out' if message_type.strip() == 'sends' else 'in'
+    message_type = 'in' if message_type.strip() not in ('sends', 'out') else 'out'
 
     if not isinstance(server, (list, tuple)):
         servers = [server]
@@ -652,12 +652,10 @@ def value_for_os_family(debian, centos, server=None, node=None):
         node = world.cloud.get_node(server)
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
-    # Get node os name
-    # node_os = getattr(node, 'os', [''])[0]
     # Get os family result
     os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
     if not os_family_res:
-        raise OSFamilyValueFailed('No value for node os: %s' % node)
+        raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
     return os_family_res
 
 
