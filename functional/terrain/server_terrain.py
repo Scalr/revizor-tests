@@ -264,7 +264,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if CONF.feature.driver.is_platform_ec2:
         volumes = server.get_volumes()
         if not volumes:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -272,7 +272,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
         attached_volume = filter(lambda x:
                                  x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
-    elif CONF.feature.driver.current_cloud == Platform.GCE:
+    elif CONF.feature.driver.is_platform_gce:
         volumes = filter(lambda x: x['deviceName'] != 'root',
                          node.extra.get('disks', []))
         if not volumes:
@@ -283,7 +283,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
                                  server.id)
         attached_volume = filter(lambda x: x.name == volumes[0]['deviceName'],
                                  world.cloud.list_volumes())[0]
-    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    elif CONF.feature.driver.is_platform_cloudstack:
         volumes = server.get_volumes()
         if len(volumes) == 1:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -386,7 +386,7 @@ def start_building(step):
 
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
-    if CONF.feature.driver.current_cloud == Platform.GCE:
+    if CONF.feature.driver.is_platform_gce:
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id

@@ -289,7 +289,7 @@ def verify_attached_disk_types(step):
     if CONF.feature.driver.current_cloud == Platform.EC2:
         LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
         return
-    elif CONF.feature.driver.current_cloud == Platform.GCE:
+    elif CONF.feature.driver.is_platform_gce:
         if not volume_ids['/media/diskmount'][0].extra['type'] == 'pd-standard':
             raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
                                  volume_ids['/media/diskmount'][0].extra['type'])

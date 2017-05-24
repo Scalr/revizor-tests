@@ -54,7 +54,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 password = password or server.windows_password
                 if not password:
                     password = 'Scalrtest123'
-            if CONF.feature.driver.is_platform_gce:
+            if CONF.feature.driver.is_platform_gce or CONF.feature.driver.is_platform_azure:
                 username = 'scalr'
             elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
@@ -139,9 +139,9 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
             pass
 
         if log_date:
-            if not log_date.year == now.year \
-                or not log_date.month == now.month \
-                or not log_date.day == now.day:
+            if not log_date.year == now.year or \
+                    not log_date.month == now.month or \
+                    not log_date.day == now.day:
                 continue
 
         for error in SCALARIZR_LOG_IGNORE_ERRORS:
@@ -252,7 +252,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status in ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows:
+                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
                     verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
@@ -265,7 +265,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 LOG.debug('Check scalarizr debug log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows:
+                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node)
                 else:
                     verify_scalarizr_log(lookup_node, windows=True, server=lookup_server)
@@ -283,7 +283,12 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
                     if CONF.feature.driver.is_platform_azure:
-                        wait_server_message(lookup_server, 'UpdateSshAuthorizedKeys', timeout=2400)
+                        LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
+                        wait_server_message(
+                            lookup_server,
+                            'UpdateSshAuthorizedKeys',
+                            use_lookuped=True,
+                            timeout=2400)
                     LOG.debug('Insert server to previous servers')
                     previous_servers.append(lookup_server)
                 LOG.debug('Return server %s' % lookup_server)
@@ -327,19 +332,19 @@ def wait_farm_terminated(*args, **kwargs):
 
 
 @world.absorb
-def wait_server_message(server, message_name, message_type='out', find_in_all=False, timeout=600):
+def wait_server_message(server, message_name, message_type='out', find_in_all=False, use_lookuped=False, timeout=600):
     """
     Wait message in server list (or one server). If find_in_all is True, wait this message in all
     servers.
     """
-    def check_message_in_server(server, message_name, message_type):
+    def check_message_in_server(server, message_name, message_type, use_lookuped):
         server.messages.reload()
         lookup_messages = getattr(world,
                                   '_server_%s_lookup_messages' % server.id, [])
         for message in reversed(server.messages):
             LOG.debug('Work with message: %s / %s - %s (%s) on server %s ' %
                       (message.type, message.name, message.delivered, message.id, server.id))
-            if message.id in lookup_messages:
+            if message.id in lookup_messages and not use_lookuped:
                 LOG.debug('Message %s was already lookuped' % message.id)
                 continue
             if message.name == message_name and message.type == message_type:
@@ -375,7 +380,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     while time.time() - start_time < timeout:
         if not find_in_all:
             for serv in servers:
-                if check_message_in_server(serv, message_name, message_type):
+                if check_message_in_server(serv, message_name, message_type, use_lookuped=use_lookuped):
                     return serv
         else:
             LOG.debug('Delivered servers = %s, servers = %s' % (delivered_servers, servers))
@@ -386,7 +391,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
             for serv in servers:
                 if serv in delivered_servers:
                     continue
-                result = check_message_in_server(serv, message_name, message_type)
+                result = check_message_in_server(serv, message_name, message_type, use_lookuped=use_lookuped)
                 if result:
                     LOG.info('Message %s delivered in server %s (in mass delivering mode)' % (message_name, serv.id))
                     delivered_servers.append(serv)

@@ -5,6 +5,7 @@
         "idcf": ["cloudstack", "-stopresume", "-partition"],
         "openstack": ["openstack", "-storages", "-partition"],
         "rackspacengus": ["rackspaceng", "-storages", "-stopresume", "-partition"],
-        "openstack": ["openstack", "-stopresume", "-partition"]
+        "openstack": ["openstack", "-stopresume", "-partition"],
+        "azure": ["azure", "-stopresume", "-partition", "-failedbootstrap"]
     }
 }

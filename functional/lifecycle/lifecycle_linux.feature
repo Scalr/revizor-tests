@@ -152,8 +152,8 @@ Feature: Linux server lifecycle
         And start time in Revizor last reboot scripts are different for M1
         And hostname in M1 is valid
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @eucalyptus
-    Scenario: Failed bootsrap by hostname
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @failedbootstrap
+    Scenario: Failed bootstrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
         When I start farm
