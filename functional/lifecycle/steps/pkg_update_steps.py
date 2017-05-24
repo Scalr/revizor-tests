@@ -161,10 +161,7 @@ def having_clean_image(step):
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x']:
-            image = world.cloud.find_image(use_hvm=True)
-        else:
-            image = world.cloud.find_image(use_hvm=CONF.feature.use_vpc)
+        image = world.cloud.find_image()
     LOG.debug('Obtained clean image %s, Id: %s' % (image.name, image.id))
     setattr(world, 'image', image)
 
@@ -183,14 +180,10 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
             "base.upd.repository": "stable" if use_stable else "",
             "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
         },
-        alias=world.role['name'],
-        use_vpc=CONF.feature.use_vpc
+        alias=world.role['name']
     )
     if CONF.feature.dist.is_windows:
         role_kwargs['options']["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
-    if CONF.feature.driver.is_platform_ec2 \
-            and (CONF.feature.dist.is_windows or CONF.feature.dist.id == 'centos-7-x'):
-        role_kwargs['options']['instance_type'] = 'm3.medium'
     if use_manual_scaling:
         manual_scaling = {
             "scaling.one_by_one": 0,

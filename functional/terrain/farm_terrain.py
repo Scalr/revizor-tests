@@ -56,6 +56,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
 
     if CONF.feature.dist.is_windows:
         role_options["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
+        role_options["base.reboot_after_hostinit_phase"] = "1"
 
     if saved_role:
         role_id = getattr(world, '%s_id' % saved_role.strip())
@@ -150,6 +151,25 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(Platform.RACKSPACE_US, [])}
                     else:
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
+            elif opt == 'ephemeral':
+                if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist.is_windows:
+                    eph_disk_conf = {
+                        "type": "ec2_ephemeral",
+                        "reUse": False,
+                        "settings": {
+                            "ec2_ephemeral.name": "ephemeral0",
+                            "ec2_ephemeral.size": "4"
+                        },
+                        "status": "",
+                        "isRootDevice": False,
+                        "readOnly": False,
+                        "category": "Ephemeral storage",
+                        "fs": "ntfs",
+                        "mount": True,
+                        "rebuild": False,
+                        "mountPoint": "Z",
+                        "label": "test_label"}
+                    additional_storages = {'configs': [eph_disk_conf]}
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)
@@ -287,14 +307,11 @@ def farm_launch(step):
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
     options = getattr(world, 'role_options', {})
-    if CONF.feature.dist.is_windows and CONF.feature.platform == 'ec2':
-        options['aws.instance_type'] = 'm3.medium'
     bundled_role = Role.get(world.bundled_role_id)
     world.farm.add_role(
         world.bundled_role_id,
         options=options,
-        alias=bundled_role.name,
-        use_vpc=CONF.feature.use_vpc)
+        alias=bundled_role.name)
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)

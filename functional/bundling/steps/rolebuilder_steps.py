@@ -19,18 +19,9 @@ LOG = logging.getLogger('rolebuilder')
 @step('I start build role with behaviors (.+)$')
 def start_rolebuild_with_behaviours(step, behaviors):
     behaviors = behaviors.strip().split(',')
-    use_hvm = False
 
     if not 'chef' in behaviors:
         behaviors.append('chef')
-
-    if CONF.feature.use_vpc:
-        use_hvm = True
-        if 'mongodb' in behaviors:
-            behaviors.remove('mongodb')
-
-    if CONF.feature.driver.current_cloud not in (Platform.EC2, Platform.CLOUDSTACK) and 'mongodb' in behaviors:
-        raise AssertionError('Mongodb not supported in this platform')
 
     location = CONF.platforms[CONF.feature.platform]['location']
     if CONF.feature.driver.current_cloud == Platform.GCE:
@@ -56,8 +47,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
                                         name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
-                                        mysqltype='percona' if 'percona' in behaviors else 'mysql',
-                                        hvm = use_hvm)
+                                        mysqltype='percona' if 'percona' in behaviors else 'mysql')
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 

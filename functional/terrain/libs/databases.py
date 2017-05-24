@@ -12,35 +12,6 @@ LOG = logging.getLogger(__name__)
 
 
 @world.absorb
-def mongodb_wait_data(conn, data, **kwargs):
-    db = getattr(conn, data['db'])
-    if db.keys.count() > 0:
-        res = db.keys.find(id=data['id'])[0]
-        if 'testkey' in res:
-            if res['testkey'] == 'myvalue':
-                return True
-    return False
-
-
-@world.absorb
-def mongodb_wait_data2(node, data):
-    #TODO: rewrite it and use only python!
-    node.put_file(path='/root/mongoslave.js', content=resources('scripts/mongoslave.js').get())
-    res = node.run('mongo localhost:27018 < /root/mongoslave.js')
-    node.run('rm /root/mongoslave.js')
-    if not str(data['id']) in res[0]:
-        return False
-    return True
-
-
-@world.absorb
-def check_mongo_status(status):
-    if world.farm.db_info('mongodb')['status'] == status:
-        return True
-    return False
-
-
-@world.absorb
 def wait_database(db_name, server):
     db_role = world.get_role()
     return db_role.db.database_exist(db_name, server)
