@@ -321,7 +321,12 @@ def add_new_role_to_farm(step):
 def farm_state_suspend(step):
     """Suspend farm"""
     world.farm.suspend()
-    time.sleep(30)
+
+
+@step('I resume farm')
+def farm_resume(step):
+    """Resume farm"""
+    world.farm.resume()
 
 
 @step('I wait farm in ([\w]+) state')

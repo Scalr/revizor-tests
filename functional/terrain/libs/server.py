@@ -317,14 +317,9 @@ def wait_servers_running(role, count):
 
 @world.absorb
 def farm_servers_state(state):
-    d = {'suspended': ServerStatus.SUSPENDED,
-         'terminated': ServerStatus.TERMINATED,
-         'failed': ServerStatus.FAILED,
-         'running': ServerStatus.RUNNING,
-         'resuming': ServerStatus.RESUMING}
     world.farm.servers.reload()
     for server in world.farm.servers:
-        if server.status == d[state]:
+        if server.status == ServerStatus.from_code(state):
             LOG.info('Servers is in %s state' % state)
             continue
         else:
