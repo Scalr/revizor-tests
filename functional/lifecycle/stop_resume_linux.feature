@@ -103,12 +103,16 @@ Feature: Linux server resume strategy
         And I add http proxy P1 to www role with H1 host to app role with ip_hash with private network
         When I suspend farm
         Then I wait farm in Suspended state
-        And I wait 1 minutes
         And wait all servers are suspended
         When I resume farm
         Then I wait server W1 in resuming state
+        Then I wait server A2 in resuming state
         Then Scalr receives RebootFinish from W1
+        Then Scalr receives RebootFinish from A2
         And ResumeComplete event was fired by W1
+        And ResumeComplete event was fired by A2
         Then I wait server W1 in running state
+        Then I wait server A2 in running state
         And HostInit,BeforeHostUp events were not fired after W1 resume
+        And HostInit,BeforeHostUp events were not fired after A2 resume
         And http get domain D1 matches H1 index page
