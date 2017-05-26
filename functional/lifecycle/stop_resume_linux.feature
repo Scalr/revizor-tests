@@ -95,7 +95,7 @@ Feature: Linux server resume strategy
         When I add www role to this farm
         When I add app role to this farm
         When I start farm
-        Then I expect server bootstrapping as W1 in nginx-ubuntu1204-devel role
+        Then I expect server bootstrapping as W1 in www role
         Then I expect server bootstrapping as A2 in app role
         And nginx is running on W1
         When I create domain D1 to www role
