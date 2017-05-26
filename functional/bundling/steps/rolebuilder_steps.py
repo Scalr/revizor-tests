@@ -23,9 +23,6 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if not 'chef' in behaviors:
         behaviors.append('chef')
 
-    if CONF.feature.driver.current_cloud not in (Platform.EC2, Platform.CLOUDSTACK) and 'mongodb' in behaviors:
-        raise AssertionError('Mongodb not supported in this platform')
-
     location = CONF.platforms[CONF.feature.platform]['location']
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
