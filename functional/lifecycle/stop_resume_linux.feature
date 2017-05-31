@@ -73,22 +73,6 @@ Feature: Linux server resume strategy
         And wait all servers are terminated
         And server M1 not exists on chef nodes list
 
-    @ec2 @gce @cloudstack @stopresume @suspend
-    Scenario: Suspend/resume farm
-        Given I have a clean and stopped farm
-        And I add base role to this farm
-        When I start farm
-        Then I expect server bootstrapping as M1
-        When I suspend farm
-        Then I wait farm in Suspended state
-        And wait all servers are suspended
-        When I resume farm
-        Then I wait server M1 in resuming state
-        Then Scalr receives RebootFinish from M1
-        And ResumeComplete event was fired by M1
-        Then I wait server M1 in running state
-        And HostInit,BeforeHostUp events were not fired after M1 resume
-
     @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @suspend
     Scenario: Suspend/resume farm with nginx + apache roles configured with virtual host proxying in Apache
         Given I have a clean and stopped farm
