@@ -145,7 +145,6 @@ Feature: Linux server lifecycle
         And I add role to this farm with init_reboot,small_linux_orchestration
         When I start farm
         And I see pending server M1
-        And I wait server M1 in initializing state
         When I wait server M1 in running state
         Then script Revizor last reboot executed in HostInit by user root with exitcode 0 for M1
         And script Revizor last reboot executed in HostUp by user root with exitcode 0 for M1

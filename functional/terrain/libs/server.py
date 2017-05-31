@@ -54,7 +54,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 password = password or server.windows_password
                 if not password:
                     password = 'Scalrtest123'
-            if CONF.feature.driver.is_platform_gce or CONF.feature.driver.is_platform_azure:
+            if CONF.feature.driver.current_cloud in (Platform.AZURE, Platform.GCE):
                 username = 'scalr'
             elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
@@ -287,7 +287,6 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                         wait_server_message(
                             lookup_server,
                             'UpdateSshAuthorizedKeys',
-                            use_lookuped=True,
                             timeout=2400)
                     LOG.debug('Insert server to previous servers')
                     previous_servers.append(lookup_server)
@@ -332,19 +331,19 @@ def wait_farm_terminated(*args, **kwargs):
 
 
 @world.absorb
-def wait_server_message(server, message_name, message_type='out', find_in_all=False, use_lookuped=False, timeout=600):
+def wait_server_message(server, message_name, message_type='out', find_in_all=False, timeout=600):
     """
     Wait message in server list (or one server). If find_in_all is True, wait this message in all
     servers.
     """
-    def check_message_in_server(server, message_name, message_type, use_lookuped):
+    def check_message_in_server(server, message_name, message_type):
         server.messages.reload()
         lookup_messages = getattr(world,
                                   '_server_%s_lookup_messages' % server.id, [])
         for message in reversed(server.messages):
             LOG.debug('Work with message: %s / %s - %s (%s) on server %s ' %
                       (message.type, message.name, message.delivered, message.id, server.id))
-            if message.id in lookup_messages and not use_lookuped:
+            if message.id in lookup_messages:
                 LOG.debug('Message %s was already lookuped' % message.id)
                 continue
             if message.name == message_name and message.type == message_type:
