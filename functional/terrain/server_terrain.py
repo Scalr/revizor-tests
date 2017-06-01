@@ -36,7 +36,7 @@ BEHAVIOR_SETS = {
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
-    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK):
+    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK, Platform.Azure):
         timeout = 3000
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as,
                                                                 role_type))

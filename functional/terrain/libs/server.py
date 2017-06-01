@@ -379,7 +379,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     while time.time() - start_time < timeout:
         if not find_in_all:
             for serv in servers:
-                if check_message_in_server(serv, message_name, message_type, use_lookuped=use_lookuped):
+                if check_message_in_server(serv, message_name, message_type):
                     return serv
         else:
             LOG.debug('Delivered servers = %s, servers = %s' % (delivered_servers, servers))
@@ -390,7 +390,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
             for serv in servers:
                 if serv in delivered_servers:
                     continue
-                result = check_message_in_server(serv, message_name, message_type, use_lookuped=use_lookuped)
+                result = check_message_in_server(serv, message_name, message_type)
                 if result:
                     LOG.info('Message %s delivered in server %s (in mass delivering mode)' % (message_name, serv.id))
                     delivered_servers.append(serv)
