@@ -116,6 +116,12 @@ def start_basehttpserver(step, port, serv_as):
         python_alias = 'python3'
     else:
         python_alias = 'python'
+    stdout, stderr, exit_code = node.run("screen")
+    if exit_code == 127:
+        if CONF.feature.dist.is_centos:
+            node.run('yum install screen')
+        else:
+            node.run('apt-get install screen')
     node.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
 
 
