@@ -252,19 +252,14 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     if mount_point not in fstab:
         raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
                              (mount_point, fstab))
-
-    disk_from_mount = mount_disks[mount_point]
-    stdout, stderr, exit_code = node.run('ls -l "%s"' % (disk_from_mount))
-
-    chek_symlink = stdout
-    if chek_symlink.startswith( 'l' ):
-        stdout, stderr, exit_code = node.run(('readlink "%s"' % (disk_from_mount)))
-        disk_from_mount = stdout
-
-    fs_tab = fstab[mount_point].replace('/dev/', '')
-    if not fs_tab in disk_from_mount:
-        raise AssertionError('Disk from mount != disk in fstab: "%s" != "%s"' %
-                             (disk_from_mount, fstab[mount_point]), fs_tab, chek_symlink)
+    chek_symlink, stderr, exit_code = node.run('ls -l "%s"' % (mount_disks[mount_point]))
+    if chek_symlink.startswith('l'):
+        path = os.path.realpath(mount_disks[mount_point] + "/.." + fstab[mount_point])
+        if not fstab[mount_point] in path:
+            raise AssertionError('Disk in fstab: "%s" is not in symlink "%s"' %
+                                 (fstab[mount_point], path))
+    else:
+        assert mount_disks[mount_point] == fstab[mount_point], 'Disk from mount != disk in fstab:'
 
 
 @step("start time in ([\w\d _-]+) scripts are different for ([\w\d]+)")
