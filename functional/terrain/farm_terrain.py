@@ -47,14 +47,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_id = None
     scaling_metrics = None
     old_branch = CONF.feature.branch
-    role_options = {
-        "hostname.template": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
-    }
+    role_options = DEFAULT_ROLE_OPTIONS['hostname']
     if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
         DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.is_windows:
-        role_options["hostname.template"] = "scalr-{SCALR_FARM_ID}-{SCALR_INSTANCE_INDEX}"
         role_options["base.reboot_after_hostinit_phase"] = "1"
 
     if saved_role:

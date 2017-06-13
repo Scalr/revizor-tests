@@ -216,10 +216,7 @@ def wait_all_terminated(step):
 def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
     hostname = server.api.system.get_hostname()
-    valid_hostname = '%s-%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
-    if CONF.feature.dist.is_windows:
-        valid_hostname = 'scalr-%s-%s'.strip() % (world.farm.id, server.index)
-        hostname = hostname.lower()
+    valid_hostname = world.get_hostname_by_server_format(server)
     if not hostname.lower() == valid_hostname.lower():
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 

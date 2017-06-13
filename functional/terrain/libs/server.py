@@ -441,14 +441,11 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    if CONF.feature.dist.is_windows:
-        return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
-    else:
-        return '%s-%s-%s' % (
-            world.farm.name.replace(' ', '-'),
-            server.role.name,
-            server.index
-        )
+    return '%s%s%s' % (
+        world.farm.id,
+        server.farm_role_id,
+        server.index
+    )
 
 
 @world.absorb
