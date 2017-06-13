@@ -282,7 +282,10 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
-                    if CONF.feature.driver.is_platform_azure and not Dist(lookup_server.role.dist).is_windows:
+                    lookup_server.messages.reload()
+                    if CONF.feature.driver.is_platform_azure \
+                            and not Dist(lookup_server.role.dist).is_windows \
+                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
                         LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
                         wait_server_message(
                             lookup_server,
