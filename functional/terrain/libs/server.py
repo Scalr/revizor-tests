@@ -441,7 +441,7 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    return '%s%s%s' % (
+    return '%s-%s-%s' % (
         world.farm.id,
         server.farm_role_id,
         server.index
