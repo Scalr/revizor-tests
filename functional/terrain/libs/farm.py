@@ -120,11 +120,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'redhat-7-x' and not CONF.feature.use_vpc:
-        options['instance_type'] = 'm3.medium'
-    if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist.is_windows:
-        LOG.debug('Dist is windows, set instance type')
-        options['instance_type'] = 'm3.medium'
     if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
@@ -134,7 +129,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=CONF.feature.use_vpc)
+)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
