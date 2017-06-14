@@ -1,6 +1,6 @@
-import os
 import time
 import logging
+from datetime import datetime
 
 from lettuce import world
 
@@ -19,8 +19,17 @@ LOG = logging.getLogger(__name__)
 
 @world.absorb
 def give_empty_running_farm():
-    farm_id = os.environ.get('RV_FARM_ID', CONF.main.farm_id)
-    world.farm = Farm.get(farm_id)
+    if CONF.main.farm_id is None:
+        world.farm = Farm.create('tmprev-%s' % datetime.now().strftime('%d%m%H%M%f'),
+                                 "Revizor farm for tests"
+                                 "RV_BRANCH={}"
+                                 "RV_PLATFORM={}"
+                                 "RV_DIST={}".format(
+                                     CONF.feature.branch, CONF.feature.platform, CONF.feature.dist.dist
+                                 ))
+        CONF.main.farm_id = world.farm.id
+    else:
+        world.farm = Farm.get(CONF.feature.farm_id)
     world.farm.roles.reload()
     if len(world.farm.roles):
         LOG.info('Clear farm roles')
@@ -65,8 +74,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             else:
                 if CONF.feature.role_type == 'instance':
                     mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-                elif CONF.feature.use_vpc:
-                    mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
                 else:
                     mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
@@ -80,12 +87,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             elif '-cloudinit' in behavior:
                 role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
-                if CONF.feature.use_vpc:
-                    role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
-                                                dist, CONF.feature.role_type)
-                else:
-                    role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                                dist, CONF.feature.role_type)
+                role_name = '%s%s-%s-%s' % (behavior, versions[0],
+                                            dist, CONF.feature.role_type)
             LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:
