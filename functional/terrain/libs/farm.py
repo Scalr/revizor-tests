@@ -18,8 +18,9 @@ LOG = logging.getLogger(__name__)
 
 
 @world.absorb
-def give_empty_running_farm():
+def give_empty_farm(launched=False):
     if CONF.main.farm_id is None:
+        LOG.info('Farm ID not setted, create a new farm for test')
         world.farm = Farm.create('tmprev-%s' % datetime.now().strftime('%d%m%H%M%f'),
                                  "Revizor farm for tests"
                                  "RV_BRANCH={}"
@@ -29,7 +30,8 @@ def give_empty_running_farm():
                                  ))
         CONF.main.farm_id = world.farm.id
     else:
-        world.farm = Farm.get(CONF.feature.farm_id)
+        LOG.info('Farm ID is setted in config use it: %s' % CONF.main.farm_id)
+        world.farm = Farm.get(CONF.main.farm_id)
     world.farm.roles.reload()
     if len(world.farm.roles):
         LOG.info('Clear farm roles')
@@ -45,8 +47,10 @@ def give_empty_running_farm():
             domain.delete()
     except Exception:
         pass
-    if world.farm.terminated:
+    if world.farm.terminated and launched:
         world.farm.launch()
+    elif world.farm.running and not launched:
+        world.farm.terminate()
     LOG.info('Return empty running farm: %s' % world.farm.id)
 
 

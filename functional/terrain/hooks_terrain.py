@@ -15,6 +15,7 @@ from operator import itemgetter
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
+from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
@@ -29,6 +30,7 @@ PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for ne
 
 ORG = 'Scalr'
 GH = github.GitHub(access_token=CONF.main.github_access_token)
+
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
     if CONF.feature.driver.current_cloud == Platform.AZURE:
@@ -78,7 +80,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                         file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
                         server.get_configs(file, compress=True)
                         LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
-            except BaseException, e:
+            except BaseException as e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
         if server.status == ServerStatus.RUNNING and not CONF.feature.dist.is_windows:
@@ -148,7 +150,9 @@ def get_scalaraizr_latest_version(branch):
 
 @before.all
 def initialize_world():
+    LOG.info('Save test start time')
     setattr(world, 'test_start_time', datetime.now())
+    LOG.info('Initialize a Cloud object')
     c = Cloud()
     setattr(world, 'cloud', c)
 
@@ -345,6 +349,9 @@ def cleanup_all(total):
         if world.farm.name.startswith('tmprev'):
             LOG.info('Delete working temporary farm')
             try:
+                LOG.info('Wait all servers in farm terminated before delete')
+                wait_until(world.wait_farm_terminated, timeout=1800,
+                           error_text='Servers in farm not terminated too long')
                 world.farm.destroy()
                 world.farm = None
             except Exception as e:
