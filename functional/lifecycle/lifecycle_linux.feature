@@ -4,7 +4,7 @@ Feature: Linux server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with storages,noiptables
@@ -16,7 +16,7 @@ Feature: Linux server lifecycle
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @vmware @cloudstack @gce @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -33,38 +33,38 @@ Feature: Linux server lifecycle
         And I trigger snapshot creation from volume for '/media/partition' on role
         Then Volume snapshot creation become completed
 
-    @ec2 @cloudstack @gce @storages @fstab
+    @ec2 @vmware @cloudstack @gce @storages @fstab
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @cloudstack @gce @rackspaceng @eucalyptus @reboot
+    @ec2 @vmware @cloudstack @gce @rackspaceng @eucalyptus @reboot
     Scenario: Linux reboot
         Given I have running server M1
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @cloudstack @storages @fstab
+    @ec2 @vmware @cloudstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
     Scenario: Execute script on Linux
         Given I have running server M1
         When I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1
         And script output contains 'pong' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
     Scenario: Execute non-ascii script on Linux
         Given I have running server M1
         When I execute script 'Non ascii script' synchronous on M1
         Then I see script result in M1
         And script output contains 'Non_ascii_script' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
     Scenario: Check non-ascii script output on Linux
         Given I have running server M1
         When I execute script 'non-ascii-output' synchronous on M1
@@ -72,7 +72,7 @@ Feature: Linux server lifecycle
         And script output contains 'Ã¼' in M1
         And script output contains 'クマ' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @scripting
     Scenario: Verify hidden global variable
         Given I have running server M1
         And file '/etc/profile.d/scalr_globals.sh' not contain 'revizor_hidden_var' in M1
@@ -80,14 +80,14 @@ Feature: Linux server lifecycle
         Then I see script result in M1
         And script output contains 'REVIZOR_HIDDEN_VARIABLE' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restart
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @restart
     Scenario: Restart scalarizr
         Given I have running server M1
         When I reboot scalarizr in M1
         And see "Scalarizr terminated" in M1 log
         And not ERROR in M1 scalarizr log
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @event
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @event
     Scenario: Custom event
         Given I define event 'TestEvent'
         And I attach a script 'TestingEventScript' on this event
@@ -96,7 +96,7 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/f1'
         And server M1 contain '/tmp/f2'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @event
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @event
     Scenario: Caching custom event parameters
         Given I define event 'TestEvent'
         And I attach a script 'TestingEventScript' on this event
@@ -105,7 +105,7 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/nocache1'
         And server M1 contain '/tmp/nocache2'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @szradm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @szradm
     Scenario: Verify szradm list-roles
         When I run "szradm -q list-roles" on M1
         And output contain M1 external ip
@@ -114,7 +114,7 @@ Feature: Linux server lifecycle
         When I run "szradm list-messages" on M1
         And the key "name" has record "HostUp" on M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
     Scenario: Stop farm
         When I stop farm
         And wait all servers are terminated
@@ -124,7 +124,7 @@ Feature: Linux server lifecycle
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
     Scenario: Start farm
         When I start farm with delay
         Then I expect server bootstrapping as M1
@@ -139,7 +139,7 @@ Feature: Linux server lifecycle
         And count of files in directory '/media/raidmount' is 100 in M1
         And saved device for '/media/diskmount' for role is another
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus
     Scenario: Reboot on bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with init_reboot,small_linux_orchestration
@@ -152,7 +152,7 @@ Feature: Linux server lifecycle
         And start time in Revizor last reboot scripts are different for M1
         And hostname in M1 is valid
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus
     Scenario: Failed bootsrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
