@@ -300,6 +300,7 @@ def verify_attached_disk_types(step):
 
 
 @step(r"instance vcpus info not empty for ([\w\d]+)")
+@world.run_only_if(platform='!%s' % Platform.VMWARE)
 def checking_info_instance_vcpus(step, serv_as):
     server = getattr(world, serv_as)
     vcpus = int(server.details['info.instance_vcpus'])
