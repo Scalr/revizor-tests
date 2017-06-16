@@ -33,7 +33,7 @@ Feature: Linux server lifecycle
         And I trigger snapshot creation from volume for '/media/partition' on role
         Then Volume snapshot creation become completed
 
-    @ec2 @vmware @cloudstack @gce @storages @fstab
+    @ec2 @cloudstack @gce @storages @fstab
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
@@ -45,7 +45,7 @@ Feature: Linux server lifecycle
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @vmware @cloudstack @storages @fstab
+    @ec2 @cloudstack @storages @fstab
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
