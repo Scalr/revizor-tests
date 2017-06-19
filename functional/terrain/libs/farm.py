@@ -1,6 +1,6 @@
-import os
 import time
 import logging
+from datetime import datetime
 
 from lettuce import world
 
@@ -18,9 +18,20 @@ LOG = logging.getLogger(__name__)
 
 
 @world.absorb
-def give_empty_running_farm():
-    farm_id = os.environ.get('RV_FARM_ID', CONF.main.farm_id)
-    world.farm = Farm.get(farm_id)
+def give_empty_farm(launched=False):
+    if CONF.main.farm_id is None:
+        LOG.info('Farm ID not setted, create a new farm for test')
+        world.farm = Farm.create('tmprev-%s' % datetime.now().strftime('%d%m%H%M%f'),
+                                 "Revizor farm for tests"
+                                 "RV_BRANCH={}"
+                                 "RV_PLATFORM={}"
+                                 "RV_DIST={}".format(
+                                     CONF.feature.branch, CONF.feature.platform, CONF.feature.dist.dist
+                                 ))
+        CONF.main.farm_id = world.farm.id
+    else:
+        LOG.info('Farm ID is setted in config use it: %s' % CONF.main.farm_id)
+        world.farm = Farm.get(CONF.main.farm_id)
     world.farm.roles.reload()
     if len(world.farm.roles):
         LOG.info('Clear farm roles')
@@ -36,8 +47,10 @@ def give_empty_running_farm():
             domain.delete()
     except Exception:
         pass
-    if world.farm.terminated:
+    if world.farm.terminated and launched:
         world.farm.launch()
+    elif world.farm.running and not launched:
+        world.farm.terminate()
     LOG.info('Return empty running farm: %s' % world.farm.id)
 
 

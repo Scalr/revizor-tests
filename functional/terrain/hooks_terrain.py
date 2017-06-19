@@ -15,6 +15,7 @@ from operator import itemgetter
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
+from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
@@ -29,6 +30,7 @@ PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for ne
 
 ORG = 'Scalr'
 GH = github.GitHub(access_token=CONF.main.github_access_token)
+
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
     if CONF.feature.driver.current_cloud == Platform.AZURE:
@@ -78,7 +80,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                         file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
                         server.get_configs(file, compress=True)
                         LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
-            except BaseException, e:
+            except BaseException as e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
         if server.status == ServerStatus.RUNNING and not CONF.feature.dist.is_windows:
@@ -148,7 +150,9 @@ def get_scalaraizr_latest_version(branch):
 
 @before.all
 def initialize_world():
+    LOG.info('Save test start time')
     setattr(world, 'test_start_time', datetime.now())
+    LOG.info('Initialize a Cloud object')
     c = Cloud()
     setattr(world, 'cloud', c)
 
@@ -303,26 +307,29 @@ def cleanup_all(total):
     LOG.debug('Results %s' % total.scenario_results)
     LOG.debug('Passed %s' % total.scenarios_passed)
     if (not total.steps_failed and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.main.te_id):
-        LOG.info('Clear and stop farm...')
-        farm = getattr(world, 'farm', None)
-        if not farm:
-            return
-        IMPL.farm.clear_roles(world.farm.id)
-        bundled_role_id = getattr(world, 'bundled_role_id', None)
-        if bundled_role_id:
-            LOG.info('Delete bundled role: %s' % bundled_role_id)
-            try:
-                IMPL.role.delete(bundled_role_id)
-            except BaseException, e:
-                LOG.exception('Error on deletion role %s' % bundled_role_id)
         cloud_node = getattr(world, 'cloud_server', None)
         if cloud_node:
             LOG.info('Destroy node in cloud')
             try:
                 cloud_node.destroy()
-            except BaseException, e:
+            except Exception as e:
                 LOG.exception('Node %s can\'t be destroyed' % cloud_node.id)
+
+        if getattr(world, 'farm', None) is None:
+            return
+
+        LOG.info('Clear and stop farm...')
+
         world.farm.terminate()
+        IMPL.farm.clear_roles(world.farm.id)
+
+        bundled_role_id = getattr(world, 'bundled_role_id', None)
+        if bundled_role_id:
+            LOG.info('Delete bundled role: %s' % bundled_role_id)
+            try:
+                IMPL.role.delete(bundled_role_id)
+            except Exception as e:
+                LOG.exception('Error on deletion role %s' % bundled_role_id)
 
         world.farm.vhosts.reload()
         if hasattr(world, 'vhosts_list'):
@@ -339,9 +346,20 @@ def cleanup_all(total):
             if 'You do not have permission to view this component' in e:
                 LOG.warning('DNS disabled in Scalr config!')
 
+        if world.farm.name.startswith('tmprev'):
+            LOG.info('Delete working temporary farm')
+            try:
+                LOG.info('Wait all servers in farm terminated before delete')
+                wait_until(world.wait_farm_terminated, timeout=1800,
+                           error_text='Servers in farm not terminated too long')
+                world.farm.destroy()
+                world.farm = None
+            except Exception as e:
+                LOG.warning('Farm cannot be deleted: %s' % str(e))
+
     else:
-        farm = getattr(world, 'farm', None)
-        if not farm:
+        LOG.info('Setup a long timeouts for all roles in farm')
+        if getattr(world, 'farm', None) is None:
             return
         world.farm.roles.reload()
         for r in world.farm.roles:
