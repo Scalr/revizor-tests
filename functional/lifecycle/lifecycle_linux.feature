@@ -16,7 +16,7 @@ Feature: Linux server lifecycle
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
-    @ec2 @vmware @cloudstack @gce @storages
+    @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
