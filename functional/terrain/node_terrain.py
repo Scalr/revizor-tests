@@ -921,10 +921,6 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 url=url)
         LOG.debug('Install script body: %s' % cmd)
         node.run(cmd)
-        if CONF.feature.core_v2:
-            cv2_init = 'touch /etc/scalr/private.d/scalr_labs_corev2'
-            LOG.info('Init scalarizr corev2. Run command %s' % cv2_init)
-            node.run(cv2_init)
         # get installed scalarizr version
         res = node.run('scalarizr -v')[0]
     scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
