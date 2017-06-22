@@ -230,7 +230,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 # Set arguments for private repo
                 elif chef_opts[2] == 'private':
                     relative_path = 'cookbooks'
-                    private_key = open(os.path.expanduser(CONF.main.private_key), 'r').read()
+                    private_key = open(CONF.ssh.private_key, 'r').read()
                 # Update default chef_solo options
                 default_chef_solo_opts.update({
                     "chef.cookbook_url": repo_url,
