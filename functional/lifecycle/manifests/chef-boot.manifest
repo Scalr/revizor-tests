@@ -4,6 +4,7 @@
         "gce": ["gce"],
         "idcf": ["cloudstack"],
         "rackspacengus": ["rackspaceng"],
-        "openstack": ["openstack"]
+        "openstack": ["openstack"],
+        "vmware": ["vmware"]
     }
 }
