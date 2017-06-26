@@ -9,7 +9,6 @@
     },
     "RV_STORAGE": {
         "persistent": {"tags": ["-lvm"], "default": true},
-        "lvm": ["-volumes", "-grow"],
         "eph": ["-volumes", "-grow"],
         "raid5": ["-volumes", "-lvm"],
         "raid10": ["-volumes", "-lvm", "-grow"],
