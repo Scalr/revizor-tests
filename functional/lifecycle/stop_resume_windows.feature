@@ -38,7 +38,7 @@ Feature: Windows server resume strategy
         And wait all servers are terminated
         And Server M1 not exists on chef nodes list
 
-    @ec2 @gce @cloudstack @stopresume @suspend
+    @ec2 @gce @cloudstack @stopresume @farmsuspend
     Scenario: Suspend/resume farm
         Given I have a clean and stopped farm
         And I add base role to this farm

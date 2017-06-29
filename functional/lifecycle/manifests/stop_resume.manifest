@@ -1,10 +1,10 @@
 {
     "RV_PLATFORM": {
-        "ec2": {"tags": ["ec2"], "default": true},
-        "gce": ["gce"],
-        "idcf": ["cloudstack"],
-        "openstack": ["openstack"],
-        "cloudstack": ["cloudstack"]
+        "ec2": {"tags": ["ec2", "-farmsuspend"], "default": true},
+        "gce": ["gce", "-farmsuspend"],
+        "idcf": ["cloudstack", "-farmsuspend"],
+        "openstack": ["openstack", "-farmsuspend"],
+        "cloudstack": ["cloudstack", "-farmsuspend"]
     }
 
 }

@@ -73,7 +73,7 @@ Feature: Linux server resume strategy
         And wait all servers are terminated
         And server M1 not exists on chef nodes list
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @suspend
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
     Scenario: Suspend/resume farm with nginx + apache roles configured with virtual host proxying in Apache
         Given I have a clean and stopped farm
         When I add www role to this farm
