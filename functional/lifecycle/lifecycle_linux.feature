@@ -151,19 +151,19 @@ Feature: Linux server lifecycle
         And start time in Revizor last reboot scripts are different for M1
         And hostname in M1 is valid
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @failedbootstrap
-    Scenario: Failed bootstrap by hostname
-        Given I have a clean and stopped farm
-        And I add role to this farm with failed_hostname
-        When I start farm
-        And I see pending server M1
-        And I wait server M1 in failed state
-
     @ec2 @partition
     Scenario: Check partition table recognized as a non-blank volume
         Given I have a clean and stopped farm
         And I add role to this farm
         And I add new storage from volume snapshot to role
+        When I start farm
+        And I see pending server M1
+        And I wait server M1 in failed state
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @failedbootstrap
+    Scenario: Failed bootstrap by hostname
+        Given I have a clean and stopped farm
+        And I add role to this farm with failed_hostname
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
