@@ -74,7 +74,7 @@ Feature: Linux server resume strategy
         And server M1 not exists on chef nodes list
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
-    Scenario: Suspend/resume farm with nginx + apache roles configured with virtual host proxying in Apache
+    Scenario: Suspend farm with nginx + apache roles configured with virtual host proxying in Apache
         Given I have a clean and stopped farm
         When I add www role to this farm
         When I add app role to this farm
@@ -88,6 +88,9 @@ Feature: Linux server resume strategy
         When I suspend farm
         Then I wait farm in Suspended state
         And wait all servers are suspended
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
+    Scenario: Resume suspended farm and verify servers
         When I resume farm
         Then I wait server W1 in resuming state
         Then I wait server A2 in resuming state
