@@ -90,7 +90,7 @@ Feature: Linux server resume strategy
         And wait all servers are suspended
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
-    Scenario: Resume suspended farm and verify servers
+    Scenario: Resume suspended farm and verify servers after resume
         When I resume farm
         Then I wait server W1 in resuming state
         Then I wait server A2 in resuming state
