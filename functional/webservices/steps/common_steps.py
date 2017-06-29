@@ -121,3 +121,4 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
     if not ip in out[0]:
         raise AssertionError('Not see my IP in access log')
     LOG.info('My public IP %s in %s access log' % (ip, server.id))
+    

@@ -26,18 +26,13 @@ LOG = logging.getLogger(__name__)
 @step('I have a an empty running farm')
 def having_empty_running_farm(step):
     """Clear and run farm and set to world.farm"""
-    world.give_empty_running_farm()
+    world.give_empty_farm(launched=True)
 
 
 @step('I have a clean and stopped farm')
 def having_a_stopped_farm(step):
     """Clear all roles from farm and stop farm"""
-    world.farm = Farm.get(CONF.main.farm_id)
-    IMPL.farm.clear_roles(world.farm.id)
-    LOG.info('Clear farm')
-    if world.farm.running:
-        LOG.info('Terminate farm %s' % world.farm.id)
-        world.farm.terminate()
+    world.give_empty_farm(launched=False)
 
 
 @step(r"I add(?P<behavior> \w+-?\w+?)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
