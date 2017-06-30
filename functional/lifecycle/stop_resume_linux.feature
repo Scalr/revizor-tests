@@ -73,3 +73,33 @@ Feature: Linux server resume strategy
         And wait all servers are terminated
         And server M1 not exists on chef nodes list
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
+    Scenario: Suspend farm with nginx + apache roles configured with virtual host proxying in Apache
+        Given I have a clean and stopped farm
+        When I add www role to this farm
+        When I add app role to this farm
+        When I start farm
+        Then I expect server bootstrapping as W1 in www role
+        Then I expect server bootstrapping as A2 in app role
+        And nginx is running on W1
+        When I create domain D1 to www role
+        And I add virtual host H1 to app role and domain D1
+        And I add http proxy P1 to www role with H1 host to app role with ip_hash with private network
+        When I suspend farm
+        Then I wait farm in Suspended state
+        And wait all servers are suspended
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
+    Scenario: Resume suspended farm and verify servers after resume
+        When I resume farm
+        Then I wait server W1 in resuming state
+        Then I wait server A2 in resuming state
+        Then Scalr receives RebootFinish from W1
+        Then Scalr receives RebootFinish from A2
+        And ResumeComplete event was fired by W1
+        And ResumeComplete event was fired by A2
+        Then I wait server W1 in running state
+        Then I wait server A2 in running state
+        And HostInit,BeforeHostUp events were not fired after W1 resume
+        And HostInit,BeforeHostUp events were not fired after A2 resume
+        And http get domain D1 matches H1 index page
