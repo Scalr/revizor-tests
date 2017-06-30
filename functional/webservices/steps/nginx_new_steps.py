@@ -1,4 +1,3 @@
-import time
 import logging
 import requests
 
@@ -27,56 +26,6 @@ def check_config_for_option(node, config_file, option):
         config = ' '.join(config.split())
     if option in config:
         return config
-
-
-@step(
-    r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
-def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash,
-                             network_type='private'):
-    """This step add to nginx new proxy to any role with http/https and ip_hash
-    :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
-    :type proto: str
-    :param proxy_name: Name for proxy in scalr interface
-    :type proxy_name: str
-    :param proxy_role: Nginx role name
-    :type proxy_role: str
-    :param backend_role: Role name for backend
-    :type backend_role: str
-    :param vhost_name: Virtual host name
-    :type vhost_name: str
-    """
-    proxy_role = world.get_role(proxy_role)
-    backend_role = world.get_role(backend_role)
-    vhost = getattr(world, vhost_name)
-    opts = {}
-    if proto == 'http':
-        LOG.info('Add http proxy')
-        port = 80
-    elif proto == 'https':
-        LOG.info('Add https proxy')
-        port = 80
-        opts['ssl'] = True
-        opts['ssl_port'] = 443
-        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
-        opts['http'] = True
-    elif proto == 'http/https':
-        LOG.info('Add http/https proxy')
-        port = 80
-        opts['ssl'] = True
-        opts['ssl_port'] = 443
-        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
-    if ip_hash:
-        opts['ip_hash'] = True
-    template = get_nginx_default_server_template()
-    LOG.info('Add proxy to app role for domain %s' % vhost.name)
-    backends = [{"farm_role_id": backend_role.id,
-                 "port": "80",
-                 "backup": "0",
-                 "down": "0",
-                 "location": "/",
-                 "network": network_type}]
-    proxy_role.add_nginx_proxy(vhost.name, port, templates=[template], backends=backends, **opts)
-    setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 
 
 @step(r'([\w]+) proxies list should contains (.+)')

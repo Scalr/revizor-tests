@@ -316,10 +316,11 @@ def wait_servers_running(role, count):
 
 
 @world.absorb
-def wait_farm_terminated(*args, **kwargs):
+def farm_servers_state(state):
     world.farm.servers.reload()
     for server in world.farm.servers:
-        if server.status == ServerStatus.TERMINATED:
+        if server.status == ServerStatus.from_code(state):
+            LOG.info('Servers is in %s state' % state)
             continue
         else:
             return False
