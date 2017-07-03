@@ -58,7 +58,8 @@ Feature: Check chef attributes set
         Given I have a clean and stopped farm
         When I add role to this farm with chef-fail
         When I start farm
-        And I see failed server M1
+        Then I see failed server M1
+        And Initialization was failed on "BeforeHostUp" phase with "/usr/bin/chef-client exited with code 1" message on M1
         And chef log in M1 contains "ERROR: undefined method `fatal!'"
         And chef bootstrap failed in M1
 

@@ -57,3 +57,4 @@ Feature: Orchestration features test
         When I add role to this farm with failed_script
         When I start farm
         Then I wait server M2 in failed state
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script/bin/non_ascii_output exited with code 255" message on M2
