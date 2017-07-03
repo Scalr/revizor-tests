@@ -3,7 +3,7 @@ Feature: Linux server resume strategy
     In order to check resume strategy
     I monitoring server state changes
 
-    @ec2 @gce @cloudstack @boot
+    @ec2 @gce @cloudstack @azure @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with chef,storages,termination_preferences
@@ -26,14 +26,14 @@ Feature: Linux server resume strategy
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @gce @cloudstack @chef
+    @ec2 @gce @cloudstack @azure @chef
     Scenario: Verify chef deployment
         When I save chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
 
-    @ec2 @gce @cloudstack @stopresume
+    @ec2 @gce @cloudstack @azure @stopresume
     Scenario: Stop/resume
         When I suspend server M1
         Then BeforeHostTerminate (Suspend) event was fired by M1
@@ -49,7 +49,7 @@ Feature: Linux server resume strategy
         Then I wait server M1 in running state
         And HostInit,BeforeHostUp events were not fired after M1 resume
 
-    @ec2 @gce @cloudstack @chef
+    @ec2 @gce @cloudstack @azure @chef
     Scenario: Verify chef after resume
         When I check chef bootstrap stats on M1
         And process memcached is not running in M1
@@ -67,7 +67,7 @@ Feature: Linux server resume strategy
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @gce @cloudstack
+    @ec2 @gce @cloudstack @azure
     Scenario: Verify Scalr delete chef nodes
         When I stop farm
         And wait all servers are terminated

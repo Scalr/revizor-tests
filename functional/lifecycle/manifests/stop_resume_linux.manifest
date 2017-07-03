@@ -4,7 +4,8 @@
         "gce": ["gce", "-farmsuspend"],
         "idcf": ["cloudstack", "-farmsuspend"],
         "openstack": ["openstack", "-farmsuspend"],
-        "cloudstack": ["cloudstack", "-farmsuspend"]
+        "cloudstack": ["cloudstack", "-farmsuspend"],
+        "azure": ["azure", "-storages", "-farmsuspend"]
     }
 
 }

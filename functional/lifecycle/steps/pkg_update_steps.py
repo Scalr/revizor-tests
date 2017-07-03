@@ -182,8 +182,6 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
         },
         alias=world.role['name']
     )
-    if CONF.feature.dist.is_windows:
-        role_kwargs['options']["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
     if use_manual_scaling:
         manual_scaling = {
             "scaling.one_by_one": 0,

@@ -54,7 +54,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 password = password or server.windows_password
                 if not password:
                     password = 'Scalrtest123'
-            if CONF.feature.driver.is_platform_gce:
+            if CONF.feature.driver.current_cloud in (Platform.AZURE, Platform.GCE):
                 username = 'scalr'
             elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
@@ -139,9 +139,9 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
             pass
 
         if log_date:
-            if not log_date.year == now.year \
-                or not log_date.month == now.month \
-                or not log_date.day == now.day:
+            if not log_date.year == now.year or \
+                    not log_date.month == now.month or \
+                    not log_date.day == now.day:
                 continue
 
         for error in SCALARIZR_LOG_IGNORE_ERRORS:
@@ -245,15 +245,14 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED] \
-                    and CONF.feature.driver.current_cloud != Platform.AZURE:
+                                                                ServerStatus.SUSPENDED]:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status in ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows:
+                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
                     verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
@@ -266,7 +265,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 LOG.debug('Check scalarizr debug log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows:
+                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node)
                 else:
                     verify_scalarizr_log(lookup_node, windows=True, server=lookup_server)
@@ -283,6 +282,15 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
+                    lookup_server.messages.reload()
+                    if CONF.feature.driver.is_platform_azure \
+                            and not Dist(lookup_server.role.dist).is_windows \
+                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
+                        LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
+                        wait_server_message(
+                            lookup_server,
+                            'UpdateSshAuthorizedKeys',
+                            timeout=2400)
                     LOG.debug('Insert server to previous servers')
                     previous_servers.append(lookup_server)
                 LOG.debug('Return server %s' % lookup_server)
@@ -294,7 +302,6 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             raise TimeoutError('Server %s not in state "%s" it has status: "%s"'
                                % (lookup_server.id, status, lookup_server.status))
         raise TimeoutError('New server in role "%s" was not founding' % role)
-
 
 
 @world.absorb
@@ -360,7 +367,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                     raise MessageFailed('Message %s / %s (%s) unsupported' % (message.type, message.name, message.id))
         return False
 
-    message_type = 'out' if message_type.strip() == 'sends' else 'in'
+    message_type = 'in' if message_type.strip() not in ('sends', 'out') else 'out'
 
     if not isinstance(server, (list, tuple)):
         servers = [server]
@@ -435,14 +442,11 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    if CONF.feature.dist.is_windows:
-        return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
-    else:
-        return '%s-%s-%s' % (
-            world.farm.name.replace(' ', '-'),
-            server.role.name,
-            server.index
-        )
+    return '%s-%s-%s' % (
+        world.farm.id,
+        server.farm_role_id,
+        server.index
+    )
 
 
 @world.absorb
@@ -653,12 +657,10 @@ def value_for_os_family(debian, centos, server=None, node=None):
         node = world.cloud.get_node(server)
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
-    # Get node os name
-    # node_os = getattr(node, 'os', [''])[0]
     # Get os family result
     os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
     if not os_family_res:
-        raise OSFamilyValueFailed('No value for node os: %s' % node_os)
+        raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
     return os_family_res
 
 

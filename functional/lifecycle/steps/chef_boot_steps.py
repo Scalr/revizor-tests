@@ -36,7 +36,6 @@ def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split()[1][1:-1]
-    #hostname = world.get_hostname(server)
     hostname = world.get_hostname_by_server_format(server)
     if not node_name == hostname:
         raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
