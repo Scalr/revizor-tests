@@ -22,10 +22,10 @@ def give_empty_farm(launched=False):
     if CONF.main.farm_id is None:
         LOG.info('Farm ID not setted, create a new farm for test')
         world.farm = Farm.create('tmprev-%s' % datetime.now().strftime('%d%m%H%M%f'),
-                                 "Revizor farm for tests"
-                                 "RV_BRANCH={}"
-                                 "RV_PLATFORM={}"
-                                 "RV_DIST={}".format(
+                                 "Revizor farm for tests\n"
+                                 "RV_BRANCH={}\n"
+                                 "RV_PLATFORM={}\n"
+                                 "RV_DIST={}\n".format(
                                      CONF.feature.branch, CONF.feature.platform, CONF.feature.dist.dist
                                  ))
         CONF.main.farm_id = world.farm.id
