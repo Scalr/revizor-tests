@@ -158,9 +158,9 @@ def execute_command(step, command, serv_as):
 @step('server ([\w\d]+) contain \'(.+)\'')
 def check_file(step, serv_as, path):
     node = world.cloud.get_node(getattr(world, serv_as))
-    for out in range(5):
+    for _ in range(5):
         out = node.run('ls %s' % path)
-        LOG.info('Check exist path: %s' % path)
+        LOG.info('Check exist path: %s. Attempt: %s' % path)
         if out[2] == 0: # success
             break
         time.sleep(15)
