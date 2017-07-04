@@ -552,7 +552,7 @@ def get_ebs_for_instance(step, serv_as):
 @step('([\w]+) storage is (.+)$')
 def check_ebs_status(step, serv_as, status):
     """Check EBS storage status"""
-    if CONF.feature.driver.current_cloud == Platform.GCE:
+    if CONF.feature.driver.is_platform_gce:
         return
     time.sleep(30)
     server = getattr(world, serv_as)
@@ -939,7 +939,7 @@ def given_server_in_cloud(step, user_data):
     if user_data:
         dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
         user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family])
-        if CONF.feature.driver.current_cloud == Platform.GCE:
+        if CONF.feature.driver.is_platform_gce:
             user_data = {'scalr': user_data}
     else:
         user_data = None

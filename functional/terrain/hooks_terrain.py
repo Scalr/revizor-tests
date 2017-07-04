@@ -368,3 +368,8 @@ def cleanup_all(total):
     for v in dir(world):
         if isinstance(getattr(world, v), ExtendedNode):
             world.__delattr__(v)
+
+    # Cleanup Azure resources
+    if CONF.feature.driver.is_platform_azure:
+        cloud = getattr(world, 'cloud', Cloud())
+        cloud._driver.resources_cleaner()

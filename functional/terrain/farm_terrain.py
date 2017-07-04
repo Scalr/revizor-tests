@@ -11,6 +11,7 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
+from revizor2.utils import wait_until
 from revizor2.api import Script, Farm, Metrics, ChefServer
 from revizor2.consts import Platform, DATABASE_BEHAVIORS, Dist
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
@@ -42,14 +43,12 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     role_id = None
     scaling_metrics = None
     old_branch = CONF.feature.branch
-    role_options = {
-        "hostname.template": "{SCALR_FARM_NAME}-{SCALR_ROLE_NAME}-{SCALR_INSTANCE_INDEX}"
-    }
+    default_role_options = DEFAULT_ROLE_OPTIONS.copy()
+    role_options = default_role_options['hostname']
     if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
-        DEFAULT_ROLE_OPTIONS['noiptables'] = {"base.disable_firewall_management": False}
+        default_role_options['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.is_windows:
-        role_options["hostname.template"] = "{SCALR_FARM_NAME}-{SCALR_INSTANCE_INDEX}"
         role_options["base.reboot_after_hostinit_phase"] = "1"
 
     if saved_role:
@@ -112,7 +111,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "run_as": "root"
                     }
                 ]
-                role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
+                role_options.update(default_role_options.get(opt, {}))
 
             elif opt == 'apachefix':
                 script_id = Script.get_id('CentOS7 fix apache log')['id']
@@ -240,13 +239,13 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 # Update role options
                 role_options.update(default_chef_solo_opts)
             elif 'chef' in opt:
-                option = DEFAULT_ROLE_OPTIONS.get(opt, {})
+                option = default_role_options.get(opt, {})
                 if option:
                     option['chef.server_id'] = ChefServer.get('https://api.opscode.com/organizations/webta').id
                 role_options.update(option)
             else:
                 LOG.info('Insert configs for %s' % opt)
-                role_options.update(DEFAULT_ROLE_OPTIONS.get(opt, {}))
+                role_options.update(default_role_options.get(opt, {}))
     if behavior == 'rabbitmq':
         del(role_options['hostname.template'])
     if behavior == 'redis':
@@ -309,3 +308,22 @@ def add_new_role_to_farm(step):
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
+
+
+@step('I suspend farm')
+def farm_state_suspend(step):
+    """Suspend farm"""
+    world.farm.suspend()
+
+
+@step('I resume farm')
+def farm_resume(step):
+    """Resume farm"""
+    world.farm.resume()
+
+
+@step('I wait farm in ([\w]+) state')
+def wait_for_farm_state(step, state):
+    """Wait for state of farm"""
+    wait_until(world.get_farm_state, args=(
+        state, ), timeout=300, error_text=('Farm have no status %s' % state))

@@ -36,7 +36,6 @@ def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split()[1][1:-1]
-    #hostname = world.get_hostname(server)
     hostname = world.get_hostname_by_server_format(server)
     if not node_name == hostname:
         raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
@@ -141,3 +140,14 @@ def chef_runs_time(step, interval, serv_as):
     seconds = int(match.group(2))
     runtime = (int(minutes) * 60) + seconds if minutes else seconds
     assert int(runtime) > intervalx3
+
+
+@step('Initialization was failed on "([a-zA-Z]+)" phase with "([\w\W]+)" message on (\w+)')
+def check_failed_status_message(step, phase, msg, serv_as):
+    server = getattr(world, serv_as)
+    patterns = (phase, msg)
+    failed_status_msg = server.get_failed_status_message()
+    msg_head = failed_status_msg.split("\n")[0].replace("&quot;", "")
+    LOG.debug('Initialization status message: %s' % msg_head)
+    assert all(pattern in msg_head for pattern in patterns), \
+        "Initialization was not failed on %s with message %s" % patterns

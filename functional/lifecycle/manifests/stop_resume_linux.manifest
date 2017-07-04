@@ -1,0 +1,11 @@
+{
+    "RV_PLATFORM": {
+        "ec2": {"tags": ["ec2", "-farmsuspend"], "default": true},
+        "gce": ["gce", "-farmsuspend"],
+        "idcf": ["cloudstack", "-farmsuspend"],
+        "openstack": ["openstack", "-farmsuspend"],
+        "cloudstack": ["cloudstack", "-farmsuspend"],
+        "azure": ["azure", "-storages", "-farmsuspend"]
+    }
+
+}
