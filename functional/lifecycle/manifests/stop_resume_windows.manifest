@@ -4,7 +4,8 @@
         "gce": ["gce"],
         "idcf": ["cloudstack"],
         "openstack": ["openstack"],
-        "cloudstack": ["cloudstack"]
+        "cloudstack": ["cloudstack"],
+        "azure": ["azure", "-storages"]
     }
 
 }

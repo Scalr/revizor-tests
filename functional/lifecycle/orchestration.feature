@@ -1,7 +1,7 @@
 Using step definitions from: steps/common_steps, steps/scripting_steps, steps/lifecycle_steps, steps/chef_boot_steps
 Feature: Orchestration features test
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure
     Scenario: Bootstrapping role
         Given I have a clean and stopped farm
         When I add role to this farm with orchestration,chef
@@ -9,7 +9,7 @@ Feature: Orchestration features test
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure
     Scenario Outline: Verify script execution on bootstrapping
         Then script <name> executed in <event> by user <user> with exitcode <exitcode> and contain <stdout> for M1
 
@@ -28,14 +28,14 @@ Feature: Orchestration features test
             | HostUp       | https://gist.githubusercontent.com | root     | 0        | Multiplatform script successfully executed                                              |
             | HostUp       | Sleep 10                           | root     | 130      | printing dot each second; .....                                    |
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure
     Scenario: Verify chef executed normally
         Given file '/root/chef_solo_result' exist in M1
         Given file '/root/chef_hostup_result' exist in M1
         And process 'memcached' has options '-m 1024' in M1
         And M1 chef runlist has only recipes [memcached,revizorenv]
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure
     Scenario Outline: Scripts executing on linux
         When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
         And I see script result in M1
@@ -51,9 +51,10 @@ Feature: Orchestration features test
             | https://gist.githubusercontent.com/Theramas/3fa35bbd53ad14f997218aa3a208eb4b/raw/4db5ef2bb91787a586f87635a11f7bb70cef6bc0/gistfile1.txt | asynchronous | local | Multiplatform script successfully executed                                             |
             | Cross-platform script          | asynchronous |            | Multiplatform script successfully executed                                             |
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure
     Scenario: Bootstrapping role with failed non-ascii script
         Given I have a clean and stopped farm
         When I add role to this farm with failed_script
         When I start farm
         Then I wait server M2 in failed state
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script/bin/non_ascii_output exited with code 255" message on M2

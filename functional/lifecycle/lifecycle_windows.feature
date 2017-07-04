@@ -4,7 +4,7 @@ Feature: Windows server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with winchef,storages
@@ -17,7 +17,7 @@ Feature: Windows server lifecycle
         And scalarizr version is last in M1
         And hostname in M1 is valid
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Restart scalarizr
         Given I have running server M1
         When I reboot windows scalarizr in M1
@@ -35,7 +35,7 @@ Feature: Windows server lifecycle
 #      And I see script result in M1
 #      And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Restart scalarizr during script execution
       Given I have running server M1
       When I execute script 'windows sleep 60' asynchronous on M1
@@ -45,7 +45,7 @@ Feature: Windows server lifecycle
       And not ERROR in M1 scalarizr windows log
       And I see script result in M1
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Windows reboot
         When I reboot server M1
         Then Scalr receives Win_HostDown from M1
@@ -54,7 +54,7 @@ Feature: Windows server lifecycle
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario Outline: Scripts executing on Windows
         Given I have running server M1
         When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
@@ -71,7 +71,7 @@ Feature: Windows server lifecycle
         | https://gist.githubusercontent.com/gigimon/d233b77be7c04480c01a/raw/cd05c859209e1ff23961a371e0e2298ab3fb0257/gistfile1.txt| asynchronous | local | Script runned from URL |
         | https://gist.githubusercontent.com/Theramas/48753f91f4af72be12c03c0485b27f7d/raw/97caf55e74c8db6c5bf96b6a29e48c043ac873ed/test| asynchronous | local | Multiplatform script successfully executed |
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Restart farm
         When I stop farm
         And wait all servers are terminated
@@ -80,7 +80,7 @@ Feature: Windows server lifecycle
         And file 'C:\chef_result_file' exist in M1 windows
         And hostname in M1 is valid
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Reboot on bootstrapping
         Given I have a clean and stopped farm
         And I add role to this farm with small_win_orchestration
@@ -90,7 +90,7 @@ Feature: Windows server lifecycle
         Then I wait server M1 in running state
         And hostname in M1 is valid
 
-    @ec2 @gce @openstack
+    @ec2 @gce @openstack @azure
     Scenario: Bootstraping from chef-role
         Given I have a clean and stopped farm
         And I add role to this farm with winchef-role

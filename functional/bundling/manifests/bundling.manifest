@@ -4,6 +4,7 @@
         "gce": ["-api"],
         "idcf": ["-api"],
         "rackspacengus": ["-api"],
-        "openstack": ["-api"]
+        "openstack": ["-api"],
+        "azure": ["-api"]
     }
 }

@@ -10,6 +10,7 @@ from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.consts import Platform, ServerStatus
+from revizor2.defaults import DEFAULT_ROLE_OPTIONS
 
 
 LOG = logging.getLogger(__name__)
@@ -80,8 +81,8 @@ def add_new_role_to_farm(step, alias=None):
     if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
-    if len('{}-{}'.format(world.farm.name, alias)) >= 64:
-        options['hostname.template'] = '%s-{SCALR_INSTANCE_INDEX}' % alias[:32]
+    if len('{}-{}'.format(world.farm.name, alias)) >= 63:
+        options.update(DEFAULT_ROLE_OPTIONS['hostname'])
     world.farm.add_role(world.bundled_role_id, options=options,
                         scripting=scripting, alias=alias)
     world.farm.roles.reload()
