@@ -132,8 +132,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                         scripting=scripting,
                         storages=storages,
                         alias=alias,
-                        scaling=scaling,
-)
+                        scaling=scaling)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

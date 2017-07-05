@@ -189,7 +189,7 @@ def delete_volume(step, mount_point):
         try:
             world.cloud._driver._conn.destroy_volume(volume)
             break
-        except Exception, e:
+        except Exception as e:
             if 'attached' in e.message:
                 LOG.warning('Volume %s currently attached to server' % device_id)
                 time.sleep(60)
