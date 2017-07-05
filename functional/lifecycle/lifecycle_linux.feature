@@ -15,6 +15,7 @@ Feature: Linux server lifecycle
         And scalarizr version is last in M1
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
+        And I verify message 'BlockDeviceAttached' received right count in M1
 
     @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages

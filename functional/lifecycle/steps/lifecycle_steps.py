@@ -12,6 +12,7 @@ from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
+from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -391,4 +392,13 @@ def add_storage_to_role(step):
         }
     ]}
     role.edit(storages=storage_settings)
+
+
+@step("I verify message (\d+) received right count in ([\w\d]+)")
+def verify_message(step, message, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    storages = DEFAULT_ADDITIONAL_STORAGES
+    mount_device = len(storages[CONF.feature.driver.current_cloud])
+    message_count = node.run('')
 
