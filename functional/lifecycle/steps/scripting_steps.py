@@ -6,8 +6,6 @@ import chef
 
 from lettuce import world, step
 
-from revizor2.utils import wait_until
-
 
 LOG = logging.getLogger(__name__)
 
@@ -63,8 +61,9 @@ def assert_check_message_in_log(step, message, serv_as):
     server = getattr(world, serv_as)
     last_scripts = getattr(world, '_server_%s_last_scripts' % server.id)
     server.scriptlogs.reload()
+    LOG.debug('DEBUG IN SCRIPTING: %s %s' % (type(message), repr(message)))
     for log in server.scriptlogs:
-        LOG.debug('Check script "%s" is old' % log.name)
+        LOG.debug('Check script "%s" is old?' % log.name)
         if log in last_scripts:
             continue
         LOG.debug('Server %s script name "%s" content: "%s"' % (server.id, log.name, log.message))
