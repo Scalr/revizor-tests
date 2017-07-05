@@ -350,7 +350,7 @@ def cleanup_all(total):
             LOG.info('Delete working temporary farm')
             try:
                 LOG.info('Wait all servers in farm terminated before delete')
-                wait_until(world.wait_farm_terminated, timeout=1800,
+                wait_until(world.farm_servers_state, args=('terminated',), timeout=1800,
                            error_text='Servers in farm not terminated too long')
                 world.farm.destroy()
                 world.farm = None
