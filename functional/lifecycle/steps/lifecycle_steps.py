@@ -394,6 +394,16 @@ def add_storage_to_role(step):
     role.edit(storages=storage_settings)
 
 
+@step('Scalr ([^ .]+) ([^ .]+) from ([\w\d]+)')
+def assert_server_message_count(step, msgtype, msg, serv_as, timeout=15):
+    """Check scalr in/out message delivering"""
+    # LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
+    world.farm.servers.reload()
+    server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
+    s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
+    raise Exception(s)
+
+
 @step("I verify message (\d+) received right count in ([\w\d]+)")
 def verify_message(step, message, serv_as):
     server = getattr(world, serv_as)
