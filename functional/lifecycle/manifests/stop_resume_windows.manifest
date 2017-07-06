@@ -5,7 +5,8 @@
         "idcf": ["cloudstack"],
         "openstack": ["openstack"],
         "cloudstack": ["cloudstack"],
-        "vmware": ["vmware", "-storages", "-fstab"]
+        "vmware": ["vmware", "-storages", "-fstab"],
+        "azure": ["azure", "-storages"]
     }
 
 }

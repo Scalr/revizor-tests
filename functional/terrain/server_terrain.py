@@ -36,7 +36,7 @@ BEHAVIOR_SETS = {
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
-    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK):
+    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK, Platform.AZURE):
         timeout = 3000
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as,
                                                                 role_type))
@@ -206,20 +206,18 @@ def assert_check_script_work(step, serv_as):
         raise AssertionError('Not see script result in script logs')
 
 
-@step('wait all servers are terminated$')
-def wait_all_terminated(step):
-    """Wait termination of all servers"""
-    wait_until(world.wait_farm_terminated, timeout=1800, error_text='Servers in farm not terminated too long')
+@step('wait all servers are ([\w]+)$')
+def wait_for_servers_state(step, state):
+    """Wait for state of all servers"""
+    wait_until(world.farm_servers_state, args=(
+        state, ), timeout=1800, error_text=('Servers in farm have no status %s' % state))
 
 
 @step('hostname in ([\w\d]+) is valid$')
 def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
     hostname = server.api.system.get_hostname()
-    valid_hostname = '%s-%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
-    if CONF.feature.dist.is_windows:
-        valid_hostname = '%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.index)
-        hostname = hostname.lower()
+    valid_hostname = world.get_hostname_by_server_format(server)
     if not hostname.lower() == valid_hostname.lower():
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
@@ -264,7 +262,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if CONF.feature.driver.is_platform_ec2:
         volumes = server.get_volumes()
         if not volumes:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -272,7 +270,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
         attached_volume = filter(lambda x:
                                  x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
-    elif CONF.feature.driver.current_cloud == Platform.GCE:
+    elif CONF.feature.driver.is_platform_gce:
         volumes = filter(lambda x: x['deviceName'] != 'root',
                          node.extra.get('disks', []))
         if not volumes:
@@ -283,7 +281,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
                                  server.id)
         attached_volume = filter(lambda x: x.name == volumes[0]['deviceName'],
                                  world.cloud.list_volumes())[0]
-    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    elif CONF.feature.driver.is_platform_cloudstack:
         volumes = server.get_volumes()
         if len(volumes) == 1:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -386,7 +384,7 @@ def start_building(step):
 
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
-    if CONF.feature.driver.current_cloud == Platform.GCE:
+    if CONF.feature.driver.is_platform_gce:
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
