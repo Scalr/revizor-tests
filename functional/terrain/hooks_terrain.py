@@ -29,7 +29,7 @@ OUTLINE_ITERATOR = {}
 PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
 
 ORG = 'Scalr'
-GH = github.GitHub(access_token=CONF.main.github_access_token)
+GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
@@ -56,7 +56,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                                          outline))
     LOG.debug('Path to save log: %s' % path)
     if not os.path.exists(path):
-        os.makedirs(path, 0755)
+        os.makedirs(path, 0o755)
     # Get logs && configs
     for server in servers:
         if not server.is_scalarized: continue
@@ -350,7 +350,7 @@ def cleanup_all(total):
             LOG.info('Delete working temporary farm')
             try:
                 LOG.info('Wait all servers in farm terminated before delete')
-                wait_until(world.wait_farm_terminated, timeout=1800,
+                wait_until(world.farm_servers_state, args=('terminated',), timeout=1800,
                            error_text='Servers in farm not terminated too long')
                 world.farm.destroy()
                 world.farm = None
