@@ -27,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 ORG = 'Scalr'
 SCALARIZR_REPO = 'int-scalarizr'
-GH = github.GitHub(access_token=CONF.main.github_access_token)
+GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 @step(r"I have manually installed scalarizr(?:\s('[\w\W\d]+'))* on ([\w\d]+)")
