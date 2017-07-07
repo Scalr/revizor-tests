@@ -410,5 +410,5 @@ def assert_server_message_count(step, msgtype, msg, serv_as, timeout=1500):
     storages = DEFAULT_ADDITIONAL_STORAGES
     mount_device = len(storages[CONF.feature.driver.current_cloud])
     assert message_count == mount_device, (
-        'Scalr internal messages count %s != %s Mounted storages count and. List of all names: %s msg_names' % (
+        'Scalr internal messages count %s != %s Mounted storages count. List of all names: %s msg_names' % (
             message_count, mount_device, msg_names))
