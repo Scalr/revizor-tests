@@ -405,10 +405,12 @@ def assert_server_message_count(step, msgtype, msg, serv_as, timeout=1500):
                               msgtype,
                               timeout=timeout)
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
-    message_count = len([m for m in server.messages if m.name == msg])
-    msg_names = [m.name for m in server.messages]
+    msg_names = [m.name for m in s.messages if m.type == 'in']
+
+    message_count = len([m for m in msg_names if m.name == msg])
+
     storages = DEFAULT_ADDITIONAL_STORAGES
     mount_device = len(storages[CONF.feature.driver.current_cloud])
     assert message_count == mount_device, (
-        'Scalr internal messages count %s != %s Mounted storages count. List of all names: %s msg_names' % (
+        'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg: %s msg_names' % (
             message_count, mount_device, msg_names))
