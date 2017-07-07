@@ -1,16 +1,18 @@
 import os
 import re
+import sys
 import json
-import github
 import semver
 import logging
-from datetime import datetime
-
 from base64 import b64decode
+from datetime import datetime
+from operator import itemgetter
+from distutils.version import LooseVersion
+
+import github
+import requests
 from lxml import etree
 from lettuce import world, after, before
-from distutils.version import LooseVersion
-from operator import itemgetter
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
@@ -146,6 +148,22 @@ def get_scalaraizr_latest_version(branch):
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort(reverse=True)
     return versions[0]
+
+
+@before.all
+def verify_testenv():
+    if CONF.scalr.branch:
+        LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
+        sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
+        resp = requests.post(
+            'http://revizor2.scalr-labs.com/api/createContainer',
+            data={'branch': CONF.scalr.branch}
+        )
+        LOG.debug('Resposne for container creation: %s' % resp.text)
+        if resp.status_code != 200:
+            raise AssertionError("Can't run container: %s" % resp.text)
+        CONF.scalr.te_id = resp.json()['container_id']
+        sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
 
 
 @before.all
@@ -306,7 +324,7 @@ def cleanup_all(total):
     LOG.info('Failed steps: %s' % total.steps_failed)
     LOG.debug('Results %s' % total.scenario_results)
     LOG.debug('Passed %s' % total.scenarios_passed)
-    if (not total.steps_failed and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.main.te_id):
+    if (not total.steps_failed and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.scalr.te_id):
         cloud_node = getattr(world, 'cloud_server', None)
         if cloud_node:
             LOG.info('Destroy node in cloud')
