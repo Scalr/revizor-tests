@@ -4,7 +4,7 @@ Feature: Linux server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @boot
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with storages,noiptables
@@ -39,7 +39,7 @@ Feature: Linux server lifecycle
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @cloudstack @gce @rackspaceng @eucalyptus @azure @reboot
+    @ec2 @vmware @cloudstack @gce @rackspaceng @eucalyptus @azure @reboot
     Scenario: Linux reboot
         Given I have running server M1
         When I reboot server M1
@@ -50,7 +50,7 @@ Feature: Linux server lifecycle
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
     Scenario: Verify szradm list-roles
         When I run "szradm -q list-roles" on M1
         And output contain M1 external ip
@@ -59,21 +59,21 @@ Feature: Linux server lifecycle
         When I run "szradm list-messages" on M1
         And the key "name" has record "HostUp" on M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Execute script on Linux
         Given I have running server M1
         When I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1
         And script output contains 'pong' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Execute non-ascii script on Linux
         Given I have running server M1
         When I execute script 'Non ascii script' synchronous on M1
         Then I see script result in M1
         And script output contains 'Non_ascii_script' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Check non-ascii script output on Linux
         Given I have running server M1
         When I execute script 'non-ascii-output' synchronous on M1
@@ -81,7 +81,7 @@ Feature: Linux server lifecycle
         And script output contains 'ÃƒÂ¼' in M1
         And script output contains 'ã‚¯ãƒž' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Verify hidden global variable
         Given I have running server M1
         And file '/etc/profile.d/scalr_globals.sh' not contain 'revizor_hidden_var' in M1
@@ -89,14 +89,14 @@ Feature: Linux server lifecycle
         Then I see script result in M1
         And script output contains 'REVIZOR_HIDDEN_VARIABLE' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restart
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restart
     Scenario: Restart scalarizr
         Given I have running server M1
         When I reboot scalarizr in M1
         And see "Scalarizr terminated" in M1 log
         And not ERROR in M1 scalarizr log
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @event
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @event
     Scenario: Custom event
         Given I define event 'TestEvent'
         And I attach a script 'TestingEventScript' on this event
@@ -105,7 +105,7 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/f1'
         And server M1 contain '/tmp/f2'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @event
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @event
     Scenario: Caching custom event parameters
         Given I define event 'TestEvent'
         And I attach a script 'TestingEventScript' on this event
@@ -114,7 +114,16 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/nocache1'
         And server M1 contain '/tmp/nocache2'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
+    Scenario: Verify szradm list-roles
+        When I run "szradm -q list-roles" on M1
+        And output contain M1 external ip
+        When I run "szradm --queryenv get-latest-version" on M1
+        And the key "version" has 1 record on M1
+        When I run "szradm list-messages" on M1
+        And the key "name" has record "HostUp" on M1
+
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
     Scenario: Stop farm
         When I stop farm
         And wait all servers are terminated
@@ -124,7 +133,7 @@ Feature: Linux server lifecycle
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
     Scenario: Start farm
         When I start farm with delay
         Then I expect server bootstrapping as M1
@@ -139,7 +148,7 @@ Feature: Linux server lifecycle
         And count of files in directory '/media/raidmount' is 100 in M1
         And saved device for '/media/diskmount' for role is another
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @eucalyptus
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @eucalyptus
     Scenario: Reboot on bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with init_reboot,small_linux_orchestration
@@ -160,7 +169,7 @@ Feature: Linux server lifecycle
         And I see pending server M1
         And I wait server M1 in failed state
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @failedbootstrap
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @failedbootstrap
     Scenario: Failed bootstrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
