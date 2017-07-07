@@ -394,21 +394,22 @@ def add_storage_to_role(step):
     role.edit(storages=storage_settings)
 
 
-@step('Scalr ([^ .]+) ([^ .]+) from ([\w\d]+)')
-def assert_server_message_count(step, msgtype, msg, serv_as, timeout=15):
-    """Check scalr in/out message delivering"""
-    # LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
-    world.farm.servers.reload()
-    server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
-    s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
-    raise Exception(s)
-
-
-@step("I verify message (\d+) received right count in ([\w\d]+)")
-def verify_message(step, message, serv_as):
+@step('I verify ([^ .]+) ([^ .]+) message right count from ([\w\d]+)')
+def assert_server_message_count(step, msgtype, msg, serv_as, timeout=1500):
+    """Check scalr in/out message delivering
+    And assert messages count with BlockDeviceMounted count"""
     server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
+    server.messages.reload()
+    world.wait_server_message(server,
+                              msg.strip(),
+                              msgtype,
+                              timeout=timeout)
+    LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
+    message_count = len([m for m in server.messages if m.name == msg])
+    # msg_names = [for m in server.messages m.name]
+    msg_names = [m.name for m in server.messages]
     storages = DEFAULT_ADDITIONAL_STORAGES
     mount_device = len(storages[CONF.feature.driver.current_cloud])
-    message_count = node.run('')
-
+    assert message_count == mount_device, (
+        'Scalr internal messages count %s != %s Mounted storages count and. List of all: %s msg_names' % (
+            message_count, mount_device, msg_names))
