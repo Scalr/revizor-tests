@@ -5,6 +5,7 @@
         "idcf": ["cloudstack"],
         "rackspacengus": ["rackspaceng"],
         "openstack": ["openstack"],
+        "vmware": ["vmware"],
         "azure": ["azure"]
     }
 }

@@ -6,6 +6,7 @@
         "openstack": ["openstack", "-storages", "-partition"],
         "rackspacengus": ["rackspaceng", "-storages", "-stopresume", "-partition"],
         "openstack": ["openstack", "-stopresume", "-partition"],
+        "vmware": ["vmware", "-storages", "-fstab"],
         "azure": ["azure", "-partition", "-failedbootstrap", "-storages"]
     }
 }
