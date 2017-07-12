@@ -16,6 +16,15 @@ Feature: Linux server lifecycle
         And hostname in M1 is valid
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
 
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
+    Scenario: Verify szradm list-roles
+        When I run "szradm -q list-roles" on M1
+        And output contain M1 external ip
+        When I run "szradm --queryenv get-latest-version" on M1
+        And the key "version" has 1 record on M1
+        When I run "szradm list-messages" on M1
+        And the key "name" has record "HostUp" on M1
+
     @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages
         Given I have running server M1
@@ -49,15 +58,6 @@ Feature: Linux server lifecycle
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
-
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
-    Scenario: Verify szradm list-roles
-        When I run "szradm -q list-roles" on M1
-        And output contain M1 external ip
-        When I run "szradm --queryenv get-latest-version" on M1
-        And the key "version" has 1 record on M1
-        When I run "szradm list-messages" on M1
-        And the key "name" has record "HostUp" on M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Execute script on Linux
@@ -113,15 +113,6 @@ Feature: Linux server lifecycle
         Then Scalr sends TestEvent to M1
         And server M1 contain '/tmp/nocache1'
         And server M1 contain '/tmp/nocache2'
-
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
-    Scenario: Verify szradm list-roles
-        When I run "szradm -q list-roles" on M1
-        And output contain M1 external ip
-        When I run "szradm --queryenv get-latest-version" on M1
-        And the key "version" has 1 record on M1
-        When I run "szradm list-messages" on M1
-        And the key "name" has record "HostUp" on M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
     Scenario: Stop farm
