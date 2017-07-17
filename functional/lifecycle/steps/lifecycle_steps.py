@@ -394,7 +394,7 @@ def add_storage_to_role(step):
     role.edit(storages=storage_settings)
 
 
-@world.run_only_if(platform=(Platform.EC2, Platform.AZURE))
+@world.run_only_if(platform=(Platform.EC2, Platform.AZURE, ), storage='persistent')
 @step('I verify ([^ .]+) ([^ .]+) message right count from ([\w\d]+)')
 def assert_server_message_count(step, msgtype, msg, serv_as, timeout=1500):
     """Check scalr in/out message delivering
