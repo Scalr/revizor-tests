@@ -12,6 +12,7 @@ from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
+from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -393,3 +394,17 @@ def add_storage_to_role(step):
     ]}
     role.edit(storages=storage_settings)
 
+
+@world.run_only_if(platform=(Platform.EC2, Platform.GCE), storage='persistent')
+@step('I verify right count of incoming messages ([^ .]+) from ([\w\d]+)')
+def assert_server_message_count(step, msg, serv_as):
+    """Assert messages count with Mounted Storages count"""
+    server = getattr(world, serv_as)
+    server.messages.reload()
+    incoming_messages = [m.name for m in server.messages if m.type == 'in' and  m.name == msg]
+    messages_count = len(incoming_messages)
+    mount_device_count = len(
+        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.driver.current_cloud])
+    assert messages_count == mount_device_count, (
+        'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
+            message_count, mount_device_count, incoming_messages))
