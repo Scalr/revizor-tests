@@ -394,18 +394,12 @@ def add_storage_to_role(step):
     role.edit(storages=storage_settings)
 
 
-@world.run_only_if(platform=(Platform.EC2, Platform.GCE, ), storage='persistent')
-@step('I verify ([^ .]+) ([^ .]+) message right count from ([\w\d]+)')
-def assert_server_message_count(step, msgtype, msg, serv_as, timeout=1500):
-    """Check scalr in/out message delivering
-    And assert messages count with BlockDeviceMounted count"""
+@world.run_only_if(platform=(Platform.EC2, Platform.GCE), storage='persistent')
+@step('I verify right count of incoming messages ([^ .]+) from ([\w\d]+)')
+def assert_server_message_count(step, msg, serv_as):
+    """Assert messages count with Mounted Storages count"""
     server = getattr(world, serv_as)
     server.messages.reload()
-    world.wait_server_message(server,
-                              msg.strip(),
-                              msgtype,
-                              timeout=timeout)
-    LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
     incoming_messages = [m.name for m in server.messages if m.type == 'in' and  m.name == msg]
     messages_count = len(incoming_messages)
     mount_device_count = len(
