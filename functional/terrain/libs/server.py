@@ -114,25 +114,31 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     try:
         if windows:
-            log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            log_out = run_cmd_command(server, "findstr /n \"\\- ERROR | \\- WARNING | Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = run_cmd_command(server, "findstr /n \"\\- ERROR | \\- WARNING | Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
-            log_out = (node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type))[0]
+            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type))[0]
             LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
         LOG.error(traceback.format_exc())
         return
-    for line in log_out.splitlines():
+
+    lines = log_out.splitlines()
+    for i in range(len(lines)):
         ignore = False
+        line = lines[i]
         LOG.debug('Verify line "%s" for errors' % line)
         log_date = None
         log_level = None
+        line_number = -1
         now = datetime.now()
         try:
+            line_number = int(line.split(':', 1)[0])
+            line = line.split(':', 1)[1]
             log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
             log_level = line.strip().split()[3]
         except (ValueError, IndexError):
@@ -155,6 +161,17 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
         if log_level == 'ERROR':
             LOG.error('Found ERROR in scalarizr_%s.log:\n %s' % (log_type, line))
             raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+
+        if log_level == 'WARNING' and i < len(lines) - 1:
+            if 'Traceback' in lines[i+1]:
+                next_line_number = -1
+                try:
+                    next_line_number = int(lines[i+1].split(':', 1)[0])
+                except (ValueError, IndexError):
+                    pass
+                if next_line_number - line_number == 1:
+                    LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
+                    raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
 
 @world.absorb
