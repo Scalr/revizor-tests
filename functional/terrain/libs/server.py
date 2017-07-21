@@ -112,11 +112,20 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
     if isinstance(node, Server):
         node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
+    if server:
+        server.reload()
+        if not server.public_ip:
+            LOG.debug('Server has no public IP yet')
+            return
+    else:
+        if not node.public_ips or not node.public_ips[0]:
+            LOG.debug('Node has no public IP yet')
+            return
     try:
         if windows:
-            log_out = run_cmd_command(server, "findstr /n \"\\- ERROR | \\- WARNING | Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type, raise_exc=False)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = run_cmd_command(server, "findstr /n \"\\- ERROR | \\- WARNING | Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
