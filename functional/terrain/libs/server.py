@@ -109,8 +109,6 @@ def run_cmd_command(server, command, raise_exc=True):
 
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
-    if isinstance(node, Server):
-        node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     if server:
         server.reload()
@@ -118,6 +116,8 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
             LOG.debug('Server has no public IP yet')
             return
     else:
+        if isinstance(node, Server):
+            node = world.cloud.get_node(node)
         if not node.public_ips or not node.public_ips[0]:
             LOG.debug('Node has no public IP yet')
             return
@@ -137,9 +137,8 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
         return
 
     lines = log_out.splitlines()
-    for i in range(len(lines)):
+    for i, line in enumerate(lines):
         ignore = False
-        line = lines[i]
         LOG.debug('Verify line "%s" for errors' % line)
         log_date = None
         log_level = None
@@ -172,15 +171,9 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
             raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
         if log_level == 'WARNING' and i < len(lines) - 1:
-            if 'Traceback' in lines[i+1]:
-                next_line_number = -1
-                try:
-                    next_line_number = int(lines[i+1].split(':', 1)[0])
-                except (ValueError, IndexError):
-                    pass
-                if next_line_number - line_number == 1:
-                    LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
-                    raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+            if '%s:Traceback' % (line_number + 1) in lines[i+1]:
+                LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
+                raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
 
 @world.absorb
