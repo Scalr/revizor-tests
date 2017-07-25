@@ -34,7 +34,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'p2p_message',
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
-    'error was thrown due to the hostname format'
+    'error was thrown due to the hostname format',
+    'Unable to synchronize time, cause ntpdate binary is not found' # FAM-1050
 ]
 
 # Run powershell script as Administrator
