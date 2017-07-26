@@ -134,17 +134,28 @@ def attach_script(step, script_name):
     role = world.get_role()
     res = filter(lambda x: x['name'] == script_name, scripts)[0]
     LOG.info('Add script %s to custom event %s' % (res['name'], world.last_event['name']))
-    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[{
-        "script_type": "scalr",
-        "script_id": str(res['id']),
-        "script": res['name'],
-        "event": world.last_event['name'],
-        "params": [],
-        "target": "instance",
-        "version": "-1",
-        "timeout": "1200",
-        "issync": "1",
-        "order_index": "1",
+    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[
+        {
+            "scope": "farmrole",
+            "action": "add",
+            # id: extModel123
+            # eventOrder 2
+            "timeout": "1200",
+            "isSync": True,
+            "orderIndex": 10,
+            "type": "scalr",
+            "isActive": True,
+            "eventName": world.last_event['name'],
+            "target": {
+                "type": "server"
+            },
+            "isFirstConfiguration": None,
+            "scriptId": str(res['id']),
+            "scriptName": res['name'],
+            "scriptOs": "linux",
+            "version": "-1",
+            "scriptPath": "",
+            "runAs": ""
         }]
     )
 
@@ -375,7 +386,7 @@ def add_storage_to_role(step):
     role = world.get_role()
     volume_snapshot_id = getattr(world, 'volume_snapshot_id', None)
     assert volume_snapshot_id, 'No volume snapshot found in world object'
-    LOG.info('Add volume from spanshot: %s to role' % volume_snapshot_id)
+    LOG.info('Add volume from snapshot: %s to role' % volume_snapshot_id)
     storage_settings = {'configs': [
         {
             "id": None,
@@ -384,7 +395,6 @@ def add_storage_to_role(step):
             "settings": {
                 "ebs.size": "1",
                 "ebs.type": "standard",
-                "ebs.snapshot": None,
                 "ebs.snapshot": volume_snapshot_id},
             "mount": False,
             "reUse": False,
@@ -407,4 +417,4 @@ def assert_server_message_count(step, msg, serv_as):
         DEFAULT_ADDITIONAL_STORAGES[CONF.feature.driver.current_cloud])
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
-            message_count, mount_device_count, incoming_messages))
+            messages_count, mount_device_count, incoming_messages))
