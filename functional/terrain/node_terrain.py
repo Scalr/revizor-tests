@@ -298,7 +298,8 @@ def verify_port_status(step, port, closed, serv_as):
     ))
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.is_windows:
-        world.set_iptables_rule(server, port)
+        #world.set_iptables_rule(server, port)
+        pass
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
 

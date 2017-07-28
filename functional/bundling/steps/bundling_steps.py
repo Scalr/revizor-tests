@@ -4,12 +4,12 @@ from datetime import datetime
 from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.api import Farm, Role, IMPL
-from revizor2.consts import Platform, Dist
+from revizor2.api import IMPL
 from revizor2.utils import wait_until
 
 
 LOG = logging.getLogger(__name__)
+PLATFORM = CONF.feature.platform
 
 
 # @step('I add to farm role created by last bundle task')
@@ -30,11 +30,10 @@ def rebundle_server_via_api(step, serv_as):
     setattr(world, 'last_bundle_role_name', name)
     LOG.info('Create image via scalarizr api from server %s and image name %s' % (server.id, name))
 
-    if CONF.feature.driver.current_cloud in (Platform.EC2, Platform.GCE)\
+    if any((PLATFORM.is_ec2, PLATFORM.is_gce))\
             and not CONF.feature.dist.is_windows\
             and not CONF.feature.dist.dist == 'redhat'\
-            or (CONF.feature.driver.current_cloud == Platform.GCE
-                and CONF.feature.dist.dist == 'redhat'):
+            or all((PLATFORM.is_gce, CONF.feature.dist.dist == 'redhat')):
         LOG.info('Image creation in this platform doing in one step')
         operation_id = server.api.image.create(name=name, async=True)
         LOG.info('Image creation operation_id - %s' % operation_id)
@@ -50,7 +49,7 @@ def rebundle_server_via_api(step, serv_as):
         LOG.info('Prepare server for image creation')
         prepare = server.api.image.prepare()
         LOG.debug('Prepare operation result: %s' % prepare)
-        if CONF.feature.driver.current_cloud in (Platform.IDCF, Platform.CLOUDSTACK):
+        if PLATFORM.is_cloudstack:
             node = world.cloud.get_node(server)
             volume = filter(lambda x: x.extra['instance_id'] == node.id, world.cloud.list_volumes())
             snapshot = world.cloud._driver._conn.create_volume_snapshot(volume[0])
@@ -92,26 +91,24 @@ def create_new_role(step, role_as):
     behaviors = CONF.feature.behaviors
     image_id = getattr(world, 'api_image_id', None)
     LOG.info('Create new Image in Scalr with image_id: "%s"' % image_id)
+    cloud_location = CONF.platforms[PLATFORM.driver]['location']
     image_details = IMPL.image.check(
-        platform=CONF.feature.driver.scalr_cloud,
-        cloud_location=CONF.platforms[CONF.feature.platform]['location'],
+        platform=PLATFORM.driver,
+        cloud_location=cloud_location,
         image_id=image_id
     )
 
     IMPL.image.create(
-        platform=CONF.feature.driver.scalr_cloud,
-        cloud_location=CONF.platforms[CONF.feature.platform]['location'],
-        image_id=image_id,
         name=image_details['name'],
         software=behaviors,
+        *image_details
     )
 
-    cloud_location = CONF.platforms[CONF.feature.platform]['location']
-    if CONF.feature.driver.current_cloud == Platform.GCE:
+    if PLATFORM.is_gce:
         cloud_location = ""
 
     images = [{
-        'platform': CONF.feature.driver.scalr_cloud,
+        'platform': PLATFORM.driver,
         'cloudLocation': cloud_location,
         'imageId': image_id,
     }]
