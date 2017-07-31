@@ -1,385 +1,267 @@
+import json
 import logging
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform
 
-
 LOG = logging.getLogger(__name__)
+
+
+class _Property(object):
+    def __init__(self, key, default, constraint=None):
+        self.key = key
+        self.default = default
+        self.constraint = constraint
+
+
+class _EnvDefaults(object):
+    template = {}
+    size_constraints = {}
+    volumes_count_constraints = {}
+
+    @classmethod
+    def _get_prop_config(cls, volume, prop_name):
+        prop = cls.template[volume.category]["settings"].get(prop_name, None)
+        if not prop:
+            return {}, None
+        value = volume.volume_settings.get(prop_name, None)
+        if value is None:
+            value = prop.default
+        cls._validate_property(prop, value)
+        return {prop.key: value}, value
+
+    @classmethod
+    def _validate_property(cls, prop, value):
+        if prop.constraint and value not in prop.constraint:
+            raise StorageConfigError(
+                "Invalid %s '%s'. Available values are: %s" %
+                (prop.key, value, _repr_seq(prop.constraint)))
+
+    @classmethod
+    def get_config(cls, volume):
+        if volume.category not in cls.template:
+            raise StorageConfigError(
+                "Unknown storage category '%s'. Allowed values for %s platform are: %s." %
+                (volume.category, volume.platform, ", ".join(cls.template.keys())))
+
+        config = {
+            "type": cls.template[volume.category]["engine"],
+            "reUse": volume.reuse,
+            "rebuild": volume.rebuild,
+            "mount": volume.mount,
+            "mountPoint": volume.mount_point,
+            "fs": volume.file_system,
+            "settings": {}
+        }
+
+        tpl_settings = cls.template[volume.category]["settings"]
+
+        cfg, type_value = cls._get_prop_config(volume, "type")
+        config["settings"].update(cfg)
+
+        if type_value and type_value in cls.size_constraints:
+            tpl_settings["size"].default = cls.size_constraints[type_value][0]
+            tpl_settings["size"].constraint = cls.size_constraints[type_value]
+
+        cfg, _ = cls._get_prop_config(volume, "size")
+        config["settings"].update(cfg)
+
+        if type_value == "io1":
+            cfg, _ = cls._get_prop_config(volume, "iops")
+            config["settings"].update(cfg)
+
+        cfg, _ = cls._get_prop_config(volume, "snapshot")
+        config["settings"].update(cfg)
+
+        cfg, _ = cls._get_prop_config(volume, "encrypted")
+        config["settings"].update(cfg)
+
+        cfg, level_value = cls._get_prop_config(volume, "level")
+        config["settings"].update(cfg)
+
+        if level_value is not None:
+            tpl_settings["volumes_count"].default = cls.volumes_count_constraints[level_value][0]
+            tpl_settings["volumes_count"].constraint = cls.volumes_count_constraints[level_value]
+
+        cfg, _ = cls._get_prop_config(volume, "volumes_count")
+        config["settings"].update(cfg)
+
+        for key, value in volume.volume_settings.items():
+            if key not in tpl_settings:
+                LOG.warning("Unknown %s volume setting: '%s', skipping" % (volume.category, key))
+
+        return config
+
+
+class _Ec2Defaults(_EnvDefaults):
+    template = {
+        "persistent": {
+            "engine": "ebs",
+            "settings": {
+                "type": _Property("ebs.type", "standard", ["standard", "gp2", "io1", "st1", "sc1"]),
+                "size": _Property("ebs.size", 1, range(1, 1025)),
+                "iops": _Property("ebs.iops", 100, range(100, 20001)),
+                "snapshot": _Property("ebs.snapshot", None),
+                "encrypted": _Property("ebs.encrypted", False, [True, False])
+            }
+        },
+        "raid": {
+            "engine": "raid.ebs",
+            "settings": {
+                "type": _Property("ebs.type", "standard", ["standard", "gp2", "io1", "st1", "sc1"]),
+                "size": _Property("ebs.size", 1, range(1, 1025)),
+                "iops": _Property("ebs.iops", 100, range(100, 20001)),
+                "level": _Property("raid.level", 10, [0, 1, 5, 10]),
+                "volumes_count": _Property("raid.volumes_count", 4, [4, 6, 8])
+            }
+        }
+    }
+
+    size_constraints = {
+        "standard": range(1, 1025),
+        "gp2": range(1, 16385),
+        "io1": range(4, 16385),
+        "st1": range(500, 16385),
+        "sc1": range(500, 16385)
+    }
+
+    volumes_count_constraints = {
+        0: range(2, 9),
+        1: [2],
+        5: range(3, 9),
+        10: [4, 6, 8]
+    }
+
+
+class _GceDefaults(_EnvDefaults):
+    template = {
+        "persistent": {
+            "engine": "gce_persistent",
+            "settings": {
+                "type": _Property("gce_persistent.type", "pd-standard", ["pd-standard", "pd-ssd"]),
+                "size": _Property("gce_persistent.size", 1, None)
+            }
+        },
+        "eph": {
+            "engine": "gce_ephemeral",
+            "settings": {
+                "name": _Property("gce_ephemeral.name", "google-local-ssd-0",
+                                  ["google-local-ssd-%s" % n for n in range(0, 4)]),
+                "size": _Property("gce_ephemeral.size", 375, [375])
+            }
+        }
+    }
+
+
+class Snapshot(object):
+    def __init__(self, snapshot_id):
+        self.id = snapshot_id
+
+
+class Volume(object):
+    def __init__(self,
+                 platform=None,
+                 category="persistent",
+                 reuse=True,
+                 rebuild=False,
+                 mount=True,
+                 mount_point="/media/diskmount",
+                 file_system="ext3",
+                 **volume_settings):
+        self.platform = platform or CONF.feature.driver.current_cloud
+        self.category = category
+        self.reuse = reuse
+        self.rebuild = rebuild
+        self.mount = mount
+        self.mount_point = mount_point
+        self.file_system = file_system
+        self.volume_settings = volume_settings
+
+    def get_config(self):
+        return _env_defaults[self.platform].get_config(self)
+
+
+class Defaults(object):
+    @classmethod
+    def get_additional_storages(cls, platform=None, *volumes):
+        platform = platform or CONF.feature.driver.current_cloud
+        # dist = CONF.feature.dist
+
+        if volumes:
+            return AdditionalStorages(*volumes)
+
+        # Populate with default storages for platform
+        storages = AdditionalStorages()
+        if platform == Platform.EC2:
+            storages.append(Volume(platform))
+            storages.append(Volume(platform, category="raid", mount_point="/media/raidmount"))
+            storages.append(Volume(platform, mount_point="/media/partition"))
+        elif platform == Platform.GCE:
+            storages.append(Volume(platform))
+            storages.append(Volume(platform, mount_point="/media/raidmount", type="pd-ssd"))
+            storages.append(Volume(platform, mount_point="/media/partition"))
+        return storages
+
+
+class AdditionalStorages(object):
+    def __init__(self, *volumes):
+        self.volumes = []
+        self.volumes.extend(volumes)
+
+    def append(self, volume):
+        self.volumes.append(volume)
+
+    def get_config(self):
+        return {"configs": [v.get_config() for v in self.volumes]}
+
+    def __repr__(self):
+        return json.dumps(self.get_config(), indent=2)
 
 
 class StorageConfigError(Exception):
     pass
 
 
-class Defaults(object):
-
-    @classmethod
-    def get_config_additional_storages(cls, platform, *volumes):
-        platform = CONF.feature.driver.current_cloud
-        dist = CONF.feature.dist
-
-        storages = AdditionalStorages()
-        storages.append(Volume())
-        storages.append(Volume(volume_type="raid.ebs", mount_point="/media/raidmount", level=10, volumes_count=4))
-        storages.append(Volume(mount_point="/media/partition"))
-        return storages
+def _repr_seq(seq):
+    if len(seq) < 10:
+        return repr(seq)
+    else:
+        return "[%s, ..., %r]" % (", ".join(map(str, seq[:3])), seq[-1])
 
 
-class Ec2Defaults(object):
-    volume_types = ['ebs', 'raid.ebs']
-
-env_defaults = {
-    Platform.EC2: Ec2Defaults
+_env_defaults = {
+    Platform.EC2: _Ec2Defaults,
+    Platform.GCE: _GceDefaults
 }
 
-class AdditionalStorages():
+# for debugging purpose
+if __name__ == "__main__":
+    # using get_additional_storages without volumes info returns default storages list for environment
+    default_storages_ec2 = Defaults.get_additional_storages(Platform.EC2)
+    default_storages_gce = Defaults.get_additional_storages(Platform.GCE)
 
-    def __init__(self):
-        self.volumes = []
+    # volumes specified
+    # only parameters that differ from default values are passed
+    storages_ec2 = Defaults.get_additional_storages(Platform.EC2,
+                                                    Volume(),
+                                                    Volume(category="raid", mount_point="/media/raidmount", type="io1",
+                                                           level=5))
+    storages_gce = Defaults.get_additional_storages(Platform.GCE,
+                                                    Volume(Platform.GCE),
+                                                    Volume(Platform.GCE, category="eph", mount_point="/media/ephmount"))
 
-    def append(self, volume):
-        self.volumes.append(volume)
+    print("=== EC2 defaults")
+    print(default_storages_ec2)
+    print("=== GCE defaults")
+    print(default_storages_gce)
+    print("=== EC2 custom")
+    print(storages_ec2)
+    print("=== GCE custom")
+    print(storages_gce)
 
-    def get_config(self):
-        return { 'configs': [v.get_config() for v in self.volumes] }
-
-    def __repr__(self):
-        return repr(self.volumes)
-
-
-class Volume(object):
-
-    def __init__(self,
-                 id=None,
-                 volume_type='ebs',
-                 fs='ext3',
-                 mount=True,
-                 mount_point='/media/diskmount',
-                 reuse=True,
-                 status='',
-                 rebuild=True,
-                 size=1,
-                 type='standard',
-                 snapshot=None,
-                 level=None,
-                 volumes_count=None):
-        self.id = id
-        self.type = volume_type
-        self.fs = fs
-        self.mount = mount
-        self.mountPoint = mount_point
-        self.reUse = reuse
-        self.status = status
-        self.rebuild = rebuild
-        self.settings = VolumeSettings(size, type, snapshot, level, volumes_count)
-
-    def validate(self):
-        platform = CONF.feature.driver.current_cloud
-        defaults = env_defaults[platform]
-        if not self.type in defaults.volume_types:
-            raise StorageConfigError("%s does not support %s volume type" % (platform, self.type))
-
-
-    def get_config(self):
-        self.validate()
-        config = self.__dict__.copy()
-        config['settings'] = config['settings'].get_config()
-        return config
-
-    def __repr__(self):
-        return repr(self.get_config())
-
-
-class VolumeSettings(object):
-
-    def __init__(self,
-                 size=1,
-                 type='standard',
-                 snapshot=None,
-                 level=None,
-                 volumes_count=None):
-        self.size = size
-        self.type = type
-        self.snapshot = snapshot
-        self.level = level
-        self.volumes_count = volumes_count
-
-    def get_config(self):
-        config = {
-            "ebs.size": self.size,
-            "ebs.type": self.type,
-            "ebs.snapshot": self.snapshot
-        }
-        if self.level:
-            config["raid.level"] = self.level
-        if self.volumes_count:
-            config["raid.volumes_count"] = self.volumes_count
-
-
-    def __repr__(self):
-        return repr(self.__dict__)
-
-
-class Snapshot(object):
-
-    def __init__(self, id):
-        self.id = id
-
-
-DEFAULT_ADDITIONAL_STORAGES = {
-    Platform.EC2: [
-        {
-            "id": None,
-            "type": "ebs",
-            "fs": "ext3",
-            "settings": {
-                "ebs.size": "1",
-                "ebs.type": "standard",
-                "ebs.snapshot": None,
-            },
-            "mount": True,
-            "mountPoint": "/media/diskmount",
-            "reUse": True,
-            "status": "",
-            "rebuild": True
-        },
-        {
-            "id": None,
-            "type": "raid.ebs",
-            "fs": "ext3",
-            "settings": {
-                "raid.level": "10",
-                "raid.volumes_count": 4,
-                "ebs.size": "1",
-                "ebs.type": "standard",
-                "ebs.snapshot": None,
-            },
-            "mount": True,
-            "mountPoint": "/media/raidmount",
-            "reUse": True,
-            "status": "",
-        },
-        {
-            "id": None,
-            "type": "ebs",
-            "fs": "ext3",
-            "settings": {
-                "ebs.size": "1",
-                "ebs.type": "standard",
-                "ebs.snapshot": None,
-            },
-            "mount": True,
-            "mountPoint": "/media/partition",
-            "reUse": True,
-            "status": "",
-            "rebuild": True
-        }
-    ],
-
-    Platform.GCE: [
-        {
-            "reUse": True,
-            "settings": {
-                "gce_persistent.size": "1",
-                "gce_persistent.type": "pd-standard"
-            },
-            "status": "",
-            "type": "gce_persistent",
-            "fs": "ext3",
-            "mount": True,
-            "mountPoint": "/media/diskmount",
-            "rebuild": True
-        },
-        {
-            "reUse": True,
-            "settings": {
-                "gce_persistent.size": "1",
-                "gce_persistent.type": "pd-ssd"
-            },
-            "status": "",
-            "type": "gce_persistent",
-            "fs": "ext3",
-            "mount": True,
-            "mountPoint": "/media/raidmount",
-            "rebuild": True
-        },
-        {
-            "reUse": True,
-            "settings": {
-                "gce_persistent.size": "1",
-                "gce_persistent.type": "pd-standard"
-            },
-            "status": "",
-            "type": "gce_persistent",
-            "fs": "ext3",
-            "mount": True,
-            "mountPoint": "/media/partition",
-            "rebuild": True
-        },
-    ],
-    # Platform.VMWARE: [
-    #     {
-    #         "reUse": False,
-    #         "type": "vmdk",
-    #         "status": "",
-    #         "isRoot": 0,
-    #         "readOnly": False,
-    #         "category": " Persistent storage",
-    #         "fs": "ext3",
-    #         "mount": True,
-    #         "mountPoint": "/media/diskmount",
-    #         "mountOptions": "",
-    #         "rebuild": False,
-    #         "settings": {
-    #             "vmdk.id": "",
-    #             "vmdk.provisioning": 0,
-    #             "vmdk.size": "1"
-    #         }
-    #     },
-    #     {
-    #         "reUse": False,
-    #         "type": "vmdk",
-    #         "status": "",
-    #         "isRoot": 0,
-    #         "readOnly": False,
-    #         "category": " Persistent storage",
-    #         "fs": "ext4",
-    #         "mount": True,
-    #         "mountPoint": "/media/raidmount",
-    #         "mountOptions": "",
-    #         "rebuild": False,
-    #         "settings": {
-    #             "vmdk.id": "",
-    #             "vmdk.provisioning": 2,
-    #             "vmdk.size": "1"
-    #         }
-    #     },
-    #     {
-    #         "reUse": False,
-    #         "type": "vmdk",
-    #         "status": "",
-    #         "isRoot": 0,
-    #         "readOnly": False,
-    #         "category": " Persistent storage",
-    #         "fs": "ext3",
-    #         "mount": True,
-    #         "mountPoint": "/media/partition",
-    #         "mountOptions": "",
-    #         "rebuild": False,
-    #         "settings": {
-    #             "vmdk.id": "",
-    #             "vmdk.provisioning": 0,
-    #             "vmdk.size": "1"
-    #         }
-    #     }
-    # ],
-    Platform.CLOUDSTACK: [
-        {
-            "id": None,
-            "type": "csvol",
-            "fs": "ext3",
-            "settings": {
-                "csvol.size": "1",
-            },
-            "mount": True,
-            "mountPoint": "/media/diskmount",
-            "reUse": True,
-            "status": "",
-            "rebuild": True
-        },
-        {
-            "id": None,
-            "type": "raid.csvol",
-            "fs": "ext3",
-            "settings": {
-                "raid.level": "10",
-                "raid.volumes_count": 4,
-                "csvol.size": "1",
-            },
-            "mount": True,
-            "mountPoint": "/media/raidmount",
-            "reUse": True,
-            "status": "",
-        },
-        {
-            "id": None,
-            "type": "csvol",
-            "fs": "ext3",
-            "settings": {
-                "csvol.size": "1",
-            },
-            "mount": True,
-            "mountPoint": "/media/partition",
-            "reUse": True,
-            "status": "",
-            "rebuild": True
-        }
-    ],
-    # Platform.RACKSPACE_US: [
-    #     {
-    #         "reUse": True,
-    #         "status": "",
-    #         "type": "cinder",
-    #         "fs": "ext4",
-    #         "mount": True,
-    #         "mountPoint": "/media/diskmount",
-    #         "rebuild": True,
-    #         "settings": {
-    #             "cinder.volume_type": "d5f9242f-aeca-4b11-abbd-6dc497d2d27a",
-    #             "cinder.size": "75"
-    #         }
-    #     },
-    #     {
-    #         "reUse": True,
-    #         "status": "",
-    #         "isRootDevice": False,
-    #         "readOnly": False,
-    #         "type": "raid.cinder",
-    #         "fs": "ext3",
-    #         "mount": True,
-    #         "mountPoint": "/media/raidmount",
-    #         "rebuild": True,
-    #         "settings": {
-    #             "raid.level": "10",
-    #             "raid.volumes_count": 4,
-    #             "cinder.volume_type": "d5f9242f-aeca-4b11-abbd-6dc497d2d27a",
-    #             "cinder.size": "75"
-    #         }
-    #     }
-    # ],
-
-    # Platform.OPENSTACK: [
-    #     {
-    #         "reUse": True,
-    #         "status": "",
-    #         "isRootDevice": False,
-    #         "readOnly": False,
-    #         "type": "cinder",
-    #         "fs": "ext4",
-    #         "mount": True,
-    #         "mountPoint": "/media/diskmount",
-    #         "rebuild": True,
-    #         "settings": {
-    #             "cinder.volume_type": "d893f896-b0be-40cb-b020-9049ebc94a2f",  # TODO: move this to config
-    #             "cinder.size": "1"
-    #         }
-    #     },
-    #     {
-    #         "reUse": True,
-    #         "status": "",
-    #         "isRootDevice": False,
-    #         "readOnly": False,
-    #         "type": "raid.cinder",
-    #         "fs": "ext3",
-    #         "mount": True,
-    #         "mountPoint": "/media/raidmount",
-    #         "rebuild": True,
-    #         "settings": {
-    #             "raid.level": "10",
-    #             "raid.volumes_count": 4,
-    #             "cinder.volume_type": "d893f896-b0be-40cb-b020-9049ebc94a2f",
-    #             "cinder.size": "1"
-    #         }
-    #     }
-    # ]
-}
+    # invalid volume specification
+    # invalid_1 = Defaults.get_additional_storages(Platform.EC2,
+    #                                              Volume(type="std")).get_config()
+    invalid_2 = Defaults.get_additional_storages(Platform.EC2,
+                                                 Volume(category="raid", mount_point="/media/raidmount", type="io1",
+                                                        level=5, volumes_count=2)).get_config()
