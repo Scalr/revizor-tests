@@ -60,7 +60,7 @@ class _EnvDefaults(object):
         config["settings"].update(cfg)
 
         if type_value and type_value in cls.size_constraints:
-            tpl_settings["size"].default = cls.size_constraints[type_value][0]
+            tpl_settings["size"].default = cls.size_constraints[type_value][0] if cls.size_constraints[type_value] else 1
             tpl_settings["size"].constraint = cls.size_constraints[type_value]
 
         cfg, _ = cls._get_prop_config(volume, "size")
@@ -153,6 +153,41 @@ class _GceDefaults(_EnvDefaults):
     }
 
 
+class _CloudStackDefaults(_EnvDefaults):
+    template = {
+        "persistent": {
+            "engine": "csvol",
+            "settings": {
+                "type": _Property("csvol.disk_offering_type", "custom", ["custom", "fixed"]),
+                "size": _Property("csvol.size", 1, None),
+                "snapshot": _Property("csvol.snapshot_id", None)
+            }
+        },
+        "raid": {
+            "engine": "raid.csvol",
+            "settings": {
+                "type": _Property("csvol.disk_offering_type", "custom", ["custom", "fixed"]),
+                "size": _Property("csvol.size", 1, None),
+                "snapshot": _Property("csvol.snapshot_id", None),
+                "level": _Property("raid.level", 10, [0, 1, 5, 10]),
+                "volumes_count": _Property("raid.volumes_count", 4, [4, 6, 8])
+            }
+        }
+    }
+
+    size_constraints = {
+        "custom": None,
+        "fixed": [5, 20, 100]
+    }
+
+    volumes_count_constraints = {
+        0: range(2, 9),
+        1: [2],
+        5: range(3, 9),
+        10: [4, 6, 8]
+    }
+
+
 class Snapshot(object):
     def __init__(self, snapshot_id):
         self.id = snapshot_id
@@ -200,6 +235,10 @@ class Defaults(object):
             storages.append(Volume(platform))
             storages.append(Volume(platform, mount_point="/media/raidmount", type="pd-ssd"))
             storages.append(Volume(platform, mount_point="/media/partition"))
+        elif platform == Platform.CLOUDSTACK:
+            storages.append(Volume(platform))
+            storages.append(Volume(platform, category="raid", mount_point="/media/raidmount"))
+            storages.append(Volume(platform, mount_point="/media/partition"))
         return storages
 
 
@@ -231,7 +270,8 @@ def _repr_seq(seq):
 
 _env_defaults = {
     Platform.EC2: _Ec2Defaults,
-    Platform.GCE: _GceDefaults
+    Platform.GCE: _GceDefaults,
+    Platform.CLOUDSTACK: _CloudStackDefaults
 }
 
 # for debugging purpose
@@ -239,25 +279,36 @@ if __name__ == "__main__":
     # using get_additional_storages without volumes info returns default storages list for environment
     default_storages_ec2 = Defaults.get_additional_storages(Platform.EC2)
     default_storages_gce = Defaults.get_additional_storages(Platform.GCE)
+    default_storages_cs = Defaults.get_additional_storages(Platform.CLOUDSTACK)
 
     # volumes specified
     # only parameters that differ from default values are passed
     storages_ec2 = Defaults.get_additional_storages(Platform.EC2,
-                                                    Volume(),
-                                                    Volume(category="raid", mount_point="/media/raidmount", type="io1",
-                                                           level=5))
+                                                    Volume(Platform.EC2, snapshot="snapshot_id"),
+                                                    Volume(Platform.EC2, category="raid",
+                                                           mount_point="/media/raidmount", type="io1",
+                                                           level=5, snapshot="snapshot_id"))
     storages_gce = Defaults.get_additional_storages(Platform.GCE,
                                                     Volume(Platform.GCE),
                                                     Volume(Platform.GCE, category="eph", mount_point="/media/ephmount"))
+    storages_cs = Defaults.get_additional_storages(Platform.CLOUDSTACK,
+                                                   Volume(Platform.CLOUDSTACK, snapshot="snapshot_id"),
+                                                   Volume(Platform.CLOUDSTACK, category="raid",
+                                                          mount_point="/media/raidmount", type="fixed", size=20,
+                                                          level=5))
 
     print("=== EC2 defaults")
     print(default_storages_ec2)
     print("=== GCE defaults")
     print(default_storages_gce)
+    print("=== CS defaults")
+    print(default_storages_cs)
     print("=== EC2 custom")
     print(storages_ec2)
     print("=== GCE custom")
     print(storages_gce)
+    print("=== CS custom")
+    print(storages_cs)
 
     # invalid volume specification
     # invalid_1 = Defaults.get_additional_storages(Platform.EC2,
