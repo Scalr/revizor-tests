@@ -14,7 +14,7 @@ Feature: HAProxy load balancer role
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Testing proxy delete
-        When I delete haproxy proxy P1 in haproxy role
+        When I delete proxy P1 in haproxy role
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         Then W1 config should not contains P1

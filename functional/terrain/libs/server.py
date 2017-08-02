@@ -1,15 +1,11 @@
-__author__ = 'gigimon'
-
 import time
 import logging
 import traceback
-
 from datetime import datetime
 from distutils.util import strtobool
 
-from lettuce import world
-
 import requests
+from lettuce import world
 
 try:
     import winrm
