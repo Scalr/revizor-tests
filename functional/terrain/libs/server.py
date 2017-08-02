@@ -363,9 +363,8 @@ def wait_unstored_message(server, message_name, message_type='out', timeout=600)
     LOG.info('Searching message "%s/%s" on %s node' % (message_type, message_name, server.id))
     start_time = time.time()
     while time.time() - start_time < timeout:
-
         list_messages = reversed(world.get_szr_messages(node, convert=True))
-        LOG.info('List node messages: %s' % list(list_messages))
+        LOG.debug('List node messages: %s' % list(list_messages))
         messages = filter(
             lambda m: all((m.name == message_name, m.direction == message_type)),
             list_messages)
