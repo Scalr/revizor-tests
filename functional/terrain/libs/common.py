@@ -1,7 +1,6 @@
 import sys
 import socket
 import logging
-import collections
 import re
 import semver
 from distutils.version import LooseVersion
@@ -14,8 +13,11 @@ from lxml import etree
 from revizor2.api import Server
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus
+from revizor2.utils import DictToObj
 
 LOG = logging.getLogger(__name__)
+
+
 
 
 IP_RESOLVER_SITES = (
@@ -179,7 +181,7 @@ def wait_site_response(domain, msg, proto='http', **kwargs):
 
 
 @world.absorb
-def get_szr_messages(node):
+def get_szr_messages(node, convert=False):
     LOG.info('Get messages list from server %s' % node.id)
     out = node.run('szradm list-messages')
 
@@ -195,10 +197,15 @@ def get_szr_messages(node):
 
     lines = map(split_tline, lines)
     # get column names
-    head = lines.pop(0)
+    column_names = lines.pop(0)
+    # remove special chars in the end of head
+    head = map(lambda name: re.split(r"([\_\-\+\?\!])$", name)[0], column_names)
 
     # [{column_name: value}]
     messages = [dict(zip(head, line)) for line in lines]
+    if convert:
+        messages = map(lambda m: DictToObj(m), messages)
+
     LOG.info('Server messages: %s' % messages)
     return messages
 
