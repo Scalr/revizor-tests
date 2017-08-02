@@ -2,8 +2,8 @@
     "BEHAVIOR": "percona",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2", "-slavedatabundle"], "default": true},
-        "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle"],
-        "idcf": ["cloudstack", "-grow", "-backup", "-slavedatabundle"],
+        "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle", "-lvm"],
+        "idcf": ["cloudstack", "-grow", "-backup", "-slavedatabundle", "-lvm"],
         "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle"],
         "openstack": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
     },

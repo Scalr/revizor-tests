@@ -2,9 +2,9 @@
     "BEHAVIOR": "mariadb",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2", "-slavedatabundle"], "default": true},
-        "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle"],
-        "idcf": ["cloudstack", "-grow", "-backup", "-slavedatabundle"],
-        "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle"],
+        "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle", "-lvm"],
+        "idcf": ["cloudstack", "-grow", "-backup", "-slavedatabundle", "-lvm"],
+        "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle", "-lvm"],
         "openstack": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
     },
     "RV_STORAGE": {
