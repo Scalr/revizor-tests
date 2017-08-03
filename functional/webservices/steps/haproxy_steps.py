@@ -236,7 +236,7 @@ def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
     raise AssertionError("Healthcheck parameters not found in backends for port: %s" % port)
 
 
-@step(r'I delete haproxy proxy ([\w\d]+) in ([\w\d]+) role')
+@step(r'I remove proxy ([\w\d]+) in ([\w\d]+) role')
 def delete_haproxy_proxy(step, proxy_name, proxy_role):
     LOG.info("Delete haproxy proxy %s" % proxy_name)
     proxy_role = world.get_role(proxy_role)

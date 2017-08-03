@@ -355,6 +355,7 @@ def farm_servers_state(state):
             return False
     return True
 
+
 @world.absorb
 def wait_unstored_message(server, message_name, message_type='out', timeout=600):
     node = world.cloud.get_node(server)
@@ -364,10 +365,7 @@ def wait_unstored_message(server, message_name, message_type='out', timeout=600)
     start_time = time.time()
     while time.time() - start_time < timeout:
         list_messages = reversed(world.get_szr_messages(node, convert=True))
-        LOG.debug('List node messages: %s' % list(list_messages))
-        messages = filter(
-            lambda m: all((m.name == message_name, m.direction == message_type)),
-            list_messages)
+        messages = filter(lambda m: m.name == message_name and m.direction == message_type, list_messages)
         for message in messages:
             if message.id in lookup_messages:
                 LOG.info('Message already lookuped %s' % message.id)
