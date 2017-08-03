@@ -1,14 +1,10 @@
-__author__ = 'gigimon'
-
 import re
 import logging
 import time
-import requests
 
 from lettuce import world, step
 
 from revizor2.utils import wait_until
-from revizor2.fixtures import resources
 
 
 LOG = logging.getLogger(__name__)
@@ -234,15 +230,6 @@ def verify_healtcheck_parameters(step, interval, fall, rise, serv_as, port):
             raise AssertionError("Healtcheck parameters invalid, must be: %s but %s" % (healthcheck, config_healthcheck))
         return True
     raise AssertionError("Healthcheck parameters not found in backends for port: %s" % port)
-
-
-@step(r'I remove proxy ([\w\d]+) in ([\w\d]+) role')
-def delete_haproxy_proxy(step, proxy_name, proxy_role):
-    LOG.info("Delete haproxy proxy %s" % proxy_name)
-    proxy_role = world.get_role(proxy_role)
-    proxy = getattr(world, '%s_proxy' % proxy_name)
-    LOG.info("Delete haproxy proxy for port %s" % proxy['port'])
-    proxy_role.delete_haproxy_proxy(proxy['port'])
 
 
 @step(r'([\w\d]+) config should not contains ([\w\d]+)')
