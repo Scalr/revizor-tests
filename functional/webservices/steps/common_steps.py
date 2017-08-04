@@ -124,7 +124,7 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
 
 
 @step(r"I delete proxy ([\w\d]+) in ([\w\d]+) role")
-def delete_proxy_f(step, proxy_name, proxy_role):
+def delete_proxy(step, proxy_name, proxy_role):
     proxy = getattr(world, '%s_proxy' % proxy_name)
     role = world.get_role(proxy_role)
     if 'www' in role.role.behaviors:

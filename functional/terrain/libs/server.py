@@ -351,6 +351,72 @@ def farm_servers_state(state):
             return False
     return True
 
+@world.absorb
+def wait_unstored_message(server, message_name, message_type='out', timeout=600):
+    node = world.cloud.get_node(server)
+    lookup_messages = getattr(world, '_server_%s_lookup_messages' % server.id, [])
+    message_type = 'in' if message_type.strip() in ('sends', 'out') else 'out'
+    LOG.info('Searching message "%s/%s" on %s node' % (message_type, message_name, server.id))
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        list_messages = reversed(world.get_szr_messages(node, convert=True))
+        LOG.debug('List node messages: %s' % list(list_messages))
+        messages = filter(
+            lambda m: all((m.name == message_name, m.direction == message_type)),
+            list_messages)
+        for message in messages:
+            if message.id in lookup_messages:
+                LOG.info('Message already lookuped %s' % message.id)
+                continue
+            elif strtobool(message.handled):
+                LOG.info('Message found: %s' % message.id)
+                lookup_messages.append(message.id)
+                setattr(world,
+                        '_server_%s_lookup_messages' % server.id,
+                        lookup_messages)
+                return server
+            else:
+                LOG.info('Message not handled: %s' % message.id)
+                break
+        time.sleep(30)
+    else:
+        raise MessageNotFounded('%s/%s was not finding on %s node' % (
+            message_type,
+            message_name,
+            server.id))
+
+
+@world.absorb
+def wait_unstored_message(server, message_name, message_type='out', timeout=600):
+    node = world.cloud.get_node(server)
+    lookup_messages = getattr(world, '_server_%s_lookup_messages' % server.id, [])
+    message_type = 'in' if message_type.strip() in ('sends', 'out') else 'out'
+    LOG.info('Searching message "%s/%s" on %s node' % (message_type, message_name, server.id))
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        list_messages = reversed(world.get_szr_messages(node, convert=True))
+        messages = filter(lambda m: m.name == message_name and m.direction == message_type, list_messages)
+        for message in messages:
+            if message.id in lookup_messages:
+                LOG.info('Message already lookuped %s' % message.id)
+                continue
+            elif strtobool(message.handled):
+                LOG.info('Message found: %s' % message.id)
+                lookup_messages.append(message.id)
+                setattr(world,
+                        '_server_%s_lookup_messages' % server.id,
+                        lookup_messages)
+                return server
+            else:
+                LOG.info('Message not handled: %s' % message.id)
+                break
+        time.sleep(30)
+    else:
+        raise MessageNotFounded('%s/%s was not finding on %s node' % (
+            message_type,
+            message_name,
+            server.id))
+
 
 @world.absorb
 def wait_unstored_message(server, message_name, message_type='out', timeout=600):
