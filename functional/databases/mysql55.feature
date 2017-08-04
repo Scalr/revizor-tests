@@ -104,7 +104,7 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @slavetermination
     Scenario: Slave force termination
         When I force terminate M2
-        Then Scalr sends HostDown to M1
+        Then Scalr sends HostDown to M1 without saving to the database
         And not ERROR in M1 scalarizr log
         And mysql is running on M1
         Then I expect server bootstrapping as M2
@@ -154,7 +154,7 @@ Feature: MySQL database server with behavior mysql2
         And mysql2 replication status is up
         Then I get mysql2 master storage id
         And I terminate server M1 with decrease
-        Then Scalr sends DbMsr_PromoteToMaster to N1
+        Then Scalr sends DbMsr_PromoteToMaster to N1 without saving to the database
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And DbMsr_PromoteToMasterResult message on N1 does not contain errors
         And Scalr sends DbMsr_NewMasterUp to all
