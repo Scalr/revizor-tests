@@ -111,7 +111,7 @@ Feature: Redis database server functional test
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
     Scenario: Slave force termination
         When I force terminate M2
-        Then Scalr sends HostDown to M1
+        Then Scalr sends HostDown to M1 without saving to the database
         And not ERROR in M1 scalarizr log
         And redis is running on M1
         Then I expect server bootstrapping as M2
@@ -153,7 +153,7 @@ Feature: Redis database server functional test
         When I create database 3 on M1
         And all contains database 3
         And I terminate server M1 with decrease
-        Then Scalr sends DbMsr_PromoteToMaster to N1
+        Then Scalr sends DbMsr_PromoteToMaster to N1 without saving to the database
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And DbMsr_PromoteToMasterResult message on N1 does not contain errors
         And Scalr sends DbMsr_NewMasterUp to all
