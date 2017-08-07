@@ -98,7 +98,7 @@ Feature: mariadb database server with behavior mariadb
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
     Scenario: Slave force termination
         When I force terminate M2
-        Then Scalr sends HostDown to M1
+        Then Scalr sends HostDown to M1 without saving to the database
         And not ERROR in M1 scalarizr log
         And mariadb is running on M1
         Then I expect server bootstrapping as M2
@@ -148,10 +148,10 @@ Feature: mariadb database server with behavior mariadb
         And mariadb replication status is up
         Then I get mariadb master storage id
         And I terminate server M1 with decrease
-        Then Scalr sends DbMsr_PromoteToMaster to N1
+        Then Scalr sends DbMsr_PromoteToMaster to N1 without saving to the database
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And DbMsr_PromoteToMasterResult message on N1 does not contain errors
-        And Scalr sends DbMsr_NewMasterUp to all
+        And Scalr sends DbMsr_NewMasterUp to all without saving to the database
         And I verify mariadb master storage id
         And mariadb replication status is up
         And M2 contains database D3

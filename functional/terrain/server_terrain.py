@@ -105,14 +105,11 @@ def server_state_action(step, action, reboot_type, serv_as):
 def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_message=None, timeout=1500):
     """Check scalr in/out message delivering"""
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
+    find_message = getattr(world, 'wait_unstored_message' if unstored_message else 'wait_server_message')
     if serv_as == 'all':
         world.farm.servers.reload()
-        server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
-        world.wait_server_message(server,
-                                  msg.strip(),
-                                  msgtype,
-                                  find_in_all=True,
-                                  timeout=timeout)
+        servers = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
+        find_message(servers, msg.strip(), msgtype, find_in_all=True, timeout=timeout)
     else:
         try:
             LOG.info('Try get server %s in world' % serv_as)
@@ -123,7 +120,6 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_me
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
         LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
         try:
-            find_message = getattr(world, 'wait_unstored_message' if unstored_message else 'wait_server_message')
             s = find_message(server, msg.strip(), msgtype, timeout=timeout)
             setattr(world, serv_as, s)
         except MessageFailed:
