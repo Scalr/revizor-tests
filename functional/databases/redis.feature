@@ -156,7 +156,7 @@ Feature: Redis database server functional test
         Then Scalr sends DbMsr_PromoteToMaster to N1 without saving to the database
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And DbMsr_PromoteToMasterResult message on N1 does not contain errors
-        And Scalr sends DbMsr_NewMasterUp to all
+        And Scalr sends DbMsr_NewMasterUp to all without saving to the database
         And M2 contains database 3
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @promotion

@@ -157,7 +157,7 @@ Feature: MySQL database server with behavior mysql2
         Then Scalr sends DbMsr_PromoteToMaster to N1 without saving to the database
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And DbMsr_PromoteToMasterResult message on N1 does not contain errors
-        And Scalr sends DbMsr_NewMasterUp to all
+        And Scalr sends DbMsr_NewMasterUp to all without saving to the database
         And I verify mysql2 master storage id
         And mysql2 replication status is up
         And M2 contains database D3 by user 'revizor'
