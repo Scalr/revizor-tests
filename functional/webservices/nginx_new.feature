@@ -36,7 +36,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then I expect server bootstrapping as A3
         And W1 upstream list should contains A1, A2, A3
         Then I force terminate server A3 with decrease
-        And Scalr sends HostDown to W1
+        And Scalr sends HostDown to W1 without saving to the database
         And W1 upstream list should not contain A3
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
