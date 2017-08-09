@@ -1,11 +1,11 @@
 {
     "BEHAVIOR": "redis",
     "RV_PLATFORM": {
-        "ec2": {"tags": ["ec2", "-lvm"], "default": true},
-        "gce": ["gce", "-volumes", "-reboot", "-grow", "-lvm"],
-        "idcf": ["cloudstack", "-grow", "-backup", "-lvm"],
-        "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-lvm"],
-        "openstack": ["openstack", "-volumes", "-grow", "-lvm"]
+        "ec2": {"tags": ["ec2"], "default": true},
+        "gce": ["gce", "-volumes", "-reboot", "-grow"],
+        "idcf": ["cloudstack", "-grow", "-backup"],
+        "rackspacengus": ["rackspaceng", "-volumes", "-grow"],
+        "openstack": ["openstack", "-volumes", "-grow"]
     },
     "RV_STORAGE": {
         "persistent": {"tags": ["-lvm"], "default": true},

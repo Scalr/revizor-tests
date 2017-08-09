@@ -2,8 +2,8 @@
     "BEHAVIOR": "mysql2",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2", "-slavedatabundle"], "default": true},
-        "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle", "-lvm"cd],
-        "idcf": ["cloudstack", "-grow", "-backup", "-volumes", "-slavedatabundle", "-lvm"],
+        "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle"],
+        "idcf": ["cloudstack", "-grow", "-backup", "-volumes", "-slavedatabundle"],
         "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle"],
         "openstack": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
     },
@@ -13,6 +13,7 @@
         "raid5": ["-volumes", "-lvm", "-persistent"],
         "raid10": ["-volumes", "-lvm", "-grow"],
         "raid1": ["-volumes", "-lvm", "-persistent"],
-        "raid0": ["-volumes", "-lvm", "-grow"]
+        "raid0": ["-volumes", "-lvm", "-grow"],
+        "lvm": ["-volumes", "-grow", "-persistent"]
     }
 }

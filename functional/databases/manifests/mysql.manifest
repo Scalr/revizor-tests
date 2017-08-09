@@ -2,7 +2,7 @@
     "BEHAVIOR": "mysql",
     "RV_PLATFORM": {
         "ec2": {"tags": ["ec2"], "default": true},
-        "idcf": ["cloudstack", "-backup", "-volumes", "-lvm"]
+        "idcf": ["cloudstack", "-backup", "-volumes"]
     },
     "RV_STORAGE": {
         "persistent": {"tags": [], "default": true}
