@@ -132,10 +132,9 @@ def having_branch_copy(step, branch=None, is_patched=False):
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
-    time_until = time.time() + 2400
     err_msg = ''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while time.time() <= time_until:
+    while True:
         # Get build status
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
@@ -146,9 +145,8 @@ def waiting_new_package(step):
                 return
             elif status.state == 'failure':
                 err_msg = 'Drone status is failed'
-                break
+                raise AssertionError('Build status failed. %s' % err_msg)
         time.sleep(60)
-    raise AssertionError(err_msg or 'Timeout or build status failed.')
 
 
 @step(r'I have a clean image')
