@@ -3,8 +3,7 @@ import requests
 
 from lettuce import world, step
 
-from revizor2.api import Certificate, IMPL
-from revizor2.conf import CONF
+from revizor2.api import IMPL
 from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
@@ -112,13 +111,6 @@ def modify_nginx_proxy(step, proxy, role_type, ip_hash):
 
     LOG.info("Save proxy changes with backends:\n%s\n templates:\n%s" % (backends, new_templates))
     role.edit_nginx_proxy(proxy['hostname'], proxy['port'], backends, new_templates, ip_hash=ip_hash)
-
-
-@step(r"I delete proxy ([\w\d]+) in ([\w\d]+) role")
-def delete_nginx_proxy(step, proxy_name, proxy_role):
-    proxy = getattr(world, '%s_proxy' % proxy_name)
-    role = world.get_role(proxy_role)
-    role.delete_nginx_proxy(proxy['hostname'])
 
 
 @step(r"'([\w\d_ =:\.]+)' in ([\w\d]+) upstream file")

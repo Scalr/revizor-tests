@@ -1,13 +1,11 @@
-__author__ = 'gigimon'
-
 import time
 import logging
 import traceback
 from datetime import datetime
+from distutils.util import strtobool
 
 import requests
 from lettuce import world
-from libcloud.compute.types import NodeState
 
 try:
     import winrm
@@ -22,7 +20,7 @@ from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
     ServerFailed, TimeoutError, \
     MessageNotFounded, MessageFailed,\
-    EventNotFounded, OSFamilyValueFailed
+    OSFamilyValueFailed
 
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
@@ -34,7 +32,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'p2p_message',
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
-    'error was thrown due to the hostname format'
+    'error was thrown due to the hostname format',
+    'Unable to synchronize time, cause ntpdate binary is not found' # FAM-1050
 ]
 
 # Run powershell script as Administrator
@@ -109,30 +108,44 @@ def run_cmd_command(server, command, raise_exc=True):
 
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
-    if isinstance(node, Server):
-        node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
+    if server:
+        server.reload()
+        if not server.public_ip:
+            LOG.debug('Server has no public IP yet')
+            return
+    else:
+        if isinstance(node, Server):
+            node = world.cloud.get_node(node)
+        if not node.public_ips or not node.public_ips[0]:
+            LOG.debug('Node has no public IP yet')
+            return
     try:
         if windows:
-            log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type, raise_exc=False)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
-            log_out = (node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type))[0]
+            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type))[0]
             LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
         LOG.error(traceback.format_exc())
         return
-    for line in log_out.splitlines():
+
+    lines = log_out.splitlines()
+    for i, line in enumerate(lines):
         ignore = False
         LOG.debug('Verify line "%s" for errors' % line)
         log_date = None
         log_level = None
+        line_number = -1
         now = datetime.now()
         try:
+            line_number = int(line.split(':', 1)[0])
+            line = line.split(':', 1)[1]
             log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
             log_level = line.strip().split()[3]
         except (ValueError, IndexError):
@@ -155,6 +168,11 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
         if log_level == 'ERROR':
             LOG.error('Found ERROR in scalarizr_%s.log:\n %s' % (log_type, line))
             raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+
+        if log_level == 'WARNING' and i < len(lines) - 1:
+            if '%s:Traceback' % (line_number + 1) in lines[i+1]:
+                LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
+                raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
 
 @world.absorb
@@ -335,6 +353,46 @@ def farm_servers_state(state):
 
 
 @world.absorb
+def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=600):
+    if not isinstance(servers, (list, tuple)):
+        servers = [servers]
+    delivered_to = []
+    message_type = 'in' if message_type.strip() in ('sends', 'out') else 'out'
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if delivered_to == servers:
+            LOG.info('All servers has message: %s / %s' % (message_type, message_name))
+            break
+        for server in servers:
+            if server in delivered_to:
+                continue
+            LOG.info('Searching message "%s/%s" on %s node' % (message_type, message_name, server.id))
+            node = world.cloud.get_node(server)
+            lookup_messages = getattr(world, '_server_%s_lookup_messages' % server.id, [])
+            node_messages = reversed(world.get_szr_messages(node, convert=True))
+            message = filter(lambda m:
+                             m.name == message_name
+                             and m.direction == message_type
+                             and m.id not in lookup_messages
+                             and strtobool(m.handled), node_messages)
+
+            if message:
+                LOG.info('Message found: %s' % message[0].id)
+                lookup_messages.append(message[0].id)
+                setattr(world,
+                        '_server_%s_lookup_messages' % server.id,
+                        lookup_messages)
+                if find_in_all:
+                    LOG.info('Message %s delivered to the server %s' % (message_name, server.id))
+                    delivered_to.append(server)
+                    continue
+                return server
+        time.sleep(30)
+    else:
+        raise MessageNotFounded('%s/%s was not finding' % (message_type, message_name))
+
+
+@world.absorb
 def wait_server_message(server, message_name, message_type='out', find_in_all=False, timeout=600):
     """
     Wait message in server list (or one server). If find_in_all is True, wait this message in all
@@ -368,18 +426,13 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
         return False
 
     message_type = 'in' if message_type.strip() not in ('sends', 'out') else 'out'
-
     if not isinstance(server, (list, tuple)):
         servers = [server]
     else:
         servers = server
-
     LOG.info('Try found message %s / %s in servers %s' % (message_type, message_name, servers))
-
     start_time = time.time()
-
     delivered_servers = []
-
     while time.time() - start_time < timeout:
         if not find_in_all:
             for serv in servers:

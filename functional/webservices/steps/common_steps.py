@@ -121,3 +121,13 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
     if not ip in out[0]:
         raise AssertionError('Not see my IP in access log')
     LOG.info('My public IP %s in %s access log' % (ip, server.id))
+
+
+@step(r"I delete proxy ([\w\d]+) in ([\w\d]+) role")
+def delete_proxy(step, proxy_name, proxy_role):
+    proxy = getattr(world, '%s_proxy' % proxy_name)
+    role = world.get_role(proxy_role)
+    if 'www' in role.role.behaviors:
+        role.delete_nginx_proxy(proxy['hostname'])
+    elif 'haproxy' in role.role.behaviors:
+        role.delete_haproxy_proxy(proxy['port'])
