@@ -134,7 +134,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
 def waiting_new_package(step):
     '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while True:
+    for i in range(80):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
             status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
