@@ -71,7 +71,7 @@ def start_basehttpserver(step, port, serv_as):
         node.run('apt-get install screen -y')
     elif CONF.feature.dist.is_centos:
         node.run('yum install screen -y')
-    #node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
+    node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
     if node.run('which python3')[2] == 0:
         python_alias = 'python3'
     else:

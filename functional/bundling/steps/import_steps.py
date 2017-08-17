@@ -22,7 +22,7 @@ def assert_role_task_created(step,  timeout=1400):
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
     world.bundled_role_id = res['role_id']
     #Remove port forward rule for Cloudstack
-    if any((PLATFORM.is_cloudstack, PLATFORM.is_ucloud)):
+    if PLATFORM.is_cloudstack:
         LOG.info('Deleting a Port Forwarding Rule. IP:%s, Port:%s' % (world.forwarded_port, world.ip))
         if not world.cloud.close_port(world.cloud_server, world.forwarded_port, ip=world.ip):
             raise AssertionError("Can't delete a port forwarding Rule.")

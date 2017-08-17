@@ -386,8 +386,9 @@ def start_building(step):
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
-    res = IMPL.bundle.import_start(platform=PLATFORM.driver,
-                                   location=CONF.platforms[PLATFORM.driver]['location'],
+    platform = PLATFORM.driver
+    res = IMPL.bundle.import_start(platform=platform,
+                                   location=CONF.platforms[platform]['location'],
                                    cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
     if not res:
