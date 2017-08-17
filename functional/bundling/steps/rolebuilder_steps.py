@@ -23,10 +23,10 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if not 'chef' in behaviors:
         behaviors.append('chef')
 
-    location = CONF.platforms[CONF.feature.platform]['location']
+    platform = PLATFORM.driver
+    location = CONF.platforms[platform]['location']
     if PLATFORM.is_gce:
         location = 'all'
-    platform = PLATFORM.driver
     os_id = CONF.feature.dist.id
     try:
         if any((PLATFORM.is_gce, PLATFORM.is_ecs)):
