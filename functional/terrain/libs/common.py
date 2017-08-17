@@ -51,7 +51,7 @@ def run_only_if(*args, **kwargs):
             version = m.group(1).replace('b', '')
     current = []
     if kwargs.get('platform'):
-        current.append(CONF.feature.driver.current_cloud)
+        current.append(CONF.feature.platform.driver)
     if kwargs.get('storage'):
         current.append(CONF.feature.storage)
     if kwargs.get('dist'):

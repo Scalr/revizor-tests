@@ -15,7 +15,7 @@ except ImportError:
 from revizor2.api import Server
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
-from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
+from revizor2.consts import ServerStatus, MessageStatus, Dist
 
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
     ServerFailed, TimeoutError, \
@@ -25,6 +25,7 @@ from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
 LOG = logging.getLogger(__name__)
+PLATFORM = CONF.feature.platform
 
 
 SCALARIZR_LOG_IGNORE_ERRORS = [
@@ -53,9 +54,9 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 password = password or server.windows_password
                 if not password:
                     password = 'Scalrtest123'
-            if CONF.feature.driver.current_cloud in (Platform.AZURE, Platform.GCE):
+            if any((PLATFORM.is_gce, PLATFORM.is_azure)):
                 username = 'scalr'
-            elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
+            elif PLATFORM.is_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
                 port = world.cloud.open_port(node, port)
             LOG.info('Used credentials for windows session: %s:%s %s:%s' % (public_ip, port, username, password))
@@ -236,7 +237,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('Check lookup server launch failed')
             if lookup_server.is_launch_failed:
                 failed_message = lookup_server.get_failed_status_message()
-                if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK \
+                if PLATFORM.is_cloudstack \
                 and ('Can not decode json response data' in failed_message
                      or 'Cannot establish connection with CloudStack server. (Server returned nothing )' in failed_message):
                     time.sleep(90)
@@ -270,7 +271,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status in ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
+                if not Dist(lookup_server.role.dist).is_windows and not PLATFORM.is_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
                     verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
@@ -283,7 +284,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 LOG.debug('Check scalarizr debug log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
+                if not Dist(lookup_server.role.dist).is_windows and not PLATFORM.is_azure:
                     verify_scalarizr_log(lookup_node)
                 else:
                     verify_scalarizr_log(lookup_node, windows=True, server=lookup_server)
@@ -301,7 +302,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
                     lookup_server.messages.reload()
-                    if CONF.feature.driver.is_platform_azure \
+                    if PLATFORM.is_azure \
                             and not Dist(lookup_server.role.dist).is_windows \
                             and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
                         LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)

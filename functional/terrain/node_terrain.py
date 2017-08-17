@@ -6,7 +6,6 @@ import logging
 import urllib2
 import collections
 import re
-from datetime import datetime
 
 from lettuce import world, step
 
@@ -21,7 +20,7 @@ from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
     DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
-from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
+from revizor2.consts import Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
 from revizor2.fixtures import tables
 
@@ -36,11 +35,12 @@ PLATFORM_TERMINATED_STATE = collections.namedtuple('terminated_state', ('gce', '
     'stopped')
 
 LOG = logging.getLogger(__name__)
+PLATFORM = CONF.feature.platform
 
 #User data fixtures
 #ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
 USER_DATA = {
-                Platform.EC2: {
+                PLATFORM.EC2: {
                     "behaviors": "base,chef",
                     "farmid": "16674",
                     "message_format": "json",
@@ -65,7 +65,7 @@ USER_DATA = {
                     "cloud_storage_path": "s3://"
                 },
 
-                Platform.GCE: {
+                PLATFORM.GCE: {
                     "p2p_producer_endpoint": "https://my.scalr.com/messaging",
                     "behaviors": "app",
                     "owner_email": "stunko@scalr.com",
@@ -89,7 +89,7 @@ USER_DATA = {
                     "server_index": "1"
                 },
 
-                Platform.OPENSTACK: {
+                PLATFORM.OPENSTACK: {
                     "p2p_producer_endpoint": "https://my.scalr.com/messaging",
                     "behaviors": "base,chef",
                     "owner_email": "stunko@scalr.com",
@@ -112,7 +112,7 @@ USER_DATA = {
                     "server_index": "1"
                 },
 
-                Platform.CLOUDSTACK: {
+                PLATFORM.CLOUDSTACK: {
                     "p2p_producer_endpoint": "https://my.scalr.com/messaging",
                     "behaviors": "base,chef",
                     "owner_email": "stunko@scalr.com",
@@ -199,7 +199,7 @@ class VerifyProcessWork(object):
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
-        if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
+        if PLATFORM.is_cloudstack and world.cloud._driver.use_port_forwarding():
             port = server.details['scalarizr.ctrl_port']
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
@@ -261,13 +261,14 @@ def pin_repo(step, repo, serv_as):
 def update_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
+    platform = PLATFORM.driver
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')
-        node.run('apt-get install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
+        node.run('apt-get install scalarizr-base scalarizr-%s -y' % platform)
     elif 'centos' in node.os[0].lower():
         LOG.info('Update scalarizr in CentOS')
-        node.run('yum install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
+        node.run('yum install scalarizr-base scalarizr-%s -y' % platform)
 
 
 @step('process ([\w-]+) is (not\s)*running in ([\w\d]+)$')
@@ -300,7 +301,7 @@ def verify_port_status(step, port, closed, serv_as):
     if not CONF.feature.dist.is_windows:
         #world.set_iptables_rule(server, port)
         pass
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
+    if PLATFORM.is_cloudstack and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
 
     results = []
@@ -339,7 +340,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
+    if PLATFORM.is_cloudstack and world.cloud._driver.use_port_forwarding():
         #TODO: Change login on this behavior
         port = world.cloud.open_port(node, port, ip=server.public_ip)
     if service in BEHAVIORS_ALIASES.values():
@@ -538,9 +539,9 @@ def get_ebs_for_instance(step, serv_as):
     server = getattr(world, serv_as)
     volumes = server.get_volumes()
     LOG.debug('Volumes for server %s is: %s' % (server.id, volumes))
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if PLATFORM.is_ec2:
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
-    elif CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
+    elif PLATFORM.is_cloudstack:
         storages = filter(lambda x: x.extra['volume_type'] == 'DATADISK', volumes)
     else:
         return
@@ -553,7 +554,7 @@ def get_ebs_for_instance(step, serv_as):
 @step('([\w]+) storage is (.+)$')
 def check_ebs_status(step, serv_as, status):
     """Check EBS storage status"""
-    if CONF.feature.driver.is_platform_gce:
+    if PLATFORM.is_gce:
         return
     time.sleep(30)
     server = getattr(world, serv_as)
@@ -684,7 +685,7 @@ def creating_image(step, image_type=None):
         node=cloud_server,
         name=image_name,
     )
-    if CONF.feature.driver.is_platform_ec2:
+    if PLATFORM.is_ec2:
         kwargs.update({'reboot': True})
     cloud_server.run('sync')
     image = world.cloud.create_template(**kwargs)
@@ -694,12 +695,12 @@ def creating_image(step, image_type=None):
     setattr(world, 'image', image)
     LOG.debug('Image attrs: %s' % dir(image))
     LOG.debug('Image Name: %s' % image.name)
-    if CONF.feature.driver.is_platform_cloudstack:
+    if PLATFORM.is_cloudstack:
         forwarded_port = world.forwarded_port
         ip = world.ip
         assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
     LOG.info('Port forwarding rule was successfully removed.')
-    if not CONF.feature.driver.is_platform_gce:
+    if not PLATFORM.is_gce:
         assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
@@ -709,14 +710,15 @@ def creating_image(step, image_type=None):
 def creating_role(step, image_type=None, non_scalarized=None):
     image = getattr(world, 'image')
     image_type = (image_type or 'base').strip()
-    if CONF.feature.driver.is_platform_gce:
+    platform = PLATFORM.driver
+    if PLATFORM.is_gce:
         cloud_location = ""
         image_id = image.extra['selfLink'].split('projects')[-1][1:]
     else:
-         cloud_location = CONF.platforms[CONF.feature.platform]['location']
+         cloud_location = CONF.platforms[platform]['location']
          image_id = image.id
     image_kwargs = dict(
-        platform=CONF.feature.driver.scalr_cloud,
+        platform=platform,
         cloud_location=cloud_location,
         image_id=image_id
     )
@@ -762,10 +764,10 @@ def creating_role(step, image_type=None, non_scalarized=None):
             role_name = role_name[:50].strip('-')
         role_kwargs = dict(
             name=role_name,
-            is_scalarized = int(is_scalarized or has_cloudinit),
+            is_scalarized=int(is_scalarized or has_cloudinit),
             behaviors=role_behaviors,
             images=[dict(
-                platform=CONF.feature.driver.scalr_cloud,
+                platform=platform,
                 cloudLocation=cloud_location,
                 hash=image['hash'])])
         LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
@@ -783,7 +785,7 @@ def run_sysprep(uuid, console):
                 '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
                 '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
     try:
-        console.run_cmd(cmd.get(CONF.feature.driver.scalr_cloud))
+        console.run_cmd(cmd.get(PLATFORM.driver))
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
@@ -800,12 +802,12 @@ def run_sysprep(uuid, console):
 
 
 def get_user_name():
-    if CONF.feature.driver.is_platform_gce:
+    if any((PLATFORM.is_gce, PLATFORM.is_azure)):
         user_name = ['scalr']
     elif CONF.feature.dist.dist == 'ubuntu':
         user_name = ['root', 'ubuntu']
     elif CONF.feature.dist.dist == 'amazon' or \
-            (CONF.feature.dist.dist == 'redhat' and CONF.feature.driver.is_platform_ec2):
+            (CONF.feature.dist.dist == 'redhat' and PLATFORM.is_ec2):
         user_name = ['root', 'ec2-user']
     else:
         user_name = ['root']
@@ -826,7 +828,7 @@ def get_repo_type(custom_branch, custom_version=None):
 
         def __extend_repo_type(self, value):
             rt = value.split('/')
-            rt.insert(1, CONF.feature.driver.scalr_cloud)
+            rt.insert(1, PLATFORM.driver)
             return '/'.join(rt)
 
         def __getitem__(self, key):
@@ -879,7 +881,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 password=password)
         else:
             console_kwargs = dict(server=server)
-            if CONF.feature.driver.is_platform_ec2:
+            if PLATFORM.is_ec2:
                 console_kwargs.update({'password': password})
             LOG.debug('Cloud server not found get node from server')
             node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
@@ -939,8 +941,8 @@ def given_server_in_cloud(step, user_data):
     #Convert dict to formatted str
     if user_data:
         dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
-        user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family])
-        if CONF.feature.driver.is_platform_gce:
+        user_data = dict_to_str(USER_DATA[PLATFORM.cloud_family])
+        if PLATFORM.is_gce:
             user_data = {'scalr': user_data}
     else:
         user_data = None
@@ -950,12 +952,12 @@ def given_server_in_cloud(step, user_data):
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
-            platform=CONF.feature.platform)
+            platform=PLATFORM.driver)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
     node = world.cloud.create_node(userdata=user_data, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
-    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if PLATFORM.is_cloudstack:
         #Run command
         out = node.run('wget -qO- ifconfig.me/ip')
         if not out[1]:

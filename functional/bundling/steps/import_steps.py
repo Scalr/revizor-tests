@@ -4,7 +4,6 @@ import logging
 from lettuce import world, step, after
 from revizor2.conf import CONF
 from revizor2.api import IMPL
-from revizor2.consts import Platform
 from revizor2.utils import wait_until
 
 PLATFORM = CONF.feature.platform
