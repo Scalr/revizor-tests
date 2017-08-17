@@ -147,7 +147,7 @@ def waiting_new_package(step):
                     'Build status is %s . Drone status is failed!' % (status.state))
         time.sleep(60)
     LOG.error('Get build status: Time out of range 90 min!')
-    raise AssertionError(
+    raise Exception(
         'Time out of range 90 min! Build status is not success or failure. Drone status == %s' % status.state)
 
 
