@@ -133,11 +133,9 @@ def having_branch_copy(step, branch=None, is_patched=False):
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
-    time_until = time.time() + 2400
-    err_msg = ''
+    '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while time.time() <= time_until:
-        # Get build status
+    for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
             status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
@@ -146,10 +144,12 @@ def waiting_new_package(step):
                 LOG.info('Drone status: %s' % status.description)
                 return
             elif status.state == 'failure':
-                err_msg = 'Drone status is failed'
-                break
+                raise AssertionError(
+                    'Build status is %s . Drone status is failed!' % (status.state))
         time.sleep(60)
-    raise AssertionError(err_msg or 'Timeout or build status failed.')
+    LOG.error('Get build status: Time out of range 90 min!')
+    raise Exception(
+        'Time out of range 90 min! Build status is not success or failure. Drone status == %s' % status.state)
 
 
 @step(r'I have a clean image')
