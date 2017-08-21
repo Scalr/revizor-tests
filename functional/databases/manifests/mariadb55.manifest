@@ -13,7 +13,6 @@
         "raid5": ["-volumes", "-lvm"],
         "raid10": ["-volumes", "-lvm", "-grow"],
         "raid1": ["-volumes", "-lvm"],
-        "raid0": ["-volumes", "-lvm", "-grow"],
-        "lvm": ["-volumes", "-grow"]
+        "raid0": ["-volumes", "-lvm", "-grow"]
     }
 }
