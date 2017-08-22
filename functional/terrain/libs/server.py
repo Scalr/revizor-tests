@@ -3,6 +3,7 @@ import logging
 import traceback
 from datetime import datetime
 from distutils.util import strtobool
+import re
 
 import requests
 from lettuce import world
@@ -480,6 +481,90 @@ def wait_script_execute(server, message, state):
         if message in log.message and state == log.event:
             return True
     return False
+
+
+@world.absorb
+def check_script_executed(serv_as,
+                          name=None,
+                          event=None,
+                          user=None,
+                          log_contains=None,
+                          exitcode=None,
+                          new_only=False,
+                          timeout=0):
+    """
+    Verifies that server scripting log contains info about script execution.
+    """
+    LOG.debug('Checking scripting logs on %s by parameters:'
+              '\n  script name:\t%s'
+              '\n  event:\t\t%s'
+              '\n  user:\t\t%s'
+              '\n  log_contains:\t%s'
+              '\n  exitcode:\t%s'
+              '\n  new_only:\t%s'
+              '\n  timeout:\t%s'
+              % (serv_as,
+                 name or 'Any',
+                 event or 'Any',
+                 user or 'Any',
+                 log_contains or 'Any',
+                 exitcode or 'Any',
+                 new_only,
+                 timeout))
+
+    server = getattr(world, serv_as)
+    contain = log_contains.split(';') if log_contains else []
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
+    # Convert script name, because scalr converts name to:
+    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
+    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    timeout = timeout // 10
+    for _ in range(timeout + 1):
+        time.sleep(10)
+        server.scriptlogs.reload()
+        for log in server.scriptlogs:
+            LOG.debug('Checking script log:'
+                      '\n  name:\t%s'
+                      '\n  event:\t%s'
+                      '\n  run as:\t%s'
+                      '\n  exitcode:\t%s'
+                      % (log.name, log.event, log.run_as, log.exitcode))
+            if log in last_scripts:
+                # skip old log
+                continue
+            event_matched = event is None or (log.event and log.event.strip() == event.strip())
+            user_matched = user is None or (log.run_as == user)
+            name_matched = name is None \
+                or (name == 'chef' and log.name.strip().startswith(name)) \
+                or (name.startswith('http') and log.name.strip().startswith(name)) \
+                or (name.startswith('local') and log.name.strip().startswith(name)) \
+                or log.name.strip() == name
+            if name_matched and event_matched and user_matched:
+                LOG.debug('Script log matched search parameters')
+                if exitcode is None or log.exitcode == int(exitcode):
+                    # script exitcode is valid, now check that log output contains wanted text
+                    message = log.message
+                    truncated = False
+                    LOG.debug('Log message output: %s' % message)
+                    if 'Log file truncated. See the full log in' in message:
+                        full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
+                        node = world.cloud.get_node(server)
+                        message = node.run('cat %s' % full_log_path)[0]
+                        truncated = True
+                    for cond in contain:
+                        if not truncated:
+                            cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                        if not cond.strip() in message:
+                            raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: \'%s\''
+                                                 % (event, user, message, cond))
+                    LOG.debug('This event exitcode: %s' % log.exitcode)
+                    return True
+                else:
+                    raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
+                                         % (event, user, log.exitcode, exitcode))
+
+    raise AssertionError(
+        'I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (event, user, server.id))
 
 
 @world.absorb

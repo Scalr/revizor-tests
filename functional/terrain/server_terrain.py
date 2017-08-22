@@ -166,7 +166,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
-    LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
+    setattr(world, '_server_%s_last_script_name' % server.id, script_name)
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
@@ -189,18 +189,11 @@ def script_executing(step, script_type, script_name, execute_type, serv_as):
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
     server = getattr(world, serv_as)
-    last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
-    server.scriptlogs.reload()
-    for i in range(60):
-        if not len(server.scriptlogs) == last_count + 1:
-            LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (
-            last_count, len(server.scriptlogs), last_count + 1))
-            time.sleep(10)
-            server.scriptlogs.reload()
-            continue
-        break
-    else:
-        raise AssertionError('Not see script result in script logs')
+    script_name = getattr(world, '_server_%s_last_script_name' % server.id)
+    world.check_script_executed(name=script_name,
+                                serv_as=serv_as,
+                                new_only=True,
+                                timeout=600)
 
 
 @step('wait all servers are ([\w]+)$')
