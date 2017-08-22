@@ -261,7 +261,7 @@ def pin_repo(step, repo, serv_as):
 def update_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    platform = PLATFORM.driver
+    platform = PLATFORM.name
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')
@@ -710,7 +710,7 @@ def creating_image(step, image_type=None):
 def creating_role(step, image_type=None, non_scalarized=None):
     image = getattr(world, 'image')
     image_type = (image_type or 'base').strip()
-    platform = PLATFORM.driver
+    platform = PLATFORM.name
     if PLATFORM.is_gce:
         cloud_location = ""
         image_id = image.extra['selfLink'].split('projects')[-1][1:]
@@ -785,7 +785,7 @@ def run_sysprep(uuid, console):
                 '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
                 '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
     try:
-        console.run_cmd(cmd.get(PLATFORM.driver))
+        console.run_cmd(cmd.get(PLATFORM.name))
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
@@ -828,7 +828,7 @@ def get_repo_type(custom_branch, custom_version=None):
 
         def __extend_repo_type(self, value):
             rt = value.split('/')
-            rt.insert(1, PLATFORM.driver)
+            rt.insert(1, PLATFORM.name)
             return '/'.join(rt)
 
         def __getitem__(self, key):
@@ -952,7 +952,7 @@ def given_server_in_cloud(step, user_data):
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
-            platform=PLATFORM.driver)
+            platform=PLATFORM.name)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
     node = world.cloud.create_node(userdata=user_data, image=image)
     setattr(world, 'cloud_server', node)

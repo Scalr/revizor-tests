@@ -278,7 +278,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
         role_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                              'db.msr.redis.use_password': True})
     if behavior in DATABASE_BEHAVIORS:
-        storages = DEFAULT_STORAGES.get(PLATFORM.driver, None)
+        storages = DEFAULT_STORAGES.get(PLATFORM.name, None)
         if storages:
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
             role_options.update(storages.get(CONF.feature.storage, {}))

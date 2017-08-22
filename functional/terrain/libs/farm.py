@@ -26,7 +26,7 @@ def give_empty_farm(launched=False):
                                  "RV_BRANCH={}\n"
                                  "RV_PLATFORM={}\n"
                                  "RV_DIST={}\n".format(
-                                     CONF.feature.branch, PLATFORM.driver, CONF.feature.dist.dist
+                                     CONF.feature.branch, PLATFORM.name, CONF.feature.dist.dist
                                  ))
         CONF.main.farm_id = world.farm.id
     else:
@@ -68,7 +68,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             #TODO: Try get from Scalr
             role = tables('roles-shared').filter({'dist': CONF.feature.dist.id,
                                                   'behavior': behavior,
-                                                  'platform': PLATFORM.driver}).first()
+                                                  'platform': PLATFORM.name}).first()
             role = IMPL.role.get(role.keys()[0])
         else:
             if behavior in BEHAVIORS_ALIASES:

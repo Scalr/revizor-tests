@@ -35,7 +35,7 @@ def launch_import_server(step):
     LOG.info('Import to Scalr instance: %s' % node.id)
     import_res = IMPL.discovery_manager.import_server(
         farm_role_id=farm_role.id,
-        platform=PLATFORM.driver,
+        platform=PLATFORM.name,
         instance_id=node.id
     )
     assert import_res['success']

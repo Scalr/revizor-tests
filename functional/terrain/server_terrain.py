@@ -352,7 +352,7 @@ def install_behaviors(step, behavior_set=None):
     LOG.info('Initiate the installation behaviors on the server: %s' %
              world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks,
-                              PLATFORM.driver,
+                              PLATFORM.name,
                               branch=CONF.feature.branch)
 
 
@@ -386,7 +386,7 @@ def start_building(step):
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
-    platform = PLATFORM.driver
+    platform = PLATFORM.name
     res = IMPL.bundle.import_start(platform=platform,
                                    location=CONF.platforms[platform]['location'],
                                    cloud_id=server_id,

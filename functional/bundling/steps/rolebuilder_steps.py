@@ -23,13 +23,13 @@ def start_rolebuild_with_behaviours(step, behaviors):
     if not 'chef' in behaviors:
         behaviors.append('chef')
 
-    platform = PLATFORM.driver
+    platform = PLATFORM.name
     location = CONF.platforms[platform]['location']
     if PLATFORM.is_gce:
         location = 'all'
     os_id = CONF.feature.dist.id
     try:
-        if any((PLATFORM.is_gce, PLATFORM.is_ecs)):
+        if PLATFORM.is_gce:
             image = filter(lambda x: x['os_id'] == os_id,
                            images(platform).all()['images'])[0]
         else:

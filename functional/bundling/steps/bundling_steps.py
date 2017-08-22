@@ -90,10 +90,11 @@ def create_new_role(step, role_as):
     role_name = getattr(world, 'last_bundle_role_name')
     behaviors = CONF.feature.behaviors
     image_id = getattr(world, 'api_image_id', None)
+    platform = PLATFORM.name
     LOG.info('Create new Image in Scalr with image_id: "%s"' % image_id)
-    cloud_location = CONF.platforms[PLATFORM.driver]['location']
+    cloud_location = CONF.platforms[platform]['location']
     image_details = IMPL.image.check(
-        platform=PLATFORM.driver,
+        platform=platform,
         cloud_location=cloud_location,
         image_id=image_id
     )
@@ -108,7 +109,7 @@ def create_new_role(step, role_as):
         cloud_location = ""
 
     images = [{
-        'platform': PLATFORM.driver,
+        'platform': platform,
         'cloudLocation': cloud_location,
         'imageId': image_id,
     }]

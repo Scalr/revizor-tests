@@ -355,7 +355,7 @@ def create_volume_snapshot(step, mnt_point):
     device = world.get_storage_device_by_mnt_point(mnt_point)[0]
     LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
     kwargs = dict(
-        cloud_location=CONF.platforms[PLATFORM.driver]['location'],
+        cloud_location=CONF.platforms[PLATFORM.name]['location'],
         volume_id=device['storageId']
     )
     volume_snapshot_id = IMPL.aws_tools.create_volume_snapshot(**kwargs)
@@ -374,7 +374,7 @@ def wait_voume_snapshot(step):
     wait_until(
         is_snapshot_completed,
         kwargs=dict(
-            location=CONF.platforms[PLATFORM.driver]['location'],
+            location=CONF.platforms[PLATFORM.name]['location'],
             snapshot_id=getattr(world, 'volume_snapshot_id')),
         timeout=600,
         logger=LOG)
@@ -413,7 +413,7 @@ def assert_server_message_count(step, msg, serv_as):
     incoming_messages = [m.name for m in server.messages if m.type == 'in' and  m.name == msg]
     messages_count = len(incoming_messages)
     mount_device_count = len(
-        DEFAULT_ADDITIONAL_STORAGES[PLATFORM.driver])
+        DEFAULT_ADDITIONAL_STORAGES[PLATFORM.name])
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
             messages_count, mount_device_count, incoming_messages))
