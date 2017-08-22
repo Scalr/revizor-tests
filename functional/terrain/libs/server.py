@@ -495,14 +495,14 @@ def check_script_executed(serv_as,
     """
     Verifies that server scripting log contains info about script execution.
     """
-    LOG.debug('Checking scripting logs on %s by parameters:'
-              '\n  script name:\t%s'
-              '\n  event:\t\t%s'
-              '\n  user:\t\t%s'
-              '\n  log_contains:\t%s'
-              '\n  exitcode:\t%s'
-              '\n  new_only:\t%s'
-              '\n  timeout:\t%s'
+    LOG.debug('Checking scripting logs on %s by parameters:\n'
+              '  script name:\t%s\n'
+              '  event:\t\t%s\n'
+              '  user:\t\t%s\n'
+              '  log_contains:\t%s\n'
+              '  exitcode:\t%s\n'
+              '  new_only:\t%s\n'
+              '  timeout:\t%s'
               % (serv_as,
                  name or 'Any',
                  event or 'Any',
@@ -520,14 +520,13 @@ def check_script_executed(serv_as,
     name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
     timeout = timeout // 10
     for _ in range(timeout + 1):
-        time.sleep(10)
         server.scriptlogs.reload()
         for log in server.scriptlogs:
-            LOG.debug('Checking script log:'
-                      '\n  name:\t%s'
-                      '\n  event:\t%s'
-                      '\n  run as:\t%s'
-                      '\n  exitcode:\t%s'
+            LOG.debug('Checking script log:\n'
+                      '  name:\t%s\n'
+                      '  event:\t%s\n'
+                      '  run as:\t%s\n'
+                      '  exitcode:\t%s'
                       % (log.name, log.event, log.run_as, log.exitcode))
             if log in last_scripts:
                 # skip old log
@@ -562,6 +561,7 @@ def check_script_executed(serv_as,
                 else:
                     raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
                                          % (event, user, log.exitcode, exitcode))
+        time.sleep(10)
 
     raise AssertionError(
         'I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (event, user, server.id))
