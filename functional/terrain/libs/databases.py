@@ -9,7 +9,6 @@ from revizor2.conf import CONF
 from revizor2.consts import ServerStatus
 
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.feature.platform
 
 
 @world.absorb
@@ -39,19 +38,20 @@ def wait_replication_status(behavior, status):
 def check_server_storage(serv_as, status):
     server = getattr(world, serv_as)
     volumes = server.get_volumes()
+    platform = CONF.feature.platform
     LOG.debug('Volumes for server %s is: %s' % (server.id, volumes))
-    if PLATFORM.is_ec2:
+    if platform.is_ec2:
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
-    elif PLATFORM.is_cloudstack:
+    elif platform.is_cloudstack:
         storages = filter(lambda x: x.extra['volume_type'] == 'DATADISK', volumes)
     if not storages and not status.strip() == 'deleted':
         raise AssertionError('Server %s not have storages' % server.id)
     if status.strip() == 'deleted' and len(storages) < len(getattr(world, '%s_storages' % serv_as)):
         return True
     for vol in volumes:
-        if PLATFORM.is_ec2:
+        if platform.is_ec2:
             state = 'used' if vol.extra['state'] in ['in-use', 'available'] else 'deleted'
-        elif PLATFORM.is_cloudstack:
+        elif platform.is_cloudstack:
             state = 'used'
         if status == 'use' and state == 'used':
             return True

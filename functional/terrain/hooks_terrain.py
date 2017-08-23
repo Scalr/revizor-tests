@@ -26,7 +26,6 @@ from revizor2.helpers.parsers import parser_for_os_family
 
 
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.feature.platform
 
 OUTLINE_ITERATOR = {}
 PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
@@ -36,7 +35,7 @@ GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
-    if PLATFORM.is_azure:
+    if CONF.feature.platform.is_azure:
         return
     # Get Farm
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
@@ -389,6 +388,6 @@ def cleanup_all(total):
             world.__delattr__(v)
 
     # Cleanup Azure resources
-    if PLATFORM.is_azure:
+    if CONF.feature.platform.is_azure:
         cloud = getattr(world, 'cloud', Cloud())
         cloud._driver.resources_cleaner()

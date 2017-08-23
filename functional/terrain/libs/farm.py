@@ -13,9 +13,8 @@ from revizor2.helpers.roles import get_role_versions
 
 from lxml import etree
 
-
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.feature.platform
+
 
 @world.absorb
 def give_empty_farm(launched=False):
@@ -26,7 +25,9 @@ def give_empty_farm(launched=False):
                                  "RV_BRANCH={}\n"
                                  "RV_PLATFORM={}\n"
                                  "RV_DIST={}\n".format(
-                                     CONF.feature.branch, PLATFORM.name, CONF.feature.dist.dist
+                                     CONF.feature.branch,
+                                     CONF.feature.platform.name,
+                                     CONF.feature.dist.dist
                                  ))
         CONF.main.farm_id = world.farm.id
     else:
@@ -66,9 +67,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
-            role = tables('roles-shared').filter({'dist': CONF.feature.dist.id,
-                                                  'behavior': behavior,
-                                                  'platform': PLATFORM.name}).first()
+            role = tables('roles-shared').filter(
+                {'dist': CONF.feature.dist.id,
+                 'behavior': behavior,
+                 'platform': CONF.feature.platform.name}).first()
             role = IMPL.role.get(role.keys()[0])
         else:
             if behavior in BEHAVIORS_ALIASES:
@@ -86,13 +88,15 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             versions.reverse()
             #TODO: Return RV_ROLE_VERSION
             if CONF.feature.role_type == 'instance':
-                role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
-                                            dist, CONF.feature.role_type)
+                role_name = '%s%s-%s-%s-instance' % (
+                    behavior, versions[0],
+                    dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
                 role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
-                role_name = '%s%s-%s-%s' % (behavior, versions[0],
-                                            dist, CONF.feature.role_type)
+                role_name = '%s%s-%s-%s' % (
+                    behavior, versions[0],
+                    dist, CONF.feature.role_type)
             LOG.info('Get role by name: %s' % role_name)
             roles = IMPL.role.list(query=role_name)
             if not roles:
@@ -124,7 +128,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist in ('windows-2008', 'windows-2012') and PLATFORM.is_azure:
+    if dist in ('windows-2008', 'windows-2012') and CONF.feature.platform.is_azure:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
     world.farm.add_role(role['id'],

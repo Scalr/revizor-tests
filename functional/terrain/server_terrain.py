@@ -11,13 +11,11 @@ from lettuce import world, step
 from revizor2.conf import CONF
 from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 from revizor2.exceptions import MessageFailed, EventNotFounded
 from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.festure.platform
-
 
 COOKBOOKS_BEHAVIOR = {
     'app': 'apache2',
@@ -37,7 +35,8 @@ BEHAVIOR_SETS = {
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
-    if  any((PLATFORM.is_cloudstack, PLATFORM.is_openstack, PLATFORM.is_azure)):
+    platform = CONF.feature.platform
+    if (platform.is_cloudstack or platform.is_openstack or platform.is_azure):
         timeout = 3000
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as,
                                                                 role_type))
@@ -255,12 +254,13 @@ def verify_string_in_file(step, file_path, value, serv_as):
 
 
 @step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
-@world.run_only_if(storage='persistent', platform=[PLATFORM.EC2])
+@world.run_only_if(storage='persistent', platform=[Platform.EC2])
 def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    if PLATFORM.is_ec2:
+    platfrom = CONF.feature.platform
+    if platform.is_ec2:
         volumes = server.get_volumes()
         if not volumes:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -268,7 +268,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
         attached_volume = filter(lambda x:
                                  x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
-    elif PLATFORM.is_gce:
+    elif platform.is_gce:
         volumes = filter(lambda x: x['deviceName'] != 'root',
                          node.extra.get('disks', []))
         if not volumes:
@@ -279,7 +279,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
                                  server.id)
         attached_volume = filter(lambda x: x.name == volumes[0]['deviceName'],
                                  world.cloud.list_volumes())[0]
-    elif PLATFORM.is_cloudstack:
+    elif platform.is_cloudstack:
         volumes = server.get_volumes()
         if len(volumes) == 1:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -293,13 +293,13 @@ def save_attached_volume_id(step, serv_as, volume_as):
 
 
 @step(r'attached volume ([\w\d]+) has size (\d+) Gb')
-@world.run_only_if(storage='persistent', platform=[PLATFORM.EC2])
+@world.run_only_if(storage='persistent', platform=[Platform.EC2])
 def verify_attached_volume_size(step, volume_as, size):
     LOG.info('Verify attached volume has new size "%s"' % size)
     size = int(size)
     volume = getattr(world, '%s_volume' % volume_as)
     volume_size = int(volume.size)
-    if PLATFORM.is_cloudstack:
+    if CONF.feature.platform.is_cloudstack:
         volume_size = volume_size / 1024 / 1024 / 1024
     if not size == volume_size:
         raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
@@ -352,7 +352,7 @@ def install_behaviors(step, behavior_set=None):
     LOG.info('Initiate the installation behaviors on the server: %s' %
              world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks,
-                              PLATFORM.name,
+                              CONF.feature.platform.name,
                               branch=CONF.feature.branch)
 
 
@@ -377,18 +377,17 @@ def create_role(step):
 
 @step('I trigger the Start building and run scalarizr')
 def start_building(step):
-    time.sleep(180)
+    platform = CONF.feature.platform
     LOG.info('Initiate Start building')
-
+    time.sleep(180)
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
-    if PLATFORM.is_gce:
+    if platform.is_gce:
         server_id = world.cloud_server.name
     else:
         server_id = world.cloud_server.id
-    platform = PLATFORM.name
-    res = IMPL.bundle.import_start(platform=platform,
-                                   location=CONF.platforms[platform]['location'],
+    res = IMPL.bundle.import_start(platform=platform.name,
+                                   location=platform.location,
                                    cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
     if not res:

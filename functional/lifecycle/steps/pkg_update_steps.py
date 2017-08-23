@@ -24,7 +24,6 @@ from distutils.version import LooseVersion
 from revizor2.fixtures import tables, resources
 
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.feature.platform
 
 ORG = 'Scalr'
 SCALARIZR_REPO = 'int-scalarizr'
@@ -158,7 +157,7 @@ def having_clean_image(step):
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
-            platform=PLATFORM.dirver)
+            platform=CONF.feature.platform.name)
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
@@ -171,11 +170,9 @@ def having_clean_image(step):
 def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
     branch = CONF.feature.branch
-    cloud_location = CONF.platforms[PLATFORM.dirver]['location']
-    if PLATFORM.is_gce:
-        cloud_location = ""
+    platform = CONF.feature.platform
     role_kwargs = dict(
-        location=cloud_location,
+        location=platform.location if not platform.is_gce else "",
         options={
             "user-data.scm_branch": branch if not use_stable else "",
             "base.upd.repository": "stable" if use_stable else "",

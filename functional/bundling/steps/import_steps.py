@@ -6,12 +6,12 @@ from revizor2.conf import CONF
 from revizor2.api import IMPL
 from revizor2.utils import wait_until
 
-PLATFORM = CONF.feature.platform
 LOG = logging.getLogger(__name__)
 
 
 @step('Role has successfully been created$')
 def assert_role_task_created(step,  timeout=1400):
+    platform = CONF.feature.platform
     res = wait_until(
         IMPL.bundle.assert_role_task_created,
         args=(world.bundle_task.get('id'), ),
@@ -22,7 +22,7 @@ def assert_role_task_created(step,  timeout=1400):
     LOG.info('New role was created successfully with Role_id: %s.' % res['role_id'])
     world.bundled_role_id = res['role_id']
     #Remove port forward rule for Cloudstack
-    if PLATFORM.is_cloudstack:
+    if platform.is_cloudstack:
         LOG.info('Deleting a Port Forwarding Rule. IP:%s, Port:%s' % (world.forwarded_port, world.ip))
         if not world.cloud.close_port(world.cloud_server, world.forwarded_port, ip=world.ip):
             raise AssertionError("Can't delete a port forwarding Rule.")
@@ -33,7 +33,7 @@ def assert_role_task_created(step,  timeout=1400):
         if not world.cloud_server.destroy():
             raise AssertionError("Can't destroy node with id: %s." % world.cloud_server.id)
     except Exception as e:
-        if PLATFORM.is_gce:
+        if platform.is_gce:
             if world.cloud_server.name in str(e):
                 pass
         else:

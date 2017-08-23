@@ -9,14 +9,13 @@ from lettuce import world, step, after
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
 from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.feature.platform
 
 @step('I see (.+) server (.+)$')
 def waiting_for_assertion(step, state, serv_as, timeout=1400):
@@ -28,7 +27,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
 
 @step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
 def waiting_server(step, state, serv_as, timeout=1400):
-    if CONF.feature.dist.is_windows or PLATFORM.is_azure:
+    if CONF.feature.dist.is_windows or CONF.feature.platform.is_azure:
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
@@ -215,10 +214,10 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % PLATFORM.RACKSPACEGUS, dist=['!scientific6', '!centos-7-x'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACEGUS, dist=['!scientific6', '!centos-7-x'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
-    if PLATFORM.is_cloudstack:
+    if CONF.feature.platform.is_cloudstack:
         LOG.info('Not check iptables because CloudStack')
         return
     server = getattr(world, serv_as)
@@ -301,6 +300,7 @@ def verify_attached_disk_types(step):
     role = world.get_role()
     storage_config = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
     volume_ids = {}
+    platform = CONF.feature.platform
     for device in storage_config['configs']:
         volume_ids[device['mountPoint']] = [s['storageId'] for s in storage_config['devices'][device['id']]]
     ids = list(chain.from_iterable(volume_ids.values()))
@@ -308,10 +308,10 @@ def verify_attached_disk_types(step):
     for mount_point in volume_ids:
         volume_ids[mount_point] = filter(lambda x: x.id in volume_ids[mount_point], volumes)
     LOG.debug('Volumes in mount points: %s' % volume_ids)
-    if PLATFORM.is_ec2:
+    if platform.is_ec2:
         LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
         return
-    elif PLATFORM.is_gce:
+    elif platform.is_gce:
         if not volume_ids['/media/diskmount'][0].extra['type'] == 'pd-standard':
             raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
                                  volume_ids['/media/diskmount'][0].extra['type'])
@@ -322,7 +322,7 @@ def verify_attached_disk_types(step):
 
 
 @step(r"instance vcpus info not empty for ([\w\d]+)")
-@world.run_only_if(platform='!%s' % PLATFORM.VMWARE)
+@world.run_only_if(platform='!%s' % Platform.VMWARE)
 def checking_info_instance_vcpus(step, serv_as):
     server = getattr(world, serv_as)
     vcpus = int(server.details['info.instance_vcpus'])
@@ -355,7 +355,7 @@ def create_volume_snapshot(step, mnt_point):
     device = world.get_storage_device_by_mnt_point(mnt_point)[0]
     LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
     kwargs = dict(
-        cloud_location=CONF.platforms[PLATFORM.name]['location'],
+        cloud_location=CONF.feature.platform.location,
         volume_id=device['storageId']
     )
     volume_snapshot_id = IMPL.aws_tools.create_volume_snapshot(**kwargs)
@@ -374,7 +374,7 @@ def wait_voume_snapshot(step):
     wait_until(
         is_snapshot_completed,
         kwargs=dict(
-            location=CONF.platforms[PLATFORM.name]['location'],
+            location=CONF.feature.platform.location,
             snapshot_id=getattr(world, 'volume_snapshot_id')),
         timeout=600,
         logger=LOG)
@@ -404,16 +404,16 @@ def add_storage_to_role(step):
     role.edit(storages=storage_settings)
 
 
-@world.run_only_if(platform=(PLATFORM.EC2, PLATFORM.GCE), storage='persistent')
+@world.run_only_if(platform=(Platform.EC2, Platform.GCE), storage='persistent')
 @step('I verify right count of incoming messages ([^ .]+) from ([\w\d]+)')
 def assert_server_message_count(step, msg, serv_as):
     """Assert messages count with Mounted Storages count"""
     server = getattr(world, serv_as)
     server.messages.reload()
-    incoming_messages = [m.name for m in server.messages if m.type == 'in' and  m.name == msg]
+    incoming_messages = [m.name for m in server.messages if m.type == 'in' and m.name == msg]
     messages_count = len(incoming_messages)
     mount_device_count = len(
-        DEFAULT_ADDITIONAL_STORAGES[PLATFORM.name])
+        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.platform.name])
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
             messages_count, mount_device_count, incoming_messages))

@@ -14,7 +14,6 @@ from revizor2.api import Certificate, IMPL
 from revizor2.conf import CONF
 
 LOG = logging.getLogger(__name__)
-PLATFORM = CONF.feature.platform
 
 APACHE_MESSAGES = (
     'It works!',
@@ -106,7 +105,7 @@ def check_index(step, proto, revert, domain_as, vhost_as):
     vhost = getattr(world, vhost_as)
     domain_address = domain.name
 
-    if PLATFORM.is_cloudstack:
+    if CONF.feature.platform.is_cloudstack:
         domain_server = domain.role.servers[0]
         public_port = world.cloud.open_port(
             world.cloud.get_node(domain_server),

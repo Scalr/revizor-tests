@@ -11,40 +11,34 @@ from revizor2.fixtures import images
 from revizor2.utils import wait_until
 from revizor2.exceptions import NotFound
 
-PLATFORM = CONF.feature.platform
-
 LOG = logging.getLogger('rolebuilder')
 
 
 @step('I start build role with behaviors (.+)$')
 def start_rolebuild_with_behaviours(step, behaviors):
     behaviors = behaviors.strip().split(',')
-
-    if not 'chef' in behaviors:
+    if not ('chef' in behaviors):
         behaviors.append('chef')
-
-    platform = PLATFORM.name
-    location = CONF.platforms[platform]['location']
-    if PLATFORM.is_gce:
-        location = 'all'
+    platform = CONF.feature.platform
+    location = platform.location if not platform.is_gce else "all"
     os_id = CONF.feature.dist.id
     try:
-        if PLATFORM.is_gce:
+        if platform.is_gce:
             image = filter(lambda x: x['os_id'] == os_id,
-                           images(platform).all()['images'])[0]
+                           images(platform.name).all()['images'])[0]
         else:
-            image = filter(lambda x: x['cloud_location'] == CONF.platforms[platform]['location']
+            image = filter(lambda x: x['cloud_location'] == location
                                      and x['os_id'] == os_id,
-                           images(platform).all()['images'])[0]
+                           images(platform.name).all()['images'])[0]
     except IndexError:
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
-    bundle_id = IMPL.rolebuilder.build2(platform=platform,
+    bundle_id = IMPL.rolebuilder.build2(platform=platform.name,
                                         location=location,
                                         terminate=False,
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
-                                        name='tmp-%s-%s-%s' % (platform, CONF.feature.dist.id,
+                                        name='tmp-%s-%s-%s' % (platform.name, CONF.feature.dist.id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
                                         mysqltype='percona' if 'percona' in behaviors else 'mysql')
