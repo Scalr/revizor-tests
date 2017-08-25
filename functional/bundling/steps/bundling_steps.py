@@ -91,26 +91,28 @@ def create_new_role(step, role_as):
     behaviors = CONF.feature.behaviors
     image_id = getattr(world, 'api_image_id', None)
     platform = CONF.feature.platform
-    LOG.info('Create new Image in Scalr with image_id: "%s"' % image_id)
-    image_details = IMPL.image.check(
+    image_details = dict(
         platform=platform.name,
         cloud_location=platform.location,
         image_id=image_id
     )
-
+    LOG.info('Create new Image in Scalr with image_id: "%s"' % image_id)
+    # Check an image
+    check_res = IMPL.image.check(*image_details)
+    # Create image
     IMPL.image.create(
-        name=image_details['name'],
+        name=check_res['name'],
         software=behaviors,
         *image_details
     )
 
+    LOG.info('Create new role %s with behaviors %s and image_id %s' % (role_name, behaviors, image_id))
     images = [{
-        'platform': platform,
+        'platform': platform.name,
         'cloudLocation': platform.location if not platform.is_gce else "",
         'imageId': image_id,
     }]
 
-    LOG.info('Create new role %s with behaviors %s and image_id %s' % (role_name, behaviors, image_id))
     result = IMPL.role.create(name=role_name, behaviors=behaviors, images=images)
     LOG.info('New role id: %s' % result['role']['id'])
     setattr(world, '%s_id' % role_as, result['role']['id'])
