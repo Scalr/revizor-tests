@@ -7,7 +7,6 @@ from requests import exceptions
 from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.consts import Platform, Dist
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.defaults import DEFAULT_SSL_CERTS
@@ -33,45 +32,6 @@ def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
             return False
     wait_until(check_new_ip, args=(domain.name, server.public_ip), timeout=timeout,
                            error_text="Domain resolve not new IP")
-
-
-@step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
-def check_index(step, proto, revert, domain_as, vhost_as):
-    #TODO: Rewrite this ugly
-    revert = False if not revert else True
-    domain = getattr(world, domain_as)
-    vhost = getattr(world, vhost_as)
-    domain_address = domain.name
-
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
-        domain_server = domain.role.servers[0]
-        public_port = world.cloud.open_port(
-            world.cloud.get_node(domain_server),
-            80 if proto == 'http' else 443
-        )
-        domain_address = '%s:%s' % (domain_address, str(public_port))
-    # Find role by vhost
-    for role in world.farm.roles:
-        if role.id == vhost.farm_roleid:
-            app_role = role
-            break
-    else:
-        raise AssertionError('Can\'t find role for vhost %s' % vhost.id)
-
-    nodes = []
-    app_role.servers.reload()
-    for s in app_role.servers: # delete pre-defined index.html file and upload vhost file
-        if not s.status == 'Running':
-            continue
-        node = world.cloud.get_node(s)
-        nodes.append(node)
-        try:
-            LOG.info('Delete %s/index.html in server %s' % (vhost_as, s.id))
-            node.run('rm /var/www/%s/index.html' % vhost_as)
-        except AttributeError, e:
-            LOG.error('Failed in delete index.html: %s' % e)
-
-    world.check_index_page(nodes, proto, revert, domain_address, vhost_as)
 
 
 @step(r'([\w]+) get domain ([\w\d/_]+) matches \'(.+)\'$')
@@ -107,9 +67,9 @@ def start_basehttpserver(step, port, serv_as):
     LOG.debug('Put base_server.py script')
     node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
     LOG.debug('Run BaseHttpServer script')
-    if Dist.is_debian_family(CONF.feature.dist):
+    if CONF.feature.dist.is_debian:
         node.run('apt-get install screen -y')
-    elif Dist.is_centos_family(CONF.feature.dist):
+    elif CONF.feature.dist.is_centos:
         node.run('yum install screen -y')
     node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
     if node.run('which python3')[2] == 0:
@@ -119,15 +79,6 @@ def start_basehttpserver(step, port, serv_as):
     node.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
 
 
-@step(r'([\w]+) resolves into (.+) ip address')
-def assert_check_resolv(step, domain_as, serv_as, timeout=1800):
-    domain = getattr(world, domain_as)
-    server = getattr(world, serv_as)
-    domain_ip = wait_until(world.check_resolving, args=(domain.name,), timeout=timeout, error_text="Not see domain resolve")
-    world.assert_not_equal(domain_ip, server.public_ip, 'Domain IP (%s) != server IP (%s)' % (domain_ip, server.public_ip))
-
-
-@world.run_only_if(dist=['!centos5'])
 @step(r'virtual host has a valid SSL certificate')
 def check_virtual_host_certificate(step):
     for host_hash in step.hashes:
@@ -170,3 +121,13 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
     if not ip in out[0]:
         raise AssertionError('Not see my IP in access log')
     LOG.info('My public IP %s in %s access log' % (ip, server.id))
+
+
+@step(r"I delete proxy ([\w\d]+) in ([\w\d]+) role")
+def delete_proxy(step, proxy_name, proxy_role):
+    proxy = getattr(world, '%s_proxy' % proxy_name)
+    role = world.get_role(proxy_role)
+    if 'www' in role.role.behaviors:
+        role.delete_nginx_proxy(proxy['hostname'])
+    elif 'haproxy' in role.role.behaviors:
+        role.delete_haproxy_proxy(proxy['port'])

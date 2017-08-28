@@ -1,13 +1,10 @@
-import time
 import logging
 import requests
 
 from lettuce import world, step
 
-from revizor2.api import Certificate, IMPL
-
+from revizor2.api import IMPL
 from revizor2.utils import wait_until
-
 
 LOG = logging.getLogger(__name__)
 
@@ -28,54 +25,6 @@ def check_config_for_option(node, config_file, option):
         config = ' '.join(config.split())
     if option in config:
         return config
-
-
-@step(r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
-def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash, network_type='private'):
-    """This step add to nginx new proxy to any role with http/https and ip_hash
-    :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
-    :type proto: str
-    :param proxy_name: Name for proxy in scalr interface
-    :type proxy_name: str
-    :param proxy_role: Nginx role name
-    :type proxy_role: str
-    :param backend_role: Role name for backend
-    :type backend_role: str
-    :param vhost_name: Virtual host name
-    :type vhost_name: str
-    """
-    proxy_role = world.get_role(proxy_role)
-    backend_role = world.get_role(backend_role)
-    vhost = getattr(world, vhost_name)
-    opts = {}
-    if proto == 'http':
-        LOG.info('Add http proxy')
-        port = 80
-    elif proto == 'https':
-        LOG.info('Add https proxy')
-        port = 80
-        opts['ssl'] = True
-        opts['ssl_port'] = 443
-        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
-        opts['http'] = True
-    elif proto == 'http/https':
-        LOG.info('Add http/https proxy')
-        port = 80
-        opts['ssl'] = True
-        opts['ssl_port'] = 443
-        opts['cert_id'] = Certificate.get_by_name('revizor-key').id
-    if ip_hash:
-        opts['ip_hash'] = True
-    template = get_nginx_default_server_template()
-    LOG.info('Add proxy to app role for domain %s' % vhost.name)
-    backends = [{"farm_role_id": backend_role.id,
-                 "port": "80",
-                 "backup": "0",
-                 "down": "0",
-                 "location": "/",
-                 "network": network_type}]
-    proxy_role.add_nginx_proxy(vhost.name, port, templates=[template], backends=backends, **opts)
-    setattr(world, '%s_proxy' % proxy_name, {"hostname": vhost.name, "port": port, "backends": backends})
 
 
 @step(r'([\w]+) proxies list should contains (.+)')
@@ -164,27 +113,20 @@ def modify_nginx_proxy(step, proxy, role_type, ip_hash):
     role.edit_nginx_proxy(proxy['hostname'], proxy['port'], backends, new_templates, ip_hash=ip_hash)
 
 
-@step(r"I delete proxy ([\w\d]+) in ([\w\d]+) role")
-def delete_nginx_proxy(step, proxy_name, proxy_role):
-    proxy = getattr(world, '%s_proxy' % proxy_name)
-    role = world.get_role(proxy_role)
-    role.delete_nginx_proxy(proxy['hostname'])
-
-
 @step(r"'([\w\d_ =:\.]+)' in ([\w\d]+) upstream file")
 def check_options_in_nginx_upstream(step, option, serv_as):
-    time.sleep(60) #TODO: Change this behavior (wait scalarizr open port in selinux)
+    option = option.split()
+    host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Verify %s in upstream config' % option)
-    option = option.split()
     if len(option) == 1:
         wait_until(check_config_for_option,
                    args=[node, 'app-servers.include', option[0]],
                    timeout=180,
-                   error_text="Options '%s' not in upstream config: %s" % (option, node.run('cat /etc/nginx/app-servers.include')[0]))
+                   error_text="Options '%s' not in upstream config: %s" % (
+                       option, node.run('cat /etc/nginx/app-servers.include')[0]))
     elif len(option) > 1:
-        host, backend_port = option[0].split(':') if ':' in option[0] else (option[0], 80)
         serv = getattr(world, host, None)
         hostname = serv.private_ip if serv else host
         if option[1] == 'default':

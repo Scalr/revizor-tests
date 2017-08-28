@@ -12,7 +12,7 @@ LOG = logging.getLogger(__name__)
 def set_file_content(step, filename, content, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Set content "%s" to file "%s"' % (content, filename))
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows:
         world.run_cmd_command(server, 'echo %s > %s' % (content, filename))
     else:
         node = world.cloud.get_node(server)

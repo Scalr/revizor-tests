@@ -1,15 +1,15 @@
 # coding: utf-8
 """
-Created on 27.10.16 
+Created on 27.10.16
 @author: Eugeny Kurkovich
 """
 import time
 import logging
-import exceptions
 
 from lettuce import world, step
 from revizor2.conf import CONF
 from revizor2.api import IMPL
+from revizor2.exceptions import TimeoutError
 
 
 LOG = logging.getLogger(__name__)
@@ -18,7 +18,7 @@ LOG = logging.getLogger(__name__)
 def get_node_image(step):
     node = getattr(world, 'cloud_server')
     if CONF.feature.driver.is_platform_gce:
-        image = node.driver.ex_get_image(node.extra['selfLink'])
+        image = node.driver.ex_get_image(node.extra['image'])
     elif CONF.feature.driver.is_platform_ec2:
         image = node.driver.get_image(node.extra['image_id'])
     LOG.debug('Obtained image (%s - %s) from cloud instance %s' %(image.name, image.id, node.id))
@@ -67,4 +67,4 @@ def handle_agent_status(step, serv_as):
         time.sleep(5)
     else:
         msg = 'Timeout: %d seconds reached' % (timeout,)
-        raise exceptions.TimeoutError(msg, timeout)
+        raise TimeoutError(msg, timeout)

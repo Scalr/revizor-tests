@@ -1,17 +1,24 @@
 import os
 import re
-import logging
+import sys
+import uuid
 import json
 import semver
+import logging
+from base64 import b64decode
 from datetime import datetime
+from operator import itemgetter
+from distutils.version import LooseVersion
 
-from lettuce import world, after, before
-
+import github
+import requests
 from lxml import etree
+from lettuce import world, after, before
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
+from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.fixtures import manifests
@@ -22,6 +29,10 @@ from revizor2.helpers.parsers import parser_for_os_family
 LOG = logging.getLogger(__name__)
 
 OUTLINE_ITERATOR = {}
+PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
+
+ORG = 'Scalr'
+GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
@@ -48,7 +59,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                                          outline))
     LOG.debug('Path to save log: %s' % path)
     if not os.path.exists(path):
-        os.makedirs(path, 0755)
+        os.makedirs(path, 0o755)
     # Get logs && configs
     for server in servers:
         if not server.is_scalarized: continue
@@ -68,14 +79,14 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                     server.get_log_by_api(**log)
                     LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
                     #Get configs and role behavior from remote host only for linux family
-                    if not Dist.is_windows_family(server.role.dist):
+                    if not Dist(server.role.dist).is_windows:
                         file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
                         server.get_configs(file, compress=True)
                         LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
-            except BaseException, e:
+            except BaseException as e:
                 LOG.error('Error in downloading configs: %s' % e)
                 continue
-        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.startswith('win'):
+        if server.status == ServerStatus.RUNNING and not CONF.feature.dist.is_windows:
             node = world.cloud.get_node(server)
             out = node.run("ps aux | grep 'bin/scal'")[0]
             for line in out.splitlines():
@@ -125,11 +136,47 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 f.write(json.dumps(domains, indent=2))
 
 
+def get_scalaraizr_latest_version(branch):
+    os_family = CONF.feature.dist.family
+    if branch in ['stable', 'latest']:
+        default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+    else:
+        url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
+        path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
+        default_repo = url.format(path=path)
+    index_url = default_repo.format(branch=branch)
+    repo_data = parser_for_os_family(CONF.feature.dist.mask)(branch=branch, index_url=index_url)
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+    versions.sort(reverse=True)
+    return versions[0]
+
+
+@before.all
+def verify_testenv():
+    if CONF.scalr.branch:
+        LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
+        sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
+        resp = requests.post(
+            'http://revizor2.scalr-labs.com/api/createContainer',
+            data={'branch': CONF.scalr.branch}
+        )
+        LOG.debug('Resposne for container creation: %s' % resp.text)
+        if resp.status_code != 200:
+            raise AssertionError("Can't run container: %s" % resp.text)
+        CONF.scalr.te_id = resp.json()['container_id']
+        sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
+
+
 @before.all
 def initialize_world():
+    LOG.info('Save test start time')
     setattr(world, 'test_start_time', datetime.now())
+    LOG.info('Initialize a Cloud object')
     c = Cloud()
     setattr(world, 'cloud', c)
+    test_id = uuid.uuid4().get_hex()
+    LOG.info('Test ID "%s"' % test_id)
+    setattr(world, 'test_id', test_id)
 
 
 @before.each_feature
@@ -190,38 +237,64 @@ def exclude_steps_by_options(feature):
 
 
 @before.each_feature
+def exclude_update_from_branch_to_stable(feature):
+    """
+    Exclude 'Update from branch to stable' scenario if branch version > 5.3 and stable < 5.4
+    """
+    if feature.name not in PKG_UPDATE_SUITES:
+        return
+
+    repo = "fatmouse"
+    # Path to package versions excluded from test
+    downgrade_blacklist_path = "agent/tasks/downgrade_blacklist.json"
+    downgrade_content = ""
+    downgrade_blacklist = list()
+    excluded_scenario = "Update from branch to stable"
+
+    try:
+        git = GH.repos(ORG)(repo)
+        downgrade_content = git.contents(downgrade_blacklist_path).get(ref=os.environ.get('RV_BRANCH')).content
+    except github.ApiNotFoundError as e:
+        LOG.error("Downgrade blacklist path not valid: [%s]" % e.message)
+    if downgrade_content:
+        downgrade_blacklist = map(itemgetter('version'), json.loads(b64decode(downgrade_content)))
+    LOG.info('Packages downgrade blacklist: %s' % downgrade_blacklist)
+    # get latest scalarizr ver for stable
+    stable_ver = get_scalaraizr_latest_version('stable').rsplit('-1')[0]
+    # get latest scalarizr ver for tested branch
+    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch).rsplit('-1')[0]
+    LOG.info('Last package version from stable-[%s]; branch-[%s]' % (stable_ver, branch_ver))
+    if LooseVersion(stable_ver) < LooseVersion('5.4') \
+            and LooseVersion(branch_ver) > LooseVersion('5.3') \
+            or stable_ver in downgrade_blacklist:
+        scenario = filter(lambda s: s.name == excluded_scenario, feature.scenarios)[0]
+        feature.scenarios.remove(scenario)
+        LOG.info('Remove "%s" scenario from test suite  "%s"' % (scenario.name, feature.name))
+
+
+@before.each_feature
 def exclude_update_from_latest(feature):
     """
     Exclude 'update from latest' scenario if branch version is lower than latest
     """
-    if feature.name in ['Linux update for new package test', 'Windows update for new package test']:
-        if Dist.is_windows_family(CONF.feature.dist):
-            os_family = 'windows'
-        else:
-            os_family = Dist.get_os_family(CONF.feature.dist)
-        to_branch = CONF.feature.branch
-        if to_branch == 'latest':  # Excludes when trying to update from latest to latest
+    if feature.name in PKG_UPDATE_SUITES:
+        branch = CONF.feature.branch
+        if branch == 'latest':  # Excludes when trying to update from latest to latest
             match = True
         else:
-            for branch in [to_branch, 'latest']:
-                if branch in ['stable', 'latest']:
-                    default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+            for br in [branch, 'latest']:
+                last_version = get_scalaraizr_latest_version(br)
+                if len(last_version.split('.')) == 3:
+                    minor = int(last_version.split('.')[2][0])
                 else:
-                    url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
-                    path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-                    default_repo = url.format(path=path)
-                index_url = default_repo.format(branch=branch)
-                repo_data = parser_for_os_family(os_family)(branch=branch, index_url=index_url)
-                versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
-                versions.sort(reverse=True)
-                last_version = versions[0]
+                    minor = '0'
                 if last_version.strip().endswith('-1'):
                     last_version = last_version.strip()[:-2]
-                if branch == to_branch:
-                    to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + '0'
+                if br == branch:
+                    to_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + str(minor)
                     LOG.debug("Testing branch version: %s" % to_version)
                 else:
-                    latest_version = last_version
+                    latest_version = last_version.split('.')[0] + '.' + last_version.split('.')[1] + '.' + str(minor)
                     LOG.debug("Latest version: %s" % latest_version)
             match = semver.match(latest_version, '>' + to_version)
         if match:
@@ -255,27 +328,30 @@ def cleanup_all(total):
     LOG.info('Failed steps: %s' % total.steps_failed)
     LOG.debug('Results %s' % total.scenario_results)
     LOG.debug('Passed %s' % total.scenarios_passed)
-    if (not total.steps_failed and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.main.te_id):
-        LOG.info('Clear and stop farm...')
-        farm = getattr(world, 'farm', None)
-        if not farm:
-            return
-        IMPL.farm.clear_roles(world.farm.id)
-        bundled_role_id = getattr(world, 'bundled_role_id', None)
-        if bundled_role_id:
-            LOG.info('Delete bundled role: %s' % bundled_role_id)
-            try:
-                IMPL.role.delete(bundled_role_id)
-            except BaseException, e:
-                LOG.exception('Error on deletion role %s' % bundled_role_id)
+    if (not total.steps_failed and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.scalr.te_id):
         cloud_node = getattr(world, 'cloud_server', None)
         if cloud_node:
             LOG.info('Destroy node in cloud')
             try:
                 cloud_node.destroy()
-            except BaseException, e:
+            except Exception as e:
                 LOG.exception('Node %s can\'t be destroyed' % cloud_node.id)
+
+        if getattr(world, 'farm', None) is None:
+            return
+
+        LOG.info('Clear and stop farm...')
+
         world.farm.terminate()
+        IMPL.farm.clear_roles(world.farm.id)
+
+        bundled_role_id = getattr(world, 'bundled_role_id', None)
+        if bundled_role_id:
+            LOG.info('Delete bundled role: %s' % bundled_role_id)
+            try:
+                IMPL.role.delete(bundled_role_id)
+            except Exception as e:
+                LOG.exception('Error on deletion role %s' % bundled_role_id)
 
         world.farm.vhosts.reload()
         if hasattr(world, 'vhosts_list'):
@@ -292,9 +368,39 @@ def cleanup_all(total):
             if 'You do not have permission to view this component' in e:
                 LOG.warning('DNS disabled in Scalr config!')
 
+        if world.farm.name.startswith('tmprev'):
+            LOG.info('Delete working temporary farm')
+            try:
+                LOG.info('Wait all servers in farm terminated before delete')
+                wait_until(world.farm_servers_state, args=('terminated',), timeout=1800,
+                           error_text='Servers in farm not terminated too long')
+                world.farm.destroy()
+                world.farm = None
+            except Exception as e:
+                LOG.warning('Farm cannot be deleted: %s' % str(e))
+
+        if CONF.feature.driver.is_platform_ec2:
+            try:
+                wait_until(world.farm_servers_state, args=('terminated',),
+                           timeout=1800, error_text=('Servers in farm have no status terminated'))
+            except Exception as e:
+                LOG.error('Servers in farms are not terminated after 1800 seconds!')
+            for volume in world.cloud._driver.list_volumes(filters={'tag-value': getattr(world, 'test_id')}):
+                LOG.debug('Try delete volume "%s"' % volume.id)
+                try:
+                    volume.destroy()
+                except Exception as e:
+                    LOG.warning('Volume "%s" can\'t be deleted: %s' % (volume.id, str(e)))
+            for sn in world.cloud._driver.list_snapshots(filters={'tag-value': getattr(world, 'test_id')}):
+                LOG.debug('Try delete snapshot "%s"' % sn.id)
+                try:
+                    sn.destroy()
+                except Exception as e:
+                    LOG.warning('Snapshot "%s" can\'t be deleted: %s' % (sn.id, str(e)))
+
     else:
-        farm = getattr(world, 'farm', None)
-        if not farm:
+        LOG.info('Setup a long timeouts for all roles in farm')
+        if getattr(world, 'farm', None) is None:
             return
         world.farm.roles.reload()
         for r in world.farm.roles:
@@ -303,3 +409,8 @@ def cleanup_all(total):
     for v in dir(world):
         if isinstance(getattr(world, v), ExtendedNode):
             world.__delattr__(v)
+
+    # Cleanup Azure resources
+    if CONF.feature.driver.is_platform_azure:
+        cloud = getattr(world, 'cloud', Cloud())
+        cloud._driver.resources_cleaner()

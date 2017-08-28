@@ -1,16 +1,22 @@
 Using step definitions from: steps/bundling_steps, steps/import_steps, steps/cloudinit_steps
 Feature: Cloudinit roles bootstrapping
 #TODO: Add/Check Cloudstack support
-    @ec2 @cloudstack
-    Scenario: Create test roles with cloudinit
+    @ec2
+    Scenario Outline: Create test roles with cloudinit
         Given I have a server running in cloud
-        Then I install Chef on server
-        When I initiate the installation mbeh1 behaviors on the server
         And I check that cloudinit is installed
-        Then I create mbeh1-cloudinit image from deployed server
-        And I add mbeh1-cloudinit image to the new roles as non scalarized
+        Then I install Chef on server
+        When I initiate the installation <behavior_set> behaviors on the server
+        Then I create <behavior_set>-cloudinit image from deployed server
+        And I add <behavior_set>-cloudinit image to the new roles as non scalarized
 
-    @ec2 @cloudstack
+    Examples:
+      | behavior_set                  |
+      | mbeh1                         |
+      | mbeh2                         |
+
+
+    @ec2
     Scenario Outline: Check roles and rebundle
         Given I have a an empty running farm
         When I add <behavior>-cloudinit role to this farm
@@ -23,12 +29,18 @@ Feature: Cloudinit roles bootstrapping
         Then I expect server bootstrapping as M2
         And <behavior> is running on M2
         And scalarizr version is last in M2
+        And not ERROR in M2 scalarizr debug log
+        And not ERROR in M2 scalarizr update log
 
     Examples:
       | behavior                      |
-      | mysql2                        |
       | app                           |
       | redis                         |
       | haproxy                       |
       | postgresql                    |
-      # | rabbitmq                      | FAM-480
+      | mysql2                        |
+      | percona                       |
+      | tomcat                        |
+      | memcached                     |
+      | www                           |
+      # # | rabbitmq                      | FAM-480

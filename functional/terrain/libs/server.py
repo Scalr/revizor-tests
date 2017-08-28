@@ -1,14 +1,12 @@
-__author__ = 'gigimon'
-
 import time
 import logging
 import traceback
 from datetime import datetime
+from distutils.util import strtobool
+import re
 
 import requests
 from lettuce import world
-from libcloud.compute.types import NodeState
-from revizor2.defaults import USE_SYSTEMCTL
 
 try:
     import winrm
@@ -23,7 +21,7 @@ from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
     ServerFailed, TimeoutError, \
     MessageNotFounded, MessageFailed,\
-    EventNotFounded, OSFamilyValueFailed
+    OSFamilyValueFailed
 
 from revizor2.helpers.jsonrpc import SzrApiServiceProxy
 
@@ -35,7 +33,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'p2p_message',
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
-    'error was thrown due to the hostname format'
+    'error was thrown due to the hostname format',
+    'Unable to synchronize time, cause ntpdate binary is not found' # FAM-1050
 ]
 
 # Run powershell script as Administrator
@@ -55,7 +54,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 password = password or server.windows_password
                 if not password:
                     password = 'Scalrtest123'
-            if CONF.feature.driver.is_platform_gce:
+            if CONF.feature.driver.current_cloud in (Platform.AZURE, Platform.GCE):
                 username = 'scalr'
             elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
@@ -110,39 +109,53 @@ def run_cmd_command(server, command, raise_exc=True):
 
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
-    if isinstance(node, Server):
-        node = world.cloud.get_node(node)
     LOG.info('Verify scalarizr log in server: %s' % node.id)
+    if server:
+        server.reload()
+        if not server.public_ip:
+            LOG.debug('Server has no public IP yet')
+            return
+    else:
+        if isinstance(node, Server):
+            node = world.cloud.get_node(node)
+        if not node.public_ips or not node.public_ips[0]:
+            LOG.debug('Node has no public IP yet')
+            return
     try:
         if windows:
-            log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type, raise_exc=False)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = run_cmd_command(server, "findstr /c:\"\- ERROR\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
-            log_out = (node.run('grep "\- ERROR" /var/log/scalarizr_%s.log' % log_type))[0]
+            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type))[0]
             LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
         LOG.error(traceback.format_exc())
         return
-    for line in log_out.splitlines():
+
+    lines = log_out.splitlines()
+    for i, line in enumerate(lines):
         ignore = False
         LOG.debug('Verify line "%s" for errors' % line)
         log_date = None
         log_level = None
+        line_number = -1
         now = datetime.now()
         try:
+            line_number = int(line.split(':', 1)[0])
+            line = line.split(':', 1)[1]
             log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
             log_level = line.strip().split()[3]
         except (ValueError, IndexError):
             pass
 
         if log_date:
-            if not log_date.year == now.year \
-                or not log_date.month == now.month \
-                or not log_date.day == now.day:
+            if not log_date.year == now.year or \
+                    not log_date.month == now.month or \
+                    not log_date.day == now.day:
                 continue
 
         for error in SCALARIZR_LOG_IGNORE_ERRORS:
@@ -156,6 +169,11 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
         if log_level == 'ERROR':
             LOG.error('Found ERROR in scalarizr_%s.log:\n %s' % (log_type, line))
             raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+
+        if log_level == 'WARNING' and i < len(lines) - 1:
+            if '%s:Traceback' % (line_number + 1) in lines[i+1]:
+                LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
+                raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
 
 @world.absorb
@@ -246,15 +264,14 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED] \
-                    and CONF.feature.driver.current_cloud != Platform.AZURE:
+                                                                ServerStatus.SUSPENDED]:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status in ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
-                if not Dist.is_windows_family(lookup_server.role.dist):
+                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
                     verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
@@ -267,7 +284,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 LOG.debug('Check scalarizr debug log in lookup server')
-                if not Dist.is_windows_family(lookup_server.role.dist):
+                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node)
                 else:
                     verify_scalarizr_log(lookup_node, windows=True, server=lookup_server)
@@ -284,6 +301,15 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
+                    lookup_server.messages.reload()
+                    if CONF.feature.driver.is_platform_azure \
+                            and not Dist(lookup_server.role.dist).is_windows \
+                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
+                        LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
+                        wait_server_message(
+                            lookup_server,
+                            'UpdateSshAuthorizedKeys',
+                            timeout=2400)
                     LOG.debug('Insert server to previous servers')
                     previous_servers.append(lookup_server)
                 LOG.debug('Return server %s' % lookup_server)
@@ -295,7 +321,6 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             raise TimeoutError('Server %s not in state "%s" it has status: "%s"'
                                % (lookup_server.id, status, lookup_server.status))
         raise TimeoutError('New server in role "%s" was not founding' % role)
-
 
 
 @world.absorb
@@ -317,14 +342,55 @@ def wait_servers_running(role, count):
 
 
 @world.absorb
-def wait_farm_terminated(*args, **kwargs):
+def farm_servers_state(state):
     world.farm.servers.reload()
     for server in world.farm.servers:
-        if server.status == ServerStatus.TERMINATED:
+        if server.status == ServerStatus.from_code(state):
+            LOG.info('Servers is in %s state' % state)
             continue
         else:
             return False
     return True
+
+
+@world.absorb
+def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=600):
+    if not isinstance(servers, (list, tuple)):
+        servers = [servers]
+    delivered_to = []
+    message_type = 'in' if message_type.strip() in ('sends', 'out') else 'out'
+    start_time = time.time()
+    while time.time() - start_time < timeout:
+        if delivered_to == servers:
+            LOG.info('All servers has message: %s / %s' % (message_type, message_name))
+            break
+        for server in servers:
+            if server in delivered_to:
+                continue
+            LOG.info('Searching message "%s/%s" on %s node' % (message_type, message_name, server.id))
+            node = world.cloud.get_node(server)
+            lookup_messages = getattr(world, '_server_%s_lookup_messages' % server.id, [])
+            node_messages = reversed(world.get_szr_messages(node, convert=True))
+            message = filter(lambda m:
+                             m.name == message_name
+                             and m.direction == message_type
+                             and m.id not in lookup_messages
+                             and strtobool(m.handled), node_messages)
+
+            if message:
+                LOG.info('Message found: %s' % message[0].id)
+                lookup_messages.append(message[0].id)
+                setattr(world,
+                        '_server_%s_lookup_messages' % server.id,
+                        lookup_messages)
+                if find_in_all:
+                    LOG.info('Message %s delivered to the server %s' % (message_name, server.id))
+                    delivered_to.append(server)
+                    continue
+                return server
+        time.sleep(30)
+    else:
+        raise MessageNotFounded('%s/%s was not finding' % (message_type, message_name))
 
 
 @world.absorb
@@ -360,19 +426,14 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
                     raise MessageFailed('Message %s / %s (%s) unsupported' % (message.type, message.name, message.id))
         return False
 
-    message_type = 'out' if message_type.strip() == 'sends' else 'in'
-
+    message_type = 'in' if message_type.strip() not in ('sends', 'out') else 'out'
     if not isinstance(server, (list, tuple)):
         servers = [server]
     else:
         servers = server
-
     LOG.info('Try found message %s / %s in servers %s' % (message_type, message_name, servers))
-
     start_time = time.time()
-
     delivered_servers = []
-
     while time.time() - start_time < timeout:
         if not find_in_all:
             for serv in servers:
@@ -423,6 +484,90 @@ def wait_script_execute(server, message, state):
 
 
 @world.absorb
+def check_script_executed(serv_as,
+                          name=None,
+                          event=None,
+                          user=None,
+                          log_contains=None,
+                          exitcode=None,
+                          new_only=False,
+                          timeout=0):
+    """
+    Verifies that server scripting log contains info about script execution.
+    """
+    LOG.debug('Checking scripting logs on %s by parameters:\n'
+              '  script name:\t%s\n'
+              '  event:\t\t%s\n'
+              '  user:\t\t%s\n'
+              '  log_contains:\t%s\n'
+              '  exitcode:\t%s\n'
+              '  new_only:\t%s\n'
+              '  timeout:\t%s'
+              % (serv_as,
+                 name or 'Any',
+                 event or 'Any',
+                 user or 'Any',
+                 log_contains or 'Any',
+                 exitcode or 'Any',
+                 new_only,
+                 timeout))
+
+    server = getattr(world, serv_as)
+    contain = log_contains.split(';') if log_contains else []
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
+    # Convert script name, because scalr converts name to:
+    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
+    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    timeout = timeout // 10
+    for _ in range(timeout + 1):
+        server.scriptlogs.reload()
+        for log in server.scriptlogs:
+            LOG.debug('Checking script log:\n'
+                      '  name:\t%s\n'
+                      '  event:\t%s\n'
+                      '  run as:\t%s\n'
+                      '  exitcode:\t%s'
+                      % (log.name, log.event, log.run_as, log.exitcode))
+            if log in last_scripts:
+                # skip old log
+                continue
+            event_matched = event is None or (log.event and log.event.strip() == event.strip())
+            user_matched = user is None or (log.run_as == user)
+            name_matched = name is None \
+                or (name == 'chef' and log.name.strip().startswith(name)) \
+                or (name.startswith('http') and log.name.strip().startswith(name)) \
+                or (name.startswith('local') and log.name.strip().startswith(name)) \
+                or log.name.strip() == name
+            if name_matched and event_matched and user_matched:
+                LOG.debug('Script log matched search parameters')
+                if exitcode is None or log.exitcode == int(exitcode):
+                    # script exitcode is valid, now check that log output contains wanted text
+                    message = log.message
+                    truncated = False
+                    LOG.debug('Log message output: %s' % message)
+                    if 'Log file truncated. See the full log in' in message:
+                        full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
+                        node = world.cloud.get_node(server)
+                        message = node.run('cat %s' % full_log_path)[0]
+                        truncated = True
+                    for cond in contain:
+                        if not truncated:
+                            cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                        if not cond.strip() in message:
+                            raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: \'%s\''
+                                                 % (event, user, message, cond))
+                    LOG.debug('This event exitcode: %s' % log.exitcode)
+                    return True
+                else:
+                    raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
+                                         % (event, user, log.exitcode, exitcode))
+        time.sleep(10)
+
+    raise AssertionError(
+        'I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (event, user, server.id))
+
+
+@world.absorb
 def get_hostname(server):
     serv = world.cloud.get_node(server)
     for i in range(3):
@@ -435,14 +580,11 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    if CONF.feature.dist.startswith('win'):
-        return "%s-%s" % (world.farm.name.replace(' ', '-'), server.index)
-    else:
-        return '%s-%s-%s' % (
-            world.farm.name.replace(' ', '-'),
-            server.role.name,
-            server.index
-        )
+    return '%s-%s-%s' % (
+        world.farm.id,
+        server.farm_role_id,
+        server.index
+    )
 
 
 @world.absorb
@@ -575,7 +717,7 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 raise Exception(error_msg)
         else:
             #Change process status by  calling command service
-            if USE_SYSTEMCTL:
+            if CONF.feature.dist.is_systemd:
                 cmd = "systemctl {status} {process} && sleep 3"
             else:
                 cmd = "service {process} {status} && sleep 3"
@@ -653,13 +795,10 @@ def value_for_os_family(debian, centos, server=None, node=None):
         node = world.cloud.get_node(server)
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
-    # Get node os name
-    # node_os = getattr(node, 'os', [''])[0]
-    node_os = CONF.feature.dist
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(Dist.get_os_family(node_os))
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
     if not os_family_res:
-        raise OSFamilyValueFailed('No value for node os: %s' % node_os)
+        raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
     return os_family_res
 
 

@@ -11,57 +11,26 @@ from revizor2.fixtures import images
 from revizor2.utils import wait_until
 from revizor2.exceptions import NotFound
 from revizor2.consts import Platform, Dist
-from revizor2.defaults import USE_VPC
 
 
 LOG = logging.getLogger('rolebuilder')
 
 
-@step('I start build role$')
-def start_rolebuild(step):
-    location = CONF.platforms[CONF.feature.platform]['location']
-    if CONF.feature.platform == 'rackspaceng':
-        platform = 'rackspacengus'
-    else:
-        platform = CONF.feature.platform
-    os_id = Dist.get_os_id(CONF.feature.dist)
-    image = filter(lambda x: x['cloud_location'] == CONF.platforms[CONF.feature.platform]['location']
-                             and x['os_id']==os_id,
-                   images(CONF.feature.driver.scalr_cloud).all()['images'])[0]
-    bundle_id = IMPL.rolebuilder.build2(platform=platform,
-                                        location=location,
-                                        arch='x86_64',
-                                        behaviors=CONF.feature.behaviors,
-                                        os_id=image['os_id'],
-                                        os_version=image['os_version'],
-                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
-                                                               datetime.now().strftime('%m%d-%H%M')),
-                                        scalarizr=CONF.feature.branch,)
-    setattr(world, 'role_type', CONF.feature.behaviors[0])
-    setattr(world, 'bundle_id', bundle_id)
-
-
 @step('I start build role with behaviors (.+)$')
 def start_rolebuild_with_behaviours(step, behaviors):
     behaviors = behaviors.strip().split(',')
-    use_hvm = False
 
     if not 'chef' in behaviors:
         behaviors.append('chef')
 
-    if USE_VPC:
-        use_hvm = True
-        if 'mongodb' in behaviors:
-            behaviors.remove('mongodb')
-
-    if CONF.feature.driver.current_cloud not in (Platform.EC2, Platform.CLOUDSTACK) and 'mongodb' in behaviors:
-        raise AssertionError('Mongodb not supported in this platform')
-
     location = CONF.platforms[CONF.feature.platform]['location']
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
+    servertype = None
+    if CONF.feature.driver.current_cloud == Platform.EC2:
+        servertype = 'm3.medium'
     platform = CONF.feature.driver.scalr_cloud
-    os_id = Dist.get_os_id(CONF.feature.dist)
+    os_id = CONF.feature.dist.id
     try:
         if CONF.feature.driver.current_cloud in (Platform.GCE, Platform.ECS):
             image = filter(lambda x: x['os_id'] == os_id,
@@ -74,15 +43,15 @@ def start_rolebuild_with_behaviours(step, behaviors):
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
+                                        servertype=servertype,
                                         terminate=False,
                                         arch='x86_64',
                                         behaviors=behaviors,
                                         os_id=image['os_id'],
-                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist,
+                                        name='tmp-%s-%s-%s' % (CONF.feature.platform, CONF.feature.dist.id,
                                                                datetime.now().strftime('%m%d-%H%M')),
                                         scalarizr=CONF.feature.branch,
-                                        mysqltype='percona' if 'percona' in behaviors else 'mysql',
-                                        hvm = use_hvm)
+                                        mysqltype='percona' if 'percona' in behaviors else 'mysql')
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 

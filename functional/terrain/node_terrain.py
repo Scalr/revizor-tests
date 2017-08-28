@@ -6,6 +6,7 @@ import logging
 import urllib2
 import collections
 import re
+from datetime import datetime
 
 from lettuce import world, step
 
@@ -19,9 +20,10 @@ from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, USE_SYSTEMCTL
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
 from revizor2 import szrapi
+from revizor2.fixtures import tables
 
 try:
     import winrm
@@ -34,6 +36,105 @@ PLATFORM_TERMINATED_STATE = collections.namedtuple('terminated_state', ('gce', '
     'stopped')
 
 LOG = logging.getLogger(__name__)
+
+#User data fixtures
+#ec2 - (ec2, eucalyptus),  gce-gce, openstack-(openstack, ecs, rackspaceng), cloudstack-(cloudstack, idcf, ucloud)
+USER_DATA = {
+                Platform.EC2: {
+                    "behaviors": "base,chef",
+                    "farmid": "16674",
+                    "message_format": "json",
+                    "owner_email": "stunko@scalr.com",
+                    "szr_key": "9gRW4akJmHYvh6W3vd6GzxOPtk/iQHL+8aZRZZ1u",
+                    "s3bucket": "",
+                    "cloud_server_id": "",
+                    "env_id": "3414",
+                    "server_index": "1",
+                    "platform": "ec2",
+                    "role": "base,chef",
+                    "hash": "e6f1bfd5bbf612",
+                    "custom.scm_branch": "master",
+                    "roleid": "36318",
+                    "farm_roleid": "60818",
+                    "serverid": "96e52104-f5c4-4ce7-a018-c8c2eb571c99",
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "realrolename": "base-ubuntu1204-devel",
+                    "region": "us-east-1",
+                    "httpproto": "https",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "cloud_storage_path": "s3://"
+                },
+
+                Platform.GCE: {
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "behaviors": "app",
+                    "owner_email": "stunko@scalr.com",
+                    "hash": "e6f1bfd5bbf612",
+                    "farmid": "16674",
+                    "farm_roleid": "60832",
+                    "message_format": "json",
+                    "realrolename": "apache-ubuntu1204-devel",
+                    "region": "x-scalr-custom",
+                    "httpproto": "https",
+                    "szr_key": "NiR2xOZKVbvdMPgdxuayLjEK2xC7mtLkVTc0vpka",
+                    "platform": "gce",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "role": "app",
+                    "cloud_server_id": "",
+                    "roleid": "36319",
+                    "env_id": "3414",
+                    "serverid": "c2bc7273-6618-4702-9ea1-f290dca3b098",
+                    "cloud_storage_path": "gcs://",
+                    "custom.scm_branch": "master",
+                    "server_index": "1"
+                },
+
+                Platform.OPENSTACK: {
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "behaviors": "base,chef",
+                    "owner_email": "stunko@scalr.com",
+                    "hash": "e6f1bfd5bbf612",
+                    "farmid": "16674",
+                    "farm_roleid": "60821",
+                    "message_format": "json",
+                    "realrolename": "base-ubuntu1204-devel",
+                    "region": "ItalyMilano1",
+                    "httpproto": "https",
+                    "szr_key": "iyLO/+iOGFFcuSIxbr0IJteRwDjaP1t6NQ8kXbX6",
+                    "platform": "ecs",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "role": "base,chef",
+                    "roleid": "36318",
+                    "env_id": "3414",
+                    "serverid": "59ddbdbf-6d69-4c53-a6b7-76ab391a8465",
+                    "cloud_storage_path": "swift://",
+                    "custom.scm_branch": "master",
+                    "server_index": "1"
+                },
+
+                Platform.CLOUDSTACK: {
+                    "p2p_producer_endpoint": "https://my.scalr.com/messaging",
+                    "behaviors": "base,chef",
+                    "owner_email": "stunko@scalr.com",
+                    "hash": "e6f1bfd5bbf612",
+                    "farmid": "16674",
+                    "farm_roleid": "60826",
+                    "message_format": "json",
+                    "realrolename": "base-ubuntu1204-devel",
+                    "region": "jp-east-f2v",
+                    "httpproto": "https",
+                    "szr_key": "cg3uuixg4jTUDz/CexsKpoNn0VZ9u6EluwpV+Mgi",
+                    "platform": "idcf",
+                    "queryenv_url": "https://my.scalr.com/query-env",
+                    "role": "base,chef",
+                    "cloud_server_id": "",
+                    "roleid": "36318",
+                    "env_id": "3414",
+                    "serverid": "feab131b-711e-4f4a-a7dc-ba083c28e5fc",
+                    "custom.scm_branch": "master",
+                    "server_index": "1"
+                }
+}
 
 
 class VerifyProcessWork(object):
@@ -76,7 +177,7 @@ class VerifyProcessWork(object):
         node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server,
                                                              DEFAULT_SERVICES_CONFIG['app'][
-                                                                 Dist.get_os_family(node.os[0])]['service_name']),
+                                                                 Dist(node.os).family]['service_name']),
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
 
@@ -112,13 +213,6 @@ class VerifyProcessWork(object):
         results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
                    VerifyProcessWork._verify_open_port(server, port)]
         return all(results)
-
-@step('I change repo in ([\w\d]+)$')
-def change_repo(step, serv_as):
-    server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    branch = CONF.feature.to_branch
-    change_repo_to_branch(node, branch)
 
 
 @step('I change repo in ([\w\d]+) to system$')
@@ -203,7 +297,7 @@ def verify_port_status(step, port, closed, serv_as):
         port, 'closed' if closed else 'open', server.id
     ))
     node = world.cloud.get_node(server)
-    if not CONF.feature.dist.startswith('win'):
+    if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
@@ -229,7 +323,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     LOG.info('Verify port %s is %s on server %s' % (
         port, 'closed' if closed else 'open', server.id
     ))
-    if service == 'scalarizr' and CONF.feature.dist.startswith('win'):
+    if service == 'scalarizr' and CONF.feature.dist.is_windows:
         status = None
         for _ in range(5):
             try:
@@ -242,7 +336,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
         else:
             raise AssertionError('Scalarizr is not running in windows, status: %s' % status)
     node = world.cloud.get_node(server)
-    if not CONF.feature.dist.startswith('win'):
+    if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
     if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
         #TODO: Change login on this behavior
@@ -288,9 +382,9 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     elif repo == 'role':
         repo = CONF.feature.to_branch
     server = getattr(world, serv_as)
-    if consts.Dist.is_centos_family(server.role.dist):
+    if consts.Dist(server.role.dist).is_centos:
         repo_data = parse_rpm_repository(repo)
-    elif consts.Dist.is_debian_family(server.role.dist):
+    elif consts.Dist(server.role.dist).is_debian:
         repo_data = parse_apt_repository(repo)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
@@ -322,7 +416,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     elif branch == 'role':
         branch = CONF.feature.to_branch
     # Get custom repo url
-    os_family = Dist.get_os_family(server.role.os_family)
+    os_family = Dist(server.role.dist).family
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
@@ -335,7 +429,7 @@ def assert_scalarizr_version(step, branch, serv_as):
         # Get last scalarizr version from custom repo
         index_url = default_repo.format(branch=branch)
         LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.os_family)(branch=branch, index_url=index_url)
+        repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
         versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
         versions.sort(reverse=True)
         last_version = versions[0]
@@ -365,7 +459,7 @@ def assert_scalarizr_version(step, branch, serv_as):
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
-    if USE_SYSTEMCTL:
+    if CONF.feature.dist.is_systemd:
         cmd = "systemctl restart scalarizr"
     else:
         cmd = "/etc/init.d/scalarizr restart"
@@ -405,7 +499,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as
         service.update({'node': common_config.get('service_name')})
         if not service['node']:
-            service.update({'node': common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name')})
+            service.update({'node': common_config.get(consts.Dist(node.os).family).get('service_name')})
         if is_api:
             service.update({'api': common_config['api_endpoint'].get('name')})
             if not service['api']:
@@ -458,7 +552,7 @@ def get_ebs_for_instance(step, serv_as):
 @step('([\w]+) storage is (.+)$')
 def check_ebs_status(step, serv_as, status):
     """Check EBS storage status"""
-    if CONF.feature.driver.current_cloud == Platform.GCE:
+    if CONF.feature.driver.is_platform_gce:
         return
     time.sleep(30)
     server = getattr(world, serv_as)
@@ -475,20 +569,20 @@ def change_branch_in_sources(step, serv_as, branch):
         branch = branch.replace('/', '-').replace('.', '').strip()
     server = getattr(world, serv_as)
     LOG.info('Change branches in sources list in server %s to %s' % (server.id, branch))
-    if Dist.is_debian_family(server.role.dist):
+    if Dist(server.role.dist).is_debian:
         LOG.debug('Change in debian')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
-    elif Dist.is_centos_family(server.role.dist):
+    elif Dist(server.role.dist).is_centos:
         LOG.debug('Change in centos')
         node = world.cloud.get_node(server)
         for repo_file in ['/etc/yum.repos.d/scalr-stable.repo']:
             LOG.info("Change branch in %s to %s" % (repo_file, branch))
             node.run('echo "[scalr-branch]\nname=scalr-branch\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
         node.run('echo > /etc/yum.repos.d/scalr-latest.repo')
-    elif Dist.is_windows_family(server.role.dist):
+    elif Dist(server.role.dist).is_windows:
         # LOG.debug('Change in windows')
         import winrm
         console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
@@ -553,7 +647,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         behavior = server.role.behaviors[0]
         common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
         pattern = common_config.get('service_name',
-                                    common_config.get(consts.Dist.get_os_family(node.os[0])).get('service_name'))
+                                    common_config.get(consts.Dist(node.os).family).get('service_name'))
     LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
     pid_before = get_pid(pattern)
@@ -581,7 +675,7 @@ def creating_image(step, image_type=None):
     # Create an image
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
         image_type.strip(),
-        CONF.feature.dist,
+        CONF.feature.dist.id,
         datetime.now()
     )
     # Set credentials to image creation
@@ -590,7 +684,8 @@ def creating_image(step, image_type=None):
         name=image_name,
     )
     if CONF.feature.driver.is_platform_ec2:
-        kwargs.update({'reboot': False})
+        kwargs.update({'reboot': True})
+    cloud_server.run('sync')
     image = world.cloud.create_template(**kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
@@ -626,7 +721,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     )
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
             image_type,
-            CONF.feature.dist,
+            CONF.feature.dist.id,
             datetime.now())
     if image_type != 'base':
         behaviors = getattr(world, 'installed_behaviors', None)
@@ -662,6 +757,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
         else:
             role_name = name
             role_behaviors = behaviors
+        if len(role_name) > 50:
+            role_name = role_name[:50].strip('-')
         role_kwargs = dict(
             name=role_name,
             is_scalarized = int(is_scalarized or has_cloudinit),
@@ -704,10 +801,10 @@ def run_sysprep(uuid, console):
 def get_user_name():
     if CONF.feature.driver.is_platform_gce:
         user_name = ['scalr']
-    elif 'ubuntu' in CONF.feature.dist:
+    elif CONF.feature.dist.dist == 'ubuntu':
         user_name = ['root', 'ubuntu']
-    elif 'amzn' in CONF.feature.dist or \
-            ('rhel' in CONF.feature.dist and CONF.feature.driver.is_platform_ec2):
+    elif CONF.feature.dist.dist == 'amazon' or \
+            (CONF.feature.dist.dist == 'redhat' and CONF.feature.driver.is_platform_ec2):
         user_name = ['root', 'ec2-user']
     else:
         user_name = ['root']
@@ -734,7 +831,7 @@ def get_repo_type(custom_branch, custom_version=None):
         def __getitem__(self, key):
             if self.has_key(key):
                 value = dict.__getitem__(self, key)
-                if not Dist.is_windows_family(CONF.feature.dist):
+                if not CONF.feature.dist.is_windows:
                     value = self.__extend_repo_type(value)
                 return value
             raise AssertionError('Repo type: "%s" not valid' % key)
@@ -773,7 +870,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     repo_type = get_repo_type(branch, custom_version)
     LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
     # Windows handler
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         password = 'Scalrtest123'
         if node:
             console_kwargs = dict(
@@ -793,10 +890,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
-        out = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
-        LOG.debug('Installed scalarizr version: %s' % out)
-        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', out)
-        assert version, 'installed scalarizr version not valid. Regexp found: "%s", out from server: "%s"' % (version, out)
+        res = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
@@ -817,8 +911,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 time.sleep(10)
         url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
         cmd = '{curl_install} && ' \
-            'curl -L {url}/install_scalarizr.sh | bash && ' \
-            'sync && scalarizr -v'.format(
+            'curl -L {url}/install_scalarizr.sh | bash && sync'.format(
                 curl_install=world.value_for_os_family(
                     debian="apt-get update && apt-get install curl -y",
                     centos="yum clean all && yum install curl -y",
@@ -827,13 +920,52 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 ),
                 url=url)
         LOG.debug('Install script body: %s' % cmd)
-        res = node.run(cmd)[0]
-        version = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-        assert version, 'Scalarizr version is invalid. Command returned: %s' % res
-        cv2_init = 'touch /etc/scalr/private.d/scalr_labs_corev2'
-        LOG.info('Init scalarizr corev2. Run command %s' % cv2_init)
-        node.run(cv2_init)
-    setattr(world, 'pre_installed_agent', version[0])
+        node.run(cmd)
+        # get installed scalarizr version
+        res = node.run('scalarizr -v')[0]
+    scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
+    assert scalarizr_ver, 'Scalarizr version is invalid. Command returned: %s' % res
+    setattr(world, 'pre_installed_agent', scalarizr_ver[0])
     if resave_node:
         setattr(world, 'cloud_server', node)
-    LOG.debug('Scalarizr %s was successfully installed' % world.pre_installed_agent)
+    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver[0])
+
+
+@step('I have a server([\w ]+)? running in cloud$')
+def given_server_in_cloud(step, user_data):
+    #TODO: Add install behaviors
+    LOG.info('Create node in cloud. User_data:%s' % user_data)
+    #Convert dict to formatted str
+    if user_data:
+        dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
+        user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family])
+        if CONF.feature.driver.is_platform_gce:
+            user_data = {'scalr': user_data}
+    else:
+        user_data = None
+    #Create node
+    image = None
+    if CONF.feature.dist.is_windows:
+        table = tables('images-clean')
+        search_cond = dict(
+            dist=CONF.feature.dist.id,
+            platform=CONF.feature.platform)
+        image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
+    node = world.cloud.create_node(userdata=user_data, image=image)
+    setattr(world, 'cloud_server', node)
+    LOG.info('Cloud server was set successfully node name: %s' % node.name)
+    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+        #Run command
+        out = node.run('wget -qO- ifconfig.me/ip')
+        if not out[1]:
+            ip_address = out[0].rstrip("\n")
+            LOG.info('Received external ip address of the node. IP:%s' % ip_address)
+            setattr(world, 'ip', ip_address)
+        else:
+            raise AssertionError("Can't get node external ip address. Original error: %s" % out[1])
+        #Open port, set firewall rule
+        new_port = world.cloud.open_port(node, 8013, ip=ip_address)
+        setattr(world, 'forwarded_port', new_port)
+        if not new_port == 8013:
+            raise AssertionError('Import will failed, because opened port is not 8013, '
+                                 'an installed port is: %s' % new_port)

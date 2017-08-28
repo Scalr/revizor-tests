@@ -20,8 +20,6 @@ from revizor2.conf import CONF
 from lettuce import step, world, after
 from urllib2 import URLError
 
-from revizor2.consts import Dist
-from revizor2.defaults import USE_VPC
 from distutils.version import LooseVersion
 from revizor2.fixtures import tables, resources
 
@@ -29,7 +27,7 @@ LOG = logging.getLogger(__name__)
 
 ORG = 'Scalr'
 SCALARIZR_REPO = 'int-scalarizr'
-GH = github.GitHub(access_token=CONF.main.github_access_token)
+GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 @step(r"I have manually installed scalarizr(?:\s('[\w\W\d]+'))* on ([\w\d]+)")
@@ -78,21 +76,26 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
-    branch = branch or ''
-    if 'system' in branch:
+    if branch == 'system':
+        # Use environ because CONF.feature replace '/' to '-'
         branch = os.environ.get('RV_BRANCH')
+    elif branch == 'new':
+        branch = world.test_branch_copy
     elif not branch:
+        # Use environ because CONF.feature replace '/' to '-'
         branch = os.environ.get('RV_TO_BRANCH')
     else:
         branch = branch.strip()
-    world.test_branch_copy= 'test-{}/{}'.format(int(time.time()), branch)
+    world.test_branch_copy = getattr(world, 'test_branch_copy', 'test-{}'.format(int(time.time())))
     if is_patched:
         fixture_path = 'scripts/scalarizr_app.py'
         script_path = 'src/scalarizr/app.py'
         content = resources(fixture_path).get()
+        commit_msg = 'Patch app.py, corrupt windows start'
     else:
         script_path = 'README.md'
-        content = 'Scalarizr\n=========\nTested build for: [%s]()' % branch
+        commit_msg = 'Tested build for %s at %s ' % (branch, time.strftime('%-H:%M:%S'))
+        content = 'Scalarizr\n=========\n%s' % commit_msg
     LOG.info('Cloning branch: %s to %s' % (branch, world.test_branch_copy))
     git = GH.repos(ORG)(SCALARIZR_REPO).git
     # Get the SHA the current test branch points to
@@ -112,24 +115,26 @@ def having_branch_copy(step, branch=None, is_patched=False):
                'sha': blob.sha}])
     # Create a new commit object using the new tree and point its parent to the current master
     commit = git.commits.post(
-        message='Patch app.py, corrupt windows start', #TODOL Change this commit message for linux package too
+        message=commit_msg,
         parents=[base_sha],
         tree=tree.sha)
     base_sha = commit.sha
     LOG.debug('Scalarizr service was patched. GitHub api res: %s' % commit)
     # Finally update the heads/master reference to point to the new commit
-    cloned_branch = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
-    LOG.debug('New branch was created. %s' % cloned_branch)
+    try:
+        res = git.refs.post(ref='refs/heads/%s' % world.test_branch_copy, sha=base_sha)
+        LOG.debug('New branch was created. %s' % res)
+    except github.ApiError:
+        res = git.refs('heads/%s' % world.test_branch_copy).patch(sha=base_sha)
+        LOG.debug('New created branch %s was updated.' % res.get('ref'))
     world.build_commit_sha = base_sha
 
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
-    time_until = time.time() + 2400
-    error = 'Timeout or build status failed.'
+    '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while True:
-        # Get build status
+    for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
             status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
@@ -138,50 +143,45 @@ def waiting_new_package(step):
                 LOG.info('Drone status: %s' % status.description)
                 return
             elif status.state == 'failure':
-                time_until = None
-                error = 'Drone status is failed'
-        if time.time() >= time_until:
-            raise AssertionError(error)
+                raise AssertionError(
+                    'Build status is %s . Drone status is failed!' % (status.state))
         time.sleep(60)
+    LOG.error('Get build status: Time out of range 90 min!')
+    raise Exception(
+        'Time out of range 90 min! Build status is not success or failure. Drone status == %s' % status.state)
 
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         table = tables('images-clean')
         search_cond = dict(
-            dist=CONF.feature.dist,
+            dist=CONF.feature.dist.id,
             platform=CONF.feature.platform)
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
-        if CONF.feature.driver.is_platform_ec2 and CONF.feature.dist in ['ubuntu1604', 'centos7']:
-            image = world.cloud.find_image(use_hvm=True)
-        else:
-            image = world.cloud.find_image(use_hvm=USE_VPC)
-    LOG.debug('Obtained clean image %s, Id: %s' %(image.name, image.id))
+        image = world.cloud.find_image()
+    LOG.debug('Obtained clean image %s, Id: %s' % (image.name, image.id))
     setattr(world, 'image', image)
 
 
-@step(r'I add created role to the farm(?: with (custom deploy options)*(branch_stable)*)*$')
+@step(r'I add created role to the farm(?: with (manual scaling)*(stable branch)*)*$')
 def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
-    branch = CONF.feature.to_branch if not use_stable else 'stable'
-    release = branch in ['latest', 'stable']
+    branch = CONF.feature.branch
+    cloud_location = CONF.platforms[CONF.feature.platform]['location']
+    if CONF.feature.driver.is_platform_gce:
+        cloud_location = ""
     role_kwargs = dict(
-        location=CONF.platforms[CONF.feature.platform]['location'] \
-            if not CONF.feature.driver.is_platform_gce else "",
+        location=cloud_location,
         options={
-            "user-data.scm_branch": '' if release else branch,
-            "base.upd.repository": branch if release else '',
-            "base.devel_repository": '' if release else CONF.feature.ci_repo
+            "user-data.scm_branch": branch if not use_stable else "",
+            "base.upd.repository": "stable" if use_stable else "",
+            "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
         },
-        alias=world.role['name'],
-        use_vpc=USE_VPC
+        alias=world.role['name']
     )
-    if CONF.feature.driver.is_platform_ec2 \
-            and (Dist.is_windows_family(CONF.feature.dist) or CONF.feature.dist == 'centos7'):
-        role_kwargs['options']['instance_type'] = 'm3.medium'
     if use_manual_scaling:
         manual_scaling = {
             "scaling.one_by_one": 0,
@@ -196,9 +196,8 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
 
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
-    #FIXME: wait longer for update finished
     server = getattr(world, serv_as)
-    for i in range(3):
+    for i in range(5):
         try:
             res = IMPL.server.update_scalarizr(server_id=server.id)
             LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
@@ -208,9 +207,9 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
             if 'errorMessage' in e.message and 'AlreadyInProgressError' in e.message:
                 LOG.warning('Scalarizr update process in progress')
                 break
-            time.sleep(15)
+            time.sleep(24)
     else:
-        raise Exception("Scalarizr update failed 3 times with error: %s" % e)
+        raise Exception("Scalarizr update failed with error: %s" % e)
 
 
 @step(r'scalarizr version (is default|was updated) in ([\w\d]+)$')
@@ -222,17 +221,17 @@ def asserting_version(step, version, serv_as):
     command = 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
-    if Dist.is_windows_family(CONF.feature.dist):
+    if CONF.feature.dist.is_windows:
         res = world.run_cmd_command_until(command, server=server, timeout=300).std_out
     # Linux handler
     else:
         node = world.cloud.get_node(server)
         res = node.run(command)[0]
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    assert installed_agent , "Can't get scalarizr version: %s" % res
+    assert installed_agent, "Can't get scalarizr version: %s" % res
     installed_agent = installed_agent[0]
     if default_installed_agent:
-        assert  LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
+        assert LooseVersion(default_installed_agent) == LooseVersion(installed_agent), \
             err_msg % (default_installed_agent, installed_agent)
         world.default_agent = None
         return

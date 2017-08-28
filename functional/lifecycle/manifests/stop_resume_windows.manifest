@@ -3,9 +3,10 @@
         "ec2": {"tags": ["ec2"], "default": true},
         "gce": ["gce"],
         "idcf": ["cloudstack"],
-        "rackspacengus": ["rackspaceng"],
         "openstack": ["openstack"],
-        "vmware": ["vmware"],
-        "azure": ["azure"]
+        "cloudstack": ["cloudstack"],
+        "vmware": ["vmware", "-storages", "-fstab"],
+        "azure": ["azure", "-storages"]
     }
+
 }

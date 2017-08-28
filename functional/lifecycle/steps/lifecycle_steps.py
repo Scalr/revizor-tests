@@ -1,3 +1,4 @@
+import os
 import re
 import time
 import json
@@ -9,6 +10,9 @@ from lettuce import world, step, after
 from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
+from revizor2.fixtures import resources
+from revizor2.utils import wait_until
+from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -24,7 +28,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
 
 @step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
 def waiting_server(step, state, serv_as, timeout=1400):
-    if CONF.feature.dist.startswith('win'):
+    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
@@ -112,29 +116,6 @@ def check_file_count(step, directory, file_count, serv_as):
         raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
 
-@step("I deploy app with name '(.+)'")
-def deploy_app(step, app_name):
-    LOG.info('Deploy app %s' % app_name)
-    old_tasks_ids = [task['id'] for task in IMPL.deploy.tasks_list()]
-    LOG.debug('Old tasks %s' % old_tasks_ids)
-    world.farm.deploy_app(app_name, path='/tmp/%s' % app_name)
-    time.sleep(10)
-    new_tasks_ids = [task['id'] for task in IMPL.deploy.tasks_list()]
-    LOG.debug('New tasks %s' % new_tasks_ids)
-    task_id = [task for task in new_tasks_ids if not task in old_tasks_ids]
-    world.task_id = task_id[0]
-    LOG.info('Task id is %s' % world.task_id)
-
-
-@step('And deploy task deployed')
-def check_deploy_status(step):
-    time.sleep(30)
-    LOG.info('Check task status')
-    LOG.debug('All tasks %s' % IMPL.deploy.tasks_list())
-    task = filter(lambda x: x['id'] == world.task_id, IMPL.deploy.tasks_list())[0]
-    world.assert_not_equal(task['status'], 'deployed', 'Task not deployed, status: %s' % task['status'])
-
-
 @step('I define event \'(.+)\'$')
 def define_event_to_role(step, event):
     events = IMPL.event.list()
@@ -153,17 +134,28 @@ def attach_script(step, script_name):
     role = world.get_role()
     res = filter(lambda x: x['name'] == script_name, scripts)[0]
     LOG.info('Add script %s to custom event %s' % (res['name'], world.last_event['name']))
-    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[{
-        "script_type": "scalr",
-        "script_id": str(res['id']),
-        "script": res['name'],
-        "event": world.last_event['name'],
-        "params": [],
-        "target": "instance",
-        "version": "-1",
-        "timeout": "1200",
-        "issync": "1",
-        "order_index": "1",
+    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[
+        {
+            "scope": "farmrole",
+            "action": "add",
+            # id: extModel123
+            # eventOrder 2
+            "timeout": "1200",
+            "isSync": True,
+            "orderIndex": 10,
+            "type": "scalr",
+            "isActive": True,
+            "eventName": world.last_event['name'],
+            "target": {
+                "type": "server"
+            },
+            "isFirstConfiguration": None,
+            "scriptId": str(res['id']),
+            "scriptName": res['name'],
+            "scriptOs": "linux",
+            "version": "-1",
+            "scriptPath": "",
+            "runAs": ""
         }]
     )
 
@@ -178,22 +170,19 @@ def execute_command(step, command, serv_as):
 @step('server ([\w\d]+) contain \'(.+)\'')
 def check_file(step, serv_as, path):
     node = world.cloud.get_node(getattr(world, serv_as))
-    out = node.run('ls %s' % path)
-    LOG.info('Check exist path: %s' % path)
-    if not out[2] == 0:
+    for attempt in range(5):
+        out = node.run('ls %s' % path)
+        LOG.info('Check exist path: %s. Attempt: %s' % (path, attempt))
+        if out[2] == 0: # success
+            break
+        time.sleep(15)
+    else:
         raise AssertionError('File \'%s\' not exist: %s' % (path, out))
 
 
 @step("I save device for '(.+)' for role")
 def save_device_for_additional_storage(step, mount_point):
-    role = world.get_role()
-    devices = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
-    device = filter(lambda x: x['mountPoint'] == mount_point, devices['configs'])
-    if device:
-        device = device[0]['id']
-    else:
-        raise AssertionError('Can\'t found device for mount point: %s' % mount_point)
-    device_id = devices['devices'][device][0]['storageId']
+    device_id = world.get_storage_device_by_mnt_point(mount_point)[0]['storageId']
     LOG.info('Volume Id for mount point "%s" is "%s"' % (mount_point, device_id))
     setattr(world, 'device_%s' % mount_point.replace('/', '_'), device_id)
 
@@ -212,7 +201,7 @@ def delete_volume(step, mount_point):
         try:
             world.cloud._driver._conn.destroy_volume(volume)
             break
-        except Exception, e:
+        except Exception as e:
             if 'attached' in e.message:
                 LOG.warning('Volume %s currently attached to server' % device_id)
                 time.sleep(60)
@@ -220,21 +209,13 @@ def delete_volume(step, mount_point):
 
 @step("saved device for '(.+)' for role is another")
 def verify_saved_and_new_volumes(step, mount_point):
-    role = world.get_role()
-    devices = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
-    device = filter(lambda x: x['mountPoint'] == mount_point, devices['configs'])
-    if device:
-        device = device[0]['id']
-    else:
-        raise AssertionError('Can\'t found device for mount point: %s' % mount_point)
-    device_id = devices['devices'][device][0]['storageId']
-    old_device_id = getattr(world, 'device_%s' % mount_point.replace('/', '_'))
-    if device_id == old_device_id:
+    device = world.get_storage_device_by_mnt_point(mount_point)[0]
+    if device['storageId'] == getattr(world, 'device_%s' % mount_point.replace('/', '_')):
         raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6', '!centos7'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6', '!centos-7-x'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.driver.current_cloud in [Platform.IDCF,
@@ -287,9 +268,16 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     if mount_point not in fstab:
         raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
                              (mount_point, fstab))
-    if not mount_disks[mount_point] == fstab[mount_point]:
-        raise AssertionError('Disk from mount != disk in fstab: "%s" != "%s"' %
-                             (mount_disks[mount_point], fstab[mount_point]))
+    check_symlink, stderr, exit_code = node.run('ls -l "%s"' % (mount_disks[mount_point]))
+    if check_symlink.startswith('l'):
+        path = os.path.realpath(mount_disks[mount_point] + "/.." + fstab[mount_point])
+        if not fstab[mount_point] in path:
+            raise AssertionError('Disk in fstab: "%s" is not in symlink "%s"' %
+                                 (fstab[mount_point], path))
+    else:
+        assert mount_disks[mount_point] == fstab[mount_point], (
+            'Disk from mount != disk in fstab: "%s" != "%s"' % (
+                mount_disks[mount_point], fstab[mount_point]))
 
 
 @step("start time in ([\w\d _-]+) scripts are different for ([\w\d]+)")
@@ -324,7 +312,7 @@ def verify_attached_disk_types(step):
     if CONF.feature.driver.current_cloud == Platform.EC2:
         LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
         return
-    elif CONF.feature.driver.current_cloud == Platform.GCE:
+    elif CONF.feature.driver.is_platform_gce:
         if not volume_ids['/media/diskmount'][0].extra['type'] == 'pd-standard':
             raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
                                  volume_ids['/media/diskmount'][0].extra['type'])
@@ -335,8 +323,98 @@ def verify_attached_disk_types(step):
 
 
 @step(r"instance vcpus info not empty for ([\w\d]+)")
+@world.run_only_if(platform='!%s' % Platform.VMWARE)
 def checking_info_instance_vcpus(step, serv_as):
     server = getattr(world, serv_as)
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info('Server %s vcpus info: %s' % (server.id, vcpus))
     assert vcpus > 0, 'info.instance_vcpus not valid for %s' % server.id
+
+
+@step(r"I reconfigure device partitions for '([\W\w]+)' on ([\w\d]+)")
+def create_partitions_on_volume(step, mnt_point, serv_as):
+    script_name = "create_partitions.sh"
+    script_src = resources(os.path.join("scripts", script_name)).get()
+    path = os.path.join('/tmp', script_name)
+
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+
+    LOG.info('Creating partitions table for volume on %s' % mnt_point)
+    node.put_file(path, script_src % mnt_point)
+    out = node.run('source %s' % path)
+
+    partition_table = out[0].strip("\n").splitlines()[-4:]
+    LOG.debug('Created partitions table for volume:\n%s' % "\n".join(partition_table))
+    assert all(line.startswith('/dev/') for line in partition_table), \
+        "Create volume partitions failed: %s" % out[1]
+    LOG.info('Partitions table for volume was successfully created')
+
+
+@step(r"I trigger snapshot creation from volume for '([\W\w]+)' on role")
+def create_volume_snapshot(step, mnt_point):
+    device = world.get_storage_device_by_mnt_point(mnt_point)[0]
+    LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
+    kwargs = dict(
+        cloud_location=CONF.platforms[CONF.feature.platform]['location'],
+        volume_id=device['storageId']
+    )
+    volume_snapshot_id = IMPL.aws_tools.create_volume_snapshot(**kwargs)
+    assert volume_snapshot_id, 'Volume snapshot creation failed'
+    LOG.info('Volume snapshot create was started. Snapshot: %s' % volume_snapshot_id)
+    setattr(world, 'volume_snapshot_id', volume_snapshot_id)
+
+
+@step(r"Volume snapshot creation become completed")
+def wait_voume_snapshot(step):
+    def is_snapshot_completed(**kwargs):
+        status = IMPL.aws_tools.snapshots_list(**kwargs)[0]['status']
+        LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)
+        return status == "completed"
+
+    wait_until(
+        is_snapshot_completed,
+        kwargs=dict(
+            location=CONF.platforms[CONF.feature.platform]['location'],
+            snapshot_id=getattr(world, 'volume_snapshot_id')),
+        timeout=600,
+        logger=LOG)
+
+
+@step(r"I add new storage from volume snapshot to role")
+def add_storage_to_role(step):
+    role = world.get_role()
+    volume_snapshot_id = getattr(world, 'volume_snapshot_id', None)
+    assert volume_snapshot_id, 'No volume snapshot found in world object'
+    LOG.info('Add volume from snapshot: %s to role' % volume_snapshot_id)
+    storage_settings = {'configs': [
+        {
+            "id": None,
+            "type": "ebs",
+            "fs": None,
+            "settings": {
+                "ebs.size": "1",
+                "ebs.type": "standard",
+                "ebs.snapshot": volume_snapshot_id},
+            "mount": False,
+            "reUse": False,
+            "status": "",
+            "rebuild": False
+        }
+    ]}
+    role.edit(storages=storage_settings)
+
+
+@world.run_only_if(platform=(Platform.EC2, Platform.GCE), storage='persistent')
+@step('I verify right count of incoming messages ([^ .]+) from ([\w\d]+)')
+def assert_server_message_count(step, msg, serv_as):
+    """Assert messages count with Mounted Storages count"""
+    server = getattr(world, serv_as)
+    server.messages.reload()
+    incoming_messages = [m.name for m in server.messages if m.type == 'in' and  m.name == msg]
+    messages_count = len(incoming_messages)
+    mount_device_count = len(
+        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.driver.current_cloud])
+    assert messages_count == mount_device_count, (
+        'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
+            messages_count, mount_device_count, incoming_messages))

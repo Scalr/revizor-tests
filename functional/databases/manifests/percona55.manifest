@@ -5,15 +5,15 @@
         "gce": ["gce", "-volumes", "-reboot", "-grow", "-slavedatabundle"],
         "idcf": ["cloudstack", "-grow", "-backup", "-slavedatabundle"],
         "rackspacengus": ["rackspaceng", "-volumes", "-grow", "-slavedatabundle"],
-        "ecs": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
+        "openstack": ["openstack", "-volumes", "-grow", "-slavedatabundle"]
     },
     "RV_STORAGE": {
         "persistent": {"tags": ["-lvm"], "default": true},
-        "lvm": ["-volumes", "-grow", "-persistent"],
         "eph": ["-volumes", "-grow", "-persistent"],
         "raid5": ["-volumes", "-lvm", "-persistent"],
         "raid10": ["-volumes", "-lvm", "-grow", "-persistent"],
         "raid1": ["-volumes", "-lvm", "-persistent"],
-        "raid0": ["-volumes", "-lvm", "-grow", "-persistent"]
+        "raid0": ["-volumes", "-lvm", "-grow", "-persistent"],
+        "lvm": ["-volumes", "-grow", "-persistent"]
     }
 }

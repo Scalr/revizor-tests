@@ -3,7 +3,7 @@ Feature: Windows server resume strategy
     In order to check resume strategy
     I monitoring server state changes
 
-    @ec2 @gce @cloudstack @boot
+    @ec2 @gce @cloudstack @azure @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with winchef,termination_preferences
@@ -13,7 +13,7 @@ Feature: Windows server resume strategy
         Then I check file 'C:\chef_result_file' exist on M1 windows
         And I remove file 'C:\chef_result_file' from M1 windows
 
-    @ec2 @gce @cloudstack @stopresume
+    @ec2 @gce @cloudstack @azure @stopresume
     Scenario: Stop/resume
         When I suspend server M1
         Then BeforeHostTerminate (Suspend) event was fired by M1
@@ -32,8 +32,24 @@ Feature: Windows server resume strategy
         And HostInit,BeforeHostUp events were not fired after M1 resume
         Then I check file 'C:\chef_result_file' not exist on M1 windows
 
-    @ec2 @gce @cloudstack
+    @ec2 @gce @azure @cloudstack
     Scenario: Verify Scalr delete chef nodes
         When I stop farm
         And wait all servers are terminated
         And Server M1 not exists on chef nodes list
+
+    @ec2 @gce @cloudstack @stopresume @farmsuspend
+    Scenario: Suspend/resume farm
+        Given I have a clean and stopped farm
+        And I add base role to this farm
+        When I start farm
+        Then I expect server bootstrapping as M1
+        When I suspend farm
+        Then I wait farm in Suspended state
+        And wait all servers are suspended
+        When I resume farm
+        Then I wait server M1 in resuming state
+        Then Scalr receives RebootFinish from M1
+        And ResumeComplete event was fired by M1
+        Then I wait server M1 in running state
+        And HostInit,BeforeHostUp events were not fired after M1 resume

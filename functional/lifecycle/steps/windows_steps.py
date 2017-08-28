@@ -73,23 +73,8 @@ def check_errors_in_log(step, serv_as):
         raise AssertionError('ERROR in log: %s' % errors)
 
 
-@step("last script output contains '(.+)' in (.+)$")
-def assert_check_message_in_log(step, message, serv_as):
-    time.sleep(60)
-    server = getattr(world, serv_as)
-    server.scriptlogs.reload()
-    last_count = getattr(world, '%s_script_count' % serv_as)
-    LOG.debug("Last count of scripts: %s" % last_count)
-    scriptlogs = sorted(server.scriptlogs, key=lambda x: x.id)
-    LOG.debug("Check content in logs")
-    if message in scriptlogs[last_count].message:
-        return True
-    LOG.error("Not find content in message: %s" % scriptlogs[last_count].message)
-    raise AssertionError("Not see message %s in scripts logs" % message)
-
-
 @step(r"server ([\w\d]+) has disks ([(\w)(\(\w+_label\))?: (\d+) Gb,]+)")
-@world.run_only_if(platform=Platform.EC2)
+@world.run_only_if(platform=(Platform.EC2, Platform.GCE))
 def check_attached_disk_size(step, serv_as, cdisks):
     correct_disks = dict(re.findall('(\w)(?:\(\w+_label\))?: (\d+) Gb', cdisks))
     server = getattr(world, serv_as)

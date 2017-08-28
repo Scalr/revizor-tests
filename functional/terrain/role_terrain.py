@@ -9,8 +9,8 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
-from revizor2.defaults import USE_VPC
 from revizor2.consts import Platform, ServerStatus
+from revizor2.defaults import DEFAULT_ROLE_OPTIONS
 
 
 LOG = logging.getLogger(__name__)
@@ -39,13 +39,6 @@ def increase_instances(step, count, role_type):
     options = {"scaling.max_instances": int(count) + 1,
                "scaling.min_instances": count}
     role.edit(options)
-
-
-@step('I start a new server for(?: ([\w\d+]))? role')
-def start_new_instance(step, role_type):
-    role = world.get_role(role_type)
-    LOG.info('Start new instance for role %s' % role)
-    role.launch_instance()
 
 
 @step(r'bootstrap (\d+) servers as \(([\w\d, ]+)\)(?: in (\w+) role)?$')
@@ -88,17 +81,13 @@ def add_new_role_to_farm(step, alias=None):
     if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
-
+    if len('{}-{}'.format(world.farm.name, alias)) >= 63:
+        options.update(DEFAULT_ROLE_OPTIONS['hostname'])
     world.farm.add_role(world.bundled_role_id, options=options,
-                        scripting=scripting, alias=alias, use_vpc=USE_VPC)
+                        scripting=scripting, alias=alias)
     world.farm.roles.reload()
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
     setattr(world, '%s_role' % alias, role)
 
 
-@step('I change suspend policy in role to (\w+)')
-def change_suspend_policy(step, policy):
-    role = world.get_role()
-    LOG.info('Change suspend policy for role %s to %s' % (role.alias, policy))
-    role.edit(options={"base.resume_strategy": policy})

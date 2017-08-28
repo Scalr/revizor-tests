@@ -3,7 +3,7 @@ Feature: Linux server resume strategy
     In order to check resume strategy
     I monitoring server state changes
 
-    @ec2 @gce @cloudstack @boot
+    @ec2 @vmware @gce @cloudstack @azure @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with chef,storages,termination_preferences
@@ -26,14 +26,14 @@ Feature: Linux server resume strategy
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @gce @cloudstack @chef
+    @ec2 @vmware @gce @cloudstack @azure @chef
     Scenario: Verify chef deployment
         When I save chef bootstrap stats on M1
         And process 'memcached' has options '-m 1024' in M1
         And process 'chef-client' has options '--daemonize' in M1
         And chef node_name in M1 set by global hostname
 
-    @ec2 @gce @cloudstack @stopresume
+    @ec2 @vmware @gce @cloudstack @azure @stopresume
     Scenario: Stop/resume
         When I suspend server M1
         Then BeforeHostTerminate (Suspend) event was fired by M1
@@ -49,7 +49,7 @@ Feature: Linux server resume strategy
         Then I wait server M1 in running state
         And HostInit,BeforeHostUp events were not fired after M1 resume
 
-    @ec2 @gce @cloudstack @chef
+    @ec2 @vmware @gce @cloudstack @azure @chef
     Scenario: Verify chef after resume
         When I check chef bootstrap stats on M1
         And process memcached is not running in M1
@@ -67,9 +67,39 @@ Feature: Linux server resume strategy
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @gce @cloudstack
+    @ec2 @vmware @gce @cloudstack @azure
     Scenario: Verify Scalr delete chef nodes
         When I stop farm
         And wait all servers are terminated
         And server M1 not exists on chef nodes list
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
+    Scenario: Suspend farm with nginx + apache roles configured with virtual host proxying in Apache
+        Given I have a clean and stopped farm
+        When I add www role to this farm
+        When I add app role to this farm
+        When I start farm
+        Then I expect server bootstrapping as W1 in www role
+        Then I expect server bootstrapping as A2 in app role
+        And nginx is running on W1
+        When I create domain D1 to www role
+        And I add virtual host H1 to app role and domain D1
+        And I add http proxy P1 to www role with H1 host to app role with ip_hash with private network
+        When I suspend farm
+        Then I wait farm in Suspended state
+        And wait all servers are suspended
+
+    @ec2 @gce @cloudstack @rackspaceng @openstack @stopresume @farmsuspend
+    Scenario: Resume suspended farm and verify servers after resume
+        When I resume farm
+        Then I wait server W1 in resuming state
+        Then I wait server A2 in resuming state
+        Then Scalr receives RebootFinish from W1
+        Then Scalr receives RebootFinish from A2
+        And ResumeComplete event was fired by W1
+        And ResumeComplete event was fired by A2
+        Then I wait server W1 in running state
+        Then I wait server A2 in running state
+        And HostInit,BeforeHostUp events were not fired after W1 resume
+        And HostInit,BeforeHostUp events were not fired after A2 resume
+        And http get domain D1 matches H1 index page

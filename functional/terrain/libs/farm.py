@@ -1,14 +1,13 @@
-import os
 import time
 import logging
+from datetime import datetime
 
 from lettuce import world
 
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
 from revizor2.fixtures import tables
-from revizor2.defaults import USE_VPC
-from revizor2.consts import BEHAVIORS_ALIASES, DIST_ALIASES, Platform
+from revizor2.consts import BEHAVIORS_ALIASES, Platform, FarmStatus
 from revizor2.exceptions import NotFound
 from revizor2.helpers.roles import get_role_versions
 
@@ -19,9 +18,20 @@ LOG = logging.getLogger(__name__)
 
 
 @world.absorb
-def give_empty_running_farm():
-    farm_id = os.environ.get('RV_FARM_ID', CONF.main.farm_id)
-    world.farm = Farm.get(farm_id)
+def give_empty_farm(launched=False):
+    if CONF.main.farm_id is None:
+        LOG.info('Farm ID not setted, create a new farm for test')
+        world.farm = Farm.create('tmprev-%s' % datetime.now().strftime('%d%m%H%M%f'),
+                                 "Revizor farm for tests\n"
+                                 "RV_BRANCH={}\n"
+                                 "RV_PLATFORM={}\n"
+                                 "RV_DIST={}\n".format(
+                                     CONF.feature.branch, CONF.feature.platform, CONF.feature.dist.dist
+                                 ))
+        CONF.main.farm_id = world.farm.id
+    else:
+        LOG.info('Farm ID is setted in config use it: %s' % CONF.main.farm_id)
+        world.farm = Farm.get(CONF.main.farm_id)
     world.farm.roles.reload()
     if len(world.farm.roles):
         LOG.info('Clear farm roles')
@@ -37,38 +47,41 @@ def give_empty_running_farm():
             domain.delete()
     except Exception:
         pass
-    if world.farm.terminated:
+    if world.farm.terminated and launched:
         world.farm.launch()
+    elif world.farm.running and not launched:
+        world.farm.terminate()
     LOG.info('Return empty running farm: %s' % world.farm.id)
 
 
 @world.absorb
-def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None, scaling=None):
+def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None, scaling=None,
+                     variables=None):
     """
     Insert role to farm by behavior and find role in Scalr by generated name.
     Role name generate by the following format:
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    variables = variables or []
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
             #TODO: Try get from Scalr
-            role = tables('roles-shared').filter({'dist': CONF.feature.dist,
+            role = tables('roles-shared').filter({'dist': CONF.feature.dist.id,
                                                   'behavior': behavior,
                                                   'platform': CONF.feature.driver.scalr_cloud}).first()
             role = IMPL.role.get(role.keys()[0])
         else:
             if behavior in BEHAVIORS_ALIASES:
                 behavior = BEHAVIORS_ALIASES[behavior]
-            if CONF.feature.role_type == 'instance':
-                mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-            elif USE_VPC:
-                mask = '%s*-%s-hvm-%s' % (behavior, dist, CONF.feature.role_type)
-            elif '-cloudinit' in behavior:
-                mask = 'tmp-%s-%s-*-*' % (behavior, dist)
+            if '-cloudinit' in behavior:
+                mask = 'tmp-%s-%s-*-*' % (behavior, CONF.feature.dist.id)
             else:
-                mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
+                if CONF.feature.role_type == 'instance':
+                    mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
+                else:
+                    mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
             LOG.info('Get role versions by mask: %s' % mask)
             versions = get_role_versions(mask)
             versions.sort()
@@ -77,11 +90,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             if CONF.feature.role_type == 'instance':
                 role_name = '%s%s-%s-%s-instance' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
-            elif USE_VPC:
-                role_name = '%s%s-%s-hvm-%s' % (behavior, versions[0],
-                                            dist, CONF.feature.role_type)
             elif '-cloudinit' in behavior:
-                role_name = 'tmp-%s-%s-%s' % (behavior, dist, versions[0])
+                role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
             else:
                 role_name = '%s%s-%s-%s' % (behavior, versions[0],
                                             dist, CONF.feature.role_type)
@@ -91,10 +101,8 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
                 raise NotFound('Role with name: %s not found in Scalr' % role_name)
             role = roles[0]
         return role
-    if CONF.feature.dist in DIST_ALIASES:
-        dist = DIST_ALIASES[CONF.feature.dist]
-    else:
-        dist = CONF.feature.dist
+    # WORKAROUND!
+    dist = CONF.feature.dist.mask
     if CONF.feature.role_id:
         LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
         if CONF.feature.role_id.isdigit():
@@ -118,24 +126,42 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist == 'rhel7' and not CONF.feature.use_vpc:
-        options['instance_type'] = 'm3.medium'
-    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.EC2:
-        LOG.debug('Dist is windows, set instance type')
-        options['instance_type'] = 'm3.medium'
-    if dist in ('windows2008', 'windows2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
+    if dist in ('windows-2008', 'windows-2012') and CONF.feature.driver.current_cloud == Platform.AZURE:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
+    if CONF.feature.driver.current_cloud == Platform.EC2:
+        variables.append({
+            'name': 'REVIZOR_TEST_ID',
+            'current': {
+                'scope': 'farmrole',
+                'validator': '',
+                'format': '',
+                'name': 'REVIZOR_TEST_ID',
+                'description': '',
+                'value': getattr(world, 'test_id')
+            },
+            'scopes': ['farmrole'],
+            'category': ''
+        })
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,
                         storages=storages,
                         alias=alias,
                         scaling=scaling,
-                        use_vpc=USE_VPC)
+                        variables=variables)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
     if not new_role:
         raise AssertionError('Added role "%s" not found in farm' % role['name'])
     return new_role[0]
+
+
+@world.absorb
+def get_farm_state(state):
+    world.farm = Farm.get(world.farm.id)
+    if world.farm.status == state:
+        return True
+    else:
+        raise AssertionError('Farm is Not in %s state' % state)

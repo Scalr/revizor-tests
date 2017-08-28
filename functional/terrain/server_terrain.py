@@ -4,23 +4,39 @@ import time
 import copy
 import logging
 from datetime import datetime
+from threading import Thread
 
 from lettuce import world, step
 
 from revizor2.conf import CONF
-from revizor2.api import Script
+from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
 from revizor2.exceptions import MessageFailed, EventNotFounded
+from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
+
+
+COOKBOOKS_BEHAVIOR = {
+    'app': 'apache2',
+    'www': 'nginx',
+    'mysql': 'mysql::server',
+    'mysql2': 'mysql::server'
+
+}
+
+BEHAVIOR_SETS = {
+    'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
+    'mbeh2': ['nginx', 'percona', 'tomcat', 'memcached']
+}
 
 
 @step('I expect (?:new\s)*server bootstrapping as ([\w\d]+)(?: in (.+) role)?$')
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
-    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK):
+    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK, Platform.AZURE):
         timeout = 3000
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as,
                                                                 role_type))
@@ -85,18 +101,15 @@ def server_state_action(step, action, reboot_type, serv_as):
     LOG.info('Server %s was %sed' % (server.id, action))
 
 
-@step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?')
-def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=1500):
+@step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?( without saving to the database)?')
+def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_message=None, timeout=1500):
     """Check scalr in/out message delivering"""
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
+    find_message = getattr(world, 'wait_unstored_message' if unstored_message else 'wait_server_message')
     if serv_as == 'all':
         world.farm.servers.reload()
-        server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
-        world.wait_server_message(server,
-                                  msg.strip(),
-                                  msgtype,
-                                  find_in_all=True,
-                                  timeout=timeout)
+        servers = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
+        find_message(servers, msg.strip(), msgtype, find_in_all=True, timeout=timeout)
     else:
         try:
             LOG.info('Try get server %s in world' % serv_as)
@@ -107,7 +120,7 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
         LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
         try:
-            s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
+            s = find_message(server, msg.strip(), msgtype, timeout=timeout)
             setattr(world, serv_as, s)
         except MessageFailed:
             if not failed:
@@ -153,7 +166,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
-    LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
+    setattr(world, '_server_%s_last_script_name' % server.id, script_name)
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
@@ -176,47 +189,39 @@ def script_executing(step, script_type, script_name, execute_type, serv_as):
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
     server = getattr(world, serv_as)
-    last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
-    server.scriptlogs.reload()
-    for i in range(6):
-        if not len(server.scriptlogs) == last_count + 1:
-            LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (
-            last_count, len(server.scriptlogs), last_count + 1))
-            time.sleep(15)
-            server.scriptlogs.reload()
-            continue
-        break
-    else:
-        raise AssertionError('Not see script result in script logs')
+    script_name = getattr(world, '_server_%s_last_script_name' % server.id)
+    world.check_script_executed(name=script_name,
+                                serv_as=serv_as,
+                                new_only=True,
+                                timeout=600)
 
 
-@step('wait all servers are terminated$')
-def wait_all_terminated(step):
-    """Wait termination of all servers"""
-    wait_until(world.wait_farm_terminated, timeout=1800, error_text='Servers in farm not terminated too long')
+@step('wait all servers are ([\w]+)$')
+def wait_for_servers_state(step, state):
+    """Wait for state of all servers"""
+    wait_until(world.farm_servers_state, args=(
+        state, ), timeout=1800, error_text=('Servers in farm have no status %s' % state))
 
 
 @step('hostname in ([\w\d]+) is valid$')
 def verify_hostname_is_valid(step, serv_as):
     server = getattr(world, serv_as)
     hostname = server.api.system.get_hostname()
-    valid_hostname = '%s-%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.role.name, server.index)
-    if CONF.feature.dist.startswith('win'):
-        valid_hostname = '%s-%s'.strip() % (world.farm.name.replace(' ', ''), server.index)
-        hostname = hostname.lower()
+    valid_hostname = world.get_hostname_by_server_format(server)
     if not hostname.lower() == valid_hostname.lower():
         raise AssertionError('Hostname in server %s is not valid: %s (%s)' % (server.id, valid_hostname, hostname))
 
 
-@step('not ERROR in ([\w]+) scalarizr log$')
-def check_scalarizr_log(step, serv_as):
+@step('not ERROR in ([\w]+) scalarizr(?: (debug|update))? log$')
+def check_scalarizr_log(step, serv_as, log_type=None):
     """Check scalarizr log for errors"""
+    log_type = log_type or 'debug'
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    if CONF.feature.dist.startswith('win'):
-        world.verify_scalarizr_log(node, windows=True, server=server)
+    if CONF.feature.dist.is_windows:
+        world.verify_scalarizr_log(node, windows=True, server=server, log_type=log_type)
     else:
-        world.verify_scalarizr_log(node)
+        world.verify_scalarizr_log(node, log_type=log_type)
 
 
 @step('scalarizr process is (.+) in (.+)$')
@@ -247,7 +252,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if CONF.feature.driver.is_platform_ec2:
         volumes = server.get_volumes()
         if not volumes:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -255,7 +260,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
         attached_volume = filter(lambda x:
                                  x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
-    elif CONF.feature.driver.current_cloud == Platform.GCE:
+    elif CONF.feature.driver.is_platform_gce:
         volumes = filter(lambda x: x['deviceName'] != 'root',
                          node.extra.get('disks', []))
         if not volumes:
@@ -266,7 +271,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
                                  server.id)
         attached_volume = filter(lambda x: x.name == volumes[0]['deviceName'],
                                  world.cloud.list_volumes())[0]
-    elif CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    elif CONF.feature.driver.is_platform_cloudstack:
         volumes = server.get_volumes()
         if len(volumes) == 1:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -291,3 +296,130 @@ def verify_attached_volume_size(step, volume_as, size):
     if not size == volume_size:
         raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
                              % (volume.id, volume.size, size))
+
+
+@step('connection with scalarizr was established')
+def is_scalarizr_connected(step, timeout=1400):
+    LOG.info('Establish connection with scalarizr.')
+    #Whait outbound request from scalarizr
+    res = wait_until(
+        IMPL.bundle.check_scalarizr_connection,
+        args=(world.server.id, ),
+        timeout=timeout,
+        error_text="Time out error. Can't establish connection with scalarizr.")
+    if res.get('failure_reason'):
+        raise AssertionError("Bundle task {id} failed. Error: {msg}".format(
+            id=res['id'],
+            msg=res['failure_reason']))
+    world.bundle_task = res
+    if not res['behaviors']:
+        world.bundle_task.update({'behaviors': ['base']})
+    elif 'base' not in res['behaviors']:
+        world.bundle_task.update({'behaviors': ','.join((','.join(res['behaviors']), 'base')).split(',')})
+    else:
+        world.bundle_task.update({'behaviors': res['behaviors']})
+    LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.bundle_task['behaviors'])
+
+
+@step('I initiate the installation (\w+ )?behaviors on the server')
+def install_behaviors(step, behavior_set=None):
+    #Set recipes
+    cookbooks = []
+    if behavior_set:
+        cookbooks = BEHAVIOR_SETS[behavior_set.strip()]
+        if CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x'] and behavior_set.strip() == 'mbeh1':
+            cookbooks.remove('mysql::server')
+        elif CONF.feature.dist.id == 'ubuntu-16-04' and behavior_set.strip() == 'mbeh2':
+            cookbooks.remove('percona')
+        installed_behaviors = []
+        for c in cookbooks:
+            match = [key for key, value in COOKBOOKS_BEHAVIOR.items() if c == value]
+            installed_behaviors.append(match[0]) if match else installed_behaviors.append(c)
+        setattr(world, 'installed_behaviors', installed_behaviors)
+    else:
+        for behavior in CONF.feature.behaviors:
+            if behavior in cookbooks:
+                continue
+            cookbooks.append(COOKBOOKS_BEHAVIOR.get(behavior, behavior))
+    LOG.info('Initiate the installation behaviors on the server: %s' %
+             world.cloud_server.name)
+    install_behaviors_on_node(world.cloud_server, cookbooks,
+                              CONF.feature.driver.scalr_cloud.lower(),
+                              branch=CONF.feature.branch)
+
+
+@step('I trigger the Create role')
+def create_role(step):
+    kwargs = dict(
+        server_id=world.server.id,
+        bundle_task_id=world.bundle_task['id'],
+        os_id=world.bundle_task['os'][0]['id']
+    )
+    if CONF.feature.dist.is_windows:
+        kwargs.update({'behaviors': 'chef'})
+    elif all(behavior in world.bundle_task['behaviors'] for behavior in CONF.feature.behaviors):
+        kwargs.update({'behaviors': ','.join(CONF.feature.behaviors)})
+    else:
+        raise AssertionError(
+            'Transmitted behavior: %s, not in the list received from the server' % CONF.feature.behaviors)
+
+    if not IMPL.bundle.create_role(**kwargs):
+        raise AssertionError('Create role initi`alization is failed.')
+
+
+@step('I trigger the Start building and run scalarizr')
+def start_building(step):
+    time.sleep(180)
+    LOG.info('Initiate Start building')
+
+    #Emulation pressing the 'Start building' key on the form 'Create role from
+    #Get CloudServerId, Command to run scalarizr
+    if CONF.feature.driver.is_platform_gce:
+        server_id = world.cloud_server.name
+    else:
+        server_id = world.cloud_server.id
+    res = IMPL.bundle.import_start(platform=CONF.feature.driver.scalr_cloud,
+                                   location=CONF.platforms[CONF.feature.platform]['location'],
+                                   cloud_id=server_id,
+                                   name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
+    if not res:
+        raise AssertionError("The import process was not started. Scalarizr run command was not received.")
+    LOG.info('Start scalarizr on remote host. ServerId is: %s' % res['server_id'])
+    LOG.info('Scalarizr run command is: %s' % res['scalarizr_run_command'])
+    world.server = Server(**{'id': res['server_id']})
+
+    #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
+    #and then run scalari4zr on new screen
+    if CONF.feature.dist.is_windows:
+        password = 'Scalrtest123'
+        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
+        def call_in_background(command):
+            try:
+                console.run_cmd(command)
+            except:
+                pass
+        t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
+        t1.start()
+    else:
+        world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
+
+
+@step(r'I install Chef on server')
+def install_chef(step):
+    node = getattr(world, 'cloud_server', None)
+    if CONF.feature.dist.is_windows:
+        password = 'Scalrtest123'
+        console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
+        #TODO: Change to installation via Fatmouse task
+        # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
+        command = ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install -version 12.19.36"
+        console.run_ps(command)
+        chef_version = console.run_cmd("chef-client --version")
+        assert chef_version.std_out, "Chef was not installed"
+    else:
+        node.run('rm -rf /tmp/chef-solo/cookbooks/*')
+        command = "curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 12.19.36 \
+            && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
+        node.run(command)
+        chef_version = node.run("chef-client --version")
+        assert chef_version[2] == 0, "Chef was not installed"
