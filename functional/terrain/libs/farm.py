@@ -56,13 +56,15 @@ def give_empty_farm(launched=False):
 
 
 @world.absorb
-def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None, scaling=None):
+def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None, scaling=None,
+                     variables=None):
     """
     Insert role to farm by behavior and find role in Scalr by generated name.
     Role name generate by the following format:
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    variables = variables or []
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
@@ -131,12 +133,27 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     if dist in ('windows-2008', 'windows-2012') and CONF.feature.platform.is_azure:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
+    if CONF.feature.driver.current_cloud == Platform.EC2:
+        variables.append({
+            'name': 'REVIZOR_TEST_ID',
+            'current': {
+                'scope': 'farmrole',
+                'validator': '',
+                'format': '',
+                'name': 'REVIZOR_TEST_ID',
+                'description': '',
+                'value': getattr(world, 'test_id')
+            },
+            'scopes': ['farmrole'],
+            'category': ''
+        })
     world.farm.add_role(role['id'],
                         options=options,
                         scripting=scripting,
                         storages=storages,
                         alias=alias,
-                        scaling=scaling)
+                        scaling=scaling,
+                        variables=variables)
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]

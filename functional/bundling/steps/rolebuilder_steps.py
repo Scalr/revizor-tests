@@ -21,6 +21,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
         behaviors.append('chef')
     platform = CONF.feature.platform
     location = platform.location if not platform.is_gce else "all"
+    servertype = None if not platform.is_ec2 else 'm3.medium'
     os_id = CONF.feature.dist.id
     try:
         if platform.is_gce:
@@ -34,6 +35,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
     bundle_id = IMPL.rolebuilder.build2(platform=platform.name,
                                         location=location,
+                                        servertype=servertype,
                                         terminate=False,
                                         arch='x86_64',
                                         behaviors=behaviors,
