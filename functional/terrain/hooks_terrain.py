@@ -379,7 +379,7 @@ def cleanup_all(total):
             except Exception as e:
                 LOG.warning('Farm cannot be deleted: %s' % str(e))
 
-        if CONF.feature.driver.is_platform_ec2:
+        if CONF.feature.platform.is_ec2:
             try:
                 wait_until(world.farm_servers_state, args=('terminated',),
                            timeout=1800, error_text=('Servers in farm have no status terminated'))

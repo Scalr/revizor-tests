@@ -64,6 +64,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
+    platform = CONF.feature.platform
     variables = variables or []
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
@@ -72,7 +73,7 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
             role = tables('roles-shared').filter(
                 {'dist': CONF.feature.dist.id,
                  'behavior': behavior,
-                 'platform': CONF.feature.platform.name}).first()
+                 'platform': platform.name}).first()
             role = IMPL.role.get(role.keys()[0])
         else:
             if behavior in BEHAVIORS_ALIASES:
@@ -130,10 +131,10 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     old_roles_id = [r.id for r in world.farm.roles]
     alias = alias or role['name']
     LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-    if dist in ('windows-2008', 'windows-2012') and CONF.feature.platform.is_azure:
+    if dist in ('windows-2008', 'windows-2012') and platform.is_azure:
         LOG.debug('Dist is windows, set instance type')
         options['instance_type'] = 'Standard_A1'
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if platform.is_ec2:
         variables.append({
             'name': 'REVIZOR_TEST_ID',
             'current': {
