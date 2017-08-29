@@ -20,6 +20,15 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                                 exitcode=exitcode)
 
 
+@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
+def assert_check_script_in_log(step, name, event, exitcode, contain, serv_as):
+    world.check_script_executed(serv_as=serv_as,
+                                name=name,
+                                event=event,
+                                log_contains=contain,
+                                exitcode=exitcode)
+
+
 @step("script output contains '(.+)' in (.+)$")
 def assert_check_message_in_log(step, message, serv_as):
     server = getattr(world, serv_as)

@@ -100,6 +100,15 @@ Feature: Windows server lifecycle
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
+    Scenario Outline: Verify script execution on bootstrapping
+        Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
+
+        Examples:
+            | event        | name                          | exitcode | stdout                                         |
+            | HostInit     | Windows_ping_pong_CMD         | 0        | pong                                           |
+            | HostUp       | Windows_ping_pong_CMD         | 0        | pong                                           |
+
+    @ec2 @gce @openstack @azure
     Scenario: Bootstraping from chef-role
         Given I have a clean and stopped farm
         And I add role to this farm with winchef-role
