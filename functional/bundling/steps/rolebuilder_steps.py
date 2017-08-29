@@ -26,6 +26,9 @@ def start_rolebuild_with_behaviours(step, behaviors):
     location = CONF.platforms[CONF.feature.platform]['location']
     if CONF.feature.driver.current_cloud == Platform.GCE:
         location = 'all'
+    servertype = None
+    if CONF.feature.driver.current_cloud == Platform.EC2:
+        servertype = 'm3.medium'
     platform = CONF.feature.driver.scalr_cloud
     os_id = CONF.feature.dist.id
     try:
@@ -40,6 +43,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
     bundle_id = IMPL.rolebuilder.build2(platform=platform,
                                         location=location,
+                                        servertype=servertype,
                                         terminate=False,
                                         arch='x86_64',
                                         behaviors=behaviors,

@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import uuid
 import json
 import semver
 import logging
@@ -166,6 +167,9 @@ def initialize_world():
     LOG.info('Initialize a Cloud object')
     c = Cloud()
     setattr(world, 'cloud', c)
+    test_id = uuid.uuid4().get_hex()
+    LOG.info('Test ID "%s"' % test_id)
+    setattr(world, 'test_id', test_id)
 
 
 @before.each_feature
@@ -367,6 +371,25 @@ def cleanup_all(total):
                 world.farm = None
             except Exception as e:
                 LOG.warning('Farm cannot be deleted: %s' % str(e))
+
+        if CONF.feature.driver.is_platform_ec2:
+            try:
+                wait_until(world.farm_servers_state, args=('terminated',),
+                           timeout=1800, error_text=('Servers in farm have no status terminated'))
+            except Exception as e:
+                LOG.error('Servers in farms are not terminated after 1800 seconds!')
+            for volume in world.cloud._driver.list_volumes(filters={'tag-value': getattr(world, 'test_id')}):
+                LOG.debug('Try delete volume "%s"' % volume.id)
+                try:
+                    volume.destroy()
+                except Exception as e:
+                    LOG.warning('Volume "%s" can\'t be deleted: %s' % (volume.id, str(e)))
+            for sn in world.cloud._driver.list_snapshots(filters={'tag-value': getattr(world, 'test_id')}):
+                LOG.debug('Try delete snapshot "%s"' % sn.id)
+                try:
+                    sn.destroy()
+                except Exception as e:
+                    LOG.warning('Snapshot "%s" can\'t be deleted: %s' % (sn.id, str(e)))
 
     else:
         LOG.info('Setup a long timeouts for all roles in farm')

@@ -96,20 +96,26 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_id = Script.get_id('non-ascii-output')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "non-ascii-output",
-                        "os": "linux",
-                        "event": "BeforeHostUp",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "10",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": "root"
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "BeforeHostUp",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "non-ascii-output",
+                        "scriptOs": "linux",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
                 role_options.update(default_role_options.get(opt, {}))
@@ -118,20 +124,26 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_id = Script.get_id('CentOS7 fix apache log')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "CentOS7 fix apache log",
-                        "os": "linux",
-                        "event": "HostInit",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "20",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": "root"
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "HostInit",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "CentOS7 fix apache log",
+                        "scriptOs": "linux",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
             elif opt == 'storages':
@@ -171,40 +183,52 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_id = Script.get_id('Revizor scaling prepare linux')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "Revizor scaling prepare linux",
-                        "os": "linux",
-                        "event": "HostInit",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "20",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": "root"
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "HostInit",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "Revizor scaling prepare linux",
+                        "scriptOs": "linux",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
             elif opt == 'prepare_scaling_win':
                 script_id = Script.get_id('Revizor scaling prepare windows')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "Revizor scaling prepare windows",
-                        "os": "windows",
-                        "event": "HostInit",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "20",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": ""
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "HostInit",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "Revizor scaling prepare windows",
+                        "scriptOs": "windows",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
             elif opt.startswith('scaling'):

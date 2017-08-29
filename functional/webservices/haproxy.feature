@@ -45,7 +45,7 @@ Feature: HAProxy load balancer role
         And Scalr sends HostUp to W1
         And W1 backend list for 80 port should contains A1, A2, A3
         Then I force terminate server A3 with decrease
-        And Scalr sends HostDown to W1
+        And Scalr sends HostDown to W1 without saving to the database
         And W1 backend list for 80 port should not contains A3
         And http get domain D1 matches H1 index page
 
@@ -101,7 +101,7 @@ Feature: HAProxy load balancer role
         And I expect server bootstrapping as A1 in app role
         Then I add proxy P1 to haproxy role for 80 port with app role backend and proxy template
         And I add global config to haproxy role
-        And I reboot server W1 
+        And I reboot server W1
         And Scalr receives RebootFinish from W1
         Then W1 listen list should contains P1 proxy template for 80 port
         And W1 config should contain global section

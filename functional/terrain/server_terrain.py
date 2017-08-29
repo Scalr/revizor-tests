@@ -101,18 +101,15 @@ def server_state_action(step, action, reboot_type, serv_as):
     LOG.info('Server %s was %sed' % (server.id, action))
 
 
-@step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?')
-def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=1500):
+@step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?( without saving to the database)?')
+def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_message=None, timeout=1500):
     """Check scalr in/out message delivering"""
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
+    find_message = getattr(world, 'wait_unstored_message' if unstored_message else 'wait_server_message')
     if serv_as == 'all':
         world.farm.servers.reload()
-        server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
-        world.wait_server_message(server,
-                                  msg.strip(),
-                                  msgtype,
-                                  find_in_all=True,
-                                  timeout=timeout)
+        servers = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
+        find_message(servers, msg.strip(), msgtype, find_in_all=True, timeout=timeout)
     else:
         try:
             LOG.info('Try get server %s in world' % serv_as)
@@ -123,7 +120,7 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, timeout=150
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
         LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
         try:
-            s = world.wait_server_message(server, msg.strip(), msgtype, timeout=timeout)
+            s = find_message(server, msg.strip(), msgtype, timeout=timeout)
             setattr(world, serv_as, s)
         except MessageFailed:
             if not failed:
@@ -169,7 +166,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
-    LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
+    setattr(world, '_server_%s_last_script_name' % server.id, script_name)
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
@@ -192,18 +189,11 @@ def script_executing(step, script_type, script_name, execute_type, serv_as):
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
     server = getattr(world, serv_as)
-    last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
-    server.scriptlogs.reload()
-    for i in range(60):
-        if not len(server.scriptlogs) == last_count + 1:
-            LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (
-            last_count, len(server.scriptlogs), last_count + 1))
-            time.sleep(10)
-            server.scriptlogs.reload()
-            continue
-        break
-    else:
-        raise AssertionError('Not see script result in script logs')
+    script_name = getattr(world, '_server_%s_last_script_name' % server.id)
+    world.check_script_executed(name=script_name,
+                                serv_as=serv_as,
+                                new_only=True,
+                                timeout=600)
 
 
 @step('wait all servers are ([\w]+)$')
