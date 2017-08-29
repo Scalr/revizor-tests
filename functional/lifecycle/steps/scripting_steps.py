@@ -80,4 +80,3 @@ def check_for_error_text(step, serv_as):
         stderr_msg = all_msg[:all_msg.find('STDOUT')]
         stderr_msg = re.sub(r'<[^>]*>', '', stderr_msg).strip()
         assert stderr_msg == 'STDERR:'
-        
