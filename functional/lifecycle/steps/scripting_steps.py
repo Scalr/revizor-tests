@@ -69,3 +69,14 @@ def chef_bootstrap_failed(step, serv_as):
         if out.strip():
             return
     raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
+
+
+@step("I check that there are no text with error in the script logs in ([\w\d]+)")
+def check_for_error_text(step, serv_as):
+    '''Assert that are no texts in STDERR section'''
+    server = getattr(world, serv_as)
+    for log in server.scriptlogs:
+        all_msg = log.message
+        stderr_msg = all_msg[:all_msg.find('STDOUT')]
+        stderr_msg = re.sub(r'<[^>]*>', '', stderr_msg).strip()
+        assert stderr_msg == 'STDERR:'

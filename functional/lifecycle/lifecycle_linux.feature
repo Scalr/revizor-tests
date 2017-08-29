@@ -67,6 +67,7 @@ Feature: Linux server lifecycle
         When I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1
         And script output contains 'pong' in M1
+        And I check that there are no text with error in the script logs in M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Execute non-ascii script on Linux
