@@ -75,8 +75,7 @@ def chef_bootstrap_failed(step, serv_as):
 def check_for_error_text(step, err_text, serv_as):
     server = getattr(world, serv_as)
     for log in server.scriptlogs:
-        all_msg = log.message
-        stderr_msg = all_msg[:all_msg.find('STDOUT')]
+        stderr_msg = log.message[:log.message.find('STDOUT')]
         if err_text in stderr_msg:
             break
         else:
