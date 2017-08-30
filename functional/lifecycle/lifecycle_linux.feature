@@ -17,7 +17,6 @@ Feature: Linux server lifecycle
         And ports [8008,8010,8012,8013,8014] not in iptables in M1
         And I verify right count of incoming messages BlockDeviceMounted from M1
 
-
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
     Scenario: Verify szradm list-roles
         When I run "szradm -q list-roles" on M1
@@ -67,7 +66,13 @@ Feature: Linux server lifecycle
         When I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1
         And script output contains 'pong' in M1
-        And I check that there are no text with error in the script logs in M1
+
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    Scenario: Execute wrong script on Linux and check error text in STDERR
+        Given I have running server M1
+        When I execute script 'Exit 1 with error message' synchronous on M1
+        And I see script result in M1
+        And I check that text 'An error message' is in the STDERR section of script logs in M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Execute non-ascii script on Linux
