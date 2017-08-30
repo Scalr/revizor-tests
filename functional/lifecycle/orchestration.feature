@@ -20,7 +20,7 @@ Feature: Orchestration features test
             | HostInit     | https://gist.githubusercontent.com | root     | 0        | Script runned from URL                                             |
             | BeforeHostUp | Linux ping-pong                    | root     | 0        | pong                                                               |
             | BeforeHostUp | chef                               | root     | 0        | "HOME"=>"/root"; "USER"=>"root"                                    |
-            | HostUp       | Linux ping-pong                    | revizor2 | 1        | sudo: unknown user: revizor2; sudo: unable to initialize policy plugin |
+            | HostUp       | Linux ping-pong                    | revizor2 | 1        | sudo: unknown user: revizor2                                       |
             | HostUp       | /home/revizor/local_script.sh      | revizor  | 0        | Local script work! User: revizor; USER=revizor; HOME=/home/revizor |
             | HostUp       | Linux ping-pong                    | revizor  | 0        | pong                                                               |
             | HostUp       | chef                               | root     | 0        |                                                                    |
