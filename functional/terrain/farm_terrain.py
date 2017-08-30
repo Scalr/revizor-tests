@@ -93,31 +93,56 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                                       'SCRIPT_PONG_PS_ID': script_pong_ps_id})
 
             elif opt == 'failed_script':
-                script_id = Script.get_id('non-ascii-output')['id']
-                scripting = [
-                    {
-                        "scope": "farmrole",
-                        "action": "add",
-                        # id: extModel123
-                        # eventOrder 2
-                        "timeout": "1200",
-                        "isSync": True,
-                        "orderIndex": 10,
-                        "type": "scalr",
-                        "isActive": True,
-                        "eventName": "BeforeHostUp",
-                        "target": {
-                            "type": "server"
-                        },
-                        "isFirstConfiguration": None,
-                        "scriptId": script_id,
-                        "scriptName": "non-ascii-output",
-                        "scriptOs": "linux",
-                        "version": "-1",
-                        "scriptPath": "",
-                        "runAs": ""
-                    }
-                ]
+                if CONF.feature.dist.is_windows:
+                    script_id = Script.get_id('Windows statuscode 1')['id']
+                    scripting = [
+                        {
+                            "scope": "farmrole",
+                            "action": "add",
+                            "timeout": "1200",
+                            "isSync": True,
+                            "orderIndex": 10,
+                            "type": "scalr",
+                            "isActive": True,
+                            "eventName": "BeforeHostUp",
+                            "target": {
+                                "type": "server"
+                            },
+                            "isFirstConfiguration": None,
+                            "scriptId": script_id,
+                            "scriptName": "Windows statuscode 1",
+                            "scriptOs": "windows",
+                            "version": -1,
+                            "scriptPath": "",
+                            "runAs": ""
+                        }
+                    ]
+                else:
+                    script_id = Script.get_id('non-ascii-output')['id']
+                    scripting = [
+                        {
+                            "scope": "farmrole",
+                            "action": "add",
+                            # id: extModel123
+                            # eventOrder 2
+                            "timeout": "1200",
+                            "isSync": True,
+                            "orderIndex": 10,
+                            "type": "scalr",
+                            "isActive": True,
+                            "eventName": "BeforeHostUp",
+                            "target": {
+                                "type": "server"
+                            },
+                            "isFirstConfiguration": None,
+                            "scriptId": script_id,
+                            "scriptName": "non-ascii-output",
+                            "scriptOs": "linux",
+                            "version": -1,
+                            "scriptPath": "",
+                            "runAs": ""
+                        }
+                    ]
                 role_options.update(default_role_options.get(opt, {}))
 
             elif opt == 'apachefix':

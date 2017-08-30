@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps
+Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps, steps/chef_boot_steps
 Feature: Windows server lifecycle
     In order to manage server lifecycle
     As a scalr user
@@ -129,3 +129,11 @@ Feature: Windows server lifecycle
         And instance vcpus info not empty for M1
         And server M1 has disks Z(test_label): 4 Gb
         And scalarizr version is last in M1
+
+    @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping role with failed script
+        Given I have a clean and stopped farm
+        When I add role to this farm with failed_script
+        When I start farm
+        Then I wait server M2 in failed state
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script\bin\Windows_statuscode_1.bat exited with code 1" message on M2
