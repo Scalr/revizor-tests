@@ -1,6 +1,3 @@
 from lettuce import world, step, after, before
 
-
-@before.all
-def create_testenv():
-    pass
+from revizor2.conf import CONF

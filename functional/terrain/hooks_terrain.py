@@ -156,7 +156,8 @@ def verify_testenv():
     if CONF.scalr.branch:
         LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
         sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
-        CONF.scalr.te_id = TestEnv.create(CONF.scalr.branch).te_id
+        world.testenv = TestEnv.create(CONF.scalr.branch)
+        CONF.scalr.te_id = world.testenv.te_id
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
 
 
