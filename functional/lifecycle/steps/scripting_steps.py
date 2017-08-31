@@ -30,17 +30,6 @@ def assert_check_message_in_log(step, message, serv_as):
                                 new_only=True)
 
 
-@step(r"script result contains '([\w\W]+)?' on ([\w\d]+)")
-def assert_check_message_in_log_table_view(step, script_output, serv_as):
-    if script_output:
-        for line in script_output.split(';'):
-            external_step = "script output contains '{result}' in {server}".format(
-                result=line.strip(),
-                server=serv_as)
-            LOG.debug('Run external step: %s' % external_step)
-            step.when(external_step)
-
-
 @step("([\w\d]+) chef runlist has only recipes \[([\w\d,.]+)\]")
 def verify_recipes_in_runlist(step, serv_as, recipes):
     recipes = recipes.split(',')

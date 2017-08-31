@@ -33,7 +33,7 @@ Feature: Windows server lifecycle
 #      And scalarizr is running on M1
 #      And not ERROR in M1 scalarizr windows log
 #      And I see script result in M1
-#      And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
+#      And script output contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' in M1
 
     @ec2 @gce @openstack @azure
     Scenario: Restart scalarizr during script execution
@@ -59,7 +59,7 @@ Feature: Windows server lifecycle
         Given I have running server M1
         When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
         And I see script result in M1
-        And script result contains '<output>' on M1
+        And script output contains '<output>' in M1
 
     Examples:
         | script_name            | execute_type | script_type  | output |

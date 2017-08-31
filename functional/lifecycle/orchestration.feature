@@ -39,7 +39,7 @@ Feature: Orchestration features test
     Scenario Outline: Scripts executing on linux
         When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
         And I see script result in M1
-        And script result contains '<output>' on M1
+        And script output contains '<output>' in M1
 
         Examples:
             | script_name                   | execute_type | script_type | output                                    |
