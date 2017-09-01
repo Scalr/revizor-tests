@@ -489,13 +489,15 @@ def check_script_executed(serv_as,
                           event=None,
                           user=None,
                           log_contains=None,
+                          std_err=False,
                           exitcode=None,
                           new_only=False,
                           timeout=0):
     """
     Verifies that server scripting log contains info about script execution.
     """
-    LOG.debug('Checking scripting logs on %s by parameters:\n'
+    out_name = 'STDERR' if std_err else 'STDOUT'
+    LOG.debug('Checking scripting %s logs on %s by parameters:\n'
               '  script name:\t%s\n'
               '  event:\t\t%s\n'
               '  user:\t\t%s\n'
@@ -503,7 +505,8 @@ def check_script_executed(serv_as,
               '  exitcode:\t%s\n'
               '  new_only:\t%s\n'
               '  timeout:\t%s'
-              % (serv_as,
+              % (out_name,
+                 serv_as,
                  name or 'Any',
                  event or 'Any',
                  user or 'Any',
@@ -542,20 +545,22 @@ def check_script_executed(serv_as,
                 LOG.debug('Script log matched search parameters')
                 if exitcode is None or log.exitcode == int(exitcode):
                     # script exitcode is valid, now check that log output contains wanted text
-                    message = log.message
-                    truncated = False
-                    LOG.debug('Log message output: %s' % message)
-                    if 'Log file truncated. See the full log in' in message:
-                        full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
-                        node = world.cloud.get_node(server)
-                        message = node.run('cat %s' % full_log_path)[0]
-                        truncated = True
+                    message = log.message.split('STDOUT:', 1)[int(not std_err)]
+                    ui_message = True
+                    LOG.debug('Log message %s output: %s' % (out_name, message))
                     for cond in contain:
-                        if not truncated:
-                            cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
-                        if not cond.strip() in message:
+                        cond = cond.strip()
+                        html_cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                        found = (html_cond in message) if ui_message else (cond in message)
+                        if not found and not CONF.feature.dist.is_windows and 'Log file truncated. See the full log in' in message:
+                            full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
+                            node = world.cloud.get_node(server)
+                            message = node.run('cat %s' % full_log_path)[0]
+                            ui_message = False
+                            found = cond in message
+                        if not found:
                             raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: \'%s\''
-                                                 % (event, user, message, cond))
+                                                  % (event, user, message, cond))
                     LOG.debug('This event exitcode: %s' % log.exitcode)
                     return True
                 else:

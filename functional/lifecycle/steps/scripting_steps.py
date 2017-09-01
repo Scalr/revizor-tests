@@ -20,13 +20,14 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                                 exitcode=exitcode)
 
 
-@step("script output contains '(.+)' in (.+)$")
-def assert_check_message_in_log(step, message, serv_as):
+@step("script( stderr)? output contains '(.+)' in (.+)$")
+def assert_check_message_in_log(step, stream, message, serv_as):
     server = getattr(world, serv_as)
     script_name = getattr(world, '_server_%s_last_script_name' % server.id)
     world.check_script_executed(serv_as=serv_as,
                                 name=script_name,
                                 log_contains=message,
+                                std_err=bool(stream),
                                 new_only=True)
 
 
