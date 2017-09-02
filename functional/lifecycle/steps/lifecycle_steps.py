@@ -153,7 +153,7 @@ def attach_script(step, script_name):
             "scriptId": str(res['id']),
             "scriptName": res['name'],
             "scriptOs": "linux",
-            "version": "-1",
+            "version": -1,
             "scriptPath": "",
             "runAs": ""
         }]
