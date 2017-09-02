@@ -81,7 +81,7 @@ Feature: Linux server lifecycle
         When I execute script 'non-ascii-output' synchronous on M1
         Then I see script result in M1
         And script output contains 'ÃƒÂ¼' in M1
-        And script output contains 'ã‚¯ãƒž' in M1
+        And script stderr output contains 'ã‚¯ãƒž' in M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Verify hidden global variable
