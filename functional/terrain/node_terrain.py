@@ -437,7 +437,7 @@ def assert_scalarizr_version(step, branch, serv_as):
             last_version = last_version.strip()[:-2]
     LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))
     # Get installed scalarizr version
-    for _ in range(5):
+    for _ in range(10):
         try:
             update_status = server.upd_api.status(cached=False)
             installed_version = update_status['installed']
