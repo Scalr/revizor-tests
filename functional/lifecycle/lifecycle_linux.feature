@@ -68,13 +68,6 @@ Feature: Linux server lifecycle
         And script output contains 'pong' in M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
-    Scenario: Execute wrong script on Linux and check error text in STDERR
-        Given I have running server M1
-        When I execute script 'Exit 1 with error message' synchronous on M1
-        And I see script result in M1
-        And I check that text 'An error message' is in the STDERR section of script logs in M1
-
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Execute non-ascii script on Linux
         Given I have running server M1
         When I execute script 'Non ascii script' synchronous on M1
