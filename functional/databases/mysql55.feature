@@ -1,7 +1,7 @@
 Using step definitions from: steps/common_steps
 Feature: MySQL database server with behavior mysql2
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @boot
+    @ec2 @gce @cloudstack @rackspaceng @openstack @boot
     Scenario: Bootstraping MySQL role
         Given I have a an empty running farm
         When I add mysql2 role to this farm
@@ -9,44 +9,44 @@ Feature: MySQL database server with behavior mysql2
         And mysql is running on M1
         And scalarizr version is last in M1
 
-    @ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
+    @ec2 @gce @rackspaceng @openstack @pmalaunch
     Scenario: Launch phpMyAdmin
         When I trigger pmaaccess creation
         Then I launch pma session
         And pma is available, I see the phpMyAdmin in the title
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restart
+    @ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr
        When I reboot scalarizr in M1
        And see "Scalarizr terminated" in M1 log
        And not ERROR in M1 scalarizr log
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @rebundle
+    @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
     Scenario: Rebundle server
         When I create server snapshot for M1
         Then Bundle task created for M1
         And Bundle task becomes completed for M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @rebundle
+    @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle
     Scenario: Use new role
         Given I have a an empty running farm
         When I add to farm role created by last bundle task as mysql2 role
         Then I expect server bootstrapping as M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @rebundle @restart
+    @ec2 @gce @cloudstack @rackspaceng @openstack @rebundle @restart
     Scenario: Restart scalarizr after bundling
        When I reboot scalarizr in M1
        And see "Scalarizr terminated" in M1 log
        And scalarizr is running on M1
        And not ERROR in M1 scalarizr log
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle
+    @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
     Scenario: Bundling data
         When I trigger databundle creation
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @oneserv
+    @ec2 @gce @cloudstack @rackspaceng @openstack @oneserv
     Scenario: Modifying data
         When I create new database user 'revizor' on M1
         And I add small-sized database D1 on M1 by user 'revizor'
@@ -56,18 +56,18 @@ Feature: MySQL database server with behavior mysql2
         Then I expect server bootstrapping as M1
         And M1 contains database D1 by user 'revizor'
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle
+    @ec2 @gce @cloudstack @rackspaceng @openstack @databundle
     Scenario: Bundling data second time
         When I trigger databundle creation
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
-    @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
+    @ec2 @cloudstack @rackspaceng @reboot
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @gce @rackspaceng @openstack @eucalyptus @backup
+    @ec2 @gce @rackspaceng @openstack @backup
     Scenario: Backuping 11 databases
         When I create 11 databases on M1 by user 'revizor'
         Then I trigger backup creation
@@ -86,7 +86,7 @@ Feature: MySQL database server with behavior mysql2
         And database D1 in M1 has relevant timestamp
         And M1 contains databases D1,MDB1,MDB10
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @replication
+    @ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Setup replication
         When I increase minimum servers to 2 for mysql2 role
         Then I expect server bootstrapping as M2
@@ -94,14 +94,14 @@ Feature: MySQL database server with behavior mysql2
         And mysql2 replication status is up
         And scalarizr version is last in M2
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restart
+    @ec2 @gce @cloudstack @rackspaceng @openstack @restart
     Scenario: Restart scalarizr in slave
        When I reboot scalarizr in M2
        And see "Scalarizr terminated" in M2 log
        And scalarizr is running on M2
        And not ERROR in M2 scalarizr log
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @slavetermination
+    @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
     Scenario: Slave force termination
         When I force terminate M2
         Then Scalr sends HostDown to M1 without saving to the database
@@ -134,18 +134,18 @@ Feature: MySQL database server with behavior mysql2
         Then I expect server bootstrapping as M2
         And M2 is slave of M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @replication
+    @ec2 @gce @cloudstack @rackspaceng @openstack @replication
     Scenario: Writing on Master, reading on Slave
         When I create database D2 on M1 by user 'revizor'
         Then M2 contains database D2 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle @slavedatabundle
+	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @slavedatabundle
 	Scenario: Check databundle in slave
 		When I trigger databundle creation on slave
 		And Scalr receives DbMsr_CreateDataBundleResult from M2
         And Last databundle date updated to current
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @promotion
+	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
     Scenario: Slave -> Master promotion
         Given I increase minimum servers to 3 for mysql2 role
         And I expect server bootstrapping as M3
@@ -162,19 +162,19 @@ Feature: MySQL database server with behavior mysql2
         And mysql2 replication status is up
         And M2 contains database D3 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @promotion
+	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
 	Scenario: Check new master replication
 		Given I wait 1 minutes
 		When I create database D4 on N1 by user 'revizor'
 		Then all contains database D4 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @databundle @lvm
+	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @lvm
 	Scenario: Bundling data before terminate
         When I trigger databundle creation
         And Scalr receives DbMsr_CreateDataBundleResult from N1
 		And Last databundle date updated to current
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restartfarm
+	@ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
 	Scenario: Restart farm
 		When I stop farm
 		And wait all servers are terminated
@@ -191,7 +191,7 @@ Feature: MySQL database server with behavior mysql2
 		And M2 is slave of M1
 		And M2 contains databases D3,D4 by user 'revizor'
 
-	@ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
+	@ec2 @gce @rackspaceng @openstack @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart
         When I trigger pmaaccess creation
         Then I launch pma session
