@@ -18,8 +18,8 @@ Feature: Check Openstack termination strategy on failed server
           | name                                    | value  |
           | scalr.openstack.action_on_failed_server | ignore |
         Then I restart service "zmq_service"
-#        And server M1 not change status for 5 minutes
-#        And system log hasn't messages for server M1
+        And server M1 hasn’t changed its status in 5 minutes
+        And system log hasn't messages for server M1
 #
     Scenario: Verify action_on_missing_server = "alert"
         Given I have configured scalr config:

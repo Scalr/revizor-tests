@@ -1,5 +1,3 @@
-__author__ = 'gigimon'
-
 import time
 import copy
 import logging
@@ -12,7 +10,7 @@ from revizor2.conf import CONF
 from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import MessageFailed, EventNotFounded
+from revizor2.exceptions import MessageFailed
 from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
@@ -59,6 +57,19 @@ def wait_server_state(step, serv_as, state):
         LOG.info('Wait server %s in state %s' % (server.id, state))
         world.wait_server_bootstrapping(status=ServerStatus.from_code(state),
                                         server=server)
+
+
+@step(r'server ([\w\d]+) hasn’t changed its status in (\d+) minutes')
+def server_state_not_changed(step, serv_as, minutes):
+    server = getattr(world, serv_as)
+    server.reload()
+    status_before = server.status
+    for _ in range(int(minutes)):
+        time.sleep(60)
+        server.reload()
+        if server.status != status_before:
+            raise AssertionError("Server %s change status '%s' -> '%s'" % server.id, status_before, server.status)
+        time.sleep(60)
 
 
 @step(r'I( force)? terminate(?: server)? ([\w\d]+)( with decrease)?$')
@@ -114,7 +125,7 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_me
         try:
             LOG.info('Try get server %s in world' % serv_as)
             server = getattr(world, serv_as)
-        except AttributeError, e:
+        except AttributeError as e:
             LOG.debug('Error in server found message: %s' % e)
             world.farm.servers.reload()
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
