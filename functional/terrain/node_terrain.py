@@ -437,7 +437,7 @@ def assert_scalarizr_version(step, branch, serv_as):
             last_version = last_version.strip()[:-2]
     LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))
     # Get installed scalarizr version
-    for _ in range(5):
+    for _ in range(10):
         try:
             update_status = server.upd_api.status(cached=False)
             installed_version = update_status['installed']
@@ -449,9 +449,10 @@ def assert_scalarizr_version(step, branch, serv_as):
     else:
         raise AssertionError('Can\'t get access to update client 5 times (15 seconds)')
     LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
-    assert update_status['state'] == 'completed', \
-        'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
-        (update_status['state'], update_status['prev_state'])
+    if not update_status['state'] == 'noop' and update_status['prev_state'] == 'completed':
+        assert update_status['state'] == 'completed', \
+            'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
+            (update_status['state'], update_status['prev_state'])
     assert last_version == installed_version, \
         'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version, last_version)
 
