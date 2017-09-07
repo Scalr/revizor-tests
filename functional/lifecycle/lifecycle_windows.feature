@@ -119,6 +119,14 @@ Feature: Windows server lifecycle
         And scalarizr version is last in M1
         And hostname in M1 is valid
 
+    @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping role with failed script
+        Given I have a clean and stopped farm
+        When I add role to this farm with failed_script
+        When I start farm
+        Then I wait server M2 in failed state
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script\bin\Multiplatform_exit_1.ps1 exited with code 1" message on M2
+
     @ec2
     Scenario: Bootstraping with ephemeral
         Given I have a clean and stopped farm
@@ -129,11 +137,3 @@ Feature: Windows server lifecycle
         And instance vcpus info not empty for M1
         And server M1 has disks Z(test_label): 4 Gb
         And scalarizr version is last in M1
-
-    @ec2 @gce @openstack @azure
-    Scenario: Bootstrapping role with failed script
-        Given I have a clean and stopped farm
-        When I add role to this farm with failed_script
-        When I start farm
-        Then I wait server M2 in failed state
-        And Initialization was failed on "BeforeHostUp" phase with "execute.script\bin\Multiplatform_exit_1.ps1 exited with code 1" message on M2
