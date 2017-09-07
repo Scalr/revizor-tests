@@ -136,4 +136,4 @@ Feature: Windows server lifecycle
         When I add role to this farm with failed_script
         When I start farm
         Then I wait server M2 in failed state
-        And Initialization was failed on "BeforeHostUp" phase with "execute.script\bin\Windows_statuscode_1.bat exited with code 1" message on M2
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script\bin\Multiplatform_exit_1.ps1 exited with code 1" message on M2
