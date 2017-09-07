@@ -28,7 +28,7 @@ Feature: Orchestration features test
             | HostUp       | https://gist.githubusercontent.com | root     | 0        | Multiplatform script successfully executed                                              |
             | HostUp       | Sleep 10                           | root     | 130      | printing dot each second; .....                                    |
 
-    @ec2 @gce @vmware @cloudstack @rackspaceng @openstack @azure
+    @ec2 @gce @vmware @cloudstack @rackspaceng @openstack @azure @chef
     Scenario: Verify chef executed normally
         Given file '/root/chef_solo_result' exist in M1
         Given file '/root/chef_hostup_result' exist in M1
@@ -48,7 +48,7 @@ Feature: Orchestration features test
             | Linux ping-pong               | synchronous  |             | pong                                      |
             | /home/revizor/local_script.sh | synchronous  | local       | Local script work!; USER=root; HOME=/root |
             | /home/revizor/local_script.sh | asynchronous | local       | Local script work!; USER=root; HOME=/root |
-            | https://gist.githubusercontent.com/Theramas/3fa35bbd53ad14f997218aa3a208eb4b/raw/4db5ef2bb91787a586f87635a11f7bb70cef6bc0/gistfile1.txt | asynchronous | local | Multiplatform script successfully executed                                             |
+            | https://gist.githubusercontent.com/Theramas/5b2a9788df316606f72883ab1c3770cc/raw/3ae1a3f311d8e43053fbd841e8d0f17daf1d5d66/multiplatform | asynchronous | local | Multiplatform script successfully executed                                             |
             | Cross-platform script          | asynchronous |            | Multiplatform script successfully executed                                             |
 
     @ec2 @gce @vmware @cloudstack @rackspaceng @openstack @azure
@@ -57,4 +57,4 @@ Feature: Orchestration features test
         When I add role to this farm with failed_script
         When I start farm
         Then I wait server M2 in failed state
-        And Initialization was failed on "BeforeHostUp" phase with "execute.script/bin/non_ascii_output exited with code 255" message on M2
+        And Initialization was failed on "BeforeHostUp" phase with "exited with code 255" message on M2
