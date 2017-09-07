@@ -27,6 +27,7 @@ COOKBOOKS_BEHAVIOR = {
 }
 
 BEHAVIOR_SETS = {
+    'base': ['base'],
     'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
     'mbeh2': ['nginx', 'percona', 'tomcat', 'memcached']
 }
@@ -321,7 +322,8 @@ def is_scalarizr_connected(step, timeout=1400):
     LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.bundle_task['behaviors'])
 
 
-@step('I initiate the installation (\w+ )?behaviors on the server')
+@step(r'I initiate the installation (\w+ )?behaviors on the server')
+@world.run_only_if(dist=['!coreos'])
 def install_behaviors(step, behavior_set=None):
     #Set recipes
     cookbooks = []
@@ -403,8 +405,8 @@ def start_building(step):
     else:
         world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
 
-
 @step(r'I install Chef on server')
+@world.run_only_if(dist=['!coreos'])
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
     if CONF.feature.dist.is_windows:
