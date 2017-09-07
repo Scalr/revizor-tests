@@ -7,29 +7,30 @@ Feature: Check Openstack termination strategy on failed server
         Given I have configured revizor environment:
           | name       | value     |
           | platform   | openstack |
-#        Given I have a clean and stopped farm
-#        And I add role to this farm
-#        When I start farm
-#        And I expect server bootstrapping as M1
+        Given I have a clean and stopped farm
+        And I add role to this farm
+        When I start farm
+        And I expect server bootstrapping as M1
+        And save system log status for server M1
         And Scalr file "StatusAdapter.php" modified for test
 
-    Scenario: Verify action_on_missing_server = "ignore"
+    Scenario: Verify action_on_failed_server = "ignore"
         Given I have configured scalr config:
           | name                                    | value  |
           | scalr.openstack.action_on_failed_server | ignore |
         Then I restart service "zmq_service"
         And server M1 hasn’t changed its status in 5 minutes
-        And system log hasn't messages for server M1
-#
-    Scenario: Verify action_on_missing_server = "alert"
+        And system log hasn't new messages for server M1
+
+    Scenario: Verify action_on_failed_server = "alert"
         Given I have configured scalr config:
             | name                                    | value  |
             | scalr.openstack.action_on_failed_server | alert  |
         Then I restart service "zmq_service"
-#        And server M1 not change status for 5 minutes
-#        And system log has message for server M1
-#
-    Scenario: Verify action_on_missing_server not exist
+        And server M1 hasn’t changed its status in 5 minutes
+        And system log has new message with body 'alert' for server M1 # edit message!!!
+
+    Scenario: Verify action_on_failed_server not exist
         Given I have configured scalr config:
             | name                                    | value     |
             | scalr.openstack.action_on_failed_server | terminate |
