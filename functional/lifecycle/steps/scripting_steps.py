@@ -12,11 +12,16 @@ LOG = logging.getLogger(__name__)
 
 @step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
+    std_err = False
+    if contain and contain.startswith('STDERR:'):
+        contain = re.sub(r'STDERR: ', '', contain).strip()
+        std_err = True
     world.check_script_executed(serv_as=serv_as,
                                 name=name,
                                 event=event,
                                 user=user,
                                 log_contains=contain,
+                                std_err=std_err,
                                 exitcode=exitcode)
 
 

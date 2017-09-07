@@ -315,10 +315,10 @@ def verify_attached_disk_types(step):
         if not volume_ids['/media/diskmount'][0].extra['type'] == 'pd-standard':
             raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
                                  volume_ids['/media/diskmount'][0].extra['type'])
-        if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
-            raise AssertionError(
-                'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
-                volume_ids['/media/diskmount'][0].extra['type'])
+        # if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
+        #     raise AssertionError(
+        #         'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
+        #         volume_ids['/media/diskmount'][0].extra['type'])
 
 
 @step(r"instance vcpus info not empty for ([\w\d]+)")
