@@ -10,21 +10,12 @@ from lettuce import world, step
 LOG = logging.getLogger(__name__)
 
 
-@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
+@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+)(?: by user (\w+)?)? with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
     world.check_script_executed(serv_as=serv_as,
                                 name=name,
                                 event=event,
                                 user=user,
-                                log_contains=contain,
-                                exitcode=exitcode)
-
-
-@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
-def assert_check_script_in_log(step, name, event, exitcode, contain, serv_as):
-    world.check_script_executed(serv_as=serv_as,
-                                name=name,
-                                event=event,
                                 log_contains=contain,
                                 exitcode=exitcode)
 
