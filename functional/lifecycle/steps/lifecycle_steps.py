@@ -215,7 +215,7 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6', '!centos-7-x'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6', '!centos-7-x', '!coreos'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.driver.current_cloud in [Platform.IDCF,

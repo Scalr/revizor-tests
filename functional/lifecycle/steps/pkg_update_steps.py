@@ -153,7 +153,7 @@ def waiting_new_package(step):
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    if CONF.feature.dist.is_windows:
+    if CONF.feature.dist.is_windows or CONF.feature.dist.id == 'coreos':
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
