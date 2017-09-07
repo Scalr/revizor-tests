@@ -179,6 +179,8 @@ def run_command(step, command, serv_as):
     if command == 'szradm q list-farm-role-params':
         farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
         command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
+    if CONF.feature.dist.id == 'coreos':
+        command = 'PATH=$PATH:/opt/bin; ' + command
     result = node.run(command)
     if result[2]:
         raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %

@@ -218,7 +218,7 @@ def asserting_version(step, version, serv_as):
     default_installed_agent = getattr(world, 'default_agent', None)
     pre_installed_agent = world.pre_installed_agent
     server.reload()
-    command = 'scalarizr -v'
+    command = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
     if CONF.feature.dist.is_windows:

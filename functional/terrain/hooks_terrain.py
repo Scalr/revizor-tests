@@ -52,6 +52,13 @@ COREOS_UNSUPPORTED_SCRIPTS = [
     'event': 'HostUp',
     'name': 'Linux ping-pong'
   },
+   {
+    'user': 'revizor2',
+    'exitcode': '1',
+    'stdout': 'STDERR: sudo: unknown user: revizor2',
+    'event': 'HostUp',
+    'name': 'Linux ping-pong'
+    },
   {
     'user': 'revizor',
     'exitcode': '0',
@@ -199,7 +206,7 @@ def get_scalaraizr_latest_version(branch):
     else:
         url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
         path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-        default_repo = url.format(path=path)
+        default_repo = url.format(path=path) if os_family != 'coreos' else path
     index_url = default_repo.format(branch=branch)
     repo_data = parser_for_os_family(CONF.feature.dist.mask)(branch=branch, index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
