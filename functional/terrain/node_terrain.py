@@ -711,12 +711,14 @@ def creating_role(step, image_type=None, non_scalarized=None):
     image = getattr(world, 'image')
     image_type = (image_type or 'base').strip()
     platform = CONF.feature.platform
+
     if platform.is_gce:
         cloud_location = ""
         image_id = image.extra['selfLink'].split('projects')[-1][1:]
     else:
-         cloud_location = platform.location
-         image_id = image.id
+        cloud_location = platform.location
+        image_id = image.id
+
     image_kwargs = dict(
         platform=platform.name,
         cloud_location=cloud_location,
@@ -726,6 +728,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
             image_type,
             CONF.feature.dist.id,
             datetime.now())
+
     if image_type != 'base':
         behaviors = getattr(world, 'installed_behaviors', None)
     else:
@@ -755,7 +758,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     # Create new role
     for behavior in behaviors:
         if has_cloudinit:
-            role_name = name.replace(image_type, '-'.join((behavior,'cloudinit')))
+            role_name = name.replace(image_type, '-'.join((behavior, 'cloudinit')))
             role_behaviors = list((behavior, 'chef'))
         else:
             role_name = name
@@ -767,7 +770,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
             is_scalarized=int(is_scalarized or has_cloudinit),
             behaviors=role_behaviors,
             images=[dict(
-                platform=platform,
+                platform=platform.name,
                 cloudLocation=cloud_location,
                 hash=image['hash'])])
         LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
