@@ -59,7 +59,7 @@ def wait_server_state(step, serv_as, state):
                                         server=server)
 
 
-@step(r'server ([\w\d]+) hasn’t changed its status in (\d+) minutes')
+@step(r'server ([\w\d]+) hasn\'t changed its status in (\d+) minutes')
 def server_state_not_changed(step, serv_as, minutes):
     server = getattr(world, serv_as)
     server.reload()

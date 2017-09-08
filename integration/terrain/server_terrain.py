@@ -17,7 +17,7 @@ def system_log_without_changes_for_server(step, serv_as):
         raise AssertionError('System log for server %s has a new messages!' % server.id)
 
 
-@step(r"system log has new message with body '([\w\d .]+)' for server ([\w\d]+)")
+@step(r"system log has new message with body '([\w\d \(\)\:.]+)' for server ([\w\d]+)")
 def system_log_has_message_with_body(step, message, serv_as):
     server = getattr(world, serv_as)
     old_ids = getattr(world, '%s_system_log_ids' % serv_as)
