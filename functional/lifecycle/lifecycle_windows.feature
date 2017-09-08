@@ -43,7 +43,7 @@ Feature: Windows server lifecycle
       And see 'Scalarizr terminated' in M1 windows log
       And scalarizr is running on M1
       And not ERROR in M1 scalarizr windows log
-      And I see script result in M1
+      And scalr-upd-client is running on M1
 
     @ec2 @gce @openstack @azure
     Scenario: Windows reboot
