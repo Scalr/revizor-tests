@@ -80,7 +80,7 @@ Feature: Linux server lifecycle
         Given I have running server M1
         When I execute script 'Non ascii script wrong interpreter' synchronous on M1
         And I see script result in M1
-        And script output contains 'Interpreter not found u'/no/\xc3\u0192\xc2\xa7\xc3\u0192\xc2\xa3o'' in M1
+        And script stderr output contains 'Interpreter not found u'/no/\xc3\u0192\xc2\xa7\xc3\u0192\xc2\xa3o'' in M1
 
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
     Scenario: Check non-ascii script output on Linux
