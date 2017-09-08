@@ -52,7 +52,7 @@ Feature: Windows server lifecycle
         And Scalr receives RebootFinish from M1
         And Scalr sends RebootFinish to M1
         And scalarizr is running on M1
-        And scalr-upd-client is running on M1`
+        And scalr-upd-client is running on M1
 
     @ec2 @gce @openstack @azure
     Scenario Outline: Scripts executing on Windows
