@@ -139,7 +139,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "scriptId": script_id,
                         "scriptName": "CentOS7 fix apache log",
                         "scriptOs": "linux",
-                        "version": "-1",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }
@@ -198,7 +198,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "scriptId": script_id,
                         "scriptName": "Revizor scaling prepare linux",
                         "scriptOs": "linux",
-                        "version": "-1",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }
@@ -224,7 +224,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "scriptId": script_id,
                         "scriptName": "Revizor scaling prepare windows",
                         "scriptOs": "windows",
-                        "version": "-1",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }

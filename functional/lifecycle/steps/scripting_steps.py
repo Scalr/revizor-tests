@@ -12,21 +12,27 @@ LOG = logging.getLogger(__name__)
 
 @step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+)(?: by user (\w+)?)? with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
+    std_err = False
+    if contain and contain.startswith('STDERR:'):
+        contain = re.sub(r'STDERR: ', '', contain).strip()
+        std_err = True
     world.check_script_executed(serv_as=serv_as,
                                 name=name,
                                 event=event,
                                 user=user,
                                 log_contains=contain,
+                                std_err=std_err,
                                 exitcode=exitcode)
 
 
-@step("script output contains '(.+)' in (.+)$")
-def assert_check_message_in_log(step, message, serv_as):
+@step("script( stderr)? output contains '(.+)' in (.+)$")
+def assert_check_message_in_log(step, stream, message, serv_as):
     server = getattr(world, serv_as)
     script_name = getattr(world, '_server_%s_last_script_name' % server.id)
     world.check_script_executed(serv_as=serv_as,
                                 name=script_name,
                                 log_contains=message,
+                                std_err=bool(stream),
                                 new_only=True)
 
 
