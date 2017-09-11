@@ -52,9 +52,9 @@ Feature: Orchestration features test
             | Cross-platform script          | asynchronous |            | Multiplatform script successfully executed                                             |
 
     @ec2 @gce @vmware @cloudstack @rackspaceng @openstack @azure
-    Scenario: Bootstrapping role with failed non-ascii script
+    Scenario: Bootstrapping role with failed script
         Given I have a clean and stopped farm
         When I add role to this farm with failed_script
         When I start farm
         Then I wait server M2 in failed state
-        And Initialization was failed on "BeforeHostUp" phase with "execute.script/bin/non_ascii_output exited with code 255" message on M2
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script/bin/Multiplatform_exit_1 exited with code 1" message on M2

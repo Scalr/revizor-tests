@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps
+Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps, steps/chef_boot_steps
 Feature: Windows server lifecycle
     In order to manage server lifecycle
     As a scalr user
@@ -7,15 +7,23 @@ Feature: Windows server lifecycle
     @ec2 @gce @openstack @azure
     Scenario: Bootstraping
         Given I have a clean and stopped farm
-        And I add role to this farm with winchef,storages
+        And I add role to this farm with storages
         When I start farm
         Then I see pending server M1
         And I wait and see running server M1
         And instance vcpus info not empty for M1
-        And file 'C:\chef_result_file' exist in M1 windows
         And server M1 has disks E(test_label2): 1 Gb, D: 2 Gb
         And scalarizr version is last in M1
         And hostname in M1 is valid
+
+    @ec2 @gce @openstack @azure @szradm
+    Scenario: Verify szradm list-roles
+        When I run "szradm -q list-roles" on M1
+        And output contain M1 external ip
+        When I run "szradm --queryenv get-latest-version" on M1
+        And the key "version" has 1 record on M1
+        When I run "szradm list-messages" on M1
+        And the key "name" has record "HostUp" on M1
 
     @ec2 @gce @openstack @azure
     Scenario: Restart scalarizr
@@ -93,6 +101,29 @@ Feature: Windows server lifecycle
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
+    Scenario Outline: Verify script execution on bootstrapping
+        Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
+
+        Examples:
+            | event        | name                          | exitcode | stdout                                         |
+            | HostInit     | Windows_ping_pong_CMD         | 0        | pong                                           |
+            | HostUp       | Windows_ping_pong_CMD         | 0        | pong                                           |
+
+
+    @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping with chef
+        Given I have a clean and stopped farm
+        When I add role to this farm with winchef
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
+        And server M1 exists on chef nodes list
+        And M1 chef runlist has only recipes [windows_file_create,revizorenv]
+        And file 'C:\chef_result_file' exist in M1 windows
+        And chef node_name in M1 set by global hostname
+        And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
+
+    @ec2 @gce @openstack @azure
     Scenario: Bootstraping from chef-role
         Given I have a clean and stopped farm
         And I add role to this farm with winchef-role
@@ -102,6 +133,14 @@ Feature: Windows server lifecycle
         And file 'C:\chef_result_file' exist in M1 windows
         And scalarizr version is last in M1
         And hostname in M1 is valid
+
+    @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping role with failed script
+        Given I have a clean and stopped farm
+        When I add role to this farm with failed_script
+        When I start farm
+        Then I wait server M2 in failed state
+        And Initialization was failed on "BeforeHostUp" phase with "execute.script\bin\Multiplatform_exit_1.ps1 exited with code 1" message on M2
 
     @ec2
     Scenario: Bootstraping with ephemeral
