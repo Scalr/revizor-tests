@@ -77,8 +77,6 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 scripts = {'SCRIPT_PONG_ID': script_pong_id,
                            'SCRIPT_INIT_ID': script_init_id,
                            'SCRIPT_SLEEP_10': script_sleep_10}
-                if CONF.feature.dist.id == 'coreos':
-                    scripts['SCRIPT_INIT_ID'] = script_pong_id
                 scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % scripts)
             elif opt == 'small_linux_orchestration':
                 LOG.debug('Add small orchestration for linux')
