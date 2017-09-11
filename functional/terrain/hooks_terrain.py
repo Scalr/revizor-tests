@@ -42,56 +42,9 @@ COREOS_UNSUPPORTED_SCRIPTS = [
     'user': 'root',
     'exitcode': '0',
     'stdout': '',
-    'event': 'HostInit',
-    'name': 'Revizor orchestration init'
-  },
-  {
-    'user': 'revizor2',
-    'exitcode': '1',
-    'stdout': '',
-    'event': 'HostUp',
-    'name': 'Linux ping-pong'
-  },
-   {
-    'user': 'revizor2',
-    'exitcode': '1',
-    'stdout': 'STDERR: sudo: unknown user: revizor2',
-    'event': 'HostUp',
-    'name': 'Linux ping-pong'
-    },
-  {
-    'user': 'revizor',
-    'exitcode': '0',
-    'stdout': 'Local script work! User: revizor; USER=revizor; HOME=/home/revizor',
-    'event': 'HostUp',
-    'name': '/home/revizor/local_script.sh'
-  },
-  {
-    'user': 'revizor',
-    'exitcode': '0',
-    'stdout': 'pong',
-    'event': 'HostUp',
-    'name': 'Linux ping-pong'
-  },
-  {
-    'user': 'root',
-    'exitcode': '0',
-    'stdout': '',
     'event': 'HostUp',
     'name': 'chef'
-  },
-    {
-      'output': 'Local script work!; USER=root; HOME=/root',
-      'execute_type': 'synchronous',
-      'script_name': '/home/revizor/local_script.sh',
-      'script_type': 'local'
-    },
-    {
-      'output': 'Local script work!; USER=root; HOME=/root',
-      'execute_type': 'asynchronous',
-      'script_name': '/home/revizor/local_script.sh',
-      'script_type': 'local'
-    }
+  }
 ]
 
 ORG = 'Scalr'
