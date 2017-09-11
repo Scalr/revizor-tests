@@ -93,13 +93,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                                       'SCRIPT_PONG_PS_ID': script_pong_ps_id})
 
             elif opt == 'failed_script':
-                script_id = Script.get_id('non-ascii-output')['id']
+                script_id = Script.get_id('Multiplatform exit 1')['id']
                 scripting = [
                     {
                         "scope": "farmrole",
                         "action": "add",
-                        # id: extModel123
-                        # eventOrder 2
                         "timeout": "1200",
                         "isSync": True,
                         "orderIndex": 10,
@@ -111,8 +109,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         },
                         "isFirstConfiguration": None,
                         "scriptId": script_id,
-                        "scriptName": "non-ascii-output",
-                        "scriptOs": "linux",
+                        "scriptName": "Multiplatform exit 1",
+                        "scriptOs": "windows" if CONF.feature.dist.is_windows else "linux",
                         "version": -1,
                         "scriptPath": "",
                         "runAs": ""
