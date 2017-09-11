@@ -177,16 +177,27 @@ def run_command(step, command, serv_as):
     node = world.cloud.get_node(server)
     LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
     if command == 'szradm q list-farm-role-params':
-        farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
+        if CONF.feature.dist.is_windows:
+            farm_role_id = json.loads(
+                world.run_cmd_command(
+                    server,
+                    'szradm q list-roles --format=json')
+                .std_out)['roles'][0]['id']
+        else:
+            farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
         command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
     if CONF.feature.dist.id == 'coreos':
         command = 'PATH=$PATH:/opt/bin; ' + command
-    result = node.run(command)
-    if result[2]:
+    if CONF.feature.dist.is_windows:
+        result = world.run_cmd_command(server, command)
+        stdout, stderr, exitcode = result.std_out, result.std_err, result.status_code
+    else:
+        stdout, stderr, exitcode = node.run(command)
+    if exitcode:
         raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %
-                             (command, result[1]))
-    LOG.debug('Parsing a command result: %s' % result[0])
-    result = SzrAdmResultsParser.parser(result[0])
+                             (command, stderr))
+    LOG.debug('Parsing a command result: %s' % stdout)
+    result = SzrAdmResultsParser.parser(stdout)
     LOG.debug('Command result was successfully parsed on a remote host:%s\n%s' % (server.id, result))
     setattr(world, '%s_result' % serv_as, result)
     LOG.info('Command execution result is stored in world.%s_result' % serv_as)

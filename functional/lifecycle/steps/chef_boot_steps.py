@@ -34,8 +34,12 @@ def check_process_options(step, process, options, serv_as):
 @step("chef node_name in ([\w\d]+) set by global hostname")
 def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
-    node = world.cloud.get_node(server)
-    node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0].strip().split()[1][1:-1]
+    if CONF.feature.dist.is_windows:
+        node_name = world.run_cmd_command(server, 'findstr node_name c:\chef\client.rb').std_out
+    else:
+        node = world.cloud.get_node(server)
+        node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0]
+    node_name = node_name.strip().split()[1][1:-1]
     hostname = world.get_hostname_by_server_format(server)
     if not node_name == hostname:
         raise AssertionError('Chef node_name "%s" != hostname on server "%s"' % (node_name, hostname))
