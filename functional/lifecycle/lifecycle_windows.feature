@@ -67,7 +67,7 @@ Feature: Windows server lifecycle
         Given I have running server M1
         When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
         And I see script result in M1
-        And script result contains '<output>' on M1
+        And script output contains '<output>' in M1
 
     Examples:
         | script_name            | execute_type | script_type  | output |
@@ -103,9 +103,9 @@ Feature: Windows server lifecycle
         Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
 
         Examples:
-            | event        | name                          | exitcode | stdout                                         |
-            | HostInit     | Windows_ping_pong_CMD         | 0        | pong                                           |
-            | HostUp       | Windows_ping_pong_CMD         | 0        | pong                                           |
+            | event        | name                          | exitcode | stdout |
+            | HostInit     | Windows_ping_pong_CMD         | 0        | pong   |
+            | HostUp       | Windows_ping_pong_CMD         | 0        | pong   |
 
 
     @ec2 @gce @openstack @azure
