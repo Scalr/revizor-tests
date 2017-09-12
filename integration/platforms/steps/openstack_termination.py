@@ -1,6 +1,6 @@
 import logging
 
-from lettuce import step, world
+from lettuce import step, world, after
 
 from revizor2.utils import exceptions
 
@@ -39,3 +39,11 @@ def modify_poller_file(step):
         '/opt/scalr-server/embedded/scalr/'
         'app/src/Scalr/Modules/Platforms/Openstack/Adapters/StatusAdapter.php'
     )
+
+
+@after.each_feature
+def return_modified_files():
+    world.testenv.put_file(world.files['StatusAdapter.php'],
+                           '/opt/scalr-server/embedded/scalr/'
+                           'app/src/Scalr/Modules/Platforms/Openstack/Adapters/StatusAdapter.php'
+                           )

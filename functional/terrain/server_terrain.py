@@ -43,6 +43,24 @@ def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     setattr(world, serv_as, server)
 
 
+@step('I see (.+) server (.+)$')
+def waiting_for_assertion(step, state, serv_as, timeout=1400):
+    role = world.get_role()
+    server = world.wait_server_bootstrapping(role, state, timeout)
+    setattr(world, serv_as, server)
+    LOG.info('Server %s (%s) succesfully in %s state' % (server.id, serv_as, state))
+
+
+@step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
+def waiting_server(step, state, serv_as, timeout=1400):
+    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
+        timeout = 2400
+    role = world.get_role()
+    server = world.wait_server_bootstrapping(role, state, timeout)
+    LOG.info('Server succesfully %s' % state)
+    setattr(world, serv_as, server)
+
+
 @step('I wait server ([\w\d]+) in ([ \w]+) state')
 def wait_server_state(step, serv_as, state):
     """
@@ -69,7 +87,6 @@ def server_state_not_changed(step, serv_as, minutes):
         server.reload()
         if server.status != status_before:
             raise AssertionError("Server %s change status '%s' -> '%s'" % server.id, status_before, server.status)
-        time.sleep(60)
 
 
 @step(r'I( force)? terminate(?: server)? ([\w\d]+)( with decrease)?$')

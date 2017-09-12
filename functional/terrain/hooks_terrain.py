@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 import uuid
 import json
 import semver
@@ -153,10 +154,11 @@ def get_scalaraizr_latest_version(branch):
 
 @before.all
 def verify_testenv():
-    if CONF.scalr.branch:
+    if CONF.scalr.branch and not CONF.scalr.te_id:
         LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
         sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
         world.testenv = TestEnv.create(CONF.scalr.branch)
+        time.sleep(10)
         CONF.scalr.te_id = world.testenv.te_id
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
     elif CONF.scalr.te_id:

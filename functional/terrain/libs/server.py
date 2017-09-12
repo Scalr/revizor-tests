@@ -297,7 +297,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.info('We wait Resuming but server already Running')
                 status = ServerStatus.RUNNING
 
-            LOG.debug('Compare server status')
+            LOG.debug('Compare server status "%s" == "%s"' % (lookup_server.status, status))
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:

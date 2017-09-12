@@ -4,6 +4,7 @@ import functools
 from lettuce import world, step, after
 
 from revizor2.conf import CONF
+from revizor2.consts import Platform
 
 
 def get_dict_value(obj, key):
@@ -20,6 +21,8 @@ def configure_revizor(step):
     for revizor_opt in step.hashes:
         os.environ['RV_%s' % revizor_opt['name'].upper()] = revizor_opt['value']
         CONF.feature[revizor_opt['name']] = revizor_opt['value']
+        if revizor_opt['name'] == 'platform':
+            CONF.feature.driver = Platform((CONF.platforms[CONF.feature.platform]['driver']))
 
 
 @step('Given I have configured scalr config')

@@ -27,7 +27,7 @@ Feature: Check Openstack termination strategy on failed server
             | name                                    | value  |
             | scalr.openstack.action_on_failed_server | alert  |
         Then I restart service "zmq_service"
-        And server M1 hasn’t changed its status in 5 minutes
+        And server M1 hasn't changed its status in 5 minutes
         And system log has new message with body '(Platform: openstack) was failed. Status: ACTIVE.' for server M1
 
     Scenario: Verify action_on_failed_server not exist
@@ -35,5 +35,6 @@ Feature: Check Openstack termination strategy on failed server
             | name                                    | value     |
             | scalr.openstack.action_on_failed_server | terminate |
         Then I restart service "zmq_service"
-        When I wait and see terminated server M1
+        When I wait server M1 in terminated state
+        And system log has new message with body '(Platform: openstack) was terminated in cloud or from within an OS. Status: ACTIVE.' for server M1
         Then I see pending server M2
