@@ -260,16 +260,16 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                    (lookup_server.id, ServerStatus.INIT, lookup_server.get_failed_status_message()))
 
             LOG.debug('Try get node')
-            if not lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
-                                                                ServerStatus.PENDING_TERMINATE,
-                                                                ServerStatus.TERMINATED,
-                                                                ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED]:
+            if not lookup_node and status != ServerStatus.PENDING and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
+                                                                                                   ServerStatus.PENDING_TERMINATE,
+                                                                                                   ServerStatus.TERMINATED,
+                                                                                                   ServerStatus.PENDING_SUSPEND,
+                                                                                                   ServerStatus.SUSPENDED]:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
-            if lookup_node and lookup_server.status in ServerStatus.PENDING:
+            if lookup_node and status != ServerStatus.PENDING and lookup_server.status in ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
                 if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
