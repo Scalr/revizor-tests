@@ -270,7 +270,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
-            if lookup_node and lookup_server.status in ServerStatus.PENDING and status != ServerStatus.PENDING:
+            if lookup_node and lookup_server.status == ServerStatus.PENDING and status != ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
                 if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
