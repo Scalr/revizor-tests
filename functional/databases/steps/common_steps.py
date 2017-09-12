@@ -624,7 +624,7 @@ def check_errors_in_message(step, message_name, serv_as):
     node = world.cloud.get_node(server)
     cmd = 'szradm md --json %s' % message_id
     if CONF.feature.fidst.id == 'coreos':
-        cmd = "PATH=PATH+'/opt/bin'; " + cmd
+        cmd = "/opt/bin/" + cmd
     message = json.loads(node.run(cmd)[0])
     if 'last_error' in message['body']:
         raise AssertionError('Message %s at %s contains error: %s' % (message_name, serv_as, message['body']['last_error']))

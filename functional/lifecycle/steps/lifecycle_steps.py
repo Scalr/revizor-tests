@@ -59,7 +59,7 @@ def save_config_from_message(step, config_group, message, serv_as):
     LOG.info('Message id for %s is %s' % (message, msg_id))
     cmd = 'szradm message-details %s --json' % msg_id
     if CONF.feature.dist.id == 'coreos':
-        cmd = "PATH=PATH+'/opt/bin'; " + cmd
+        cmd = "/opt/bin/" + cmd
     message_details = json.loads(node.run(cmd)[0])['body']
     LOG.info('Message details is %s' % message_details)
     LOG.info('Save message part %s' % config_group)
@@ -76,7 +76,7 @@ def check_message_config(step, config_group, message, serv_as):
     LOG.info('Message id for %s is %s' % (message, msg_id))
     cmd = 'szradm message-details %s --json' % msg_id
     if CONF.feature.dist.id == 'coreos':
-        cmd = "PATH=PATH+'/opt/bin'; " + cmd
+        cmd = "/opt/bin/" + cmd
     message_details = json.loads(node.run(cmd)[0])['body']
     LOG.info('Message details is %s' % message_details)
     old_details = getattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), '')
@@ -168,6 +168,8 @@ def attach_script(step, script_name):
 
 @step('I execute \'(.+)\' in (.+)$')
 def execute_command(step, command, serv_as):
+    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
+        command = '/opt/bin/' + command
     node = world.cloud.get_node(getattr(world, serv_as))
     LOG.info('Execute command on server: %s' % command)
     node.run(command)
