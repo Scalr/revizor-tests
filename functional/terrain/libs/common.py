@@ -183,7 +183,8 @@ def wait_site_response(domain, msg, proto='http', **kwargs):
 @world.absorb
 def get_szr_messages(node, convert=False):
     LOG.info('Get messages list from server %s' % node.id)
-    out = node.run('szradm list-messages')
+    cmd = '/opt/bin/szradm list-messages' if CONF.feature.dist.id == 'coreos' else 'szradm list-messages'
+    out = node.run(cmd)
 
     if out[0] in ('', ' '):
         return []

@@ -801,7 +801,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family) if CONF.feature.dist.id != 'coreos' else 'echo'
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
     return os_family_res

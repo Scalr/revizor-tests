@@ -186,6 +186,8 @@ def run_command(step, command, serv_as):
         else:
             farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
         command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
+    if CONF.feature.dist.id == 'coreos':
+        command = 'PATH=$PATH:/opt/bin; ' + command
     if CONF.feature.dist.is_windows:
         result = world.run_cmd_command(server, command)
         stdout, stderr, exitcode = result.std_out, result.std_err, result.status_code
