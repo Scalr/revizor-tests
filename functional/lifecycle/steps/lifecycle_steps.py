@@ -18,24 +18,6 @@ from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 LOG = logging.getLogger(__name__)
 
 
-@step('I see (.+) server (.+)$')
-def waiting_for_assertion(step, state, serv_as, timeout=1400):
-    role = world.get_role()
-    server = world.wait_server_bootstrapping(role, state, timeout)
-    setattr(world, serv_as, server)
-    LOG.info('Server %s (%s) succesfully in %s state' % (server.id, serv_as, state))
-
-
-@step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
-def waiting_server(step, state, serv_as, timeout=1400):
-    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
-        timeout = 2400
-    role = world.get_role()
-    server = world.wait_server_bootstrapping(role, state, timeout)
-    LOG.info('Server succesfully %s' % state)
-    setattr(world, serv_as, server)
-
-
 @step('scalarizr(\snot)* installed on the ([\w\d]+) server')
 def is_server_scalarized(step, negation, serv_as):
     server = getattr(world, serv_as)

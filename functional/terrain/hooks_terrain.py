@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 import uuid
 import json
 import semver
@@ -11,13 +12,13 @@ from operator import itemgetter
 from distutils.version import LooseVersion
 
 import github
-import requests
 from lxml import etree
 from lettuce import world, after, before
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
+from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
@@ -153,18 +154,15 @@ def get_scalaraizr_latest_version(branch):
 
 @before.all
 def verify_testenv():
-    if CONF.scalr.branch:
+    if CONF.scalr.branch and not CONF.scalr.te_id:
         LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
         sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
-        resp = requests.post(
-            'http://revizor2.scalr-labs.com/api/createContainer',
-            data={'branch': CONF.scalr.branch}
-        )
-        LOG.debug('Resposne for container creation: %s' % resp.text)
-        if resp.status_code != 200:
-            raise AssertionError("Can't run container: %s" % resp.text)
-        CONF.scalr.te_id = resp.json()['container_id']
+        world.testenv = TestEnv.create(CONF.scalr.branch)
+        time.sleep(10)
+        CONF.scalr.te_id = world.testenv.te_id
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
+    elif CONF.scalr.te_id:
+        world.testenv = TestEnv(CONF.scalr.te_id)
 
 
 @before.all
