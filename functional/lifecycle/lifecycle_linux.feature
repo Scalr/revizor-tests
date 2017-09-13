@@ -148,8 +148,8 @@ Feature: Linux server lifecycle
         When I start farm
         And I see pending server M1
         When I wait server M1 in running state
-        Then script Revizor last reboot executed in HostInit by user root with exitcode 0 for M1
-        And script Revizor last reboot executed in HostUp by user root with exitcode 0 for M1
+        Then script Revizor last reboot executed in HostInit with exitcode 0 for M1
+        And script Revizor last reboot executed in HostUp with exitcode 0 for M1
         And start time in Revizor last reboot scripts are different for M1
         And hostname in M1 is valid
 
