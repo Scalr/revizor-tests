@@ -535,6 +535,8 @@ def check_script_executed(serv_as,
             if log in last_scripts:
                 # skip old log
                 continue
+            if log.run_as is None:
+                log.run_as = 'Administrator' if CONF.feature.dist.is_windows else 'root'
             event_matched = event is None or (log.event and log.event.strip() == event.strip())
             user_matched = user is None or (log.run_as == user)
             name_matched = name is None \
