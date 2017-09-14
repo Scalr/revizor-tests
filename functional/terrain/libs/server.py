@@ -264,12 +264,13 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED]:
+                                                                ServerStatus.SUSPENDED] \
+                    and status != ServerStatus.PENDING:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
-            if lookup_node and lookup_server.status in ServerStatus.PENDING:
+            if lookup_node and lookup_server.status == ServerStatus.PENDING and status != ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
                 if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
@@ -534,6 +535,8 @@ def check_script_executed(serv_as,
             if log in last_scripts:
                 # skip old log
                 continue
+            if log.run_as is None:
+                log.run_as = 'Administrator' if CONF.feature.dist.is_windows else 'root'
             event_matched = event is None or (log.event and log.event.strip() == event.strip())
             user_matched = user is None or (log.run_as == user)
             name_matched = name is None \
