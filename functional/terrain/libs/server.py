@@ -553,7 +553,11 @@ def check_script_executed(serv_as,
                     LOG.debug('Log message %s output: %s' % (out_name, message))
                     for cond in contain:
                         cond = cond.strip()
+                        # FIXME: Remove this than maint/py3 will merged to master
+                        if CONF.feature.branch == 'maint-py3' and "sudo: unknown user: revizor2" in cond:
+                            cond = "no such user: 'revizor2'"
                         html_cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                        LOG.debug('Check condition "%s" in log' % cond)
                         found = (html_cond in message) if ui_message else (cond in message)
                         if not found and not CONF.feature.dist.is_windows and 'Log file truncated. See the full log in' in message:
                             full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
