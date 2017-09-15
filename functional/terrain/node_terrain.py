@@ -314,6 +314,7 @@ def verify_port_status(step, port, closed, serv_as):
 
 
 @step(r'([\w-]+(?!process)) is( not)? running on (.+)')
+@world.run_only_if(dist=['!coreos'])
 def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this ugly logic
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
@@ -425,12 +426,12 @@ def assert_scalarizr_version(step, branch, serv_as):
         else:
             url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
             path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-            default_repo = url.format(path=path)
+            default_repo = url.format(path=path) if os_family != 'coreos' else path
         # Get last scalarizr version from custom repo
         index_url = default_repo.format(branch=branch)
         LOG.debug('Check package from index_url: %s' % index_url)
         repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
-        versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+        versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
         versions.sort(reverse=True)
         last_version = versions[0]
         if last_version.strip().endswith('-1'):
@@ -684,10 +685,11 @@ def creating_image(step, image_type=None):
         node=cloud_server,
         name=image_name,
     )
+    no_mapping = True if CONF.feature.dist.id == 'coreos' else False
     if CONF.feature.driver.is_platform_ec2:
         kwargs.update({'reboot': True})
     cloud_server.run('sync')
-    image = world.cloud.create_template(**kwargs)
+    image = world.cloud.create_template(no_mapping=no_mapping, **kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
@@ -724,10 +726,10 @@ def creating_role(step, image_type=None, non_scalarized=None):
             image_type,
             CONF.feature.dist.id,
             datetime.now())
-    if image_type != 'base':
+    if not 'base' in image_type:
         behaviors = getattr(world, 'installed_behaviors', None)
     else:
-        behaviors = ['chef']
+        behaviors = ['chef'] if CONF.feature.dist.id != 'coreos' else ['base']
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
@@ -920,10 +922,15 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                     node=node
                 ),
                 url=url)
+        user = None
+        if CONF.feature.dist.id == 'coreos':
+            cmd = 'PATH=$PATH:/opt/bin; ' + cmd
+            user = 'core'
         LOG.debug('Install script body: %s' % cmd)
-        node.run(cmd)
+        out = node.run(cmd, user=user)
         # get installed scalarizr version
-        res = node.run('scalarizr -v')[0]
+        version_cmd = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
+        res = node.run(version_cmd)[0]
     scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert scalarizr_ver, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', scalarizr_ver[0])
@@ -946,7 +953,7 @@ def given_server_in_cloud(step, user_data):
         user_data = None
     #Create node
     image = None
-    if CONF.feature.dist.is_windows:
+    if CONF.feature.dist.is_windows or CONF.feature.dist.id == 'coreos':
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,

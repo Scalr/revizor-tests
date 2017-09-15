@@ -1,6 +1,7 @@
 import os
 import re
 import sys
+import time
 import uuid
 import json
 import semver
@@ -11,13 +12,13 @@ from operator import itemgetter
 from distutils.version import LooseVersion
 
 import github
-import requests
 from lxml import etree
 from lettuce import world, after, before
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
+from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform
@@ -30,6 +31,22 @@ LOG = logging.getLogger(__name__)
 
 OUTLINE_ITERATOR = {}
 PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
+COREOS_UNSUPPORTED_SCRIPTS = [
+  {
+    'user': 'root',
+    'exitcode': '0',
+    'stdout': '"HOME"=>"/root"; "USER"=>"root"',
+    'event': 'BeforeHostUp',
+    'name': 'chef'
+  },
+  {
+    'user': 'root',
+    'exitcode': '0',
+    'stdout': '',
+    'event': 'HostUp',
+    'name': 'chef'
+  }
+]
 
 ORG = 'Scalr'
 GH = github.GitHub(access_token=CONF.credentials.github.access_token)
@@ -143,28 +160,25 @@ def get_scalaraizr_latest_version(branch):
     else:
         url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
         path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-        default_repo = url.format(path=path)
+        default_repo = url.format(path=path) if os_family != 'coreos' else path
     index_url = default_repo.format(branch=branch)
     repo_data = parser_for_os_family(CONF.feature.dist.mask)(branch=branch, index_url=index_url)
-    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
     versions.sort(reverse=True)
     return versions[0]
 
 
 @before.all
 def verify_testenv():
-    if CONF.scalr.branch:
+    if CONF.scalr.branch and not CONF.scalr.te_id:
         LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
         sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
-        resp = requests.post(
-            'http://revizor2.scalr-labs.com/api/createContainer',
-            data={'branch': CONF.scalr.branch}
-        )
-        LOG.debug('Resposne for container creation: %s' % resp.text)
-        if resp.status_code != 200:
-            raise AssertionError("Can't run container: %s" % resp.text)
-        CONF.scalr.te_id = resp.json()['container_id']
+        world.testenv = TestEnv.create(CONF.scalr.branch)
+        time.sleep(10)
+        CONF.scalr.te_id = world.testenv.te_id
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
+    elif CONF.scalr.te_id:
+        world.testenv = TestEnv(CONF.scalr.te_id)
 
 
 @before.all
@@ -227,7 +241,10 @@ def exclude_steps_by_options(feature):
     for scenario in feature.scenarios:
         steps_to_remove = set()
         for step in scenario.steps:
-            func = step._get_match(None)[1].function
+            custom_sentence = None
+            if scenario.outlines:
+                custom_sentence = re.sub('<.+>', scenario.outlines[0].values()[0], step.sentence)
+            func = step._get_match(None, custom_sentence=custom_sentence)[1].function
             if hasattr(func, '_exclude'):
                 steps_to_remove.add(step)
         for step in steps_to_remove:
@@ -301,6 +318,12 @@ def exclude_update_from_latest(feature):
             scenario = [s for s in feature.scenarios if s.name == 'Update from latest to branch from ScalrUI'][0]
             feature.scenarios.remove(scenario)
             LOG.info("Removed scenario: %s" % scenario)
+
+@before.each_feature
+def exclude_chef_orchestration_for_coreos(feature):
+    if feature.name == 'Orchestration features test' and CONF.feature.dist.id == 'coreos':
+        for scenario in feature.scenarios:
+            scenario.outlines = [o for o in scenario.outlines if o not in COREOS_UNSUPPORTED_SCRIPTS]
 
 
 @after.outline

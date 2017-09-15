@@ -264,12 +264,13 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED]:
+                                                                ServerStatus.SUSPENDED] \
+                    and status != ServerStatus.PENDING:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
-            if lookup_node and lookup_server.status in ServerStatus.PENDING:
+            if lookup_node and lookup_server.status == ServerStatus.PENDING and status != ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
                 if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
@@ -297,7 +298,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.info('We wait Resuming but server already Running')
                 status = ServerStatus.RUNNING
 
-            LOG.debug('Compare server status')
+            LOG.debug('Compare server status "%s" == "%s"' % (lookup_server.status, status))
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
@@ -534,6 +535,8 @@ def check_script_executed(serv_as,
             if log in last_scripts:
                 # skip old log
                 continue
+            if log.run_as is None:
+                log.run_as = 'Administrator' if CONF.feature.dist.is_windows else 'root'
             event_matched = event is None or (log.event and log.event.strip() == event.strip())
             user_matched = user is None or (log.run_as == user)
             name_matched = name is None \
@@ -550,7 +553,11 @@ def check_script_executed(serv_as,
                     LOG.debug('Log message %s output: %s' % (out_name, message))
                     for cond in contain:
                         cond = cond.strip()
+                        # FIXME: Remove this than maint/py3 will merged to master
+                        if CONF.feature.branch == 'maint-py3' and "sudo: unknown user: revizor2" in cond:
+                            cond = "no such user: 'revizor2'"
                         html_cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                        LOG.debug('Check condition "%s" in log' % cond)
                         found = (html_cond in message) if ui_message else (cond in message)
                         if not found and not CONF.feature.dist.is_windows and 'Log file truncated. See the full log in' in message:
                             full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
@@ -801,7 +808,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family) if CONF.feature.dist.id != 'coreos' else 'echo'
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
     return os_family_res
