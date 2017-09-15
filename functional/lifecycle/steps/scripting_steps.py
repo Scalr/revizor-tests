@@ -25,7 +25,7 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                                 exitcode=exitcode)
 
 
-@step("script( stderr)? output contains '(.+)' in (.+)$")
+@step("script( stderr)? output contains '(.*)' in (.+)$")
 def assert_check_message_in_log(step, stream, message, serv_as):
     server = getattr(world, serv_as)
     script_name = getattr(world, '_server_%s_last_script_name' % server.id)
@@ -34,17 +34,6 @@ def assert_check_message_in_log(step, stream, message, serv_as):
                                 log_contains=message,
                                 std_err=bool(stream),
                                 new_only=True)
-
-
-@step(r"script result contains '([\w\W]+)?' on ([\w\d]+)")
-def assert_check_message_in_log_table_view(step, script_output, serv_as):
-    if script_output:
-        for line in script_output.split(';'):
-            external_step = "script output contains '{result}' in {server}".format(
-                result=line.strip(),
-                server=serv_as)
-            LOG.debug('Run external step: %s' % external_step)
-            step.when(external_step)
 
 
 @step("([\w\d]+) chef runlist has only recipes \[([\w\d,.]+)\]")
