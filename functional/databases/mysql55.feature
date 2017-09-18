@@ -12,7 +12,8 @@ Feature: MySQL database server with behavior mysql2
     @ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
     Scenario: Launch phpMyAdmin
         When I trigger pmaaccess creation
-        Then I launch pma session
+        Then Scalr receives Mysql_CreatePmaUserResult from M1
+        And I launch pma session
         And pma is available, I see the phpMyAdmin in the title
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @restart
@@ -194,7 +195,8 @@ Feature: MySQL database server with behavior mysql2
 	@ec2 @gce @rackspaceng @openstack @eucalyptus @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart
         When I trigger pmaaccess creation
-        Then I launch pma session
+        Then Scalr receives Mysql_CreatePmaUserResult from M1
+        And I launch pma session
         And pma is available, I see the phpMyAdmin in the title
 
     @ec2 @persistent
