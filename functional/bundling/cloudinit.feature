@@ -33,14 +33,14 @@ Feature: Cloudinit roles bootstrapping
         And not ERROR in M2 scalarizr update log
 
     Examples:
-      | behavior                      |
-      | app                           |
-      | redis                         |
-      | haproxy                       |
-      | postgresql                    |
-      | mysql2                        |
-      | percona                       |
-      | tomcat                        |
-      | memcached                     |
-      | www                           |
+      | behavior        |
+      | app             |
+      | redis           |
+      | haproxy         |
+      | postgresql      |
+      | mysql2          |
+      | percona         |
+      | tomcat          |
+      | memcached       |
+      | www             |
       # # | rabbitmq                      | FAM-480

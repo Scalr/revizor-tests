@@ -3,6 +3,7 @@ import logging
 import traceback
 from datetime import datetime
 from distutils.util import strtobool
+import re
 
 import requests
 from lettuce import world
@@ -263,12 +264,13 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                                 ServerStatus.PENDING_TERMINATE,
                                                                 ServerStatus.TERMINATED,
                                                                 ServerStatus.PENDING_SUSPEND,
-                                                                ServerStatus.SUSPENDED]:
+                                                                ServerStatus.SUSPENDED] \
+                    and status != ServerStatus.PENDING:
                 LOG.debug('Try to get node object for lookup server')
                 lookup_node = world.cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
-            if lookup_node and lookup_server.status in ServerStatus.PENDING:
+            if lookup_node and lookup_server.status == ServerStatus.PENDING and status != ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
                 if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
@@ -296,7 +298,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.info('We wait Resuming but server already Running')
                 status = ServerStatus.RUNNING
 
-            LOG.debug('Compare server status')
+            LOG.debug('Compare server status "%s" == "%s"' % (lookup_server.status, status))
             if lookup_server.status == status:
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
@@ -480,6 +482,101 @@ def wait_script_execute(server, message, state):
         if message in log.message and state == log.event:
             return True
     return False
+
+
+@world.absorb
+def check_script_executed(serv_as,
+                          name=None,
+                          event=None,
+                          user=None,
+                          log_contains=None,
+                          std_err=False,
+                          exitcode=None,
+                          new_only=False,
+                          timeout=0):
+    """
+    Verifies that server scripting log contains info about script execution.
+    """
+    out_name = 'STDERR' if std_err else 'STDOUT'
+    LOG.debug('Checking scripting %s logs on %s by parameters:\n'
+              '  script name:\t%s\n'
+              '  event:\t\t%s\n'
+              '  user:\t\t%s\n'
+              '  log_contains:\t%s\n'
+              '  exitcode:\t%s\n'
+              '  new_only:\t%s\n'
+              '  timeout:\t%s'
+              % (out_name,
+                 serv_as,
+                 name or 'Any',
+                 event or 'Any',
+                 user or 'Any',
+                 log_contains or 'Any',
+                 exitcode or 'Any',
+                 new_only,
+                 timeout))
+
+    server = getattr(world, serv_as)
+    contain = log_contains.split(';') if log_contains else []
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
+    # Convert script name, because scalr converts name to:
+    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
+    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    timeout = timeout // 10
+    for _ in range(timeout + 1):
+        server.scriptlogs.reload()
+        for log in server.scriptlogs:
+            LOG.debug('Checking script log:\n'
+                      '  name:\t%s\n'
+                      '  event:\t%s\n'
+                      '  run as:\t%s\n'
+                      '  exitcode:\t%s'
+                      % (log.name, log.event, log.run_as, log.exitcode))
+            if log in last_scripts:
+                # skip old log
+                continue
+            if log.run_as is None:
+                log.run_as = 'Administrator' if CONF.feature.dist.is_windows else 'root'
+            event_matched = event is None or (log.event and log.event.strip() == event.strip())
+            user_matched = user is None or (log.run_as == user)
+            name_matched = name is None \
+                or (name == 'chef' and log.name.strip().startswith(name)) \
+                or (name.startswith('http') and log.name.strip().startswith(name)) \
+                or (name.startswith('local') and log.name.strip().startswith(name)) \
+                or log.name.strip() == name
+            if name_matched and event_matched and user_matched:
+                LOG.debug('Script log matched search parameters')
+                if exitcode is None or log.exitcode == int(exitcode):
+                    # script exitcode is valid, now check that log output contains wanted text
+                    message = log.message.split('STDOUT:', 1)[int(not std_err)]
+                    ui_message = True
+                    LOG.debug('Log message %s output: %s' % (out_name, message))
+                    for cond in contain:
+                        cond = cond.strip()
+                        # FIXME: Remove this than maint/py3 will merged to master
+                        if CONF.feature.branch == 'maint-py3' and "sudo: unknown user: revizor2" in cond:
+                            cond = "no such user: 'revizor2'"
+                        html_cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
+                        LOG.debug('Check condition "%s" in log' % cond)
+                        found = (html_cond in message) if ui_message else (cond in message)
+                        if not found and not CONF.feature.dist.is_windows and 'Log file truncated. See the full log in' in message:
+                            full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
+                            node = world.cloud.get_node(server)
+                            message = node.run('cat %s' % full_log_path)[0]
+                            ui_message = False
+                            found = cond in message
+                        if not found:
+                            raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: \'%s\''
+                                                  % (event, user, message, cond))
+                    LOG.debug('This event exitcode: %s' % log.exitcode)
+                    return True
+                else:
+                    raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
+                                         % (event, user, log.exitcode, exitcode))
+        time.sleep(10)
+
+    raise AssertionError(
+        'I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (event, user, server.id))
 
 
 @world.absorb
@@ -711,7 +808,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
     # Get os family result
-    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family)
+    os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family) if CONF.feature.dist.id != 'coreos' else 'echo'
     if not os_family_res:
         raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
     return os_family_res

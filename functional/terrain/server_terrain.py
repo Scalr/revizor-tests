@@ -1,5 +1,3 @@
-__author__ = 'gigimon'
-
 import time
 import copy
 import logging
@@ -12,7 +10,7 @@ from revizor2.conf import CONF
 from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import MessageFailed, EventNotFounded
+from revizor2.exceptions import MessageFailed
 from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
@@ -27,6 +25,7 @@ COOKBOOKS_BEHAVIOR = {
 }
 
 BEHAVIOR_SETS = {
+    'base': ['base'],
     'mbeh1': ['apache2', 'mysql::server', 'redis', 'postgresql', 'haproxy'],
     'mbeh2': ['nginx', 'percona', 'tomcat', 'memcached']
 }
@@ -45,6 +44,24 @@ def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     setattr(world, serv_as, server)
 
 
+@step('I see (.+) server (.+)$')
+def waiting_for_assertion(step, state, serv_as, timeout=1400):
+    role = world.get_role()
+    server = world.wait_server_bootstrapping(role, state, timeout)
+    setattr(world, serv_as, server)
+    LOG.info('Server %s (%s) succesfully in %s state' % (server.id, serv_as, state))
+
+
+@step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
+def waiting_server(step, state, serv_as, timeout=1400):
+    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
+        timeout = 2400
+    role = world.get_role()
+    server = world.wait_server_bootstrapping(role, state, timeout)
+    LOG.info('Server succesfully %s' % state)
+    setattr(world, serv_as, server)
+
+
 @step('I wait server ([\w\d]+) in ([ \w]+) state')
 def wait_server_state(step, serv_as, state):
     """
@@ -59,6 +76,18 @@ def wait_server_state(step, serv_as, state):
         LOG.info('Wait server %s in state %s' % (server.id, state))
         world.wait_server_bootstrapping(status=ServerStatus.from_code(state),
                                         server=server)
+
+
+@step(r'server ([\w\d]+) hasn\'t changed its status in (\d+) minutes')
+def server_state_not_changed(step, serv_as, minutes):
+    server = getattr(world, serv_as)
+    server.reload()
+    status_before = server.status
+    for _ in range(int(minutes)):
+        time.sleep(60)
+        server.reload()
+        if server.status != status_before:
+            raise AssertionError("Server %s change status '%s' -> '%s'" % server.id, status_before, server.status)
 
 
 @step(r'I( force)? terminate(?: server)? ([\w\d]+)( with decrease)?$')
@@ -114,7 +143,7 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_me
         try:
             LOG.info('Try get server %s in world' % serv_as)
             server = getattr(world, serv_as)
-        except AttributeError, e:
+        except AttributeError as e:
             LOG.debug('Error in server found message: %s' % e)
             world.farm.servers.reload()
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
@@ -166,7 +195,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
     LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
-    LOG.debug('Count of complete scriptlogs: %s' % len(server.scriptlogs))
+    setattr(world, '_server_%s_last_script_name' % server.id, script_name)
     Script.script_execute(world.farm.id, server.farm_role_id, server.id, script_id, synchronous, path=path)
     LOG.info('Script executed success')
 
@@ -189,18 +218,11 @@ def script_executing(step, script_type, script_name, execute_type, serv_as):
 @step('I see script result in (.+)')
 def assert_check_script_work(step, serv_as):
     server = getattr(world, serv_as)
-    last_count = len(getattr(world, '_server_%s_last_scripts' % server.id))
-    server.scriptlogs.reload()
-    for i in range(60):
-        if not len(server.scriptlogs) == last_count + 1:
-            LOG.warning('Last count of script logs: %s, new: %s, must be: %s' % (
-            last_count, len(server.scriptlogs), last_count + 1))
-            time.sleep(10)
-            server.scriptlogs.reload()
-            continue
-        break
-    else:
-        raise AssertionError('Not see script result in script logs')
+    script_name = getattr(world, '_server_%s_last_script_name' % server.id)
+    world.check_script_executed(name=script_name,
+                                serv_as=serv_as,
+                                new_only=True,
+                                timeout=600)
 
 
 @step('wait all servers are ([\w]+)$')
@@ -328,7 +350,8 @@ def is_scalarizr_connected(step, timeout=1400):
     LOG.info('Connection with scalarizr was established. Received the following behaviors: %s' % world.bundle_task['behaviors'])
 
 
-@step('I initiate the installation (\w+ )?behaviors on the server')
+@step(r'I initiate the installation (\w+ )?behaviors on the server')
+@world.run_only_if(dist=['!coreos'])
 def install_behaviors(step, behavior_set=None):
     #Set recipes
     cookbooks = []
@@ -410,8 +433,8 @@ def start_building(step):
     else:
         world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
 
-
 @step(r'I install Chef on server')
+@world.run_only_if(dist=['!coreos'])
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
     if CONF.feature.dist.is_windows:

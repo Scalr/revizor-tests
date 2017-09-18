@@ -74,9 +74,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_pong_id = Script.get_id('Linux ping-pong')['id']
                 script_init_id = Script.get_id('Revizor orchestration init')['id']
                 script_sleep_10 = Script.get_id('Sleep 10')['id']
-                scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % {'SCRIPT_PONG_ID': script_pong_id,
-                                                                         'SCRIPT_INIT_ID': script_init_id,
-                                                                         'SCRIPT_SLEEP_10': script_sleep_10})
+                scripts = {'SCRIPT_PONG_ID': script_pong_id,
+                           'SCRIPT_INIT_ID': script_init_id,
+                           'SCRIPT_SLEEP_10': script_sleep_10}
+                scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % scripts)
             elif opt == 'small_linux_orchestration':
                 LOG.debug('Add small orchestration for linux')
                 script_pong_id = Script.get_id('Linux ping-pong')['id']
@@ -93,13 +94,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                                       'SCRIPT_PONG_PS_ID': script_pong_ps_id})
 
             elif opt == 'failed_script':
-                script_id = Script.get_id('non-ascii-output')['id']
+                script_id = Script.get_id('Multiplatform exit 1')['id']
                 scripting = [
                     {
                         "scope": "farmrole",
                         "action": "add",
-                        # id: extModel123
-                        # eventOrder 2
                         "timeout": "1200",
                         "isSync": True,
                         "orderIndex": 10,
@@ -111,9 +110,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         },
                         "isFirstConfiguration": None,
                         "scriptId": script_id,
-                        "scriptName": "non-ascii-output",
-                        "scriptOs": "linux",
-                        "version": "-1",
+                        "scriptName": "Multiplatform exit 1",
+                        "scriptOs": "windows" if CONF.feature.dist.is_windows else "linux",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }
@@ -141,7 +140,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "scriptId": script_id,
                         "scriptName": "CentOS7 fix apache log",
                         "scriptOs": "linux",
-                        "version": "-1",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }
@@ -200,7 +199,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "scriptId": script_id,
                         "scriptName": "Revizor scaling prepare linux",
                         "scriptOs": "linux",
-                        "version": "-1",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }
@@ -226,7 +225,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "scriptId": script_id,
                         "scriptName": "Revizor scaling prepare windows",
                         "scriptOs": "windows",
-                        "version": "-1",
+                        "version": -1,
                         "scriptPath": "",
                         "runAs": ""
                     }
@@ -263,7 +262,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     "chef.attributes": chef_attributes})
                 # Update role options
                 role_options.update(default_chef_solo_opts)
-            elif 'chef' in opt:
+            elif 'chef' in opt and CONF.feature.dist.id != Dist('coreos').id:
                 option = default_role_options.get(opt, {})
                 if option:
                     option['chef.server_id'] = ChefServer.get('https://api.opscode.com/organizations/webta').id
