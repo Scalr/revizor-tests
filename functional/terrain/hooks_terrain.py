@@ -319,11 +319,22 @@ def exclude_update_from_latest(feature):
             feature.scenarios.remove(scenario)
             LOG.info("Removed scenario: %s" % scenario)
 
+
 @before.each_feature
 def exclude_chef_orchestration_for_coreos(feature):
     if feature.name == 'Orchestration features test' and CONF.feature.dist.id == 'coreos':
         for scenario in feature.scenarios:
             scenario.outlines = [o for o in scenario.outlines if o not in COREOS_UNSUPPORTED_SCRIPTS]
+
+
+@before.each_feature
+def exclude_pma_launcher_for_centos6(feature):
+    excluded_scenarios = ["Launch phpMyAdmin", "Launch phpMyAdmin after farm restart"]
+    if CONF.feature.dist.is_centos and CONF.feature.dist.version <= 6:
+        for scenario in feature.scenarios:
+            if scenario.name.strip() in excluded_scenarios:
+                feature.scenarios.remove(scenario)
+                LOG.info("Removed scenario: %s" % scenario)
 
 
 @after.outline

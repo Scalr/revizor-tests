@@ -5,7 +5,7 @@ import json
 from datetime import timedelta
 
 from lettuce import world, step
-from lxml import html
+from lxml import html, etree
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
@@ -248,9 +248,15 @@ def session_is_available(step, service, search_string, element):
        Takes a variable as argument world.launch_request out of step launch_session"""
     if not world.launch_request:
         raise Exception('The %s service page is not found') % service
-    tree = html.fromstring(world.launch_request.text)
-    if search_string in tree.xpath('//%s' % element)[0].text:
-        LOG.info("The %s service is launched." % service)
+    for resp in world.launch_request.history:
+        LOG.debug('Response from: %s' % resp.url)
+        try:
+            tree = html.fromstring(resp.text)
+            if search_string in tree.xpath('//%s' % element)[0].text:
+                LOG.info("The %s service is launched." % service)
+                break
+        except etree.XMLSyntaxError:
+            continue
     else:
         raise AssertionError("The %s service is not launched." % service)
 
