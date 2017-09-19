@@ -85,7 +85,6 @@ Feature: Windows server lifecycle
         | Non ascii script corect execution | asynchronous | | TUVWXyz; A?AA?AA?A-A?AA?AA?A | |
 #        | C:\local_script.ps1 | asynchronous | local       | Local script work! |
 
-
     @ec2 @gce @openstack @azure
     Scenario: Restart farm
         When I stop farm
