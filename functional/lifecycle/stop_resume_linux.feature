@@ -16,15 +16,15 @@ Feature: Linux server resume strategy
         Given I have running server M1
         And disk types in role are valid
         And directory '/media/diskmount' exist in M1
-        And directory '/media/raidmount' exist in M1
+#        And directory '/media/raidmount' exist in M1
         And I create 100 files in '/media/diskmount' in M1
-        And I create 100 files in '/media/raidmount' in M1
+#        And I create 100 files in '/media/raidmount' in M1
 
     @ec2 @gce @storages @fstab
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
-        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+#        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
     @ec2 @vmware @gce @cloudstack @azure @chef
     Scenario: Verify chef deployment
@@ -59,13 +59,13 @@ Feature: Linux server resume strategy
     @ec2 @gce @cloudstack @storages
     Scenario: Check attached storages after resume
         And directory '/media/diskmount' exist in M1
-        And directory '/media/raidmount' exist in M1
-        And count of files in directory '/media/raidmount' is 100 in M1
+#        And directory '/media/raidmount' exist in M1
+#        And count of files in directory '/media/raidmount' is 100 in M1
 
     @ec2 @gce @cloudstack @storages @fstab
     Scenario: Verify attached storages in fstab after resume
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
-        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+#        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
     @ec2 @vmware @gce @cloudstack @azure
     Scenario: Verify Scalr delete chef nodes

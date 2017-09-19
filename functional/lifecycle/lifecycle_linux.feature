@@ -75,6 +75,13 @@ Feature: Linux server lifecycle
         Then I see script result in M1
         And script output contains 'Non_ascii_script' in M1
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @scripting
+    Scenario: Execute non-ascii script with wrong interpreter on Linux
+        Given I have running server M1
+        When I execute script 'Non ascii script wrong interpreter' synchronous on M1
+        And I see script result in M1
+        And script stderr output contains 'Interpreter not found u'/no/\xc3\u0192\xc2\xa7\xc3\u0192\xc2\xa3o'' in M1
+
     @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Check non-ascii script output on Linux
         Given I have running server M1
