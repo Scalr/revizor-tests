@@ -1,7 +1,7 @@
 Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/chef_boot_steps, steps/scripting_steps, steps/szradm_steps
 Feature: Linux server fast smoke test
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @boot
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with storages,noiptables,chef,orchestration
@@ -36,7 +36,7 @@ Feature: Linux server fast smoke test
         And process 'memcached' has options '-m 1024' in M1
         And M1 chef runlist has only recipes [memcached,revizorenv]
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @szradm
     Scenario: Verify szradm list-roles
         When I run "szradm -q list-roles" on M1
         And output contain M1 external ip
@@ -45,20 +45,20 @@ Feature: Linux server fast smoke test
         When I run "szradm list-messages" on M1
         And the key "name" has record "HostInitResponse" on M1
 
-    @ec2 @cloudstack @rackspaceng @eucalyptus @azure @reboot
+    @ec2 @cloudstack @rackspaceng @azure @reboot
     Scenario: Linux reboot
         Given I have running server M1
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Execute script on Linux
         Given I have running server M1
         When I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1
         And script output contains 'pong' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Execute non-ascii script on Linux
         Given I have running server M1
         When I execute script 'Non ascii script' synchronous on M1

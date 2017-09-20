@@ -8,11 +8,9 @@ from lettuce import world, step, after
 
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
-from revizor2.consts import Platform
 
 
 LOG = logging.getLogger(__name__)
-
 
 @step('([\w]+) is (.+) node$')
 def assert_check_node_type(step, serv_as, node_type):
@@ -89,8 +87,7 @@ def add_objects(step, obj, serv_as):
     setattr(world, 'rabbitmq_password', password)
     LOG.info('Rabbitmq password: %s' % password)
     port = 5672
-    if CONF.feature.driver.current_cloud in [Platform.IDCF,
-                                             Platform.CLOUDSTACK]:
+    if CONF.feature.platform.is_cloudstack:
         port = world.cloud.open_port(node, port)
     if obj == 'user':
         node.run('rabbitmqctl add_user testuser testpassword')
@@ -147,8 +144,7 @@ def assert_check_objects(step, obj, serv_as):
     node = world.cloud.get_node(serv)
     password = getattr(world, 'rabbitmq_password')
     port = 5672
-    if CONF.feature.driver.current_cloud in [Platform.IDCF,
-                                             Platform.CLOUDSTACK]:
+    if CONF.feature.platform.is_cloudstack:
         port = world.cloud.open_port(node, port)
     if obj == 'user':
         LOG.info('Check user in rabbitmq')
