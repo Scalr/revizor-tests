@@ -17,7 +17,7 @@ LOG = logging.getLogger('rolebuilder')
 @step('I start build role with behaviors (.+)$')
 def start_rolebuild_with_behaviours(step, behaviors):
     behaviors = behaviors.strip().split(',')
-    if not ('chef' in behaviors):
+    if 'chef' not in behaviors:
         behaviors.append('chef')
     platform = CONF.feature.platform
     location = platform.location if not platform.is_gce else "all"
