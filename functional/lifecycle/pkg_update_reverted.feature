@@ -50,7 +50,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
-    @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
+    @ec2 @cloudstack @rackspaceng @reboot
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1
@@ -69,7 +69,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         And scalarizr is running on M1
         And scalr-upd-client is running on M1
 
-    @ec2 @cloudstack @rackspaceng @eucalyptus @reboot
+    @ec2 @cloudstack @rackspaceng @reboot
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1

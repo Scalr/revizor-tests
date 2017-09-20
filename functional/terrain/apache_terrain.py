@@ -12,7 +12,6 @@ from lettuce import world, step
 from revizor2.utils import wait_until
 from revizor2.api import Certificate, IMPL
 from revizor2.conf import CONF
-from revizor2.consts import Platform, Dist
 
 LOG = logging.getLogger(__name__)
 
@@ -106,7 +105,7 @@ def check_index(step, proto, revert, domain_as, vhost_as):
     vhost = getattr(world, vhost_as)
     domain_address = domain.name
 
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.platform.is_cloudstack:
         domain_server = domain.role.servers[0]
         public_port = world.cloud.open_port(
             world.cloud.get_node(domain_server),

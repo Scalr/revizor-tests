@@ -21,7 +21,7 @@ from revizor2.cloud import Cloud
 from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
-from revizor2.consts import ServerStatus, Dist, Platform
+from revizor2.consts import ServerStatus, Dist
 from revizor2.fixtures import manifests
 from revizor2.defaults import DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.helpers.parsers import parser_for_os_family
@@ -53,7 +53,7 @@ GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
-    if CONF.feature.driver.current_cloud == Platform.AZURE:
+    if CONF.feature.platform.is_azure:
         return
     # Get Farm
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
@@ -413,7 +413,7 @@ def cleanup_all(total):
             except Exception as e:
                 LOG.warning('Farm cannot be deleted: %s' % str(e))
 
-        if CONF.feature.driver.is_platform_ec2:
+        if CONF.feature.platform.is_ec2:
             try:
                 wait_until(world.farm_servers_state, args=('terminated',),
                            timeout=1800, error_text=('Servers in farm have no status terminated'))
@@ -445,6 +445,6 @@ def cleanup_all(total):
             world.__delattr__(v)
 
     # Cleanup Azure resources
-    if CONF.feature.driver.is_platform_azure:
+    if CONF.feature.platform.is_azure:
         cloud = getattr(world, 'cloud', Cloud())
         cloud._driver.resources_cleaner()

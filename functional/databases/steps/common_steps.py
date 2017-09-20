@@ -13,10 +13,9 @@ from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.dbmsr import DataBaseError
 from revizor2.helpers import generate_random_string
-from revizor2.consts import Platform, ServerStatus
+from revizor2.consts import ServerStatus, Platform
 
 LOG = logging.getLogger(__name__)
-
 
 ###DataBases handlers
 #####################
@@ -264,7 +263,7 @@ def session_is_available(step, service, search_string, element):
 @step(r'Last (.+) date updated to current')
 def assert_check_databundle_date(step, back_type):
     LOG.info("Check %s date" % back_type)
-    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.platform.is_cloudstack:
         LOG.info('Platform is cloudstack-family, backup not doing')
         return True
     for attempt in range(6):
@@ -277,7 +276,10 @@ def assert_check_databundle_date(step, back_type):
     if not info['last_%s' % back_type] == getattr(world, 'last_%s' % back_type, 'Never'):
         return
     else:
-        raise AssertionError('Previous %s was: %s and last: %s' % (back_type, getattr(world, 'last_%s' % back_type, 'Never'), info['last_%s' % back_type]))
+        raise AssertionError('Previous %s was: %s and last: %s' % (
+            back_type,
+            getattr(world, 'last_%s' % back_type, 'Never'),
+            info['last_%s' % back_type]))
 
 
 @step(r"I create new database user '([\w\d]+)' on ([\w\d]+)$")
@@ -354,7 +356,7 @@ def check_database_in_new_server(step, serv_as, has_not, db_name, username=None)
     else:
         servers = [getattr(world, serv_as)]
     credentials = (username, db_role.db.credentials[username]) if username else None
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.platform.is_cloudstack:
         for i in range(5):
             try:
                 db_role.db.get_connection()
@@ -467,7 +469,7 @@ def download_dump(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if CONF.feature.platform.is_ec2:
         interpretator = 'python'
         check_omnibus = node.run('ls /opt/scalarizr/embedded/bin/python')
         if not check_omnibus[1].strip():
