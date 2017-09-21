@@ -11,7 +11,7 @@ from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.api import Script, Metrics, ChefServer
-from revizor2.consts import DATABASE_BEHAVIORS
+from revizor2.consts import DATABASE_BEHAVIORS, Dist
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
     SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS, \
