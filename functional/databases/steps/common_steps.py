@@ -631,7 +631,7 @@ def check_errors_in_message(step, message_name, serv_as):
             break
     node = world.cloud.get_node(server)
     cmd = 'szradm md --json %s' % message_id
-    if CONF.feature.fidst.id == 'coreos':
+    if CONF.feature.dist.id == 'coreos':
         cmd = "/opt/bin/" + cmd
     message = json.loads(node.run(cmd)[0])
     if 'last_error' in message['body']:
