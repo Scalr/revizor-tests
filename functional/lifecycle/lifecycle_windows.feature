@@ -87,7 +87,6 @@ Feature: Windows server lifecycle
         And wait all servers are terminated
         Then I start farm
         And I expect server bootstrapping as M1
-        And file 'C:\chef_result_file' exist in M1 windows
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
