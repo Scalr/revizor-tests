@@ -46,7 +46,7 @@ Feature: Windows server lifecycle
     @ec2 @gce @openstack @azure
     Scenario: Restart scalarizr during script execution
       Given I have running server M1
-      When I execute script 'windows sleep 60' asynchronous on M1
+      When I execute script 'windows sleep 60' synchronous on M1
       When I reboot windows scalarizr in M1
       And see 'Scalarizr terminated' in M1 windows log
       And scalarizr is running on M1
