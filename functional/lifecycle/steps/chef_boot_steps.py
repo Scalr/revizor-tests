@@ -79,6 +79,7 @@ def step_impl(step, action, serv_as):
 
 
 @step(r'server ([\w\d]+) ([\w]+\s)*exists on chef nodes list')
+@world.run_only_if(dist=['!coreos'])
 def check_node_exists_on_chef_server(step, serv_as, negation):
     server = getattr(world, serv_as)
     try:
