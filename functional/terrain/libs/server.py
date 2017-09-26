@@ -526,6 +526,8 @@ def check_script_executed(serv_as,
     # Convert script name, because scalr converts name to:
     # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
     name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    if not name.startswith('http'):
+        name = name.replace('.', '')
     timeout = timeout // 10
     for _ in range(timeout + 1):
         server.scriptlogs.reload()
