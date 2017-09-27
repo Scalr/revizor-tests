@@ -46,7 +46,7 @@ Feature: Windows server lifecycle
     @ec2 @gce @openstack @azure
     Scenario: Restart scalarizr during script execution
       Given I have running server M1
-      When I execute script 'windows sleep 60' asynchronous on M1
+      When I execute script 'windows sleep 60' synchronous on M1
       When I reboot windows scalarizr in M1
       And see 'Scalarizr terminated' in M1 windows log
       And scalarizr is running on M1
@@ -87,7 +87,6 @@ Feature: Windows server lifecycle
         And wait all servers are terminated
         Then I start farm
         And I expect server bootstrapping as M1
-        And file 'C:\chef_result_file' exist in M1 windows
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
