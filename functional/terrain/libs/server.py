@@ -33,8 +33,7 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'p2p_message',
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
-    'error was thrown due to the hostname format',
-    'Unable to synchronize time, cause ntpdate binary is not found' # FAM-1050
+    'error was thrown due to the hostname format'
 ]
 
 # Run powershell script as Administrator
@@ -526,6 +525,8 @@ def check_script_executed(serv_as,
     # Convert script name, because scalr converts name to:
     # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
     name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    if not name.startswith('http'):
+        name = name.replace('.', '')
     timeout = timeout // 10
     for _ in range(timeout + 1):
         server.scriptlogs.reload()

@@ -281,7 +281,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    platfrom = CONF.feature.platform
+    platform = CONF.feature.platform
     if platform.is_ec2:
         volumes = server.get_volumes()
         if not volumes:

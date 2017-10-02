@@ -22,7 +22,7 @@ def configure_revizor(step):
         os.environ['RV_%s' % revizor_opt['name'].upper()] = revizor_opt['value']
         CONF.feature[revizor_opt['name']] = revizor_opt['value']
         if revizor_opt['name'] == 'platform':
-            CONF.feature.driver = Platform((CONF.platforms[CONF.feature.platform]['driver']))
+            CONF.feature.platform = Platform(os.environ.get('RV_PLATFORM', 'gce').lower())
 
 
 @step('Given I have configured scalr config')
