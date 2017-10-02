@@ -1,4 +1,4 @@
-git+https://github.com/Scalr/lettuce.git
+git+https://github.com/Scalr/lettuce.git@c59cb4f922b4094e02939acf57b72bdac7cca495
 pywinrm==0.2.1
 PyChef==0.2.3
 semver

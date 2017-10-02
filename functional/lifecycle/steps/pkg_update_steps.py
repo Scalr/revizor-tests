@@ -132,11 +132,9 @@ def having_branch_copy(step, branch=None, is_patched=False):
 
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
-    time_until = time.time() + 2400
-    err_msg = ''
+    '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
-    while time.time() <= time_until:
-        # Get build status
+    for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
             status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
@@ -145,19 +143,21 @@ def waiting_new_package(step):
                 LOG.info('Drone status: %s' % status.description)
                 return
             elif status.state == 'failure':
-                err_msg = 'Drone status is failed'
-                break
+                raise AssertionError(
+                    'Build status is %s . Drone status is failed!' % (status.state))
         time.sleep(60)
-    raise AssertionError(err_msg or 'Timeout or build status failed.')
+    LOG.error('Get build status: Time out of range 90 min!')
+    raise Exception(
+        'Time out of range 90 min! Build status is not success or failure. Drone status == %s' % status.state)
 
 
 @step(r'I have a clean image')
 def having_clean_image(step):
-    if CONF.feature.dist.is_windows:
+    if CONF.feature.dist.is_windows or CONF.feature.dist.id == 'coreos':
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
-            platform=CONF.feature.platform)
+            platform=CONF.feature.platform.name)
         image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
         image = filter(lambda x: x.id == str(image_id), world.cloud.list_images())[0]
     else:
@@ -170,11 +170,9 @@ def having_clean_image(step):
 def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
     branch = CONF.feature.branch
-    cloud_location = CONF.platforms[CONF.feature.platform]['location']
-    if CONF.feature.driver.is_platform_gce:
-        cloud_location = ""
+    platform = CONF.feature.platform
     role_kwargs = dict(
-        location=cloud_location,
+        location=platform.location if not platform.is_gce else "",
         options={
             "user-data.scm_branch": branch if not use_stable else "",
             "base.upd.repository": "stable" if use_stable else "",
@@ -218,7 +216,7 @@ def asserting_version(step, version, serv_as):
     default_installed_agent = getattr(world, 'default_agent', None)
     pre_installed_agent = world.pre_installed_agent
     server.reload()
-    command = 'scalarizr -v'
+    command = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
     if CONF.feature.dist.is_windows:

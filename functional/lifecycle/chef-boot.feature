@@ -46,6 +46,7 @@ Feature: Check chef attributes set
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And file '/root/<settings>' exist in M1
+        And last script data is deleted on M1
 
     Examples:
       | settings                |

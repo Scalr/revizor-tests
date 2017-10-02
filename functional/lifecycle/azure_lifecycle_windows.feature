@@ -19,7 +19,7 @@ Feature: Windows server lifecycle in Azure
 #        When I execute script 'windows restart scalarizr' synchronous on M1
 #        And scalarizr is running on M1
 #        And I see script result in M1
-#        And script result contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' on M1
+#        And script output contains 'Stopping Scalarizr; Stopped!; Starting Scalarizr; Started!' in M1
 
     @azure
     Scenario: Windows reboot
@@ -34,7 +34,7 @@ Feature: Windows server lifecycle in Azure
         Given I have running server M1
         When I execute '<script_type>' '<script_name>' '<execute_type>' on M1
         And I see script result in M1
-        And script result contains '<output>' on M1
+        And script output contains '<output>' in M1
 
         Examples:
             | script_name            | execute_type | script_type | output                 |

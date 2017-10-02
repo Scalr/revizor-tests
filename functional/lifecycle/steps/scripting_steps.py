@@ -5,86 +5,36 @@ import logging
 import chef
 
 from lettuce import world, step
+from revizor2.conf import CONF
 
 
 LOG = logging.getLogger(__name__)
 
 
-@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+) by user (\w+) with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
+@step("script ([\w\d -/\:/\.]+) executed in ([\w\d]+)(?: by user (\w+)?)? with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"/]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
-    LOG.debug('Check script in log by parameters: \nname: %s\nevent: %s\nuser: %s\nexitcode: %s\ncontain: %s' %
-              (name, event, user, exitcode, contain))
-    contain = contain.split(';') if contain else []
-    time.sleep(5)
+    std_err = False
+    if contain and contain.startswith('STDERR:'):
+        contain = re.sub(r'STDERR: ', '', contain).strip()
+        std_err = True
+    world.check_script_executed(serv_as=serv_as,
+                                name=name,
+                                event=event,
+                                user=user,
+                                log_contains=contain,
+                                std_err=std_err,
+                                exitcode=exitcode)
+
+
+@step("script( stderr)? output contains '(.*)' in (.+)$")
+def assert_check_message_in_log(step, stream, message, serv_as):
     server = getattr(world, serv_as)
-    server.scriptlogs.reload()
-    # Convert script name, because scalr convert name to:
-    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
-    # name = re.sub('[^A-Za-z0-9/.]+', '_', name)[:50] if name else name
-    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
-    for log in server.scriptlogs:
-        LOG.debug('Check script log:\nname: %s\nevent: %s\nrun as: %s\nexitcode: %s\n' %
-                  (log.name, log.event, log.run_as, log.exitcode))
-        if log.event and log.event.strip() == event.strip() \
-                and log.run_as == user \
-                and ((name == 'chef' and log.name.strip().startswith(name))
-                     or (name.startswith('http') and log.name.strip().startswith(name))
-                     or (name.startswith('local') and log.name.strip().startswith(name))
-                     or log.name.strip() == name):
-
-            LOG.debug('We found event \'%s\' run from user %s' % (log.event, log.run_as))
-            if log.exitcode == int(exitcode):
-                message = log.message
-                truncated = False
-                LOG.debug('Log message output: %s' % message)
-                if 'Log file truncated. See the full log in' in message:
-                    full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
-                    node = world.cloud.get_node(server)
-                    message = node.run('cat %s' % full_log_path)[0]
-                    truncated = True
-                for cond in contain:
-                    if not truncated:
-                        cond = cond.replace('"', '&quot;').replace('>', '&gt;').strip()
-                    if not cond.strip() in message:
-                        raise AssertionError('Script on event "%s" (%s) contain: "%s" but lookup: \'%s\''
-                                             % (event, user, message, cond))
-                LOG.debug('This event exitcode: %s' % log.exitcode)
-                return True
-            else:
-                raise AssertionError('Script on event \'%s\' (%s) exit with code: %s but lookup: %s'
-                                     % (event, user, log.exitcode, exitcode))
-    raise AssertionError('I\'m not see script on event \'%s\' (%s) in script logs for server %s' % (event, user, server.id))
-
-
-@step("script output contains '(.+)' in (.+)$")
-def assert_check_message_in_log(step, message, serv_as):
-    server = getattr(world, serv_as)
-    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id)
-    server.scriptlogs.reload()
-    LOG.debug('DEBUG IN SCRIPTING: %s %s' % (type(message), repr(message)))
-    for log in server.scriptlogs:
-        LOG.debug('Check script "%s" is old?' % log.name)
-        if log in last_scripts:
-            continue
-        LOG.debug('Server %s script name "%s" content: "%s"' % (server.id, log.name, log.message))
-        if message.strip() in log.message:
-            return True
-        else:
-            raise AssertionError(
-                "Not see message '%s' in scripts logs (message: %s)" % (
-                    message, log.message))
-    raise AssertionError('Can\'t found script with text: "%s"' % message)
-
-
-@step(r"script result contains '([\w\W]+)?' on ([\w\d]+)")
-def assert_check_message_in_log_table_view(step, script_output, serv_as):
-    if script_output:
-        for line in script_output.split(';'):
-            external_step = "script output contains '{result}' in {server}".format(
-                result=line.strip(),
-                server=serv_as)
-            LOG.debug('Run external step: %s' % external_step)
-            step.when(external_step)
+    script_name = getattr(world, '_server_%s_last_script_name' % server.id)
+    world.check_script_executed(serv_as=serv_as,
+                                name=script_name,
+                                log_contains=message,
+                                std_err=bool(stream),
+                                new_only=True)
 
 
 @step("([\w\d]+) chef runlist has only recipes \[([\w\d,.]+)\]")
@@ -115,3 +65,25 @@ def chef_bootstrap_failed(step, serv_as):
         if out.strip():
             return
     raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
+
+
+@step("last script data is deleted on ([\w\d]+)$")
+def check_script_data_deleted(step, serv_as):
+    server = getattr(world, serv_as)
+    server.scriptlogs.reload()
+    if not server.scriptlogs:
+        raise AssertionError("No orchestration logs found on %s" % server.id)
+    task_dir = server.scriptlogs[0].execution_id.replace('-', '')
+    if CONF.feature.dist.is_windows:
+        cmd = 'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\%s /b /s /ad | findstr /e "\\bin \\data"' % task_dir
+        result = world.run_cmd_command(server, cmd)
+        out, err, code = result.std_out, result.std_err, result.status_code
+    else:
+        node = world.cloud.get_node(server)
+        cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
+        out, err, code = node.run(cmd)
+    if code:
+        raise AssertionError("Command '%s' was not executed properly. An error has occurred:\n%s" % (cmd, err))
+    folders = [line for line in out.splitlines() if line.strip()]
+    if folders:
+        raise AssertionError("Script data is not deleted on %s. Found folders: %s" % (server.id, ';'.join(folders)))

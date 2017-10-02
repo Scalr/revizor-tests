@@ -6,7 +6,6 @@ import logging
 import urllib2
 import collections
 import re
-from datetime import datetime
 
 from lettuce import world, step
 
@@ -21,7 +20,7 @@ from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
     DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
-from revizor2.consts import Platform, Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
+from revizor2.consts import Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Platform
 from revizor2 import szrapi
 from revizor2.fixtures import tables
 
@@ -199,7 +198,7 @@ class VerifyProcessWork(object):
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
-        if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
+        if CONF.feature.platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
             port = server.details['scalarizr.ctrl_port']
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
@@ -261,13 +260,14 @@ def pin_repo(step, repo, serv_as):
 def update_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
+    platform = CONF.feature.platform
     if 'ubuntu' in node.os[0].lower():
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')
-        node.run('apt-get install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
+        node.run('apt-get install scalarizr-base scalarizr-%s -y' % platform.name)
     elif 'centos' in node.os[0].lower():
         LOG.info('Update scalarizr in CentOS')
-        node.run('yum install scalarizr-base scalarizr-%s -y' % CONF.feature.driver.scalr_cloud)
+        node.run('yum install scalarizr-base scalarizr-%s -y' % platform.name)
 
 
 @step('process ([\w-]+) is (not\s)*running in ([\w\d]+)$')
@@ -299,7 +299,7 @@ def verify_port_status(step, port, closed, serv_as):
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
+    if CONF.feature.platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
         port = world.cloud.open_port(node, port, ip=server.public_ip)
 
     results = []
@@ -314,6 +314,7 @@ def verify_port_status(step, port, closed, serv_as):
 
 
 @step(r'([\w-]+(?!process)) is( not)? running on (.+)')
+@world.run_only_if(dist=['!coreos'])
 def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this ugly logic
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
@@ -338,7 +339,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     node = world.cloud.get_node(server)
     if not CONF.feature.dist.is_windows:
         world.set_iptables_rule(server, port)
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK and world.cloud._driver.use_port_forwarding():
+    if CONF.feature.platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
         #TODO: Change login on this behavior
         port = world.cloud.open_port(node, port, ip=server.public_ip)
     if service in BEHAVIORS_ALIASES.values():
@@ -425,19 +426,19 @@ def assert_scalarizr_version(step, branch, serv_as):
         else:
             url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
             path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-            default_repo = url.format(path=path)
+            default_repo = url.format(path=path) if os_family != 'coreos' else path
         # Get last scalarizr version from custom repo
         index_url = default_repo.format(branch=branch)
         LOG.debug('Check package from index_url: %s' % index_url)
         repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
-        versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+        versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
         versions.sort(reverse=True)
         last_version = versions[0]
         if last_version.strip().endswith('-1'):
             last_version = last_version.strip()[:-2]
     LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))
     # Get installed scalarizr version
-    for _ in range(5):
+    for _ in range(10):
         try:
             update_status = server.upd_api.status(cached=False)
             installed_version = update_status['installed']
@@ -449,9 +450,10 @@ def assert_scalarizr_version(step, branch, serv_as):
     else:
         raise AssertionError('Can\'t get access to update client 5 times (15 seconds)')
     LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
-    assert update_status['state'] == 'completed', \
-        'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
-        (update_status['state'], update_status['prev_state'])
+    if not update_status['state'] == 'noop' and update_status['prev_state'] == 'completed':
+        assert update_status['state'] == 'completed', \
+            'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
+            (update_status['state'], update_status['prev_state'])
     assert last_version == installed_version, \
         'Server not has last build of scalarizr package, installed: %s last_version: %s' % (installed_version, last_version)
 
@@ -536,10 +538,11 @@ def get_ebs_for_instance(step, serv_as):
     #TODO: Add support for all platform with persistent disks
     server = getattr(world, serv_as)
     volumes = server.get_volumes()
+    platform = CONF.feature.platform
     LOG.debug('Volumes for server %s is: %s' % (server.id, volumes))
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if platform.is_ec2:
         storages = filter(lambda x: 'sda' not in x.extra['device'], volumes)
-    elif CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK]:
+    elif platform.is_cloudstack:
         storages = filter(lambda x: x.extra['volume_type'] == 'DATADISK', volumes)
     else:
         return
@@ -552,7 +555,7 @@ def get_ebs_for_instance(step, serv_as):
 @step('([\w]+) storage is (.+)$')
 def check_ebs_status(step, serv_as, status):
     """Check EBS storage status"""
-    if CONF.feature.driver.is_platform_gce:
+    if CONF.feature.platform.is_gce:
         return
     time.sleep(30)
     server = getattr(world, serv_as)
@@ -673,6 +676,7 @@ def creating_image(step, image_type=None):
     image_type = image_type or 'base'
     cloud_server = getattr(world, 'cloud_server')
     # Create an image
+    platform = CONF.feature.platform
     image_name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
         image_type.strip(),
         CONF.feature.dist.id,
@@ -683,22 +687,23 @@ def creating_image(step, image_type=None):
         node=cloud_server,
         name=image_name,
     )
-    if CONF.feature.driver.is_platform_ec2:
+    no_mapping = True if CONF.feature.dist.id == 'coreos' else False
+    if platform.is_ec2:
         kwargs.update({'reboot': True})
     cloud_server.run('sync')
-    image = world.cloud.create_template(**kwargs)
+    image = world.cloud.create_template(no_mapping=no_mapping, **kwargs)
     assert getattr(image, 'id', False), 'An image from a node object %s was not created' % cloud_server.name
     # Remove cloud server
     LOG.info('An image: %s from a node object: %s was created' % (image.id, cloud_server.name))
     setattr(world, 'image', image)
     LOG.debug('Image attrs: %s' % dir(image))
     LOG.debug('Image Name: %s' % image.name)
-    if CONF.feature.driver.is_platform_cloudstack:
+    if platform.is_cloudstack:
         forwarded_port = world.forwarded_port
         ip = world.ip
         assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
     LOG.info('Port forwarding rule was successfully removed.')
-    if not CONF.feature.driver.is_platform_gce:
+    if not platform.is_gce:
         assert cloud_server.destroy(), "Can't destroy node: %s." % cloud_server.id
     LOG.info('Virtual machine %s was successfully destroyed.' % cloud_server.id)
     setattr(world, 'cloud_server', None)
@@ -708,14 +713,17 @@ def creating_image(step, image_type=None):
 def creating_role(step, image_type=None, non_scalarized=None):
     image = getattr(world, 'image')
     image_type = (image_type or 'base').strip()
-    if CONF.feature.driver.is_platform_gce:
+    platform = CONF.feature.platform
+
+    if platform.is_gce:
         cloud_location = ""
         image_id = image.extra['selfLink'].split('projects')[-1][1:]
     else:
-         cloud_location = CONF.platforms[CONF.feature.platform]['location']
-         image_id = image.id
+        cloud_location = platform.location
+        image_id = image.id
+
     image_kwargs = dict(
-        platform=CONF.feature.driver.scalr_cloud,
+        platform=platform.name,
         cloud_location=cloud_location,
         image_id=image_id
     )
@@ -723,10 +731,10 @@ def creating_role(step, image_type=None, non_scalarized=None):
             image_type,
             CONF.feature.dist.id,
             datetime.now())
-    if image_type != 'base':
+    if 'base' not in image_type:
         behaviors = getattr(world, 'installed_behaviors', None)
     else:
-        behaviors = ['chef']
+        behaviors = ['chef'] if CONF.feature.dist.id != 'coreos' else ['base']
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
@@ -752,7 +760,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     # Create new role
     for behavior in behaviors:
         if has_cloudinit:
-            role_name = name.replace(image_type, '-'.join((behavior,'cloudinit')))
+            role_name = name.replace(image_type, '-'.join((behavior, 'cloudinit')))
             role_behaviors = list((behavior, 'chef'))
         else:
             role_name = name
@@ -761,10 +769,10 @@ def creating_role(step, image_type=None, non_scalarized=None):
             role_name = role_name[:50].strip('-')
         role_kwargs = dict(
             name=role_name,
-            is_scalarized = int(is_scalarized or has_cloudinit),
+            is_scalarized=int(is_scalarized or has_cloudinit),
             behaviors=role_behaviors,
             images=[dict(
-                platform=CONF.feature.driver.scalr_cloud,
+                platform=platform.name,
                 cloudLocation=cloud_location,
                 hash=image['hash'])])
         LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
@@ -782,7 +790,7 @@ def run_sysprep(uuid, console):
                 '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
                 '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
     try:
-        console.run_cmd(cmd.get(CONF.feature.driver.scalr_cloud))
+        console.run_cmd(cmd.get(CONF.feature.platform.name))
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
@@ -799,12 +807,13 @@ def run_sysprep(uuid, console):
 
 
 def get_user_name():
-    if CONF.feature.driver.is_platform_gce:
+    platform = CONF.feature.platform
+    if (platform.is_gce or platform.is_azure):
         user_name = ['scalr']
     elif CONF.feature.dist.dist == 'ubuntu':
         user_name = ['root', 'ubuntu']
     elif CONF.feature.dist.dist == 'amazon' or \
-            (CONF.feature.dist.dist == 'redhat' and CONF.feature.driver.is_platform_ec2):
+            (CONF.feature.dist.dist == 'redhat' and platform.is_ec2):
         user_name = ['root', 'ec2-user']
     else:
         user_name = ['root']
@@ -825,7 +834,7 @@ def get_repo_type(custom_branch, custom_version=None):
 
         def __extend_repo_type(self, value):
             rt = value.split('/')
-            rt.insert(1, CONF.feature.driver.scalr_cloud)
+            rt.insert(1, CONF.feature.platform.name)
             return '/'.join(rt)
 
         def __getitem__(self, key):
@@ -878,7 +887,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                 password=password)
         else:
             console_kwargs = dict(server=server)
-            if CONF.feature.driver.is_platform_ec2:
+            if CONF.feature.platform.is_ec2:
                 console_kwargs.update({'password': password})
             LOG.debug('Cloud server not found get node from server')
             node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
@@ -919,10 +928,15 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
                     node=node
                 ),
                 url=url)
+        user = None
+        if CONF.feature.dist.id == 'coreos':
+            cmd = 'PATH=$PATH:/opt/bin; ' + cmd
+            user = 'core'
         LOG.debug('Install script body: %s' % cmd)
-        node.run(cmd)
+        out = node.run(cmd, user=user)
         # get installed scalarizr version
-        res = node.run('scalarizr -v')[0]
+        version_cmd = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
+        res = node.run(version_cmd)[0]
     scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert scalarizr_ver, 'Scalarizr version is invalid. Command returned: %s' % res
     setattr(world, 'pre_installed_agent', scalarizr_ver[0])
@@ -936,25 +950,26 @@ def given_server_in_cloud(step, user_data):
     #TODO: Add install behaviors
     LOG.info('Create node in cloud. User_data:%s' % user_data)
     #Convert dict to formatted str
+    platform = CONF.feature.platform
     if user_data:
         dict_to_str = lambda d: ';'.join(['='.join([key, value]) if value else key for key, value in d.iteritems()])
-        user_data = dict_to_str(USER_DATA[CONF.feature.driver.cloud_family])
-        if CONF.feature.driver.is_platform_gce:
+        user_data = dict_to_str(USER_DATA[platform.cloud_family])
+        if platform.is_gce:
             user_data = {'scalr': user_data}
     else:
         user_data = None
     #Create node
     image = None
-    if CONF.feature.dist.is_windows:
+    if CONF.feature.dist.is_windows or CONF.feature.dist.id == 'coreos':
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
-            platform=CONF.feature.platform)
+            platform=platform.name)
         image = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
     node = world.cloud.create_node(userdata=user_data, image=image)
     setattr(world, 'cloud_server', node)
     LOG.info('Cloud server was set successfully node name: %s' % node.name)
-    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if platform.is_cloudstack:
         #Run command
         out = node.run('wget -qO- ifconfig.me/ip')
         if not out[1]:

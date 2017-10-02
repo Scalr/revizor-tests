@@ -4,16 +4,14 @@ import re
 import time
 import json
 import logging
-from datetime import datetime
 
 from lettuce import world, step
 
 from revizor2.api import Role
 from revizor2.conf import CONF
-from revizor2.backend import IMPL
 from revizor2.utils import wait_until
-from revizor2.api import Script, Farm, Metrics, ChefServer
-from revizor2.consts import Platform, DATABASE_BEHAVIORS, Dist
+from revizor2.api import Script, Metrics, ChefServer
+from revizor2.consts import DATABASE_BEHAVIORS, Dist
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
     SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS, \
@@ -46,7 +44,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     old_branch = CONF.feature.branch
     default_role_options = DEFAULT_ROLE_OPTIONS.copy()
     role_options.update(default_role_options['hostname'])
-    if CONF.feature.dist.id == 'scientific-6-x' or (CONF.feature.dist.id == 'centos-7-x' and CONF.feature.driver.current_cloud == Platform.EC2):
+    platform = CONF.feature.platform
+    if CONF.feature.dist.id == 'scientific-6-x' or \
+            (CONF.feature.dist.id == 'centos-7-x' and platform.is_ec2):
         default_role_options['noiptables'] = {"base.disable_firewall_management": False}
 
     if CONF.feature.dist.is_windows:
@@ -61,7 +61,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
-            if opt == 'noiptables' and CONF.feature.driver.current_cloud in [Platform.IDCF, Platform.CLOUDSTACK, Platform.RACKSPACE_US]:
+            if opt == 'noiptables' and (platform.is_cloudstack or platform.is_rackspacengus):
                 continue
             if opt in ('branch_latest', 'branch_stable'):
                 CONF.feature.branch = opt.split('_')[1]
@@ -74,9 +74,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_pong_id = Script.get_id('Linux ping-pong')['id']
                 script_init_id = Script.get_id('Revizor orchestration init')['id']
                 script_sleep_10 = Script.get_id('Sleep 10')['id']
-                scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % {'SCRIPT_PONG_ID': script_pong_id,
-                                                                         'SCRIPT_INIT_ID': script_init_id,
-                                                                         'SCRIPT_SLEEP_10': script_sleep_10})
+                scripts = {'SCRIPT_PONG_ID': script_pong_id,
+                           'SCRIPT_INIT_ID': script_init_id,
+                           'SCRIPT_SLEEP_10': script_sleep_10}
+                scripting = json.loads(DEFAULT_ORCHESTRATION_SETTINGS % scripts)
             elif opt == 'small_linux_orchestration':
                 LOG.debug('Add small orchestration for linux')
                 script_pong_id = Script.get_id('Linux ping-pong')['id']
@@ -93,23 +94,27 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                                       'SCRIPT_PONG_PS_ID': script_pong_ps_id})
 
             elif opt == 'failed_script':
-                script_id = Script.get_id('non-ascii-output')['id']
+                script_id = Script.get_id('Multiplatform exit 1')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "non-ascii-output",
-                        "os": "linux",
-                        "event": "BeforeHostUp",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "10",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": "root"
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "BeforeHostUp",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "Multiplatform exit 1",
+                        "scriptOs": "windows" if CONF.feature.dist.is_windows else "linux",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
                 role_options.update(default_role_options.get(opt, {}))
@@ -118,20 +123,26 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_id = Script.get_id('CentOS7 fix apache log')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "CentOS7 fix apache log",
-                        "os": "linux",
-                        "event": "HostInit",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "20",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": "root"
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "HostInit",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "CentOS7 fix apache log",
+                        "scriptOs": "linux",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
             elif opt == 'storages':
@@ -139,14 +150,14 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 if CONF.feature.dist.is_windows:
                     additional_storages = {
                         'configs': DEFAULT_WINDOWS_ADDITIONAL_STORAGES.get(
-                            CONF.feature.driver.cloud_family, [])}
+                            platform.cloud_family, [])}
                 else:
-                    if CONF.feature.driver.current_cloud == Platform.RACKSPACE_US:
-                        additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(Platform.RACKSPACE_US, [])}
+                    if platform.is_rackspacengus:
+                        additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(platform.RACKSPACENGUS, [])}
                     else:
-                        additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(CONF.feature.driver.cloud_family, [])}
+                        additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(platform.cloud_family, [])}
             elif opt == 'ephemeral':
-                if CONF.feature.driver.current_cloud == Platform.EC2 and CONF.feature.dist.is_windows:
+                if platform.is_ec2 and CONF.feature.dist.is_windows:
                     eph_disk_conf = {
                         "type": "ec2_ephemeral",
                         "reUse": False,
@@ -171,40 +182,52 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 script_id = Script.get_id('Revizor scaling prepare linux')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "Revizor scaling prepare linux",
-                        "os": "linux",
-                        "event": "HostInit",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "20",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": "root"
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "HostInit",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "Revizor scaling prepare linux",
+                        "scriptOs": "linux",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
             elif opt == 'prepare_scaling_win':
                 script_id = Script.get_id('Revizor scaling prepare windows')['id']
                 scripting = [
                     {
-                        "script_type": "scalr",
-                        "script_id": script_id,
-                        "script": "Revizor scaling prepare windows",
-                        "os": "windows",
-                        "event": "HostInit",
-                        "target": "instance",
-                        "isSync": "1",
+                        "scope": "farmrole",
+                        "action": "add",
+                        # id: extModel123
+                        # eventOrder 2
                         "timeout": "1200",
-                        "version": "-1",
-                        "params": {},
-                        "order_index": "20",
-                        "system": "",
-                        "script_path": "",
-                        "run_as": ""
+                        "isSync": True,
+                        "orderIndex": 10,
+                        "type": "scalr",
+                        "isActive": True,
+                        "eventName": "HostInit",
+                        "target": {
+                            "type": "server"
+                        },
+                        "isFirstConfiguration": None,
+                        "scriptId": script_id,
+                        "scriptName": "Revizor scaling prepare windows",
+                        "scriptOs": "windows",
+                        "version": -1,
+                        "scriptPath": "",
+                        "runAs": ""
                     }
                 ]
             elif opt.startswith('scaling'):
@@ -239,7 +262,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     "chef.attributes": chef_attributes})
                 # Update role options
                 role_options.update(default_chef_solo_opts)
-            elif 'chef' in opt:
+            elif 'chef' in opt and CONF.feature.dist.id != Dist('coreos').id:
                 option = default_role_options.get(opt, {})
                 if option:
                     option['chef.server_id'] = ChefServer.get('https://api.opscode.com/organizations/webta').id
@@ -254,7 +277,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
         role_options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                              'db.msr.redis.use_password': True})
     if behavior in DATABASE_BEHAVIORS:
-        storages = DEFAULT_STORAGES.get(CONF.feature.driver.current_cloud, None)
+        storages = DEFAULT_STORAGES.get(platform.name, None)
         if storages:
             LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
             role_options.update(storages.get(CONF.feature.storage, {}))
@@ -292,7 +315,7 @@ def farm_launch(step):
 @step('I start farm with delay$')
 def farm_launch(step):
     """Start farm with delay for cloudstack"""
-    if CONF.feature.driver.current_cloud == Platform.IDCF: #Maybe use on all cloudstack
+    if CONF.feature.platform.is_cloudstack: #Maybe use on all cloudstack
         time.sleep(1800)
     world.farm.launch()
     LOG.info('Launch farm \'%s\' (%s)' % (world.farm.id, world.farm.name))

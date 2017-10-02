@@ -18,24 +18,6 @@ from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 LOG = logging.getLogger(__name__)
 
 
-@step('I see (.+) server (.+)$')
-def waiting_for_assertion(step, state, serv_as, timeout=1400):
-    role = world.get_role()
-    server = world.wait_server_bootstrapping(role, state, timeout)
-    setattr(world, serv_as, server)
-    LOG.info('Server %s (%s) succesfully in %s state' % (server.id, serv_as, state))
-
-
-@step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
-def waiting_server(step, state, serv_as, timeout=1400):
-    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
-        timeout = 2400
-    role = world.get_role()
-    server = world.wait_server_bootstrapping(role, state, timeout)
-    LOG.info('Server succesfully %s' % state)
-    setattr(world, serv_as, server)
-
-
 @step('scalarizr(\snot)* installed on the ([\w\d]+) server')
 def is_server_scalarized(step, negation, serv_as):
     server = getattr(world, serv_as)
@@ -57,7 +39,10 @@ def save_config_from_message(step, config_group, message, serv_as):
     messages = world.get_szr_messages(node)
     msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
     LOG.info('Message id for %s is %s' % (message, msg_id))
-    message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])['body']
+    cmd = 'szradm message-details %s --json' % msg_id
+    if CONF.feature.dist.id == 'coreos':
+        cmd = "/opt/bin/" + cmd
+    message_details = json.loads(node.run(cmd)[0])['body']
     LOG.info('Message details is %s' % message_details)
     LOG.info('Save message part %s' % config_group)
     setattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), message_details[config_group])
@@ -71,7 +56,10 @@ def check_message_config(step, config_group, message, serv_as):
     messages = world.get_szr_messages(node)
     msg_id = filter(lambda x: x['name'] == message, messages)[0]['id']
     LOG.info('Message id for %s is %s' % (message, msg_id))
-    message_details = json.loads(node.run('szradm message-details %s --json' % msg_id)[0])['body']
+    cmd = 'szradm message-details %s --json' % msg_id
+    if CONF.feature.dist.id == 'coreos':
+        cmd = "/opt/bin/" + cmd
+    message_details = json.loads(node.run(cmd)[0])['body']
     LOG.info('Message details is %s' % message_details)
     old_details = getattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), '')
     if not config_group in message_details or old_details == message_details[config_group]:
@@ -134,23 +122,36 @@ def attach_script(step, script_name):
     role = world.get_role()
     res = filter(lambda x: x['name'] == script_name, scripts)[0]
     LOG.info('Add script %s to custom event %s' % (res['name'], world.last_event['name']))
-    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[{
-        "script_type": "scalr",
-        "script_id": str(res['id']),
-        "script": res['name'],
-        "event": world.last_event['name'],
-        "params": [],
-        "target": "instance",
-        "version": "-1",
-        "timeout": "1200",
-        "issync": "1",
-        "order_index": "1",
+    IMPL.farm.edit_role(world.farm.id, role.role.id, scripting=[
+        {
+            "scope": "farmrole",
+            "action": "add",
+            # id: extModel123
+            # eventOrder 2
+            "timeout": "1200",
+            "isSync": True,
+            "orderIndex": 10,
+            "type": "scalr",
+            "isActive": True,
+            "eventName": world.last_event['name'],
+            "target": {
+                "type": "server"
+            },
+            "isFirstConfiguration": None,
+            "scriptId": str(res['id']),
+            "scriptName": res['name'],
+            "scriptOs": "linux",
+            "version": -1,
+            "scriptPath": "",
+            "runAs": ""
         }]
     )
 
 
 @step('I execute \'(.+)\' in (.+)$')
 def execute_command(step, command, serv_as):
+    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
+        command = '/opt/bin/' + command
     node = world.cloud.get_node(getattr(world, serv_as))
     LOG.info('Execute command on server: %s' % command)
     node.run(command)
@@ -204,11 +205,10 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACE_US, dist=['!scientific6', '!centos-7-x'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-7-x', '!coreos'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
-    if CONF.feature.driver.current_cloud in [Platform.IDCF,
-                                             Platform.CLOUDSTACK]:
+    if CONF.feature.platform.is_cloudstack:
         LOG.info('Not check iptables because CloudStack')
         return
     server = getattr(world, serv_as)
@@ -291,6 +291,7 @@ def verify_attached_disk_types(step):
     role = world.get_role()
     storage_config = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
     volume_ids = {}
+    platform = CONF.feature.platform
     for device in storage_config['configs']:
         volume_ids[device['mountPoint']] = [s['storageId'] for s in storage_config['devices'][device['id']]]
     ids = list(chain.from_iterable(volume_ids.values()))
@@ -298,17 +299,17 @@ def verify_attached_disk_types(step):
     for mount_point in volume_ids:
         volume_ids[mount_point] = filter(lambda x: x.id in volume_ids[mount_point], volumes)
     LOG.debug('Volumes in mount points: %s' % volume_ids)
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if platform.is_ec2:
         LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
         return
-    elif CONF.feature.driver.is_platform_gce:
+    elif platform.is_gce:
         if not volume_ids['/media/diskmount'][0].extra['type'] == 'pd-standard':
             raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
                                  volume_ids['/media/diskmount'][0].extra['type'])
-        if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
-            raise AssertionError(
-                'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
-                volume_ids['/media/diskmount'][0].extra['type'])
+        # if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
+        #     raise AssertionError(
+        #         'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
+        #         volume_ids['/media/diskmount'][0].extra['type'])
 
 
 @step(r"instance vcpus info not empty for ([\w\d]+)")
@@ -345,7 +346,7 @@ def create_volume_snapshot(step, mnt_point):
     device = world.get_storage_device_by_mnt_point(mnt_point)[0]
     LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
     kwargs = dict(
-        cloud_location=CONF.platforms[CONF.feature.platform]['location'],
+        cloud_location=CONF.feature.platform.location,
         volume_id=device['storageId']
     )
     volume_snapshot_id = IMPL.aws_tools.create_volume_snapshot(**kwargs)
@@ -364,7 +365,7 @@ def wait_voume_snapshot(step):
     wait_until(
         is_snapshot_completed,
         kwargs=dict(
-            location=CONF.platforms[CONF.feature.platform]['location'],
+            location=CONF.feature.platform.location,
             snapshot_id=getattr(world, 'volume_snapshot_id')),
         timeout=600,
         logger=LOG)
@@ -375,7 +376,7 @@ def add_storage_to_role(step):
     role = world.get_role()
     volume_snapshot_id = getattr(world, 'volume_snapshot_id', None)
     assert volume_snapshot_id, 'No volume snapshot found in world object'
-    LOG.info('Add volume from spanshot: %s to role' % volume_snapshot_id)
+    LOG.info('Add volume from snapshot: %s to role' % volume_snapshot_id)
     storage_settings = {'configs': [
         {
             "id": None,
@@ -384,7 +385,6 @@ def add_storage_to_role(step):
             "settings": {
                 "ebs.size": "1",
                 "ebs.type": "standard",
-                "ebs.snapshot": None,
                 "ebs.snapshot": volume_snapshot_id},
             "mount": False,
             "reUse": False,
@@ -401,10 +401,10 @@ def assert_server_message_count(step, msg, serv_as):
     """Assert messages count with Mounted Storages count"""
     server = getattr(world, serv_as)
     server.messages.reload()
-    incoming_messages = [m.name for m in server.messages if m.type == 'in' and  m.name == msg]
+    incoming_messages = [m.name for m in server.messages if m.type == 'in' and m.name == msg]
     messages_count = len(incoming_messages)
     mount_device_count = len(
-        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.driver.current_cloud])
+        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.platform.name])
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
-            message_count, mount_device_count, incoming_messages))
+            messages_count, mount_device_count, incoming_messages))

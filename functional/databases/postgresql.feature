@@ -101,7 +101,7 @@ Feature: PostgreSQL database server functional test
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
 	Scenario: Slave force termination
 		When I force terminate M2
-		Then Scalr sends HostDown to M1
+		Then Scalr sends HostDown to M1 without saving to the database
 		And not ERROR in M1 scalarizr log
 		And postgresql is running on M1
 		Then I expect server bootstrapping as M2
@@ -142,10 +142,10 @@ Feature: PostgreSQL database server functional test
         And M3 contains database D2
         When I create database D3 on M1
         And I terminate server M1 with decrease
-        Then Scalr sends DbMsr_PromoteToMaster to N1
+        Then Scalr sends DbMsr_PromoteToMaster to N1 without saving to the database
         And Scalr receives DbMsr_PromoteToMasterResult from N1
         And DbMsr_PromoteToMasterResult message on N1 does not contain errors
-        And Scalr sends DbMsr_NewMasterUp to all
+        And Scalr sends DbMsr_NewMasterUp to all without saving to the database
         And M2 contains database D3
 
 	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion

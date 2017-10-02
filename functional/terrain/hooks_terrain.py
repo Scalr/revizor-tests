@@ -1,6 +1,8 @@
 import os
 import re
 import sys
+import time
+import uuid
 import json
 import semver
 import logging
@@ -10,16 +12,16 @@ from operator import itemgetter
 from distutils.version import LooseVersion
 
 import github
-import requests
 from lxml import etree
 from lettuce import world, after, before
 
 from revizor2.conf import CONF
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
+from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
-from revizor2.consts import ServerStatus, Dist, Platform
+from revizor2.consts import ServerStatus, Dist
 from revizor2.fixtures import manifests
 from revizor2.defaults import DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
 from revizor2.helpers.parsers import parser_for_os_family
@@ -29,13 +31,29 @@ LOG = logging.getLogger(__name__)
 
 OUTLINE_ITERATOR = {}
 PKG_UPDATE_SUITES = ['Linux update for new package test', 'Windows update for new package test']
+COREOS_UNSUPPORTED_SCRIPTS = [
+  {
+    'user': 'root',
+    'exitcode': '0',
+    'stdout': '"HOME"=>"/root"; "USER"=>"root"',
+    'event': 'BeforeHostUp',
+    'name': 'chef'
+  },
+  {
+    'user': 'root',
+    'exitcode': '0',
+    'stdout': '',
+    'event': 'HostUp',
+    'name': 'chef'
+  }
+]
 
 ORG = 'Scalr'
 GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
-    if CONF.feature.driver.current_cloud == Platform.AZURE:
+    if CONF.feature.platform.is_azure:
         return
     # Get Farm
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
@@ -142,28 +160,25 @@ def get_scalaraizr_latest_version(branch):
     else:
         url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
         path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-        default_repo = url.format(path=path)
+        default_repo = url.format(path=path) if os_family != 'coreos' else path
     index_url = default_repo.format(branch=branch)
     repo_data = parser_for_os_family(CONF.feature.dist.mask)(branch=branch, index_url=index_url)
-    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
     versions.sort(reverse=True)
     return versions[0]
 
 
 @before.all
 def verify_testenv():
-    if CONF.scalr.branch:
+    if CONF.scalr.branch and not CONF.scalr.te_id:
         LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
         sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
-        resp = requests.post(
-            'http://revizor2.scalr-labs.com/api/createContainer',
-            data={'branch': CONF.scalr.branch}
-        )
-        LOG.debug('Resposne for container creation: %s' % resp.text)
-        if resp.status_code != 200:
-            raise AssertionError("Can't run container: %s" % resp.text)
-        CONF.scalr.te_id = resp.json()['container_id']
+        world.testenv = TestEnv.create(CONF.scalr.branch)
+        time.sleep(10)
+        CONF.scalr.te_id = world.testenv.te_id
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
+    elif CONF.scalr.te_id:
+        world.testenv = TestEnv(CONF.scalr.te_id)
 
 
 @before.all
@@ -173,6 +188,9 @@ def initialize_world():
     LOG.info('Initialize a Cloud object')
     c = Cloud()
     setattr(world, 'cloud', c)
+    test_id = uuid.uuid4().get_hex()
+    LOG.info('Test ID "%s"' % test_id)
+    setattr(world, 'test_id', test_id)
 
 
 @before.each_feature
@@ -223,7 +241,10 @@ def exclude_steps_by_options(feature):
     for scenario in feature.scenarios:
         steps_to_remove = set()
         for step in scenario.steps:
-            func = step._get_match(None)[1].function
+            custom_sentence = None
+            if scenario.outlines:
+                custom_sentence = re.sub('<.+>', scenario.outlines[0].values()[0], step.sentence)
+            func = step._get_match(None, custom_sentence=custom_sentence)[1].function
             if hasattr(func, '_exclude'):
                 steps_to_remove.add(step)
         for step in steps_to_remove:
@@ -297,6 +318,23 @@ def exclude_update_from_latest(feature):
             scenario = [s for s in feature.scenarios if s.name == 'Update from latest to branch from ScalrUI'][0]
             feature.scenarios.remove(scenario)
             LOG.info("Removed scenario: %s" % scenario)
+
+
+@before.each_feature
+def exclude_chef_orchestration_for_coreos(feature):
+    if feature.name == 'Orchestration features test' and CONF.feature.dist.id == 'coreos':
+        for scenario in feature.scenarios:
+            scenario.outlines = [o for o in scenario.outlines if o not in COREOS_UNSUPPORTED_SCRIPTS]
+
+
+@before.each_feature
+def exclude_pma_launcher_for_centos6(feature):
+    excluded_scenarios = ["Launch phpMyAdmin", "Launch phpMyAdmin after farm restart"]
+    if CONF.feature.dist.is_centos and CONF.feature.dist.version <= 6:
+        for scenario in feature.scenarios:
+            if scenario.name.strip() in excluded_scenarios:
+                feature.scenarios.remove(scenario)
+                LOG.info("Removed scenario: %s" % scenario)
 
 
 @after.outline
@@ -375,6 +413,25 @@ def cleanup_all(total):
             except Exception as e:
                 LOG.warning('Farm cannot be deleted: %s' % str(e))
 
+        if CONF.feature.platform.is_ec2:
+            try:
+                wait_until(world.farm_servers_state, args=('terminated',),
+                           timeout=1800, error_text=('Servers in farm have no status terminated'))
+            except Exception as e:
+                LOG.error('Servers in farms are not terminated after 1800 seconds!')
+            for volume in world.cloud._driver.list_volumes(filters={'tag-value': getattr(world, 'test_id')}):
+                LOG.debug('Try delete volume "%s"' % volume.id)
+                try:
+                    volume.destroy()
+                except Exception as e:
+                    LOG.warning('Volume "%s" can\'t be deleted: %s' % (volume.id, str(e)))
+            for sn in world.cloud._driver.list_snapshots(filters={'tag-value': getattr(world, 'test_id')}):
+                LOG.debug('Try delete snapshot "%s"' % sn.id)
+                try:
+                    sn.destroy()
+                except Exception as e:
+                    LOG.warning('Snapshot "%s" can\'t be deleted: %s' % (sn.id, str(e)))
+
     else:
         LOG.info('Setup a long timeouts for all roles in farm')
         if getattr(world, 'farm', None) is None:
@@ -388,6 +445,6 @@ def cleanup_all(total):
             world.__delattr__(v)
 
     # Cleanup Azure resources
-    if CONF.feature.driver.is_platform_azure:
+    if CONF.feature.platform.is_azure:
         cloud = getattr(world, 'cloud', Cloud())
         cloud._driver.resources_cleaner()

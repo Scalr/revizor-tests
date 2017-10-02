@@ -5,7 +5,7 @@ import json
 from datetime import timedelta
 
 from lettuce import world, step
-from lxml import html
+from lxml import html, etree
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
@@ -13,10 +13,9 @@ from revizor2.utils import wait_until
 from revizor2.fixtures import resources
 from revizor2.dbmsr import DataBaseError
 from revizor2.helpers import generate_random_string
-from revizor2.consts import Platform, ServerStatus
+from revizor2.consts import ServerStatus, Platform
 
 LOG = logging.getLogger(__name__)
-
 
 ###DataBases handlers
 #####################
@@ -248,9 +247,15 @@ def session_is_available(step, service, search_string, element):
        Takes a variable as argument world.launch_request out of step launch_session"""
     if not world.launch_request:
         raise Exception('The %s service page is not found') % service
-    tree = html.fromstring(world.launch_request.text)
-    if search_string in tree.xpath('//%s' % element)[0].text:
-        LOG.info("The %s service is launched." % service)
+    for resp in world.launch_request.history:
+        LOG.debug('Response from: %s' % resp.url)
+        try:
+            tree = html.fromstring(resp.text)
+            if search_string in tree.xpath('//%s' % element)[0].text:
+                LOG.info("The %s service is launched." % service)
+                break
+        except etree.XMLSyntaxError:
+            continue
     else:
         raise AssertionError("The %s service is not launched." % service)
 
@@ -258,7 +263,7 @@ def session_is_available(step, service, search_string, element):
 @step(r'Last (.+) date updated to current')
 def assert_check_databundle_date(step, back_type):
     LOG.info("Check %s date" % back_type)
-    if CONF.feature.driver.current_cloud in [Platform.CLOUDSTACK, Platform.IDCF, Platform.KTUCLOUD]:
+    if CONF.feature.platform.is_cloudstack:
         LOG.info('Platform is cloudstack-family, backup not doing')
         return True
     for attempt in range(6):
@@ -271,7 +276,10 @@ def assert_check_databundle_date(step, back_type):
     if not info['last_%s' % back_type] == getattr(world, 'last_%s' % back_type, 'Never'):
         return
     else:
-        raise AssertionError('Previous %s was: %s and last: %s' % (back_type, getattr(world, 'last_%s' % back_type, 'Never'), info['last_%s' % back_type]))
+        raise AssertionError('Previous %s was: %s and last: %s' % (
+            back_type,
+            getattr(world, 'last_%s' % back_type, 'Never'),
+            info['last_%s' % back_type]))
 
 
 @step(r"I create new database user '([\w\d]+)' on ([\w\d]+)$")
@@ -348,7 +356,7 @@ def check_database_in_new_server(step, serv_as, has_not, db_name, username=None)
     else:
         servers = [getattr(world, serv_as)]
     credentials = (username, db_role.db.credentials[username]) if username else None
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.platform.is_cloudstack:
         for i in range(5):
             try:
                 db_role.db.get_connection()
@@ -461,7 +469,7 @@ def download_dump(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
-    if CONF.feature.driver.current_cloud == Platform.EC2:
+    if CONF.feature.platform.is_ec2:
         interpretator = 'python'
         check_omnibus = node.run('ls /opt/scalarizr/embedded/bin/python')
         if not check_omnibus[1].strip():
@@ -622,6 +630,9 @@ def check_errors_in_message(step, message_name, serv_as):
             message_id = m.id
             break
     node = world.cloud.get_node(server)
-    message = json.loads(node.run('szradm md --json %s' % message_id)[0])
+    cmd = 'szradm md --json %s' % message_id
+    if CONF.feature.dist.id == 'coreos':
+        cmd = "/opt/bin/" + cmd
+    message = json.loads(node.run(cmd)[0])
     if 'last_error' in message['body']:
         raise AssertionError('Message %s at %s contains error: %s' % (message_name, serv_as, message['body']['last_error']))
