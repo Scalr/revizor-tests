@@ -134,6 +134,15 @@ Feature: Windows server lifecycle
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping with chef-solo from private git repo
+        Given I have a clean and stopped farm
+        And I add role to this farm with chef-solo-private
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And file 'C:\chef-solo-private' exist in M1 windows
+        And last script data is deleted on M1
+
+    @ec2 @gce @openstack @azure
     Scenario: Bootstrapping role with failed script
         Given I have a clean and stopped farm
         When I add role to this farm with failed_script
