@@ -902,7 +902,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
+        LOG.debug('Get scalarizr version after install scalarizr')
         res = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
+        LOG.debug('Scalarizr version: %s' % res)
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler

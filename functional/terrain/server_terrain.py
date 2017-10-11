@@ -202,6 +202,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
 
 @step(r"I execute '([\w\W]+)?' '([\w\W]+)' '([\w]+)' on ([\w\d]+)")
 def script_executing(step, script_type, script_name, execute_type, serv_as):
+    #TODO: Remove this step
     if script_type:
         script_type = ' %s ' % script_type.strip()
     else:

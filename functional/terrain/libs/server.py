@@ -13,8 +13,9 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-from revizor2.api import Server
 from revizor2.conf import CONF
+from revizor2.api import Server
+from revizor2.consts import Platform
 from revizor2.fixtures import resources
 from revizor2.consts import ServerStatus, MessageStatus, Dist
 
@@ -278,7 +279,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 if not Dist(lookup_server.role.dist).is_windows and not platform.is_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
-                    verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
+                    if platform != Platform.RACKSPACENGUS:
+                        verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
 
             LOG.debug('Verify debug log in node')
             if lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
