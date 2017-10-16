@@ -69,6 +69,7 @@ def chef_bootstrap_failed(step, serv_as):
 
 @step("last script data is deleted on ([\w\d]+)$")
 def check_script_data_deleted(step, serv_as):
+    LOG.info('Check script executed data was deleted')
     server = getattr(world, serv_as)
     server.scriptlogs.reload()
     if not server.scriptlogs:
