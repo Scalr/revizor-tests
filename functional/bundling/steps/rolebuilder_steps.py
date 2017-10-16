@@ -42,8 +42,7 @@ def start_rolebuild_with_behaviours(step, behaviors):
                                        os_id=image['os_id'],
                                        name='tmp-%s-%s-%s' % (platform.name, CONF.feature.dist.id,
                                                               datetime.now().strftime('%m%d-%H%M')),
-                                       scalarizr=CONF.feature.branch,
-                                       mysqltype='percona' if 'percona' in behaviors else 'mysql')
+                                       scalarizr=CONF.feature.branch)
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 
