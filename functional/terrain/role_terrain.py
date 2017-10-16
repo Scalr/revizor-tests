@@ -9,8 +9,8 @@ from lettuce import world, step
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
-from revizor2.consts import Platform, ServerStatus
-from revizor2.defaults import DEFAULT_ROLE_OPTIONS
+from revizor2.consts import Platform, ServerStatus, DATABASE_BEHAVIORS
+from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -70,14 +70,20 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 
 @step('I add to farm role created by last bundle task(?: as ([\w\d]+) role)?')
 def add_new_role_to_farm(step, alias=None):
-    #TODO: Add support for HVM (and VPC)
+    # TODO: Add support for HVM (and VPC)
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
-
-    options = getattr(world, 'role_options', {})
-    scripting = getattr(world, 'role_scripting', [])
 
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
+
+    options = getattr(world, 'role_options', {})
+    if not options and alias in DATABASE_BEHAVIORS:
+        storages = DEFAULT_STORAGES.get(CONF.feature.platform.name, None)
+        if storages:
+            LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
+            options.update(storages.get(CONF.feature.storage, {}))
+    scripting = getattr(world, 'role_scripting', [])
+
     if 'redis' in bundled_role.behaviors:
         options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
                         'db.msr.redis.use_password': True})
