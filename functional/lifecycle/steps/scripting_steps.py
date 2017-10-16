@@ -79,6 +79,7 @@ def check_script_data_deleted(step, serv_as):
         cmd = 'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\%s /b /s /ad | findstr /e "\\bin \\data"' % task_dir
         result = world.run_cmd_command(server, cmd)
         out, err, code = result.std_out, result.std_err, result.status_code
+        LOG.debug('Logs from server:\n%s\n%s\n%s' % (out, err, code))
     else:
         node = world.cloud.get_node(server)
         cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
