@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import logging
 
-from lettuce import world, step
+from lettuce import world, step, before
 
 from revizor2.api import IMPL, Server
 from revizor2.conf import CONF
@@ -12,6 +12,12 @@ from revizor2.utils import wait_until
 from revizor2.exceptions import NotFound
 
 LOG = logging.getLogger('rolebuilder')
+
+
+@before.each_scenario
+def remove_unsupported_behaviors(scenario):
+    if CONF.feature.dist.id == 'ubuntu-16-04' or 'centos-7-x':
+        scenario.outlines[0]['behaviors'] = 'app'
 
 
 @step('I start build role with behaviors (.+)$')
