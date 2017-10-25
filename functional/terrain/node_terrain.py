@@ -867,6 +867,9 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     rv_branch = CONF.feature.branch
     rv_to_branch = CONF.feature.to_branch
     server = getattr(world, (serv_as or '').strip(), None)
+    base_url = 'https://my.scalr.net'
+    if CONF.scalr.te_id:
+        base_url = 'http://%s.test-env.scalr.com' % CONF.scalr.te_id
     if server:
         server.reload()
     # Get scalarizr repo type
@@ -894,12 +897,14 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             LOG.debug('Node get successfully: %s' % node)  # Wait ssh
         console_kwargs.update({'timeout': 1200})
         # Install scalarizr
-        url = 'https://my.scalr.net/public/windows/{repo_type}'.format(repo_type=repo_type)
+        url = '{base_url}/public/windows/{repo_type}'.format(base_url=base_url, repo_type=repo_type)
         cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
         assert not world.run_cmd_command_until(
             world.PS_RUN_AS.format(command=cmd),
             **console_kwargs).std_err, "Scalarizr installation failed"
+        LOG.debug('Get scalarizr version after install scalarizr')
         res = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
+        LOG.debug('Scalarizr version: %s' % res)
         if use_sysprep:
             run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
     # Linux handler
@@ -918,7 +923,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
             except AssertionError:
                 LOG.warning('Can\'t get ssh for server %s' % node.id)
                 time.sleep(10)
-        url = 'https://my.scalr.net/public/linux/{repo_type}'.format(repo_type=repo_type)
+        url = '{base_url}/public/linux/{repo_type}'.format(base_url=base_url, repo_type=repo_type)
         cmd = '{curl_install} && ' \
             'curl -L {url}/install_scalarizr.sh | bash && sync'.format(
                 curl_install=world.value_for_os_family(

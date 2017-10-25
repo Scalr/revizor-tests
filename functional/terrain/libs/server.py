@@ -13,8 +13,9 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-from revizor2.api import Server
 from revizor2.conf import CONF
+from revizor2.api import Server
+from revizor2.consts import Platform
 from revizor2.fixtures import resources
 from revizor2.consts import ServerStatus, MessageStatus, Dist
 
@@ -278,7 +279,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 if not Dist(lookup_server.role.dist).is_windows and not platform.is_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
-                    verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
+                    if platform != Platform.RACKSPACENGUS:
+                        verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
 
             LOG.debug('Verify debug log in node')
             if lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
@@ -501,11 +503,20 @@ def check_script_executed(serv_as,
     Verifies that server scripting log contains info about script execution.
     """
     out_name = 'STDERR' if std_err else 'STDOUT'
+    server = getattr(world, serv_as)
+    contain = log_contains.split(';') if log_contains else []
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
+    # Convert script name, because scalr converts name to:
+    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
+    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    if not name.startswith('http') and not name.startswith('/'):
+        name = name.replace('.', '')
+    timeout = timeout // 10
     LOG.debug('Checking scripting %s logs on %s by parameters:\n'
-              '  script name:\t%s\n'
+              '  script name:\t"%s"\n'
               '  event:\t\t%s\n'
-              '  user:\t\t%s\n'
-              '  log_contains:\t%s\n'
+              '  user:\t\t"%s"\n'
+              '  log_contains:\t"%s"\n'
               '  exitcode:\t%s\n'
               '  new_only:\t%s\n'
               '  timeout:\t%s'
@@ -519,26 +530,17 @@ def check_script_executed(serv_as,
                  new_only,
                  timeout))
 
-    server = getattr(world, serv_as)
-    contain = log_contains.split(';') if log_contains else []
-    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
-    # Convert script name, because scalr converts name to:
-    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
-    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
-    if not name.startswith('http'):
-        name = name.replace('.', '')
-    timeout = timeout // 10
     for _ in range(timeout + 1):
         server.scriptlogs.reload()
         for log in server.scriptlogs:
             LOG.debug('Checking script log:\n'
-                      '  name:\t%s\n'
-                      '  event:\t%s\n'
-                      '  run as:\t%s\n'
-                      '  exitcode:\t%s'
+                      '  name:\t"%s"\n'
+                      '  event:\t"%s"\n'
+                      '  run as:\t"%s"\n'
+                      '  exitcode:\t"%s"'
                       % (log.name, log.event, log.run_as, log.exitcode))
             if log in last_scripts:
-                # skip old log
+                LOG.debug('Pass this log because it in last scripts')
                 continue
             if log.run_as is None:
                 log.run_as = 'Administrator' if CONF.feature.dist.is_windows else 'root'
@@ -549,6 +551,8 @@ def check_script_executed(serv_as,
                 or (name.startswith('http') and log.name.strip().startswith(name)) \
                 or (name.startswith('local') and log.name.strip().startswith(name)) \
                 or log.name.strip() == name
+            LOG.debug('Script matched parameters: event - %s, user - %s, name - %s' % (
+                event_matched, user_matched, name_matched))
             if name_matched and event_matched and user_matched:
                 LOG.debug('Script log matched search parameters')
                 if exitcode is None or log.exitcode == int(exitcode):
