@@ -1,318 +1,192 @@
-import json
-import logging
-
 from revizor2.conf import CONF
-from revizor2.consts import Platform
+from revizor2.helpers.farmrole import OrchestrationRule, Volume, ScalingRule
 
-LOG = logging.getLogger(__name__)
-
-
-class _Property(object):
-    def __init__(self, key, default, constraint=None):
-        self.key = key
-        self.default = default
-        self.constraint = constraint
-
-
-class _EnvDefaults(object):
-    template = {}
-    size_constraints = {}
-    volumes_count_constraints = {}
-
-    @classmethod
-    def _get_prop_config(cls, volume, prop_name):
-        prop = cls.template[volume.category]["settings"].get(prop_name, None)
-        if not prop:
-            return {}, None
-        value = volume.volume_settings.get(prop_name, None)
-        if value is None:
-            value = prop.default
-        cls._validate_property(prop, value)
-        return {prop.key: value}, value
-
-    @classmethod
-    def _validate_property(cls, prop, value):
-        if prop.constraint and value not in prop.constraint:
-            raise StorageConfigError(
-                "Invalid %s '%s'. Available values are: %s" %
-                (prop.key, value, _repr_seq(prop.constraint)))
-
-    @classmethod
-    def get_config(cls, volume):
-        if volume.category not in cls.template:
-            raise StorageConfigError(
-                "Unknown storage category '%s'. Allowed values for %s platform are: %s." %
-                (volume.category, volume.platform, ", ".join(cls.template.keys())))
-
-        config = {
-            "type": cls.template[volume.category]["engine"],
-            "reUse": volume.reuse,
-            "rebuild": volume.rebuild,
-            "mount": volume.mount,
-            "mountPoint": volume.mount_point,
-            "fs": volume.file_system,
-            "settings": {}
-        }
-
-        tpl_settings = cls.template[volume.category]["settings"]
-
-        cfg, type_value = cls._get_prop_config(volume, "type")
-        config["settings"].update(cfg)
-
-        if type_value and type_value in cls.size_constraints:
-            tpl_settings["size"].default = cls.size_constraints[type_value][0] if cls.size_constraints[type_value] else 1
-            tpl_settings["size"].constraint = cls.size_constraints[type_value]
-
-        cfg, _ = cls._get_prop_config(volume, "size")
-        config["settings"].update(cfg)
-
-        if type_value == "io1":
-            cfg, _ = cls._get_prop_config(volume, "iops")
-            config["settings"].update(cfg)
-
-        cfg, _ = cls._get_prop_config(volume, "snapshot")
-        config["settings"].update(cfg)
-
-        cfg, _ = cls._get_prop_config(volume, "encrypted")
-        config["settings"].update(cfg)
-
-        cfg, level_value = cls._get_prop_config(volume, "level")
-        config["settings"].update(cfg)
-
-        if level_value is not None:
-            tpl_settings["volumes_count"].default = cls.volumes_count_constraints[level_value][0]
-            tpl_settings["volumes_count"].constraint = cls.volumes_count_constraints[level_value]
-
-        cfg, _ = cls._get_prop_config(volume, "volumes_count")
-        config["settings"].update(cfg)
-
-        for key, value in volume.volume_settings.items():
-            if key not in tpl_settings:
-                LOG.warning("Unknown %s volume setting: '%s', skipping" % (volume.category, key))
-
-        return config
-
-
-class _Ec2Defaults(_EnvDefaults):
-    template = {
-        "persistent": {
-            "engine": "ebs",
-            "settings": {
-                "type": _Property("ebs.type", "standard", ["standard", "gp2", "io1", "st1", "sc1"]),
-                "size": _Property("ebs.size", 1, range(1, 1025)),
-                "iops": _Property("ebs.iops", 100, range(100, 20001)),
-                "snapshot": _Property("ebs.snapshot", None),
-                "encrypted": _Property("ebs.encrypted", False, [True, False])
-            }
-        },
-        "raid": {
-            "engine": "raid.ebs",
-            "settings": {
-                "type": _Property("ebs.type", "standard", ["standard", "gp2", "io1", "st1", "sc1"]),
-                "size": _Property("ebs.size", 1, range(1, 1025)),
-                "iops": _Property("ebs.iops", 100, range(100, 20001)),
-                "level": _Property("raid.level", 10, [0, 1, 5, 10]),
-                "volumes_count": _Property("raid.volumes_count", 4, [4, 6, 8])
-            }
-        }
-    }
-
-    size_constraints = {
-        "standard": range(1, 1025),
-        "gp2": range(1, 16385),
-        "io1": range(4, 16385),
-        "st1": range(500, 16385),
-        "sc1": range(500, 16385)
-    }
-
-    volumes_count_constraints = {
-        0: range(2, 9),
-        1: [2],
-        5: range(3, 9),
-        10: [4, 6, 8]
-    }
-
-
-class _GceDefaults(_EnvDefaults):
-    template = {
-        "persistent": {
-            "engine": "gce_persistent",
-            "settings": {
-                "type": _Property("gce_persistent.type", "pd-standard", ["pd-standard", "pd-ssd"]),
-                "size": _Property("gce_persistent.size", 1, None)
-            }
-        },
-        "eph": {
-            "engine": "gce_ephemeral",
-            "settings": {
-                "name": _Property("gce_ephemeral.name", "google-local-ssd-0",
-                                  ["google-local-ssd-%s" % n for n in range(0, 4)]),
-                "size": _Property("gce_ephemeral.size", 375, [375])
-            }
-        }
-    }
-
-
-class _CloudStackDefaults(_EnvDefaults):
-    template = {
-        "persistent": {
-            "engine": "csvol",
-            "settings": {
-                "type": _Property("csvol.disk_offering_type", "custom", ["custom", "fixed"]),
-                "size": _Property("csvol.size", 1, None),
-                "snapshot": _Property("csvol.snapshot_id", None)
-            }
-        },
-        "raid": {
-            "engine": "raid.csvol",
-            "settings": {
-                "type": _Property("csvol.disk_offering_type", "custom", ["custom", "fixed"]),
-                "size": _Property("csvol.size", 1, None),
-                "snapshot": _Property("csvol.snapshot_id", None),
-                "level": _Property("raid.level", 10, [0, 1, 5, 10]),
-                "volumes_count": _Property("raid.volumes_count", 4, [4, 6, 8])
-            }
-        }
-    }
-
-    size_constraints = {
-        "custom": None,
-        "fixed": [5, 20, 100]
-    }
-
-    volumes_count_constraints = {
-        0: range(2, 9),
-        1: [2],
-        5: range(3, 9),
-        10: [4, 6, 8]
-    }
-
-
-class Snapshot(object):
-    def __init__(self, snapshot_id):
-        self.id = snapshot_id
-
-
-class Volume(object):
-    def __init__(self,
-                 platform=None,
-                 category="persistent",
-                 reuse=True,
-                 rebuild=False,
-                 mount=True,
-                 mount_point="/media/diskmount",
-                 file_system="ext3",
-                 **volume_settings):
-        self.platform = platform or CONF.feature.driver.current_cloud
-        self.category = category
-        self.reuse = reuse
-        self.rebuild = rebuild
-        self.mount = mount
-        self.mount_point = mount_point
-        self.file_system = file_system
-        self.volume_settings = volume_settings
-
-    def get_config(self):
-        return _env_defaults[self.platform].get_config(self)
+DEFAULT_SCALINGS = {
+    'scaling_execute_linux': 'RevizorLinuxExecute',
+    'scaling_read_linux': 'RevizorLinuxRead',
+    'scaling_execute_win': 'RevizorWindowsExecute',
+    'scaling_read_win': 'RevizorWindowsRead'
+}
 
 
 class Defaults(object):
-    @classmethod
-    def get_additional_storages(cls, platform=None, *volumes):
-        platform = platform or CONF.feature.driver.current_cloud
-        # dist = CONF.feature.dist
+    @staticmethod
+    def apply_option(params, opt):
+        method = 'set_' + opt
+        if hasattr(Defaults, method):
+            getattr(Defaults, method)(params)
 
-        if volumes:
-            return AdditionalStorages(*volumes)
+    @staticmethod
+    def set_storage(params):
+        pass
 
-        # Populate with default storages for platform
-        storages = AdditionalStorages()
-        if platform == Platform.EC2:
-            storages.append(Volume(platform))
-            storages.append(Volume(platform, category="raid", mount_point="/media/raidmount"))
-            storages.append(Volume(platform, mount_point="/media/partition"))
-        elif platform == Platform.GCE:
-            storages.append(Volume(platform))
-            storages.append(Volume(platform, mount_point="/media/raidmount", type="pd-ssd"))
-            storages.append(Volume(platform, mount_point="/media/partition"))
-        elif platform == Platform.CLOUDSTACK:
-            storages.append(Volume(platform))
-            storages.append(Volume(platform, category="raid", mount_point="/media/raidmount"))
-            storages.append(Volume(platform, mount_point="/media/partition"))
-        return storages
+    @staticmethod
+    def set_additional_storage(params):
+        if CONF.feature.dist.is_windows:
+            Defaults.set_additional_storage_windows(params)
+        else:
+            Defaults.set_additional_storage_linux(params)
 
+    @staticmethod
+    def set_additional_storage_windows(params):
+        pass
 
-class AdditionalStorages(object):
-    def __init__(self, *volumes):
-        self.volumes = []
-        self.volumes.extend(volumes)
+    @staticmethod
+    def set_additional_storage_linux(params):
+        if CONF.feature.platform.is_ec2:
+            params.storage.volumes = [
+                Volume(size=1),
+                Volume(size=3, engine='persistent', mount='/mnt/disk'),
+                Volume(size=2, engine='persistent', mount='/mnt/disk', snapshot='snap-1234'),
+                Volume(size=2, engine='persistent', mount='/mnt/disk', snapshot='snap-1234', re_use=True)
+            ]
+        elif CONF.feature.platform.is_gce:
+            params.storage.volumes = [
+                Volume(size=1, engine='persistent', type='standard', mount='/media/diskmount', re_use=True),
+                Volume(size=1, engine='eph', mount='/media/partition', re_use=True)
+            ]
 
-    def append(self, volume):
-        self.volumes.append(volume)
+    @staticmethod
+    def set_chef(params):
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.runlist = '["recipe[memcached::default]", "recipe[revizorenv]"]'
+        params.bootstrap_with_chef.attributes = '{"memcached": {"memory": "1024"}}'
+        params.bootstrap_with_chef.daemonize = True
 
-    def get_config(self):
-        return {"configs": [v.get_config() for v in self.volumes]}
+    @staticmethod
+    def set_chef_role(params):
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.role_name = 'test_chef_role'
+        params.bootstrap_with_chef.daemonize = True
 
-    def __repr__(self):
-        return json.dumps(self.get_config(), indent=2)
+    @staticmethod
+    def set_chef_fail(params):
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.runlist = '["role[always_fail]"]'
+        params.bootstrap_with_chef.daemonize = True
 
+    @staticmethod
+    def set_winchef(params):
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.runlist = '["recipe[windows_file_create::default]", "recipe[revizorenv]"]'
 
-class StorageConfigError(Exception):
-    pass
+    @staticmethod
+    def set_winchef_role(params):
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.role_name = 'test_chef_role_windows'
 
+    @staticmethod
+    def set_chef_solo(params, options):
+        chef_opts = options.split('-')
+        if chef_opts[2] == 'private':
+            url = 'git@github.com:Scalr/int-cookbooks.git'
+            params.bootstrap_with_chef.path = 'cookbooks'
+            params.bootstrap_with_chef.private_key = open(CONF.ssh.private_key, 'r').read()
+        else:
+            url = 'https://github.com/Scalr/sample-chef-repo.git'
+        if chef_opts[-1] == 'branch':
+            url = ''.join((url, '@revizor-test'))
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.cookbook_url = url
+        params.bootstrap_with_chef.runlist = '["recipe[revizor-chef]"]'
+        params.bootstrap_with_chef.attributes = '{"chef-solo":{"result":"%s"}}' % options.strip()
+        params.bootstrap_with_chef.url_type = 'git'
 
-def _repr_seq(seq):
-    if len(seq) < 10:
-        return repr(seq)
-    else:
-        return "[%s, ..., %r]" % (", ".join(map(str, seq[:3])), seq[-1])
+    @staticmethod
+    def set_oldexecutor(params):
+        pass
+        # "base.union_script_executor": 0
 
+    @staticmethod
+    def set_noiptables(params):
+        pass
+        # "base.disable_firewall_management": 1
 
-_env_defaults = {
-    Platform.EC2: _Ec2Defaults,
-    Platform.GCE: _GceDefaults,
-    Platform.CLOUDSTACK: _CloudStackDefaults
-}
+    @staticmethod
+    def set_deploy(params):
+        pass
+        # "dm.application_id": "217",
+        # "dm.remote_path": "/var/www/pecha"
 
-# for debugging purpose
-if __name__ == "__main__":
-    # using get_additional_storages without volumes info returns default storages list for environment
-    default_storages_ec2 = Defaults.get_additional_storages(Platform.EC2)
-    default_storages_gce = Defaults.get_additional_storages(Platform.GCE)
-    default_storages_cs = Defaults.get_additional_storages(Platform.CLOUDSTACK)
+    @staticmethod
+    def set_branch_custom(params):
+        pass
+        # "user-data.scm_branch": CONF.feature.to_branch
 
-    # volumes specified
-    # only parameters that differ from default values are passed
-    storages_ec2 = Defaults.get_additional_storages(Platform.EC2,
-                                                    Volume(Platform.EC2, snapshot="snapshot_id"),
-                                                    Volume(Platform.EC2, category="raid",
-                                                           mount_point="/media/raidmount", type="io1",
-                                                           level=5, snapshot="snapshot_id"))
-    storages_gce = Defaults.get_additional_storages(Platform.GCE,
-                                                    Volume(Platform.GCE),
-                                                    Volume(Platform.GCE, category="eph", mount_point="/media/ephmount"))
-    storages_cs = Defaults.get_additional_storages(Platform.CLOUDSTACK,
-                                                   Volume(Platform.CLOUDSTACK, snapshot="snapshot_id"),
-                                                   Volume(Platform.CLOUDSTACK, category="raid",
-                                                          mount_point="/media/raidmount", type="fixed", size=20,
-                                                          level=5))
+    @staticmethod
+    def set_failed_script(params):
+        params.orchestration.rules = [
+            OrchestrationRule(event='BeforeHostUp', script='Multiplatform exit 1')
+        ]
+        params.advanced.abort_init_on_script_fail = True
 
-    print("=== EC2 defaults")
-    print(default_storages_ec2)
-    print("=== GCE defaults")
-    print(default_storages_gce)
-    print("=== CS defaults")
-    print(default_storages_cs)
-    print("=== EC2 custom")
-    print(storages_ec2)
-    print("=== GCE custom")
-    print(storages_gce)
-    print("=== CS custom")
-    print(storages_cs)
+    @staticmethod
+    def set_init_reboot(params):
+        pass
+        # "base.reboot_after_hostinit_phase": "1"
 
-    # invalid volume specification
-    # invalid_1 = Defaults.get_additional_storages(Platform.EC2,
-    #                                              Volume(type="std")).get_config()
-    invalid_2 = Defaults.get_additional_storages(Platform.EC2,
-                                                 Volume(category="raid", mount_point="/media/raidmount", type="io1",
-                                                        level=5, volumes_count=2)).get_config()
+    @staticmethod
+    def set_failed_hostname(params):
+        pass
+        # "hostname.template": '{REVIZOR_FAILED_HOSTNAME}'
+
+    @staticmethod
+    def set_hostname(params):
+        params.network.hostname_source = 'template'
+        params.network.hostname_template = '{SCALR_FARM_ID}-{SCALR_FARM_ROLE_ID}-{SCALR_INSTANCE_INDEX}'
+
+    @staticmethod
+    def set_termination_preferences(params):
+        pass
+        # "base.consider_suspended": "terminated",
+        # "base.terminate_strategy": "suspend"
+
+    @staticmethod
+    def set_orchestration(params):
+        params.orchestration.rules = [
+            OrchestrationRule(event='HostInit', script='Revizor orchestration init'),
+            OrchestrationRule(event='HostInit', script='/tmp/script.sh'),
+            OrchestrationRule(event='HostInit', script='https://gist.githubusercontent.com/gigimon'
+                                                       '/f86c450f4620be2315ea/raw'
+                                                       '/09cc205dd5552cb56c5d542b420ee1fe9f2838e1/gistfile1.txt'),
+            OrchestrationRule(event='BeforeHostUp', script='Linux ping-pong'),
+            OrchestrationRule(event='BeforeHostUp',
+                              cookbook_url='git@github.com:Scalr/int-cookbooks.git',
+                              runlist='["recipe[revizor-chef::default]"]',
+                              path='cookbooks'),
+            OrchestrationRule(event='HostUp', script='https://gist.githubusercontent.com/Theramas'
+                                                     '/5b2a9788df316606f72883ab1c3770cc/raw'
+                                                     '/3ae1a3f311d8e43053fbd841e8d0f17daf1d5d66/multiplatform'),
+            OrchestrationRule(event='HostUp', script='Linux ping-pong', run_as='revizor2'),
+            OrchestrationRule(event='HostUp', script='/home/revizor/local_script.sh', run_as='revizor'),
+            OrchestrationRule(event='HostUp', script='Linux ping-pong', run_as='revizor'),
+            OrchestrationRule(event='HostUp', runlist='["recipe[create_file::default]"]',
+                              attributes='{"create_file":{"path":"/root/chef_hostup_result"}}'),
+            OrchestrationRule(event='HostUp', script='/bin/uname'),
+            OrchestrationRule(event='HostUp', script='Sleep 10')
+        ]
+
+    @staticmethod
+    def set_small_linux_orchestration(params):
+        params.orchestration.rules = [
+            OrchestrationRule(event='HostInit', script='Revizor last reboot'),
+            OrchestrationRule(event='HostUp', script='Revizor last reboot')
+        ]
+
+    @staticmethod
+    def set_small_windows_orchestration(params):
+        params.orchestration.rules = [
+            OrchestrationRule(event='HostInit', script='Windows ping-pong. CMD'),
+            OrchestrationRule(event='HostUp', script='Windows ping-pong. CMD')
+        ]
+
+    @staticmethod
+    def set_default_scaling(params, scaling):
+        params.scaling.rules = [
+            ScalingRule(metric=DEFAULT_SCALINGS[scaling], max=75, min=50)
+        ]
