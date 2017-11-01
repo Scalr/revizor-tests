@@ -412,13 +412,8 @@ def assert_server_message_count(step, msg, serv_as):
 
 @before.each_scenario
 def remove_raid_support(scenario):
-    if CONF.feature.dist.id != 'centos-6-x' or 'ubuntu-14-04' and CONF.feature.platform != 'ec2':
+    if CONF.feature.dist.id != 'centos-6-x' and CONF.feature.dist.id != 'ubuntu-14-04' \
+            and CONF.feature.platform != 'ec2':
         for step in scenario.steps[:]:
-            if step.sentence == "And directory '/media/raidmount' exist in M1":
-                scenario.steps.remove(step)
-            elif step.sentence == "And I create 100 files in '/media/raidmount' in M1":
-                scenario.steps.remove(step)
-            elif step.sentence == "And disk from M1 mount points for '/media/raidmount' exist in fstab on M1":
-                scenario.steps.remove(step)
-            elif step.sentence == "And count of files in directory '/media/raidmount' is 100 in M1":
+            if '/media/raidmount' in step.sentence:
                 scenario.steps.remove(step)
