@@ -9,6 +9,7 @@ from revizor2.conf import CONF
 from revizor2.fixtures import tables
 from revizor2.consts import BEHAVIORS_ALIASES
 from revizor2.exceptions import NotFound
+from revizor2.helpers import farmrole
 from revizor2.helpers.roles import get_role_versions
 
 from lxml import etree
@@ -56,8 +57,7 @@ def give_empty_farm(launched=False):
 
 
 @world.absorb
-def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alias=None, role_id=None, scaling=None,
-                     variables=None):
+def add_role_to_farm(behavior, options, role_id=None):
     """
     Insert role to farm by behavior and find role in Scalr by generated name.
     Role name generate by the following format:
@@ -65,7 +65,6 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
     """
     platform = CONF.feature.platform
-    variables = variables or []
     #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
     def get_role(behavior, dist=None):
         if CONF.feature.role_type == 'shared':
@@ -129,32 +128,19 @@ def add_role_to_farm(behavior, options=None, scripting=None, storages=None, alia
     world.wrt(etree.Element('meta', name='role', value=role['name']))
     world.wrt(etree.Element('meta', name='dist', value=role['dist']))
     old_roles_id = [r.id for r in world.farm.roles]
-    alias = alias or role['name']
-    LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
+    options.alias = options.alias or role['name']
+    LOG.info('Add role %s with alias %s to farm' % (role['id'], options.alias))
     if dist in ('windows-2008', 'windows-2012') and platform.is_azure:
         LOG.debug('Dist is windows, set instance type')
-        options['instance_type'] = 'Standard_A1'
+        options.instance_type = 'Standard_A1'
     if platform.is_ec2:
-        variables.append({
-            'name': 'REVIZOR_TEST_ID',
-            'current': {
-                'scope': 'farmrole',
-                'validator': '',
-                'format': '',
-                'name': 'REVIZOR_TEST_ID',
-                'description': '',
-                'value': getattr(world, 'test_id')
-            },
-            'scopes': ['farmrole'],
-            'category': ''
-        })
-    world.farm.add_role(role['id'],
-                        options=options,
-                        scripting=scripting,
-                        storages=storages,
-                        alias=alias,
-                        scaling=scaling,
-                        variables=variables)
+        options.global_variables.variables.add(
+            farmrole.Variable(
+                name='REVIZOR_TEST_ID',
+                value=getattr(world, 'test_id')
+            )
+        )
+    world.farm.add_role(role['id'], options=options.to_json())
     time.sleep(3)
     world.farm.roles.reload()
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
