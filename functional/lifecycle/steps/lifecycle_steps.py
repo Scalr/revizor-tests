@@ -412,8 +412,7 @@ def assert_server_message_count(step, msg, serv_as):
 
 @before.each_scenario
 def remove_raid_support(scenario):
-    if CONF.feature.dist.id != 'centos-6-x' and CONF.feature.dist.id != 'ubuntu-14-04' \
-            and CONF.feature.platform != 'ec2':
+    if CONF.feature.dist.id not in ['centos-6-x', 'ubuntu-14-04'] or CONF.feature.platform != 'ec2':
         for step in scenario.steps[:]:
             if '/media/raidmount' in step.sentence:
                 scenario.steps.remove(step)
