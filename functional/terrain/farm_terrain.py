@@ -162,8 +162,8 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                             "type": "raid.ebs",
                             "fs": "ext3",
                             "settings": {
-                                "raid.level": "10",
-                                "raid.volumes_count": 4,
+                                "raid.level": "1",
+                                "raid.volumes_count": 2,
                                 "ebs.size": "1",
                                 "ebs.type": "standard"
                             },
