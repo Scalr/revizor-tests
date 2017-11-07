@@ -2,7 +2,6 @@ __author__ = 'gigimon'
 import os
 import re
 import time
-import json
 import logging
 
 from lettuce import world, step
@@ -30,7 +29,7 @@ def having_a_stopped_farm(step):
     world.give_empty_farm(launched=False)
 
 
-@step(r"I add(?P<behavior> \w+-?\w+?)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>[ \w\d,-]+))?(?: as (?P<alias>[\w\d]+))?")
+@step(r"I add(?P<behavior> \w+-?\w+?)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>(?:(?! as )[ \w\d,-])+))?(?: as (?P<alias>[\w\d]+))?")
 def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=None):
     role_id = None
     old_branch = CONF.feature.branch
