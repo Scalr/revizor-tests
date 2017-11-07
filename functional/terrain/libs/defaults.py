@@ -105,11 +105,6 @@ class Defaults(object):
         params.bootstrap_with_chef.url_type = 'git'
 
     @staticmethod
-    def set_oldexecutor(params):
-        pass
-        # "base.union_script_executor": 0
-
-    @staticmethod
     def set_noiptables(params):
         if not CONF.feature.platform.is_cloudstack and not CONF.feature.platform.is_rackspacengus:
             params.advanced.disable_iptables_mgmt = True
@@ -122,8 +117,7 @@ class Defaults(object):
 
     @staticmethod
     def set_branch_custom(params):
-        pass
-        # "user-data.scm_branch": CONF.feature.to_branch
+        params.development.scalarizr_branch = CONF.feature.to_branch
 
     @staticmethod
     def set_failed_script(params):
@@ -134,13 +128,11 @@ class Defaults(object):
 
     @staticmethod
     def set_init_reboot(params):
-        pass
-        # "base.reboot_after_hostinit_phase": "1"
+        params.advanced.reboot_after_hostinit = True
 
     @staticmethod
     def set_failed_hostname(params):
-        pass
-        # "hostname.template": '{REVIZOR_FAILED_HOSTNAME}'
+        params.network.hostname_template = '{REVIZOR_FAILED_HOSTNAME}'
 
     @staticmethod
     def set_hostname(params):
@@ -149,9 +141,8 @@ class Defaults(object):
 
     @staticmethod
     def set_termination_preferences(params):
-        pass
-        # "base.consider_suspended": "terminated",
-        # "base.terminate_strategy": "suspend"
+        params.scaling.scaling_behavior = 'suspend'
+        params.scaling.consider_suspended = 'terminated'
 
     @staticmethod
     def set_apachefix(params):
