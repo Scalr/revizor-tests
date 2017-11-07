@@ -30,7 +30,6 @@ def remove_unsupported_behaviors(scenario):
             scenario.outlines[3]['behaviors'] = 'memcached,rabbitmq'
 
 
-
 @step('I start build role with behaviors (.+)$')
 def start_rolebuild_with_behaviours(step, behaviors):
     behaviors = behaviors.strip().split(',')
