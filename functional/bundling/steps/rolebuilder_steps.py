@@ -16,8 +16,19 @@ LOG = logging.getLogger('rolebuilder')
 
 @before.each_scenario
 def remove_unsupported_behaviors(scenario):
-    if CONF.feature.dist.id == 'ubuntu-16-04' or 'centos-7-x':
+    """ Rewrite behaviors """
+    if CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x'] \
+            and scenario.outlines[0]['behaviors'] == 'mysql2,app':
         scenario.outlines[0]['behaviors'] = 'app'
+    if CONF.feature.dist.id == 'ubuntu-16-04' \
+            and CONF.feature.platform in ['ec2', 'gce'] \
+            and scenario.outlines[1]['behaviors'] == 'percona,www':
+        scenario.outlines[1]['behaviors'] = 'www'
+    if CONF.feature.platform.is_gce and \
+                    CONF.feature.dist.id in ['ubuntu-14-04', 'ubuntu-16-04', 'centos-6-x', 'centos-7-x'] \
+                and scenario.outlines[3]['behaviors'] == 'postgresql,memcached,rabbitmq':
+            scenario.outlines[3]['behaviors'] = 'memcached,rabbitmq'
+
 
 
 @step('I start build role with behaviors (.+)$')
