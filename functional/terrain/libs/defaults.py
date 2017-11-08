@@ -19,22 +19,26 @@ class Defaults(object):
 
     @staticmethod
     def set_storages_windows(params):
-        pass
+        if CONF.feature.platform.is_cloudstack:
+            params.storage.volumes = [
+                Volume(size=1, fs='ntfs', type='custom')
+            ]
+        else:
+            params.storage.volumes = [
+                Volume(size=2, fs='ntfs', mount='D'),
+                Volume(size=2, fs='ntfs', mount='E', label='test_label2')  # TODO: label impl
+            ]
 
     @staticmethod
     def set_storages_linux(params):
-        if CONF.feature.platform.is_ec2:
-            params.storage.volumes = [
-                Volume(size=1),
-                Volume(size=3, engine='persistent', mount='/mnt/disk'),
-                Volume(size=2, engine='persistent', mount='/mnt/disk', snapshot='snap-1234'),
-                Volume(size=2, engine='persistent', mount='/mnt/disk', snapshot='snap-1234', re_use=True)
-            ]
-        elif CONF.feature.platform.is_gce:
-            params.storage.volumes = [
-                Volume(size=1, engine='persistent', type='standard', mount='/media/diskmount', re_use=True),
-                Volume(size=1, engine='eph', mount='/media/partition', re_use=True)
-            ]
+        params.storage.volumes = [
+            Volume(size=1, mount='/media/diskmount', re_build=True),
+            Volume(size=1, mount='/media/partition', re_build=True)
+        ]
+        if CONF.feature.platform.is_cloudstack:
+            params.storage.volumes.append(
+                Volume(size=1, engine='raid', level=10, volumes=4, mount='/media/raidmount')
+            )
 
     @staticmethod
     def set_db_storages(params):
@@ -45,7 +49,7 @@ class Defaults(object):
     @staticmethod
     def set_ephemeral(params):
         if CONF.feature.platform.is_ec2 and CONF.feature.dist.is_windows:
-            params.storage.volumes.add(
+            params.storage.volumes.append(
                 Volume(size=4, engine='eph', name='ephemeral0', fs='ntfs', mount='Z',
                        label='test_label', category='Ephemeral storage', re_use=False)
             )
