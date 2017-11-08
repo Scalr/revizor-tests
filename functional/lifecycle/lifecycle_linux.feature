@@ -176,3 +176,14 @@ Feature: Linux server lifecycle
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
+
+    @azure
+    Scenario: Check attached unamanged storage
+        Given I have a clean and stopped farm
+        And I add role to this farm with unamanged
+        When I start farm
+        And I see pending server M1
+        When I wait server M1 in running state
+        And disk types in role are valid
+        And directory '/media/diskmount' exist in M1
+        And I create 100 files in '/media/diskmount' in M1
