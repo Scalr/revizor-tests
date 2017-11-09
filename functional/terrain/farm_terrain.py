@@ -185,10 +185,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                             "azure_vhd.storage_account": "/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/"
                                                          "resourceGroups/revizor/providers/Microsoft.Storage/"
                                                          "storageAccounts/revizor",
-                            "azure_vhd.size": 1
+                            "azure_vhd.size": "1"
                         },
                         "status": "",
-                        "isRoot": 0,
+                        "isRoot": "0",
                         "readOnly": False,
                         "category": " Persistent storage",
                         "fs": "ext3",
