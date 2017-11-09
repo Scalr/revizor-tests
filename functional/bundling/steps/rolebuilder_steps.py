@@ -3,7 +3,7 @@ import os
 from datetime import datetime
 import logging
 
-from lettuce import world, step
+from lettuce import world, step, before
 
 from revizor2.api import IMPL, Server
 from revizor2.conf import CONF
@@ -12,6 +12,23 @@ from revizor2.utils import wait_until
 from revizor2.exceptions import NotFound
 
 LOG = logging.getLogger('rolebuilder')
+
+
+@before.each_scenario
+def remove_unsupported_behaviors(scenario):
+    """ Rewrite behaviors """
+    for software in scenario.outlines[:]:
+        if CONF.feature.dist.id in ['ubuntu-16-04', 'centos-7-x'] \
+                and 'mysql2,app' in software['behaviors']:
+            software['behaviors'] = 'app'
+        if CONF.feature.dist.id == 'ubuntu-16-04' \
+                and CONF.feature.platform in ['ec2', 'gce'] \
+                and 'percona,www' in software['behaviors']:
+            software['behaviors'] = 'www'
+        if CONF.feature.platform.is_gce and \
+                        CONF.feature.dist.id in ['ubuntu-14-04', 'ubuntu-16-04', 'centos-6-x', 'centos-7-x'] \
+                    and 'postgresql,memcached,rabbitmq' in software['behaviors']:
+            software['behaviors'] = 'memcached,rabbitmq'
 
 
 @step('I start build role with behaviors (.+)$')
@@ -33,17 +50,16 @@ def start_rolebuild_with_behaviours(step, behaviors):
                            images(platform.name).all()['images'])[0]
     except IndexError:
         raise NotFound('Image for os "%s" not found in rolebuilder!' % os_id)
-    bundle_id = IMPL.rolebuilder.build2(platform=platform.name,
-                                        location=location,
-                                        servertype=servertype,
-                                        terminate=False,
-                                        arch='x86_64',
-                                        behaviors=behaviors,
-                                        os_id=image['os_id'],
-                                        name='tmp-%s-%s-%s' % (platform.name, CONF.feature.dist.id,
-                                                               datetime.now().strftime('%m%d-%H%M')),
-                                        scalarizr=CONF.feature.branch,
-                                        mysqltype='percona' if 'percona' in behaviors else 'mysql')
+    bundle_id = IMPL.rolebuilder.build(platform=platform.name,
+                                       location=location,
+                                       servertype=servertype,
+                                       terminate=False,
+                                       arch='x86_64',
+                                       behaviors=behaviors,
+                                       os_id=image['os_id'],
+                                       name='tmp-%s-%s-%s' % (platform.name, CONF.feature.dist.id,
+                                                              datetime.now().strftime('%m%d-%H%M')),
+                                       scalarizr=CONF.feature.branch)
     setattr(world, 'role_type', CONF.feature.behaviors[0])
     setattr(world, 'bundle_id', bundle_id)
 
