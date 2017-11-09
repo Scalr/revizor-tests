@@ -134,7 +134,7 @@ def add_role_to_farm(behavior, options, role_id=None):
         LOG.debug('Dist is windows, set instance type')
         options.instance_type = 'Standard_A1'
     if platform.is_ec2:
-        options.global_variables.variables.add(
+        options.global_variables.variables.append(
             farmrole.Variable(
                 name='REVIZOR_TEST_ID',
                 value=getattr(world, 'test_id')
