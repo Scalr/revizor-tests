@@ -27,7 +27,7 @@ Feature: Linux server lifecycle
         When I run "szradm list-messages" on M1
         And the key "name" has record "HostUp" on M1
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @cloudstack @gce @storages @azure
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -44,7 +44,7 @@ Feature: Linux server lifecycle
         And I trigger snapshot creation from volume for '/media/partition' on role
         Then Volume snapshot creation become completed
 
-    @ec2 @cloudstack @gce @storages @fstab
+    @ec2 @cloudstack @gce @storages @fstab @azure
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
@@ -56,7 +56,7 @@ Feature: Linux server lifecycle
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @cloudstack @storages @fstab
+    @ec2 @cloudstack @storages @fstab @azure
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
 #        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
@@ -128,7 +128,7 @@ Feature: Linux server lifecycle
         When I stop farm
         And wait all servers are terminated
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @cloudstack @gce @storages @azure
     Scenario: Delete attached storage
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
@@ -139,7 +139,7 @@ Feature: Linux server lifecycle
         Then I expect server bootstrapping as M1
         And scalarizr version from system repo is last in M1
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @cloudstack @gce @storages @azure
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old
