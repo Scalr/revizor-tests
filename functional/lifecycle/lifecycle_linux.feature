@@ -128,7 +128,7 @@ Feature: Linux server lifecycle
         When I stop farm
         And wait all servers are terminated
 
-    @ec2 @cloudstack @gce @storages @azure
+    @ec2 @cloudstack @gce @storages
     Scenario: Delete attached storage
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
@@ -139,7 +139,7 @@ Feature: Linux server lifecycle
         Then I expect server bootstrapping as M1
         And scalarizr version from system repo is last in M1
 
-    @ec2 @cloudstack @gce @storages @azure
+    @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages after restart farm
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old
@@ -185,4 +185,5 @@ Feature: Linux server lifecycle
         And I see pending server M1
         When I wait server M1 in running state
         And disk types in role are valid
-
+        And directory '/media/diskmount' exist in M1
+        And I create 100 files in '/media/diskmount' in M1
