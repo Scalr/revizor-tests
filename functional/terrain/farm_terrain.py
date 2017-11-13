@@ -156,6 +156,23 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(platform.RACKSPACENGUS, [])}
                     else:
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(platform.cloud_family, [])}
+                    if platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
+                        additional_storages['configs'].append({
+                            "id": None,
+                            "type": "raid.ebs",
+                            "fs": "ext3",
+                            "settings": {
+                                "raid.level": "1",
+                                "raid.volumes_count": 2,
+                                "ebs.size": "1",
+                                "ebs.type": "standard"
+                            },
+                            "mount": True,
+                            "mountPoint": "/media/raidmount",
+                            "reUse": True,
+                            "status": "",
+                        })
+
             elif opt == 'ephemeral':
                 if platform.is_ec2 and CONF.feature.dist.is_windows:
                     eph_disk_conf = {
