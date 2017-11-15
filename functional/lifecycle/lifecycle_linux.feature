@@ -27,7 +27,7 @@ Feature: Linux server lifecycle
         When I run "szradm list-messages" on M1
         And the key "name" has record "HostUp" on M1
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @cloudstack @gce @storages @azure
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
@@ -44,7 +44,7 @@ Feature: Linux server lifecycle
         And I trigger snapshot creation from volume for '/media/partition' on role
         Then Volume snapshot creation become completed
 
-    @ec2 @cloudstack @gce @storages @fstab
+    @ec2 @cloudstack @gce @storages @fstab @azure
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
@@ -56,7 +56,7 @@ Feature: Linux server lifecycle
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @cloudstack @storages @fstab
+    @ec2 @cloudstack @storages @fstab @azure
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
         And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
@@ -176,3 +176,14 @@ Feature: Linux server lifecycle
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
+
+    @azure
+    Scenario: Check attached unmanaged storage
+        Given I have a clean and stopped farm
+        And I add role to this farm with unmanaged
+        When I start farm
+        And I see pending server M1
+        When I wait server M1 in running state
+        And disk types in role are valid
+        And directory '/media/diskmount' exist in M1
+        And I create 100 files in '/media/diskmount' in M1

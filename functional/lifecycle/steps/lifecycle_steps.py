@@ -416,3 +416,7 @@ def remove_raid_support(scenario):
         for step in scenario.steps[:]:
             if '/media/raidmount' in step.sentence:
                 scenario.steps.remove(step)
+    if CONF.feature.platform != 'ec2':
+        for step in scenario.steps[:]:
+            if '/media/partition' in step.sentence:
+                scenario.steps.remove(step)
