@@ -1,0 +1,9 @@
+{
+    "RV_PLATFORM": {
+        "ec2": {"tags": ["ec2"], "default": true},
+        "gce": ["gce"],
+        "rackspacengus": ["openstack"],
+        "openstack": ["openstack"],
+        "azure": ["azure"]
+    }
+}
