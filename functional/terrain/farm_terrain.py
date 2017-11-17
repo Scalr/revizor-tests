@@ -54,7 +54,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
             if 'redis processes' in opt:
                 redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
                 LOG.info('Setup %s redis processes' % redis_count)
-                role_params.redis.redis_processes = int(redis_count)
+                role_params.database.redis_processes = int(redis_count)
             elif 'chef-solo' in opt:
                 Defaults.set_chef_solo(role_params, opt)
             else:
@@ -72,11 +72,11 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
 
     if behavior == 'redis':
         LOG.info('Insert redis settings')
-        role_params.redis.persistence_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
-        role_params.redis.use_password = True
+        role_params.database.redis_persistence_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
+        role_params.database.redis_use_password = True
 
     if behavior in DATABASE_BEHAVIORS:
-        Defaults.set_db_storages(role_params)
+        Defaults.set_db_storage(role_params)
 
     role = world.add_role_to_farm(behavior, role_params, role_id)
 

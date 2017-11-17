@@ -1,16 +1,15 @@
 __author__ = 'gigimon'
 import os
-import time
 import logging
-from datetime import datetime
 
 from lettuce import world, step
 
+from libs.defaults import Defaults
 from revizor2.api import Role
 from revizor2.conf import CONF
+from revizor2.helpers import farmrole
 from revizor2.utils import wait_until
-from revizor2.consts import Platform, ServerStatus, DATABASE_BEHAVIORS
-from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES
+from revizor2.consts import ServerStatus, DATABASE_BEHAVIORS
 
 
 LOG = logging.getLogger(__name__)
@@ -76,21 +75,18 @@ def add_new_role_to_farm(step, alias=None):
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
 
-    options = getattr(world, 'role_options', {})
-    if not options and alias in DATABASE_BEHAVIORS:
-        storages = DEFAULT_STORAGES.get(CONF.feature.platform.name, None)
-        if storages:
-            LOG.info('Insert main settings for %s storage' % CONF.feature.storage)
-            options.update(storages.get(CONF.feature.storage, {}))
-    scripting = getattr(world, 'role_scripting', [])
+    options = farmrole.FarmRoleParams(CONF.feature.platform, alias=alias)
+    if alias in DATABASE_BEHAVIORS:
+        Defaults.set_db_storage(options)
 
     if 'redis' in bundled_role.behaviors:
-        options.update({'db.msr.redis.persistence_type': os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof'),
-                        'db.msr.redis.use_password': True})
+        options.database.redis_persistence_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
+        options.database.redis_use_password = True
+
     if len('{}-{}'.format(world.farm.name, alias)) >= 63:
-        options.update(DEFAULT_ROLE_OPTIONS['hostname'])
-    world.farm.add_role(world.bundled_role_id, options=options,
-                        scripting=scripting, alias=alias)
+        Defaults.set_hostname(options)
+
+    world.farm.add_role(world.bundled_role_id, options=options.to_json())
     world.farm.roles.reload()
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))

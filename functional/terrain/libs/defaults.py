@@ -1,6 +1,6 @@
 from revizor2.conf import CONF
 from revizor2.consts import Dist
-from revizor2.helpers.farmrole import OrchestrationRule, Volume, ScalingRule
+from revizor2.helpers import farmrole
 
 
 class Defaults(object):
@@ -21,44 +21,90 @@ class Defaults(object):
     def set_storages_windows(params):
         if CONF.feature.platform.is_cloudstack:
             params.storage.volumes = [
-                Volume(size=1, fs='ntfs', type='custom')
+                farmrole.Volume(size=1, fs='ntfs', type='custom')
             ]
         else:
             params.storage.volumes = [
-                Volume(size=2, fs='ntfs', mount='D'),
-                Volume(size=2, fs='ntfs', mount='E', label='test_label2')  # TODO: label impl
+                farmrole.Volume(size=2, fs='ntfs', mount='D'),
+                farmrole.Volume(size=2, fs='ntfs', mount='E', label='test_label2')  # TODO: label impl
             ]
 
     @staticmethod
     def set_storages_linux(params):
         params.storage.volumes = [
-            Volume(size=1, mount='/media/diskmount', re_build=True),
-            Volume(size=1, mount='/media/partition', re_build=True)
+            farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
+            farmrole.Volume(size=1, mount='/media/partition', re_build=True)
         ]
         if CONF.feature.platform.is_cloudstack:
             params.storage.volumes.append(
-                Volume(size=1, engine='raid', level=10, volumes=4, mount='/media/raidmount')
+                farmrole.Volume(size=1, engine='raid', level=10, volumes=4, mount='/media/raidmount')
             )
 
     @staticmethod
-    def set_db_storages(params):
-        # TODO
-        # CONF.feature.storage - eph, persistent, etc
-        pass
+    def set_db_storage(params):
+        if CONF.feature.platform.is_ec2:
+            Defaults.set_db_storage_ec2(params)
+        elif CONF.feature.platform.is_gce:
+            Defaults.set_db_storage_gce(params)
+        elif CONF.feature.platform.is_openstack:
+            Defaults.set_db_storage_openstack(params)
+        elif CONF.feature.platform.is_rackspacengus:
+            Defaults.set_db_storage_rackspacengus(params)
+
+    @staticmethod
+    def set_db_storage_ec2(params):
+        if CONF.feature.storage == 'persistent':
+            params.database.storage = farmrole.DataStorage()
+        elif CONF.feature.storage == 'lvm':
+            params.database.storage = farmrole.DataStorage(engine='lvm', type='ephemeral0', mount='Z')
+        elif CONF.feature.storage == 'eph':
+            params.database.storage = farmrole.DataStorage(engine='eph', type='/dev/sda2')
+        elif CONF.feature.storage == 'raid10':
+            params.database.storage = farmrole.DataStorage(engine='raid', level=10, volumes=4)
+        elif CONF.feature.storage == 'raid5':
+            params.database.storage = farmrole.DataStorage(engine='raid', level=5, volumes=3)
+        elif CONF.feature.storage == 'raid1':
+            params.database.storage = farmrole.DataStorage(engine='raid', level=1, volumes=2)
+        elif CONF.feature.storage == 'raid0':
+            params.database.storage = farmrole.DataStorage(engine='raid', level=0, volumes=2)
+
+    @staticmethod
+    def set_db_storage_gce(params):
+        if CONF.feature.storage == 'persistent':
+            params.database.storage = farmrole.DataStorage()
+        elif CONF.feature.storage == 'eph':
+            params.database.storage = farmrole.DataStorage(engine='eph', type='ephemeral-disk-0')
+        elif CONF.feature.storage == 'raid10':
+            params.database.storage = farmrole.DataStorage(engine='raid', level=10, volumes=4)
+        elif CONF.feature.storage == 'raid5':
+            params.database.storage = farmrole.DataStorage(engine='raid', level=5, volumes=3)
+
+    @staticmethod
+    def set_db_storage_openstack(params):
+        if CONF.feature.storage == 'persistent':
+            params.database.storage = farmrole.DataStorage()
+
+    @staticmethod
+    def set_db_storage_rackspacengus(params):
+        if CONF.feature.storage == 'persistent':
+            params.database.storage = farmrole.DataStorage(size=100)
+        elif CONF.feature.storage == 'eph':
+            params.database.storage = farmrole.DataStorage(engine='eph', type='/dev/loop0')
 
     @staticmethod
     def set_ephemeral(params):
         if CONF.feature.platform.is_ec2 and CONF.feature.dist.is_windows:
             params.storage.volumes.append(
-                Volume(size=4, engine='eph', name='ephemeral0', fs='ntfs', mount='Z',
-                       label='test_label', category='Ephemeral storage', re_use=False)
+                farmrole.Volume(size=4, engine='eph', type='ephemeral0', fs='ntfs', mount='Z',
+                                label='test_label', category='Ephemeral storage', re_use=False)
             )
 
     @staticmethod
     def set_chef(params):
         if CONF.feature.dist.id != Dist('coreos').id:
             params.bootstrap_with_chef.enabled = True
-            params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+            params.bootstrap_with_chef.server = farmrole.ChefServer(
+                url='https://api.opscode.com/organizations/webta')
             params.bootstrap_with_chef.runlist = '["recipe[memcached::default]", "recipe[revizorenv]"]'
             params.bootstrap_with_chef.attributes = '{"memcached": {"memory": "1024"}}'
             params.bootstrap_with_chef.daemonize = True
@@ -67,7 +113,8 @@ class Defaults(object):
     def set_chef_role(params):
         if CONF.feature.dist.id != Dist('coreos').id:
             params.bootstrap_with_chef.enabled = True
-            params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+            params.bootstrap_with_chef.server = farmrole.ChefServer(
+                url='https://api.opscode.com/organizations/webta')
             params.bootstrap_with_chef.role_name = 'test_chef_role'
             params.bootstrap_with_chef.daemonize = True
 
@@ -75,20 +122,23 @@ class Defaults(object):
     def set_chef_fail(params):
         if CONF.feature.dist.id != Dist('coreos').id:
             params.bootstrap_with_chef.enabled = True
-            params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+            params.bootstrap_with_chef.server = farmrole.ChefServer(
+                url='https://api.opscode.com/organizations/webta')
             params.bootstrap_with_chef.runlist = '["role[always_fail]"]'
             params.bootstrap_with_chef.daemonize = True
 
     @staticmethod
     def set_winchef(params):
         params.bootstrap_with_chef.enabled = True
-        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.server = farmrole.ChefServer(
+            url='https://api.opscode.com/organizations/webta')
         params.bootstrap_with_chef.runlist = '["recipe[windows_file_create::default]", "recipe[revizorenv]"]'
 
     @staticmethod
     def set_winchef_role(params):
         params.bootstrap_with_chef.enabled = True
-        params.bootstrap_with_chef.server = 'https://api.opscode.com/organizations/webta'
+        params.bootstrap_with_chef.server = farmrole.ChefServer(
+            url='https://api.opscode.com/organizations/webta')
         params.bootstrap_with_chef.role_name = 'test_chef_role_windows'
 
     @staticmethod
@@ -126,7 +176,7 @@ class Defaults(object):
     @staticmethod
     def set_failed_script(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='BeforeHostUp', script='Multiplatform exit 1')
+            farmrole.OrchestrationRule(event='BeforeHostUp', script='Multiplatform exit 1')
         ]
         params.advanced.abort_init_on_script_fail = True
 
@@ -151,84 +201,86 @@ class Defaults(object):
     @staticmethod
     def set_apachefix(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='HostInit', script='CentOS7 fix apache log')
+            farmrole.OrchestrationRule(event='HostInit', script='CentOS7 fix apache log')
         ]
 
     @staticmethod
     def set_orchestration(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='HostInit', script='Revizor orchestration init'),
-            OrchestrationRule(event='HostInit', script='/tmp/script.sh'),
-            OrchestrationRule(event='HostInit', script='https://gist.githubusercontent.com/gigimon'
-                                                       '/f86c450f4620be2315ea/raw'
-                                                       '/09cc205dd5552cb56c5d542b420ee1fe9f2838e1/gistfile1.txt'),
-            OrchestrationRule(event='BeforeHostUp', script='Linux ping-pong'),
-            OrchestrationRule(event='BeforeHostUp',
-                              cookbook_url='git@github.com:Scalr/int-cookbooks.git',
-                              runlist='["recipe[revizor-chef::default]"]',
-                              path='cookbooks'),
-            OrchestrationRule(event='HostUp', script='https://gist.githubusercontent.com/Theramas'
-                                                     '/5b2a9788df316606f72883ab1c3770cc/raw'
-                                                     '/3ae1a3f311d8e43053fbd841e8d0f17daf1d5d66/multiplatform'),
-            OrchestrationRule(event='HostUp', script='Linux ping-pong', run_as='revizor2'),
-            OrchestrationRule(event='HostUp', script='/home/revizor/local_script.sh', run_as='revizor'),
-            OrchestrationRule(event='HostUp', script='Linux ping-pong', run_as='revizor'),
-            OrchestrationRule(event='HostUp', runlist='["recipe[create_file::default]"]',
-                              attributes='{"create_file":{"path":"/root/chef_hostup_result"}}'),
-            OrchestrationRule(event='HostUp', script='/bin/uname'),
-            OrchestrationRule(event='HostUp', script='Sleep 10')
+            farmrole.OrchestrationRule(event='HostInit', script='Revizor orchestration init'),
+            farmrole.OrchestrationRule(event='HostInit', script='/tmp/script.sh'),
+            farmrole.OrchestrationRule(event='HostInit', script='https://gist.githubusercontent.com/gigimon'
+                                                                '/f86c450f4620be2315ea/raw'
+                                                                '/09cc205dd5552cb56c5d542b420ee1fe9f2838e1'
+                                                                '/gistfile1.txt'),
+            farmrole.OrchestrationRule(event='BeforeHostUp', script='Linux ping-pong'),
+            farmrole.OrchestrationRule(event='BeforeHostUp',
+                                       cookbook_url='git@github.com:Scalr/int-cookbooks.git',
+                                       runlist='["recipe[revizor-chef::default]"]',
+                                       path='cookbooks'),
+            farmrole.OrchestrationRule(event='HostUp', script='https://gist.githubusercontent.com/Theramas'
+                                                              '/5b2a9788df316606f72883ab1c3770cc/raw'
+                                                              '/3ae1a3f311d8e43053fbd841e8d0f17daf1d5d66'
+                                                              '/multiplatform'),
+            farmrole.OrchestrationRule(event='HostUp', script='Linux ping-pong', run_as='revizor2'),
+            farmrole.OrchestrationRule(event='HostUp', script='/home/revizor/local_script.sh', run_as='revizor'),
+            farmrole.OrchestrationRule(event='HostUp', script='Linux ping-pong', run_as='revizor'),
+            farmrole.OrchestrationRule(event='HostUp', runlist='["recipe[create_file::default]"]',
+                                       attributes='{"create_file":{"path":"/root/chef_hostup_result"}}'),
+            farmrole.OrchestrationRule(event='HostUp', script='/bin/uname'),
+            farmrole.OrchestrationRule(event='HostUp', script='Sleep 10')
         ]
 
     @staticmethod
     def set_small_linux_orchestration(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='HostInit', script='Revizor last reboot'),
-            OrchestrationRule(event='HostUp', script='Revizor last reboot')
+            farmrole.OrchestrationRule(event='HostInit', script='Revizor last reboot'),
+            farmrole.OrchestrationRule(event='HostUp', script='Revizor last reboot')
         ]
 
     @staticmethod
     def set_small_win_orchestration(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='HostInit', script='Windows ping-pong. CMD'),
-            OrchestrationRule(event='HostUp', script='Windows ping-pong. CMD')
+            farmrole.OrchestrationRule(event='HostInit', script='Windows ping-pong. CMD'),
+            farmrole.OrchestrationRule(event='HostUp', script='Windows ping-pong. CMD')
         ]
 
     @staticmethod
     def set_scaling(params):
-        params.scaling.rules = [ScalingRule.get_or_create_metric(max=75, min=50)]
+        params.scaling.rules = [farmrole.ScalingRule.get_or_create_metric(max=75, min=50)]
 
     @staticmethod
     def set_scaling_execute_linux(params):
         params.scaling.rules = [
-            ScalingRule(metric='RevizorLinuxExecute', max=75, min=50)
+            farmrole.ScalingRule(metric='RevizorLinuxExecute', max=75, min=50)
         ]
 
     @staticmethod
     def set_scaling_read_linux(params):
         params.scaling.rules = [
-            ScalingRule(metric='RevizorLinuxRead', max=75, min=50)
+            farmrole.ScalingRule(metric='RevizorLinuxRead', max=75, min=50)
         ]
 
     @staticmethod
     def set_scaling_execute_win(params):
         params.scaling.rules = [
-            ScalingRule(metric='RevizorWindowsExecute', max=75, min=50)
+            farmrole.ScalingRule(metric='RevizorWindowsExecute', max=75, min=50)
         ]
 
     @staticmethod
     def set_scaling_read_win(params):
         params.scaling.rules = [
-            ScalingRule(metric='RevizorWindowsRead', max=75, min=50)
+            farmrole.ScalingRule(metric='RevizorWindowsRead', max=75, min=50)
         ]
 
     @staticmethod
     def set_prepare_scaling_linux(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='HostInit', script='Revizor scaling prepare linux')
+            farmrole.OrchestrationRule(event='HostInit', script='Revizor scaling prepare linux')
         ]
 
     @staticmethod
     def set_prepare_scaling_win(params):
         params.orchestration.rules = [
-            OrchestrationRule(event='HostInit', script='Revizor scaling prepare windows')
+            farmrole.OrchestrationRule(event='HostInit', script='Revizor scaling prepare windows')
         ]
