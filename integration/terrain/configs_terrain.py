@@ -25,7 +25,7 @@ def configure_revizor(step):
             CONF.feature.platform = Platform(os.environ.get('RV_PLATFORM', 'gce').lower())
 
 
-@step('Given I have configured scalr config')
+@step('I have configured scalr config')
 def configure_scalr_config(step):
     config = world.testenv.get_config()
     for opt in step.hashes:
