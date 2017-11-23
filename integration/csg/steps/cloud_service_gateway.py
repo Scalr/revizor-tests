@@ -73,7 +73,7 @@ def execute_service_function(step, func, service, cloud, request_as):
         aws = cloud_services.Aws(id,
                                  request['access_key'],
                                  secret,
-                                 'us-east-1',
+                                 'us-east-1',  # TODO: think how can we get it instead of hardcoding
                                  '%s.test-env.scalr.com' % CONF.scalr.te_id,
                                  csg_port)
         aws.configure()
