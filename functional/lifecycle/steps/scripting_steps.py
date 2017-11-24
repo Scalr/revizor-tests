@@ -66,13 +66,16 @@ def chef_bootstrap_failed(step, serv_as):
             if out.strip():
                 return
             raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
-    failure_marker = 'chef-client" exited with code 1'
-    cmd = 'findstr /C:"Command \\"C:\opscode\chef\\bin\chef-client\\" exited with code 1" "C:\opt\scalarizr\\var\log\scalarizr_debug.log"'
+    win_failure_marker = 'chef-client" exited with code 1'
+    cmd = 'findstr /C:"Command \\"C:\opscode\chef\\bin\chef-client\\" exited with code 1"' \
+          ' "C:\opt\scalarizr\\var\log\scalarizr_debug.log"'
     result = world.run_cmd_command(server, cmd)
     out, err, code = result.std_out, result.std_err, result.status_code
-    if failure_marker in out:
+    if win_failure_marker in out:
         return
-    raise AssertionError("Chef bootstrap marker not found in scalarizr_debug.log cmd: %s \ out: %s err: %s" % (cmd, err, out))
+    raise AssertionError(
+        "Chef bootstrap marker not found in scalarizr_debug.log cmd: %s \ out: %s err: %s" % (
+            cmd, err, out))
 
 
 @step("last script data is deleted on ([\w\d]+)$")
@@ -90,7 +93,7 @@ def check_script_data_deleted(step, serv_as):
         LOG.debug('Logs from server:\n%s\n%s\n%s' % (out, err, code))
     else:
         node = world.cloud.get_node(server)
-        cmd = 'F /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
+        cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
         out, err, code = node.run(cmd)
     if code:
         raise AssertionError("Command '%s' was not executed properly. An error has occurred:\n%s" % (cmd, err))
