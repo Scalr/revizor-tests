@@ -156,6 +156,23 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(platform.RACKSPACENGUS, [])}
                     else:
                         additional_storages = {'configs': DEFAULT_ADDITIONAL_STORAGES.get(platform.cloud_family, [])}
+                    if platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
+                        additional_storages['configs'].append({
+                            "id": None,
+                            "type": "raid.ebs",
+                            "fs": "ext3",
+                            "settings": {
+                                "raid.level": "1",
+                                "raid.volumes_count": 2,
+                                "ebs.size": "1",
+                                "ebs.type": "standard"
+                            },
+                            "mount": True,
+                            "mountPoint": "/media/raidmount",
+                            "reUse": True,
+                            "status": "",
+                        })
+
             elif opt == 'ephemeral':
                 if platform.is_ec2 and CONF.feature.dist.is_windows:
                     eph_disk_conf = {
@@ -175,6 +192,32 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                         "mountPoint": "Z",
                         "label": "test_label"}
                     additional_storages = {'configs': [eph_disk_conf]}
+            elif opt == 'unmanaged':
+                if not CONF.feature.dist.is_windows and platform.is_azure:
+                    eph_disk_conf = {
+                        "reUse": True,
+                        "type": "azure_vhd",
+                        "settings": {
+                            "azure_vhd.type": "Standard_LRS",
+                            "azure_vhd.storage_account": "/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/"
+                                                         "resourceGroups/revizor/providers/Microsoft.Storage/"
+                                                         "storageAccounts/revizor",
+                            "azure_vhd.size": "1"
+                        },
+                        "status": "",
+                        "isRoot": "0",
+                        "readOnly": False,
+                        "category": " Persistent storage",
+                        "fs": "ext3",
+                        "mount": True,
+                        "mountPoint": "/media/diskmount",
+                        "mountOptions": "",
+                        "rebuild": True
+                    }
+                    additional_storages = {'configs': [eph_disk_conf]}
+                    role_options["azure.storage-account"] = "/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/" \
+                                                            "resourceGroups/revizor/providers/Microsoft.Storage/" \
+                                                            "storageAccounts/revizor"
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)

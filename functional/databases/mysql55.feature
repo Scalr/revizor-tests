@@ -140,13 +140,13 @@ Feature: MySQL database server with behavior mysql2
         When I create database D2 on M1 by user 'revizor'
         Then M2 contains database D2 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @slavedatabundle
-	Scenario: Check databundle in slave
-		When I trigger databundle creation on slave
-		And Scalr receives DbMsr_CreateDataBundleResult from M2
+    @ec2 @gce @cloudstack @rackspaceng @openstack @databundle @slavedatabundle
+    Scenario: Check databundle in slave
+        When I trigger databundle creation on slave
+        And Scalr receives DbMsr_CreateDataBundleResult from M2
         And Last databundle date updated to current
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
+    @ec2 @gce @cloudstack @rackspaceng @openstack @promotion
     Scenario: Slave -> Master promotion
         Given I increase minimum servers to 3 for mysql2 role
         And I expect server bootstrapping as M3
@@ -163,36 +163,36 @@ Feature: MySQL database server with behavior mysql2
         And mysql2 replication status is up
         And M2 contains database D3 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @promotion
-	Scenario: Check new master replication
-		Given I wait 1 minutes
-		When I create database D4 on N1 by user 'revizor'
-		Then all contains database D4 by user 'revizor'
+    @ec2 @gce @cloudstack @rackspaceng @openstack @promotion
+    Scenario: Check new master replication
+        Given I wait 1 minutes
+        When I create database D4 on N1 by user 'revizor'
+        Then all contains database D4 by user 'revizor'
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @databundle @lvm
-	Scenario: Bundling data before terminate
+    @ec2 @gce @cloudstack @rackspaceng @openstack @databundle @lvm
+    Scenario: Bundling data before terminate
         When I trigger databundle creation
         And Scalr receives DbMsr_CreateDataBundleResult from N1
-		And Last databundle date updated to current
+        And Last databundle date updated to current
 
-	@ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
-	Scenario: Restart farm
-		When I stop farm
-		And wait all servers are terminated
-        Then I increase storage size to 7 Gb in farm settings for mysql2 role
-		Then I start farm with delay
-		And I expect server bootstrapping as M1
-		And mysql is running on M1
-		And M1 contains database D3 by user 'revizor'
-		And scalarizr version is last in M1
+    @ec2 @gce @cloudstack @rackspaceng @openstack @restartfarm
+    Scenario: Restart farm
+        When I stop farm
+        And wait all servers are terminated
+#        Then I increase storage size to 7 Gb in farm settings for mysql2 role
+        Then I start farm with delay
+        And I expect server bootstrapping as M1
+        And mysql is running on M1
+        And M1 contains database D3 by user 'revizor'
+        And scalarizr version is last in M1
         Given I have a M1 attached volume as V1
-        And attached volume V1 has size 7 Gb
-		Then I expect server bootstrapping as M2
-		And mysql2 replication status is up
-		And M2 is slave of M1
-		And M2 contains databases D3,D4 by user 'revizor'
+#        And attached volume V1 has size 7 Gb
+        Then I expect server bootstrapping as M2
+        And mysql2 replication status is up
+        And M2 is slave of M1
+        And M2 contains databases D3,D4 by user 'revizor'
 
-	@ec2 @gce @rackspaceng @openstack @pmalaunch
+    @ec2 @gce @rackspaceng @openstack @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart
         When I trigger pmaaccess creation
         Then I launch pma session
@@ -207,7 +207,7 @@ Feature: MySQL database server with behavior mysql2
         Then I start farm with delay
         And I expect server bootstrapping as M1
         Then I expect server bootstrapping as M2
-        And attached volume V1 has size 7 Gb
+#        And attached volume V1 has size 7 Gb
         And M1 doesn't has any databases
         And mysql2 replication status is up
         And M2 is slave of M1

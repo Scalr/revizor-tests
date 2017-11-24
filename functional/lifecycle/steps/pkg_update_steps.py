@@ -220,11 +220,18 @@ def asserting_version(step, version, serv_as):
     err_msg = 'Scalarizr version not valid %s:%s'
     # Windows handler
     if CONF.feature.dist.is_windows:
-        res = world.run_cmd_command_until(command, server=server, timeout=300).std_out
+        for _ in range(3):
+            out = world.run_cmd_command_until(command, server=server, timeout=300)
+            LOG.debug('Get scalarizr version from windows: %s (%s)' % (out.std_out, out.std_err))
+            if out.std_out.strip():
+                res = out.std_out.strip()
+                break
+            time.sleep(3)
     # Linux handler
     else:
         node = world.cloud.get_node(server)
         res = node.run(command)[0]
+    LOG.debug('Result from scalarizr -v: %s' % res)
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert installed_agent, "Can't get scalarizr version: %s" % res
     installed_agent = installed_agent[0]

@@ -69,6 +69,7 @@ def chef_bootstrap_failed(step, serv_as):
 
 @step("last script data is deleted on ([\w\d]+)$")
 def check_script_data_deleted(step, serv_as):
+    LOG.info('Check script executed data was deleted')
     server = getattr(world, serv_as)
     server.scriptlogs.reload()
     if not server.scriptlogs:
@@ -78,6 +79,7 @@ def check_script_data_deleted(step, serv_as):
         cmd = 'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\%s /b /s /ad | findstr /e "\\bin \\data"' % task_dir
         result = world.run_cmd_command(server, cmd)
         out, err, code = result.std_out, result.std_err, result.status_code
+        LOG.debug('Logs from server:\n%s\n%s\n%s' % (out, err, code))
     else:
         node = world.cloud.get_node(server)
         cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
