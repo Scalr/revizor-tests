@@ -27,6 +27,11 @@ Feature: Windows server provision with chef
         And scalarizr version is last in M1
         And chef node_name in M1 set by global hostname
 
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @restartfarm
+    Scenario: Cleanup farm
+        When I stop farm
+        And wait all servers are terminated
+
     @ec2 @gce @openstack @azure
     Scenario: Bootstraping from chef-role
         Given I have a clean and stopped farm
