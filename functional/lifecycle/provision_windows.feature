@@ -18,6 +18,16 @@ Feature: Windows server provision with chef
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
     @ec2 @gce @openstack @azure
+    Scenario: Verify Scalr delete chef-fixtures
+        When I stop farm
+        And wait all servers are terminated
+        And server M1 not exists on chef nodes list
+        Then I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
+        And chef node_name in M1 set by global hostname
+
+    @ec2 @gce @openstack @azure
     Scenario: Bootstraping from chef-role
         Given I have a clean and stopped farm
         And I add role to this farm with winchef-role
@@ -37,7 +47,7 @@ Feature: Windows server provision with chef
         And file 'C:\chef-solo-private' exist in M1 windows
         And last script data is deleted on M1
 
-    @ec2 @vmware @gce @cloudstack @openstack @azure @rackspaceng
+    @ec2 @gce @openstack @azure
     Scenario: Chef bootstrap failure
         Given I have a clean and stopped farm
         When I add role to this farm with chef-fail
@@ -46,4 +56,3 @@ Feature: Windows server provision with chef
         And Initialization was failed on "HostInit" phase with "C:\opscode\chef\bin\chef-client exited with code 1" message on M1
         And chef log in M1 contains "NoMethodError: undefined method `fatal!'"
         And chef bootstrap failed in M1
-
