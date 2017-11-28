@@ -19,7 +19,7 @@ from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
 from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS, DEFAULT_SCALARIZR_PY3_REPO
 from revizor2.consts import Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Platform
 from revizor2 import szrapi
 from revizor2.fixtures import tables
@@ -421,8 +421,10 @@ def assert_scalarizr_version(step, branch, serv_as):
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
-        if branch in ['stable', 'latest']:
+        if branch == 'stable':
             default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
+        elif branch == 'latest':
+            default_repo = DEFAULT_SCALARIZR_PY3_REPO[os_family]
         else:
             url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
             path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
