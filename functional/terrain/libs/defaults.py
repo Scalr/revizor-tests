@@ -101,13 +101,10 @@ class Defaults(object):
 
     @staticmethod
     def set_unmanaged(params):
-        storage_account = '/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/resourceGroups/revizor/providers' \
-                          '/Microsoft.Storage/storageAccounts/revizor'
         if not CONF.feature.dist.is_windows and CONF.feature.platform.is_azure:
-            params.azure.storage_account = storage_account
+            params.azure.storage_account = CONF.feature.platform.storage_account
             params.storage.volumes = [
-                farmrole.Volume(engine='unmanaged', mount='/media/diskmount', re_build=True,
-                                storage_account=storage_account)
+                farmrole.Volume(engine='unmanaged', mount='/media/diskmount', re_build=True)
             ]
 
     @staticmethod
