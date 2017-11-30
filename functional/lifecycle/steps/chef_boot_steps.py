@@ -31,6 +31,19 @@ def check_process_options(step, process, options, serv_as):
     raise AssertionError('Not found process: %s' % process)
 
 
+@step("I checked that attribute in cookbook changed to '(.+)' in (.+)")
+def check_windows_attribute_change(step, options, serv_as):
+    """Verify the attribute work on cookbook(revizor_chef_multi) by changing the filename on Windows."""
+    server = getattr(world, serv_as)
+    LOG.debug('Check that attribute in windows cookbook was changed to %s' % options)
+    cmd = 'dir c:\\'
+    result = world.run_cmd_command(server, cmd)
+    out, err, code = result.std_out, result.std_err, result.status_code
+    if options in out:
+        return
+    raise AssertionError('Attribute in windows cookbook was not changed to %s out: %s' % (options, out))
+
+
 @step("chef node_name in ([\w\d]+) set by global hostname")
 def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
