@@ -37,6 +37,7 @@ class Defaults(object):
         ]
         if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
             params.storage.volumes.append(
+                params.storage,
                 farmrole.Volume(engine='raid', size=1, level=1, volumes=2, mount='/media/raidmount')
             )
 
@@ -94,10 +95,10 @@ class Defaults(object):
     @staticmethod
     def set_ephemeral(params):
         if CONF.feature.platform.is_ec2 and CONF.feature.dist.is_windows:
-            params.storage.volumes.append(
+            params.storage.volumes = [
                 farmrole.Volume(size=4, engine='eph', type='ephemeral0', fs='ntfs', mount='Z',
                                 label='test_label', category='Ephemeral storage', re_use=False)
-            )
+            ]
 
     @staticmethod
     def set_unmanaged(params):
