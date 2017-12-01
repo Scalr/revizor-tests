@@ -74,8 +74,8 @@ def chef_bootstrap_failed(step, serv_as):
     if win_failure_marker in out:
         return
     raise AssertionError(
-        "Chef bootstrap marker not found in scalarizr_debug.log cmd: %s \ out: %s err: %s" % (
-            cmd, err, out))
+        "Chef bootstrap marker not found in scalarizr_debug.log cmd: %s out: %s err: %s code: %s" % (
+            cmd, out, err, code))
 
 
 @step("last script data is deleted on ([\w\d]+)$")

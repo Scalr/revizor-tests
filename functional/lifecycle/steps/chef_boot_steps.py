@@ -41,7 +41,9 @@ def check_windows_attribute_change(step, options, serv_as):
     out, err, code = result.std_out, result.std_err, result.status_code
     if options in out:
         return
-    raise AssertionError('Attribute in windows cookbook was not changed to %s out: %s' % (options, out))
+    raise AssertionError(
+        'Attribute in windows cookbook was not changed to %s out: %s err: %s code: %s' % (
+            options, out, err, code))
 
 
 @step("chef node_name in ([\w\d]+) set by global hostname")
