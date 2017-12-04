@@ -29,7 +29,7 @@ Feature: Windows server provision with chef
         And I checked that attribute in cookbook changed to 'changed_result' in M1
         And chef node_name in M1 set by global hostname
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @restartfarm
+     @ec2 @gce @openstack @azure
     Scenario: Cleanup farm
         When I stop farm
         And wait all servers are terminated
