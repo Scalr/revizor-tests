@@ -5,6 +5,7 @@ import logging
 import chef
 
 from lettuce import world, step
+from revizor2.conf import CONF
 
 
 LOG = logging.getLogger(__name__)
@@ -64,3 +65,27 @@ def chef_bootstrap_failed(step, serv_as):
         if out.strip():
             return
     raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
+
+
+@step("last script data is deleted on ([\w\d]+)$")
+def check_script_data_deleted(step, serv_as):
+    LOG.info('Check script executed data was deleted')
+    server = getattr(world, serv_as)
+    server.scriptlogs.reload()
+    if not server.scriptlogs:
+        raise AssertionError("No orchestration logs found on %s" % server.id)
+    task_dir = server.scriptlogs[0].execution_id.replace('-', '')
+    if CONF.feature.dist.is_windows:
+        cmd = 'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\%s /b /s /ad | findstr /e "\\bin \\data"' % task_dir
+        result = world.run_cmd_command(server, cmd)
+        out, err, code = result.std_out, result.std_err, result.status_code
+        LOG.debug('Logs from server:\n%s\n%s\n%s' % (out, err, code))
+    else:
+        node = world.cloud.get_node(server)
+        cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
+        out, err, code = node.run(cmd)
+    if code:
+        raise AssertionError("Command '%s' was not executed properly. An error has occurred:\n%s" % (cmd, err))
+    folders = [line for line in out.splitlines() if line.strip()]
+    if folders:
+        raise AssertionError("Script data is not deleted on %s. Found folders: %s" % (server.id, ';'.join(folders)))

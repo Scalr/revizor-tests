@@ -50,7 +50,5 @@ def cleanup_cloud_server(total):
         LOG.info('Destroy node in cloud')
         try:
             cloud_node.destroy()
-        except BaseException, e:
-            LOG.exception('Node %s can\'t be destroyed' % cloud_node.id)
-
-
+        except Exception as e:
+            LOG.exception('Node %s can\'t be destroyed (%s)' % (cloud_node.id, str(e)))

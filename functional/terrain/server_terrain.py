@@ -202,6 +202,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
 
 @step(r"I execute '([\w\W]+)?' '([\w\W]+)' '([\w]+)' on ([\w\d]+)")
 def script_executing(step, script_type, script_name, execute_type, serv_as):
+    #TODO: Remove this step
     if script_type:
         script_type = ' %s ' % script_type.strip()
     else:
@@ -281,7 +282,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    platfrom = CONF.feature.platform
+    platform = CONF.feature.platform
     if platform.is_ec2:
         volumes = server.get_volumes()
         if not volumes:
@@ -420,7 +421,7 @@ def start_building(step):
     world.server = Server(**{'id': res['server_id']})
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
-    #and then run scalari4zr on new screen
+    #and then run scalarizr on new screen
     if CONF.feature.dist.is_windows:
         password = 'Scalrtest123'
         console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
@@ -432,7 +433,23 @@ def start_building(step):
         t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
         t1.start()
     else:
-        world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
+        command = 'screen -d -m %s &' % res['scalarizr_run_command']
+        if CONF.feature.dist.is_coreos:
+            command = 'docker run -it -d ' \
+                      '--privileged ' \
+                      '--net=scalr-int ' \
+                      '--entrypoint=scalarizr ' \
+                      '--volume=/etc/scalr:/etc/scalr ' \
+                      '--volume=/var/lib/scalarizr:/var/lib/scalarizr ' \
+                      '--volume=/var/log:/var/log ' \
+                      '--volume=/var/run/scalarizr:/var/run/scalarizr ' \
+                      '--volume=/dev:/dev ' \
+                      '--volume=/:/rootfs ' \
+                      '-p 8010:8010 -p 8013:8013 ' \
+                      'scalr/scalarizr %s' % res['scalarizr_run_command'].split(' ', 1)[1]
+        out = world.cloud_server.run(command)
+        LOG.debug('Output from start import command: %s' % out)
+
 
 @step(r'I install Chef on server')
 @world.run_only_if(dist=['!coreos'])

@@ -5,7 +5,7 @@ import json
 import logging
 from itertools import chain
 
-from lettuce import world, step, after
+from lettuce import world, step, after, before
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
@@ -408,3 +408,15 @@ def assert_server_message_count(step, msg, serv_as):
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
             messages_count, mount_device_count, incoming_messages))
+
+
+@before.each_scenario
+def remove_raid_support(scenario):
+    if CONF.feature.dist.id not in ['centos-6-x', 'ubuntu-14-04'] or CONF.feature.platform != 'ec2':
+        for step in scenario.steps[:]:
+            if '/media/raidmount' in step.sentence:
+                scenario.steps.remove(step)
+    if CONF.feature.platform != 'ec2':
+        for step in scenario.steps[:]:
+            if '/media/partition' in step.sentence:
+                scenario.steps.remove(step)
