@@ -11,10 +11,10 @@ Feature: Windows server provision with chef
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And I checked that attribute in cookbook changed to 'changed_result' in M1
         And server M1 exists on chef nodes list
         And M1 chef runlist has only recipes [windows_file_create,revizorenv,revizor_chef_multi]
         And file 'C:\chef_result_file' exist in M1 windows
+        And file 'C:\changed_result' exist in M1 windows
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
@@ -26,7 +26,7 @@ Feature: Windows server provision with chef
         Then I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
-        And I checked that attribute in cookbook changed to 'changed_result' in M1
+        And file 'C:\changed_result' exist in M1 windows
         And chef node_name in M1 set by global hostname
 
      @ec2 @gce @openstack @azure
@@ -46,7 +46,7 @@ Feature: Windows server provision with chef
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
-    Scenario: Bootstrapping with chef-solo from private git repo
+    Scenario: Bootstrapping role with chef-solo
         Given I have a clean and stopped farm
         When I add role to this farm with <settings>
         When I start farm
