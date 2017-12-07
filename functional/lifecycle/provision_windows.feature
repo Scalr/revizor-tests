@@ -23,27 +23,6 @@ Feature: Windows server provision with chef
         When I stop farm
         And wait all servers are terminated
         And server M1 not exists on chef nodes list
-        Then I start farm
-        Then I expect server bootstrapping as M1
-        And scalarizr version is last in M1
-        And file 'C:\changed_result' exist in M1 windows
-        And chef node_name in M1 set by global hostname
-
-     @ec2 @gce @openstack @azure
-    Scenario: Cleanup farm
-        When I stop farm
-        And wait all servers are terminated
-
-    @ec2 @gce @openstack @azure
-    Scenario: Bootstraping from chef-role
-        Given I have a clean and stopped farm
-        And I add role to this farm with winchef-role
-        When I start farm
-        Then I see pending server M1
-        And I wait and see running server M1
-        And file 'C:\chef_result_file' exist in M1 windows
-        And scalarizr version is last in M1
-        And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
     Scenario: Bootstrapping role with chef-solo
@@ -70,3 +49,14 @@ Feature: Windows server provision with chef
         And Initialization was failed on "HostInit" phase with "C:\opscode\chef\bin\chef-client exited with code 1" message on M1
         And chef log in M1 contains "NoMethodError: undefined method `fatal!'"
         And chef bootstrap failed in M1
+
+    @ec2 @gce @openstack @azure
+    Scenario: Bootstraping from chef-role
+        Given I have a clean and stopped farm
+        And I add role to this farm with winchef-role
+        When I start farm
+        Then I see pending server M1
+        And I wait and see running server M1
+        And file 'C:\chef_result_file' exist in M1 windows
+        And scalarizr version is last in M1
+        And hostname in M1 is valid
