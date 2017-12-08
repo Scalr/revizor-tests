@@ -34,7 +34,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'p2p_message',
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
-    'error was thrown due to the hostname format'
+    'error was thrown due to the hostname format',
+    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded"
 ]
 
 # Run powershell script as Administrator
