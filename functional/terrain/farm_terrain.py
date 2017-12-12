@@ -118,12 +118,11 @@ def farm_launch(step):
 
 @step('I add to farm imported role$')
 def add_new_role_to_farm(step):
-    options = getattr(world, 'role_options', {})
     bundled_role = Role.get(world.bundled_role_id)
+    options = farmrole.FarmRoleParams(CONF.feature.platform, alias=bundled_role.name)
     world.farm.add_role(
         world.bundled_role_id,
-        options=options,
-        alias=bundled_role.name)
+        options=options.to_json())
     world.farm.roles.reload()
     role = world.farm.roles[0]
     setattr(world, '%s_role' % role.alias, role)
