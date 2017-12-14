@@ -75,25 +75,23 @@ def check_errors_in_log(step, serv_as):
 
 @step(r"server ([\w\d]+) has disks ([((?:\w):(?:\\\w+)?)(?:\(\w+_label\d*\))? (\d+) Gb,]+)")
 @world.run_only_if(platform=(Platform.EC2, Platform.GCE))
-def check_attached_disk_size(step, serv_as, cdisks):
-    correct_disks = dict(re.findall('((?:\w):(?:\\\w+)?)(?:\(\w+_label\d*\))? (\d+) Gb', cdisks))
+def check_attached_disk_size(step, serv_as, disks):
     server = getattr(world, serv_as)
+    cdisks = re.findall(r'([\w\d\:\\]+)(\([\w\d_]+\))? (\d+) Gb', disks)
     out = world.run_cmd_command(server, 'wmic volume get Caption,Capacity,Label').std_out
-    sdisks = re.sub('\s+', ' ', out)
-    server_disks = {v.replace('\\\\', '\\').strip('\\'): int(k)/1000000000 for k, v in re.findall('(\d+) ((?:\w):\\\\(?:\w+\\\\)?)', sdisks)}
-    for mountpoint in correct_disks:
-        if mountpoint in server_disks:
-            assert int(correct_disks[mountpoint]) == server_disks[mountpoint],\
-                "Disk %s is of wrong size  - %s " % (mountpoint, server_disks[mountpoint])
+    server_disks = [line.split() for line in out.splitlines() if line.strip()][1:]
+    for d, label, size in cdisks:
+        for disk in server_disks:
+            if disk[1] == d:
+                ssize = (int(disk[0]) / 1000000000)
+                if ssize != int(size):
+                    raise AssertionError("Disk %s is of wrong size  - %s " % (disk[1], ssize))
+                if len(disk) > 2 and disk[2] not in label:
+                    raise AssertionError("Disk %s has an incorrect or no label %s. Should be %s." % (
+                        disk[1], disk[2], label))
+                break
         else:
-            raise AssertionError("Disk %s is not present" % mountpoint)
-    # server_labels = dict(re.findall('(\w):\d+(\w+_label)?', sdisks))
-    # correct_labels = dict(re.findall('(\w)(\(\w+_label\))?: \d+', cdisks))
-    # for mountpoint in correct_labels:
-    #     if mountpoint in server_labels:
-    #         assert correct_labels[mountpoint].strip('()') == server_labels[mountpoint],\
-    #             "Disk %s has an incorrect or no label %s. Should be %s." % (
-    #                 mountpoint,server_labels[mountpoint], correct_labels[mountpoint].strip('()'))
+            raise AssertionError("Disk not found! All server disks %s " % (server_disks))
 
 
 @step(r"I remove file '([\w\W]+)' from ([\w\d]+) windows")

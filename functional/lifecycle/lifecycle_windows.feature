@@ -12,7 +12,7 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And instance vcpus info not empty for M1
-        And server M1 has disks E:(test_label2) 1 Gb, D: 2 Gb, C:\diskmount(test_label2) 3 Gb
+        And server M1 has disks E:\(test_label) 1 Gb, D:\ 2 Gb, C:\diskmount\ 3 Gb
         And scalarizr version is last in M1
         And hostname in M1 is valid
 
