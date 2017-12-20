@@ -74,3 +74,14 @@ Feature: Check chef attributes set
         And server M1 exists on chef nodes list
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario: Bootstrapping role with Ansible Tower
+        Given I have a clean and stopped farm
+        When I add role to this farm with ansible-tower
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
+
+#        And server M1 exists on chef nodes list
+#        And chef node_name in M1 set by global hostname

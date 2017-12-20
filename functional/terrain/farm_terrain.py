@@ -15,7 +15,7 @@ from revizor2.consts import DATABASE_BEHAVIORS, Dist
 from revizor2.defaults import DEFAULT_ROLE_OPTIONS, DEFAULT_STORAGES, \
     DEFAULT_ADDITIONAL_STORAGES, DEFAULT_ORCHESTRATION_SETTINGS, \
     SMALL_ORCHESTRATION_LINUX, SMALL_ORCHESTRATION_WINDOWS, DEFAULT_WINDOWS_ADDITIONAL_STORAGES, DEFAULT_SCALINGS, \
-    DEFAULT_CHEF_SOLO, DEFAULT_CHEF_SOLO_URL
+    DEFAULT_CHEF_SOLO, DEFAULT_CHEF_SOLO_URL, DEFAULT_ANSIBLE_TOWER
 
 
 LOG = logging.getLogger(__name__)
@@ -218,6 +218,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                     role_options["azure.storage-account"] = "/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/" \
                                                             "resourceGroups/revizor/providers/Microsoft.Storage/" \
                                                             "storageAccounts/revizor"
+            elif opt == 'ansible-tower':
+                default_at_opts = DEFAULT_ANSIBLE_TOWER.copy()
+                role_options.update(default_at_opts)
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)
