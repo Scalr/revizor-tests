@@ -1,5 +1,5 @@
-Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps, steps/chef_boot_steps
-Feature: Windows server provision with chef
+Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps, steps/provision_linux_steps
+Feature: Windows server provision with chef and ansible tower
     In order to manage server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
