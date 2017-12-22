@@ -60,3 +60,11 @@ Feature: Windows server provision with chef and ansible tower
         And file 'C:\chef_result_file' exist in M1 windows
         And scalarizr version is last in M1
         And hostname in M1 is valid
+
+    @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping role with Ansible Tower
+        Given I have a clean and stopped farm
+        When I add role to this farm with ansible-tower
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
