@@ -57,14 +57,24 @@ def verify_recipes_in_runlist(step, serv_as, recipes):
 def chef_bootstrap_failed(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    failure_markers = [
-        'Command "/usr/bin/chef-client" exited with code 1',
-        'Command /usr/bin/chef-client exited with code 1']
-    for m in failure_markers:
-        out = node.run('grep %s /var/log/scalarizr_debug.log' % m)[0]
-        if out.strip():
+    if CONF.feature.dist.is_windows:
+        win_failure_marker = 'chef-client" exited with code 1'
+        cmd = 'findstr /C:"Command \\"C:\opscode\chef\\bin\chef-client\\" exited with code 1"' \
+              ' "C:\opt\scalarizr\\var\log\scalarizr_debug.log"'
+        result = world.run_cmd_command(server, cmd)
+        out, err, code = result.std_out, result.std_err, result.status_code
+        LOG.debug('Logs from server:\n%s\n%s\n%s' % (out, err, code))
+        if win_failure_marker in out:
             return
-    raise AssertionError("Chef bootstrap markers not found in scalarizr_debug.log")
+    else:
+        failure_markers = [
+            'Command "/usr/bin/chef-client" exited with code 1',
+            'Command /usr/bin/chef-client exited with code 1']
+        for m in failure_markers:
+            out = node.run('grep %s /var/log/scalarizr_debug.log' % m)[0]
+            if out.strip():
+                return
+    raise AssertionError("Chef bootstrap marker not found in scalarizr_debug.log out: %s" % out)
 
 
 @step("last script data is deleted on ([\w\d]+)$")
