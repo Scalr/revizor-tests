@@ -26,7 +26,7 @@ class Defaults(object):
         else:
             params.storage.volumes = [
                 farmrole.Volume(size=2, fs='ntfs', mount='D'),
-                farmrole.Volume(size=2, fs='ntfs', mount='E', label='test_label2')  # TODO: label impl
+                farmrole.Volume(size=2, fs='ntfs', mount='E', label='test_label2')
             ]
 
     @staticmethod
