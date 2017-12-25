@@ -17,9 +17,8 @@ from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
-from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
-from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+from revizor2.helpers.parsers import parser_for_os_family, get_repo_url
+from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, DEFAULT_PY3_BRANCH
 from revizor2.consts import Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Platform
 from revizor2 import szrapi
 from revizor2.fixtures import tables
@@ -370,6 +369,8 @@ def find_string_in_debug_log(step, serv_as, string):
         raise AssertionError('String "%s" not found in scalarizr_debug.log. Grep result: %s' % (string, out))
 
 
+
+
 @step('scalarizr version from (\w+) repo is last in (.+)$')
 @world.passed_by_version_scalarizr('2.5.14')
 def assert_scalarizr_version_old(step, repo, serv_as):
@@ -379,17 +380,18 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     Role repo - CONF.feature.to_branch
     """
     if repo == 'system':
-        repo = CONF.feature.branch
+        branch = CONF.feature.branch
     elif repo == 'role':
-        repo = CONF.feature.to_branch
+        branch = CONF.feature.to_branch
     server = getattr(world, serv_as)
-    if consts.Dist(server.role.dist).is_centos:
-        repo_data = parse_rpm_repository(repo)
-    elif consts.Dist(server.role.dist).is_debian:
-        repo_data = parse_apt_repository(repo)
+    if branch == 'latest' and 'base' in server.role.behaviors:
+        branch = DEFAULT_PY3_BRANCH
+    os_family = Dist(server.role.dist).family
+    index_url = get_repo_url(os_family, branch)
+    repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
-    LOG.info('Scalarizr versions in repository %s: %s' % (repo, versions))
+    LOG.info('Scalarizr versions in repository %s: %s' % (branch, versions))
     try:
         server_info = server.upd_api.status(cached=False)
     except Exception:
@@ -416,21 +418,16 @@ def assert_scalarizr_version(step, branch, serv_as):
         branch = CONF.feature.branch
     elif branch == 'role':
         branch = CONF.feature.to_branch
-    # Get custom repo url
     os_family = Dist(server.role.dist).family
+    if branch == 'latest' and 'base' in server.role.behaviors:
+        branch = DEFAULT_PY3_BRANCH
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
-        if branch in ['stable', 'latest']:
-            default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
-        else:
-            url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
-            path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-            default_repo = url.format(path=path) if os_family != 'coreos' else path
-        # Get last scalarizr version from custom repo
-        index_url = default_repo.format(branch=branch)
+        # Get custom repo url
+        index_url = get_repo_url(os_family, branch)
         LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
+        repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
         versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
         versions.sort(reverse=True)
         last_version = versions[0]
