@@ -7,8 +7,9 @@ class Defaults(object):
     @staticmethod
     def apply_option(params, opt):
         method = 'set_' + opt
-        if hasattr(Defaults, method):
-            getattr(Defaults, method)(params)
+        if not hasattr(Defaults, method):
+            raise NotImplementedError('Option "%s" is not supported for farm role' % opt)
+        getattr(Defaults, method)(params)
 
     @staticmethod
     def set_storages(params):
