@@ -1,3 +1,5 @@
+import re
+
 from revizor2.conf import CONF
 from revizor2.consts import Dist
 from revizor2.helpers import farmrole
@@ -6,6 +8,7 @@ from revizor2.helpers import farmrole
 class Defaults(object):
     @staticmethod
     def apply_option(params, opt):
+        opt = re.sub('[^\w]', '_', opt)
         method = 'set_' + opt
         if not hasattr(Defaults, method):
             raise NotImplementedError('Option "%s" is not supported for farm role' % opt)
