@@ -24,7 +24,7 @@ class Defaults(object):
             params.storage.volumes = [
                 farmrole.Volume(size=1, fs='ntfs', type='custom')
             ]
-        else:
+        elif not CONF.feature.platform.is_rackspacengus:
             params.storage.volumes = [
                 farmrole.Volume(size=2, fs='ntfs', mount='D'),
                 farmrole.Volume(size=1, fs='ntfs', mount='E', label='test_label')
@@ -37,10 +37,11 @@ class Defaults(object):
 
     @staticmethod
     def set_storages_linux(params):
-        params.storage.volumes = [
-            farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
-            farmrole.Volume(size=1, mount='/media/partition', re_build=True)
-        ]
+        if not CONF.feature.platform.is_rackspacengus:
+            params.storage.volumes = [
+                farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
+                farmrole.Volume(size=1, mount='/media/partition', re_build=True)
+            ]
         if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
             params.storage.volumes.append(
                 params.storage,
