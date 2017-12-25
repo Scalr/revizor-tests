@@ -26,8 +26,13 @@ class Defaults(object):
         else:
             params.storage.volumes = [
                 farmrole.Volume(size=2, fs='ntfs', mount='D'),
-                farmrole.Volume(size=2, fs='ntfs', mount='E', label='test_label2')
+                farmrole.Volume(size=1, fs='ntfs', mount='E', label='test_label')
             ]
+        if CONF.feature.platform.is_ec2 or CONF.feature.platform.is_gce:
+            params.storage.volumes.append(
+                params.storage,
+                farmrole.Volume(size=3, fs='ntfs', mount='C:\diskmount')
+            )
 
     @staticmethod
     def set_storages_linux(params):
