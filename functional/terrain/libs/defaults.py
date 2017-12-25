@@ -141,7 +141,9 @@ class Defaults(object):
         params.bootstrap_with_chef.enabled = True
         params.bootstrap_with_chef.server = farmrole.ChefServer(
             url='https://api.opscode.com/organizations/webta')
-        params.bootstrap_with_chef.runlist = '["recipe[windows_file_create::default]", "recipe[revizorenv]"]'
+        params.bootstrap_with_chef.runlist = '["recipe[windows_file_create::default]", "recipe[revizorenv]", ' \
+                                             '"recipe[revizor_chef_multi::default]"]'
+        params.bootstrap_with_chef.attributes = '{"revizor_chef_multi": {"result": "changed_result"}}'
 
     @staticmethod
     def set_winchef_role(params):
