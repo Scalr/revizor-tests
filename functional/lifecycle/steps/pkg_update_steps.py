@@ -230,7 +230,7 @@ def asserting_version(step, version, serv_as):
     # Linux handler
     else:
         node = world.cloud.get_node(server)
-        res = node.run(command)[0]
+        res = node.run(command).std_out
     LOG.debug('Result from scalarizr -v: %s' % res)
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert installed_agent, "Can't get scalarizr version: %s" % res

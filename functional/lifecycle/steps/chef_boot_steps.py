@@ -17,28 +17,27 @@ def check_process_options(step, process, options, serv_as):
     server = getattr(world, serv_as)
     LOG.debug('Want check process %s and options %s' % (process, options))
     node = world.cloud.get_node(server)
-    for attempt in range(3):
-        out = node.run('ps aux | grep %s' % process)
-        LOG.debug('Grep for ps aux: %s' % out[0])
-        for line in out[0].splitlines():
-            if 'grep' in line:
-                continue
-            LOG.info('Work with line: %s' % line)
-            if options not in line and not CONF.feature.dist == Dist('amzn1609') and not CONF.feature.dist.is_systemd:
-                raise AssertionError('Options %s not in process, %s' % (options, ' '.join(line.split()[10:])))
-            else:
-                return True
-    raise AssertionError('Not found process: %s' % process)
+    with node.remote_connection as conn:
+        for attempt in range(3):
+            out = conn.run('ps aux | grep %s' % process)
+            LOG.debug('Grep for ps aux: %s' % out.std_out)
+            for line in out.std_out.splitlines():
+                if 'grep' in line:
+                    continue
+                LOG.info('Work with line: %s' % line)
+                if options not in line and not CONF.feature.dist == Dist('amzn1609') and not CONF.feature.dist.is_systemd:
+                    raise AssertionError('Options %s not in process, %s' % (options, ' '.join(line.split()[10:])))
+                else:
+                    return True
+        raise AssertionError('Not found process: %s' % process)
 
 
 @step("chef node_name in ([\w\d]+) set by global hostname")
 def verify_chef_hostname(step, serv_as):
     server = getattr(world, serv_as)
-    if CONF.feature.dist.is_windows:
-        node_name = world.run_cmd_command(server, 'findstr node_name c:\chef\client.rb').std_out
-    else:
-        node = world.cloud.get_node(server)
-        node_name = node.run('cat /etc/chef/client.rb | grep node_name')[0]
+    node = world.cloud.get_node(server)
+    cmd = 'findstr node_name c:\chef\client.rb' if CONF.feature.dist.is_windows else 'cat /etc/chef/client.rb | grep node_name'
+    node_name = node.run(cmd).std_out
     node_name = node_name.strip().split()[1][1:-1]
     hostname = world.get_hostname_by_server_format(server)
     if not node_name == hostname:
@@ -64,7 +63,7 @@ def step_impl(step, action, serv_as):
 
 
     # Get chef client.pem update time
-    bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem')[0].split()[0]
+    bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem').std_out.split()[0]
     LOG.debug('Chef client.pem, last modification time: %s' % bootstrap_stat)
 
     if action == 'save':
@@ -126,10 +125,10 @@ def restart_chef_client(step, serv_as):
 def verify_interval_value(step, interval, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    stdout, stderr, exit = node.run("systemctl status chef-client")
-    assert exit == 0, 'chef-client ended with exit code: %s' % exit
-    assert stderr == '', 'Error on chef-client restarting: %s' % stderr
-    assert 'chef-client -i {}'.format(interval) in stdout
+    out = node.run("systemctl status chef-client")
+    assert out.status_code == 0, 'chef-client ended with exit code: %s' % out.status_code
+    assert out.std_err == '', 'Error on chef-client restarting: %s' % out.std_err
+    assert 'chef-client -i {}'.format(interval) in out.std_out
 
 
 @step('I wait and see that chef-client runs more than INTERVAL (\d+) on (\w+)')
@@ -138,8 +137,8 @@ def chef_runs_time(step, interval, serv_as):
     node = world.cloud.get_node(server)
     intervalx3 = int(interval) * 3
     time.sleep(intervalx3)
-    stdout, stderr, exit = node.run("systemctl status chef-client")
-    active_line = stdout.splitlines()[2]
+    out = node.run("systemctl status chef-client")
+    active_line = out.std_out.splitlines()[2]
     match = re.search('(?:(\d+)min)? (\d+)s', active_line)
     minutes = match.group(1)
     seconds = int(match.group(2))
