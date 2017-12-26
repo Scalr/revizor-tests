@@ -82,6 +82,11 @@ Feature: Linux server provision with chef and ansible tower
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
+        And server M1 exists on ansiblet-tower hosts list
 
-#        And server M1 exists on chef nodes list
-#        And chef node_name in M1 set by global hostname
+#        And I create 'provision-revizor-user' on Ansible Tower with key from M1
+#        And I launch job 'Demo Job Template' with credential 'provision-revizor-user'
+
+        And I 'create' Inventory with name 'revizor-inv-linux-test' on ansiblet-tower
+
+        And I 'delete' Inventory with name 'revizor-inv-linux-test' on ansiblet-tower

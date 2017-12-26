@@ -3,7 +3,8 @@ import logging
 import time
 import re
 
-import tower_cli
+from tower_cli import get_resource
+from tower_cli.conf import settings
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform, Dist
@@ -11,7 +12,7 @@ from lettuce import world, step, before
 
 
 LOG = logging.getLogger('chef')
-
+at_config = CONF.credentials.ansible_tower
 
 @step("process '([\w-]+)' has options '(.+)' in (.+)")
 def check_process_options(step, process, options, serv_as):
@@ -157,3 +158,115 @@ def check_failed_status_message(step, phase, msg, serv_as):
     LOG.debug('Initialization status message: %s' % msg_head)
     assert all(pattern in msg_head for pattern in patterns), \
         "Initialization was not failed on %s with message %s" % patterns
+
+
+@step("server ([\w\d]+) exists on ansiblet-tower hosts list")
+def check_hostname_exists_on_at_server(step, serv_as):
+    server = getattr(world, serv_as)
+    hostname = world.get_hostname_by_server_format(server)
+    with settings.runtime_values(**at_config):
+        res = get_resource('host')
+        hosts_list = res.list(group=None, host_filter=None)
+        for m in hosts_list['results']:
+            if hostname in m['name']:
+                break
+        else:
+            if len(hosts_list['results']) >= 10:
+                raise AssertionError(
+                    'License count of 10 instances has been reached. Number of hosts: %s .' % (
+                        len(hosts_list['results'])))
+            raise AssertionError(
+                'Hostname: %s not found in Ansible Tower server.' % hostname)
+        # found
+
+
+@step("I '([\w-]+)' Inventory with name '([\w-]+)' on ansiblet-tower")
+def create_ansible_tower_inventory(step, inv_method, inv_name):
+    with settings.runtime_values(**at_config):
+        res = get_resource('inventory')
+        inv_settings = {
+            "name": inv_name,
+            "description": "",
+            "organization": 1,
+            "variables": ""}
+        if inv_method == 'create':
+            res.create(**inv_settings)
+            inventory_list = res.list()
+            for m in inventory_list['results']:
+                if inv_name in m['name']:
+                    break
+            else:
+                raise AssertionError(
+                    'Inventory: %s not found in Ansible Tower server.' % inv_name)
+        else:
+            res.delete(**inv_settings)
+            inventory_list = res.list()
+            for m in inventory_list['results']:
+                if inv_name not in m['name']:
+                    break
+            else:
+                raise AssertionError(
+                    'Inventory: %s not Deleted in Ansible Tower server.' % inv_name)
+
+
+# @step("I create '([\w-]+)' on Ansible Tower with key from (\w+)")
+# def create_ansible_tower_user(step, at_user, serv_as):
+#     server = getattr(world, serv_as)
+#     node = world.cloud.get_node(server)
+#     out = node.run('cat ~/.ssh/id_rsa.pub')
+#     with settings.runtime_values(**at_config):
+#         res = get_resource('credential')
+#         cred_settings ={
+#             "name": "Revizor",
+#             "description": "Revizor Provision linux test",
+#             "organization": 0,
+#             "user": 1,
+#             "team": 0,
+#             "kind": "ssh",
+#             "cloud": False,
+#             "host": "",
+#             "username": at_user,
+#             "password": "",
+#             "security_token": "",
+#             "project": "",
+#             "domain": "",
+#             "ssh_key_data": out,
+#             "ssh_key_unlock": "",
+#             "become_method": "sudo",
+#             "become_username": "root",
+#             "become_password": "",
+#             "vault_password": "",
+#             "subscription": "",
+#             "tenant": "",
+#             "secret": "",
+#             "client": "",
+#             "authorize": False,
+#             "authorize_password": ""
+#         }
+#         res.create(**cred_settings)
+#         credential_list = res.list()
+#         for m in credential_list['results']:
+#             if at_user in m['name']:
+#                 break
+#         else:
+#             raise AssertionError(
+#                 'Credential: %s not found in Ansible Tower server.' % at_user)
+
+
+# @step("I launch job '([\w-]+)' with credential '([\w-]+)'")
+# def launch_ansible_tower_job(step, job_name, at_user):
+#     with settings.runtime_values(**at_config):
+#         res = get_resource('job')
+#         job_settings = {
+#             "name": job_name,
+#             "description": "",
+#             "organization": 1,
+#             "variables": ""}
+#         res.launch( **job_settings)
+#         job_list = res.list()
+#         for m in job_list['results']:
+#             if job_name in m['name']:
+#                 break
+#         else:
+#             raise AssertionError(
+#                 'Inventory: %s not found in Ansible Tower server.' % job_name)
