@@ -32,7 +32,7 @@ Feature: Windows server lifecycle
         And see 'Scalarizr terminated' in M1 windows log
         And scalarizr is running on M1
         And not ERROR in M1 scalarizr windows log
-
+и
 #    @ec2 @gce @openstack
 #    Scenario: Restart scalarizr by script
 #      Given I have running server M1
@@ -125,5 +125,5 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And instance vcpus info not empty for M1
-        And server M1 has disks Z(test_label): 4 Gb
+        And server M1 has disks Z:\(test_label) 4 Gb
         And scalarizr version is last in M1
