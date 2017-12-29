@@ -220,7 +220,10 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                             "storageAccounts/revizor"
             elif opt == 'ansible-tower':
                 default_at_opts = DEFAULT_ANSIBLE_TOWER.copy()
+                if CONF.feature.dist.is_windows:
+                    default_at_opts.update({"base.ansibletower.inventory": "33"})
                 role_options.update(default_at_opts)
+
             elif opt == 'scaling':
                 scaling_metrics = {Metrics.get_id('revizor') or Metrics.add(): {'max': '', 'min': ''}}
                 LOG.info('Insert scaling metrics options %s' % scaling_metrics)

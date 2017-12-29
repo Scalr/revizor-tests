@@ -78,15 +78,13 @@ Feature: Linux server provision with chef and ansible tower
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
+        And I add a new link with Inventory 'Revizor_test_linux' to scalr and generate credentials 'Revizor_test_linux_cred'
         When I add role to this farm with ansible-tower
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists on ansiblet-tower hosts list
+        And credential 'Revizor_test_linux_cred' exists on ansiblet-tower credentials list
+#        And I launch job 'Demo Job Template' with credential 'Revizor_test_linux_cred'
+        And I delete credential with name 'Revizor_test_linux_cred' on ansiblet-tower server
 
-#        And I create 'provision-revizor-user' on Ansible Tower with key from M1
-#        And I launch job 'Demo Job Template' with credential 'provision-revizor-user'
-
-        And I 'create' Inventory with name 'revizor-inv-linux-test' on ansiblet-tower
-
-        And I 'delete' Inventory with name 'revizor-inv-linux-test' on ansiblet-tower
