@@ -71,7 +71,7 @@ Feature: Redis database server functional test
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
-    @ec2 @cloudstack @rackspaceng @reboot
+    @ec2 @gce @cloudstack @rackspaceng @reboot
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1
