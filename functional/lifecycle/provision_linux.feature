@@ -87,4 +87,3 @@ Feature: Linux server provision with chef and ansible tower
         And credential 'Revizor_test_linux_cred' exists on ansiblet-tower credentials list
 #        And I launch job 'Demo Job Template' with credential 'Revizor_test_linux_cred'
         And I delete credential with name 'Revizor_test_linux_cred' on ansiblet-tower server
-

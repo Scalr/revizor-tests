@@ -215,9 +215,11 @@ def delete_ansible_tower_credential(step, cred_name):
 
 @step("I add a new link with Inventory '([\w-]+)' to scalr and generate credentials '([\w-]+)'")
 def create_credential(step, inv_name, cred_name):
-    IMPL.ansible_tower.create_credentials(cred_name)
-
-
+    data = IMPL.ansible_tower.create_credentials(cred_name)
+    publicKey = data['machineCredentials']['publicKey']
+    id = data['machineCredentials']['id']
+    passw = data['machineCredentials']['password']
+    IMPL.ansible_tower.save_credentials(inv_name, id, cred_name, publicKey, passw)
 
 
 # @step("I launch job '([\w-]+)' with credential '([\w-]+)'")
