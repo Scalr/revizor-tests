@@ -32,7 +32,7 @@ Feature: Windows server lifecycle
         And see 'Scalarizr terminated' in M1 windows log
         And scalarizr is running on M1
         And not ERROR in M1 scalarizr windows log
-и
+
 #    @ec2 @gce @openstack
 #    Scenario: Restart scalarizr by script
 #      Given I have running server M1
