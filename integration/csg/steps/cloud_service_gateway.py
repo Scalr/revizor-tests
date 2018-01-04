@@ -84,21 +84,6 @@ def configure_scalr_proxy(step, clouds, proxy_as):
     world.update_scalr_config(params)
 
 
-@step('last proxy logs on ([\w\d]+) contain "(.+)"')
-def check_proxy_logs(step, proxy_as, contain):
-    server = getattr(world, proxy_as)
-    node = world.cloud.get_node(server)
-    old_logs = getattr(world, '%s_proxy_logs' % proxy_as, [])
-    logs = node.run('cat /var/log/squid3/access.log')[0].splitlines()
-    setattr(world, '%s_proxy_logs' % proxy_as, logs)
-    for line in logs:
-        if contain in line and line not in old_logs:
-            break
-    else:
-        LOG.debug('Received squid logs:\n%s' % logs)
-        raise AssertionError('Text "%s" not found in last proxy logs' % contain)
-
-
 @step("([\w\d]+) service works on (AWS|Azure) using ([\w\d]+)")
 def verify_service(step, service, platform, request_as):
     service = service.strip().lower()
@@ -108,3 +93,25 @@ def verify_service(step, service, platform, request_as):
     request_id = getattr(world, '%s_request_id' % request_as)
     secret = getattr(world, '%s_request_secret' % request_as)
     cloud_services.get(platform, service, request_id, secret).verify()
+
+
+@step("requests to ([\w\d]+) on (AWS|Azure) are present in last proxy logs on ([\w\d]+)")
+def check_proxy_logs(step_instance, service, platform, proxy_as):
+    service = service.strip().lower()
+    platform = platform.strip().lower()
+    if platform == 'aws':
+        platform = 'ec2'
+    server = getattr(world, proxy_as)
+    node = world.cloud.get_node(server)
+    old_logs_count = getattr(world, '%s_proxy_logs_count' % proxy_as, 0)
+    logs = node.run('tail -n +%s /var/log/squid3/access.log' % (old_logs_count + 1))[0].splitlines()
+    setattr(world, '%s_proxy_logs_count' % proxy_as, len(logs))
+    for record in cloud_services.get_log_records(platform, service):
+        LOG.debug('Searching for "%s" in squid logs' % record)
+        for line in logs:
+            if record in line:
+                break
+        else:
+            # record not found in logs
+            LOG.debug('Received squid logs:\n%s' % logs)
+            raise AssertionError('Text "%s" not found in last proxy logs' % record)

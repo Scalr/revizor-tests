@@ -55,9 +55,8 @@ Feature: Check CSG
   Scenario Outline: Check approved services via proxy
     Given I have active access request <request>
     Then <service> service works on <platform> using <request>
+    And requests to <service> on <platform> are present in last proxy logs on P1
     Examples:
       | request  | platform  | service   |
       | AR1      | AWS       | Lambda    |
       | AR2      | Azure     | Web       |
-
-    # TODO: check proxy logs carefully
