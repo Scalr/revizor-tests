@@ -1,14 +1,6 @@
-import functools
-
 from lettuce import world
 
-
-def get_dict_value(obj, key):
-    def dict_get(d, key):
-        if key not in d:
-            d[key] = {}
-        return d.get(key, {})
-    return functools.reduce(dict_get, key.split('.'), obj)
+from revizor2.utils import get_dict_value
 
 
 @world.absorb
