@@ -13,6 +13,8 @@ LOG = logging.getLogger(__name__)
 @step('I have requested access to services on (AWS|Azure) as ([\w\d]+):')
 def request_access(step, cloud, request_as):
     cloud = cloud.lower()
+    if cloud == 'aws':
+        cloud = 'ec2'
     services = []
     for item in step.hashes:
         services.append(item['service'].lower())
@@ -62,45 +64,6 @@ def have_request(step, status, request_as):
         status=status))
 
 
-@step('I execute "([\w\d-]+)" for ([\w\d]+) service on (AWS|Azure) using ([\w\d]+)')
-def execute_service_function(step, func, service, cloud, request_as):
-    id = getattr(world, '%s_request_id' % request_as)
-    secret = getattr(world, '%s_request_secret' % request_as)
-    request = IMPL.csg.get_request(id)
-    csg_port = world.get_scalr_config_value('scalr.csg.endpoint.port')
-    result = None
-    if cloud.lower() == 'aws':
-        aws = cloud_services.Aws(id,
-                                 request['access_key'],
-                                 secret,
-                                 'us-east-1',  # TODO: think how can we get it instead of hardcoding
-                                 '%s.test-env.scalr.com' % CONF.scalr.te_id,
-                                 csg_port)
-        aws.configure()
-        result = aws.execute_function(service.lower(), func.lower())
-    setattr(world, 'csg_last_result', result)
-
-
-@step('the response contains no errors')
-def verify_response_no_error(step):
-    result = getattr(world, 'csg_last_result')
-    if result is None:
-        raise AssertionError('No recent CSG response found')
-    if result['status'] != 200 or result.get('error'):
-        raise AssertionError('Service response is not valid. '
-                             'HTTP status = %s, Error = "%s"' % (result['status'], result.get('error')))
-
-
-@step('the response contains access error')
-def verify_response_access_error(step):
-    result = getattr(world, 'csg_last_result')
-    if result is None:
-        raise AssertionError('No recent CSG response found')
-    if result['status'] not in [400, 401, 403] or not result.get('error'):
-        raise AssertionError('Service response is not valid. '
-                             'HTTP status = %s, Error = %s' % (result['status'], result.get('error')))
-
-
 @step('I set proxy for ([\w\d,]+) in Scalr to ([\w\d]+)')
 def configure_scalr_proxy(step, clouds, proxy_as):
     clouds = [c.strip().lower() for c in clouds.split(',')]
@@ -134,3 +97,14 @@ def check_proxy_logs(step, proxy_as, contain):
     else:
         LOG.debug('Received squid logs:\n%s' % logs)
         raise AssertionError('Text "%s" not found in last proxy logs' % contain)
+
+
+@step("([\w\d]+) service works on (AWS|Azure) using ([\w\d]+)")
+def verify_service(step, service, platform, request_as):
+    service = service.strip().lower()
+    platform = platform.strip().lower()
+    if platform == 'aws':
+        platform = 'ec2'
+    request_id = getattr(world, '%s_request_id' % request_as)
+    secret = getattr(world, '%s_request_secret' % request_as)
+    cloud_services.get(platform, service, request_id, secret).verify()
