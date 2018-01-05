@@ -361,7 +361,7 @@ def farm_servers_state(state):
 
 
 @world.absorb
-def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=600):
+def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=1000):
     if not isinstance(servers, (list, tuple)):
         servers = [servers]
     delivered_to = []
