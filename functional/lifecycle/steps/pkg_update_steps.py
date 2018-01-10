@@ -135,7 +135,7 @@ def waiting_new_package(step):
     '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
     #TODO: Remove this after py3 will be merged
-    label_name = 'continuous-integration/drone' if CONF.feature.branch != 'feature-FAM-1089' \
+    label_name = 'continuous-integration/drone' if CONF.feature.branch != 'feature-FAM-1088' \
         else 'continuous-integration/drone/push'
     for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
