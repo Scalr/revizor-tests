@@ -16,9 +16,11 @@ LOG = logging.getLogger(__name__)
 @step(r"file '([\w\d\:\\/_-]+)' exist in ([\w\d]+) windows$")
 def check_windows_file(step, path, serv_as):
     server = getattr(world, serv_as)
-    out = world.run_cmd_command(server, 'type %s' % path)
-    if out.status_code == 0 and not out.std_err:
-        return
+    for _ in range(3):
+        out = world.run_cmd_command(server, 'type %s' % path)
+        if out.status_code == 0 and not out.std_err:
+            return
+        time.sleep(10)
     raise NotFound("File '%s' not exist, stdout: %s\nstderr:%s" % (path, out.std_out, out.std_err))
 
 

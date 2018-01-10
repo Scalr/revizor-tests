@@ -125,5 +125,5 @@ Feature: Windows server lifecycle
         Then I see pending server M1
         And I wait and see running server M1
         And instance vcpus info not empty for M1
-        And server M1 has disks Z(test_label): 4 Gb
+        And server M1 has disks Z:\(test_label) 4 Gb
         And scalarizr version is last in M1
