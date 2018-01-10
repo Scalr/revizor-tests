@@ -177,11 +177,9 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
     platform = CONF.feature.platform
     location=platform.location if not platform.is_gce else ""
     role_options = farmrole.FarmRoleParams(platform, alias=world.role['name'])
-    if use_stable:
-        role_options.advanced.agent_update_repository = "stable"
-    else:
-        role_options.development.scalarizr_branch = branch
-        role_options.development.scalarizr_repo = CONF.feature.ci_repo
+    role_options.advanced.agent_update_repository = 'stable' if use_stable else ''
+    role_options.development.scalarizr_branch = branch if not use_stable else ''
+    role_options.development.scalarizr_repo = CONF.feature.ci_repo if not use_stable else ''
     if use_manual_scaling:
         role_options.scaling.automatic = False
         role_options.scaling.wait_running_state = False
