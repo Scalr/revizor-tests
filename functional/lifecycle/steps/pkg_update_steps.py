@@ -17,6 +17,7 @@ except ImportError:
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
+from revizor2.helpers import farmrole
 from lettuce import step, world, after
 from urllib2 import URLError
 
@@ -174,22 +175,19 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
     branch = CONF.feature.branch
     platform = CONF.feature.platform
-    role_kwargs = dict(
-        location=platform.location if not platform.is_gce else "",
-        options={
-            "user-data.scm_branch": branch if not use_stable else "",
-            "base.upd.repository": "stable" if use_stable else "",
-            "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
-        },
-        alias=world.role['name']
-    )
+    location=platform.location if not platform.is_gce else ""
+    role_options = farmrole.FarmRoleParams(platform, alias=world.role['name'])
+    if use_stable:
+        role_options.advanced.agent_update_repository = "stable"
+    else:
+        role_options.development.scalarizr_branch = branch
+        role_options.development.scalarizr_repo = CONF.feature.ci_repo
     if use_manual_scaling:
-        manual_scaling = {
-            "scaling.one_by_one": 0,
-            "scaling.enabled": 0}
-        role_kwargs['options'].update(manual_scaling)
-    LOG.debug('Add created role to farm with options %s' % role_kwargs)
-    farm.add_role(world.role['id'], **role_kwargs)
+        role_options.scaling.automatic = False
+        role_options.scaling.wait_running_state = False
+    options = role_options.to_json()
+    LOG.debug('Add created role to farm with options %s' % options)
+    farm.add_role(world.role['id'], location=location, options=options)
     farm.roles.reload()
     farm_role = farm.roles[0]
     setattr(world, '%s_role' % world.role['name'], farm_role)
