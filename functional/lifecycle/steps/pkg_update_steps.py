@@ -17,6 +17,7 @@ except ImportError:
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
+from revizor2.helpers import farmrole
 from lettuce import step, world, after
 from urllib2 import URLError
 
@@ -134,10 +135,13 @@ def having_branch_copy(step, branch=None, is_patched=False):
 def waiting_new_package(step):
     '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
+    #TODO: Remove this after py3 will be merged
+    label_name = 'continuous-integration/drone' if CONF.feature.branch != 'feature-FAM-1088' \
+        else 'continuous-integration/drone/push'
     for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
-            status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
+            status = filter(lambda x: x['context'] == label_name, res.statuses)[0]
             LOG.debug('Patch commit build status: %s' % status)
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
@@ -171,22 +175,17 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
     branch = CONF.feature.branch
     platform = CONF.feature.platform
-    role_kwargs = dict(
-        location=platform.location if not platform.is_gce else "",
-        options={
-            "user-data.scm_branch": branch if not use_stable else "",
-            "base.upd.repository": "stable" if use_stable else "",
-            "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
-        },
-        alias=world.role['name']
-    )
+    location=platform.location if not platform.is_gce else ""
+    role_options = farmrole.FarmRoleParams(platform, alias=world.role['name'])
+    role_options.advanced.agent_update_repository = 'stable' if use_stable else ''
+    role_options.development.scalarizr_branch = branch if not use_stable else ''
+    role_options.development.scalarizr_repo = CONF.feature.ci_repo if not use_stable else ''
     if use_manual_scaling:
-        manual_scaling = {
-            "scaling.one_by_one": 0,
-            "scaling.enabled": 0}
-        role_kwargs['options'].update(manual_scaling)
-    LOG.debug('Add created role to farm with options %s' % role_kwargs)
-    farm.add_role(world.role['id'], **role_kwargs)
+        role_options.scaling.automatic = False
+        role_options.scaling.wait_running_state = False
+    options = role_options.to_json()
+    LOG.debug('Add created role to farm with options %s' % options)
+    farm.add_role(world.role['id'], location=location, options=options)
     farm.roles.reload()
     farm_role = farm.roles[0]
     setattr(world, '%s_role' % world.role['name'], farm_role)

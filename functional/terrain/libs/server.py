@@ -201,6 +201,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
     lookup_server = server or None
     lookup_node = None
+    azure_failed = 0
 
     start_time = time.time()
 
@@ -248,6 +249,14 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                     time.sleep(90)
                     lookup_server = None
                     lookup_node = None
+                    continue
+                if platform.is_azure and azure_failed != 2:
+                    LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
+                        lookup_server.id,
+                        azure_failed + 1,
+                        lookup_server.get_failed_status_message()))
+                    azure_failed += 1
+                    time.sleep(15)
                     continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
@@ -361,7 +370,7 @@ def farm_servers_state(state):
 
 
 @world.absorb
-def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=600):
+def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=1000):
     if not isinstance(servers, (list, tuple)):
         servers = [servers]
     delivered_to = []

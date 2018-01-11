@@ -87,13 +87,18 @@ def check_script_data_deleted(step, serv_as):
     node = world.cloud.get_node(server)
     if CONF.feature.dist.is_windows:
         cmd = 'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\%s /b /s /ad | findstr /e "\\bin \\data"' % task_dir
+        for _ in range(3):
+            out = node.run(cmd)
+            if out.status_code:
+                time.sleep(10)
+                continue
+        LOG.debug('Logs from server:\n%s\n%s\n%s' % (out.std_out, out.std_err, out.status_code))
     else:
         cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
-    with node.remote_connection() as conn:
         out = node.run(cmd)
         LOG.debug('Logs from server:\n%s\n%s\n%s' % (out.std_out, out.std_err, out.status_code))
         if out.status_code:
-            raise AssertionError("Command '%s' was not executed properly. An error has occurred:\n%s" % (cmd, err))
+            raise AssertionError("Command '%s' was not executed properly. An error has occurred:\n%s" % (cmd, out.std_err))
         folders = [line for line in out.std_out.splitlines() if line.strip()]
         if folders:
             raise AssertionError("Script data is not deleted on %s. Found folders: %s" % (server.id, ';'.join(folders)))
