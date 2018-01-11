@@ -72,7 +72,7 @@ def install_docker(step, serv_as):
         docker pull ubuntu; \
         docker pull nginx; \
         docker pull alpine'''.format(conf_folder, echo_line, conf_file, restart_cmd)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         conn.run(command)
         conn.run("iptables -I INPUT 1 -p tcp --dport 9999 -j ACCEPT")
         conn.run('echo "sleep 1d" >> /home/scalr/{}'.format(NON_ASCII_SCRIPT))

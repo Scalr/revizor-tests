@@ -71,7 +71,7 @@ def check_message_config(step, config_group, message, serv_as):
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         for attempt in range(3):
             out = conn.run('/bin/ls %s' % path)
             if not out.std_out and not out.std_err:
@@ -161,7 +161,7 @@ def execute_command(step, command, serv_as):
 @step('server ([\w\d]+) contain \'(.+)\'')
 def check_file(step, serv_as, path):
     node = world.cloud.get_node(getattr(world, serv_as))
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         for attempt in range(5):
             out = conn.run('ls %s' % path)
             LOG.info('Check exist path: %s. Attempt: %s' % (path, attempt))
@@ -242,7 +242,7 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
              (mount_point, to_server.id))
     node = world.cloud.get_node(to_server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         for i in range(3):
             fstab = node.run('cat /etc/fstab').std_out
             if not fstab: #FIXME: on openstack this trouble was, fix this

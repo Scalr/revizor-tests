@@ -175,7 +175,7 @@ class SzrAdmResultsParser(object):
 def run_command(step, command, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
         if command == 'szradm q list-farm-role-params':
             if CONF.feature.dist.is_windows:
@@ -285,7 +285,7 @@ def check_variable(step, var, serv_as):
     script_result = result[0].split('=')[1].strip('"\n')
     #Get an variable from the environment
     LOG.info('Get variable %s from the environment on %s' % (var, server.id))
-    with node.remote_connection(shell=True) as shell:
+    with node.remote_connection()(shell=True) as shell:
         if not shell.recv_ready():
             time.sleep(10)
         LOG.debug('Received from shell: %s' % shell.recv(4096))

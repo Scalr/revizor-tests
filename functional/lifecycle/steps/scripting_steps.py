@@ -89,7 +89,7 @@ def check_script_data_deleted(step, serv_as):
         cmd = 'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\%s /b /s /ad | findstr /e "\\bin \\data"' % task_dir
     else:
         cmd = 'find /var/lib/scalarizr/tasks/%s -type d -regex ".*/\\(bin\\|data\\)"' % task_dir
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         out = node.run(cmd)
         LOG.debug('Logs from server:\n%s\n%s\n%s' % (out.std_out, out.std_err, out.status_code))
         if out.status_code:

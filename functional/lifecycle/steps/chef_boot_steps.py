@@ -17,7 +17,7 @@ def check_process_options(step, process, options, serv_as):
     server = getattr(world, serv_as)
     LOG.debug('Want check process %s and options %s' % (process, options))
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         for attempt in range(3):
             out = conn.run('ps aux | grep %s' % process)
             LOG.debug('Grep for ps aux: %s' % out.std_out)
