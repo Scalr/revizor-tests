@@ -64,7 +64,7 @@ def start_basehttpserver(step, port, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Run BaseHttpServer in server %s' % server.id)
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         LOG.debug('Put base_server.py script')
         node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
         LOG.debug('Run BaseHttpServer script')

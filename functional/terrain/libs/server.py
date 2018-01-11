@@ -592,7 +592,7 @@ def check_script_executed(serv_as,
 @world.absorb
 def get_hostname(server):
     serv = world.cloud.get_node(server)
-    with serv.remote_connection as conn:
+    with serv.remote_connection() as conn:
         for i in range(3):
             out = serv.run('/bin/hostname')
             if out.std_out.strip():
@@ -769,7 +769,7 @@ def is_log_rotate(server, process, rights, group=None):
         group = [group, process]
     LOG.info('Loking for config file:  %s-logrotate on remote host %s' % (process, server.public_ip))
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         logrotate_conf = conn.run('cat /etc/logrotate.d/%s-logrotate' % process)
         if not logrotate_conf.std_err:
             logrotate_param = {}
@@ -832,7 +832,7 @@ def get_service_paths(service_name, server=None, node=None, service_conf=None, s
         node = world.cloud.get_node(server)
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         # Get service path
         service_path = conn.run('which %s' % service_name)
         if service_path.status_code:

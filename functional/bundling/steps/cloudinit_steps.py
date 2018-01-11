@@ -24,7 +24,7 @@ def remove_unsupported_behaviors(scenario):
 def check_cloudinit(step):
     node = getattr(world, 'cloud_server')
     cmd = 'coreos-cloudinit --version' if CONF.feature.dist.id == 'coreos' else 'cloud-init -v'
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         out = conn.run(cmd).status_code
         if out != 0:
             if CONF.feature.dist.is_centos:

@@ -64,7 +64,7 @@ class PostgreSQL(object):
         return self.cursor.fetchone()[0]
 
     def restore(self, src_path, db):
-        with self.node.remote_connection as conn:
+        with self.node.remote_connection() as conn:
             backups_in_server = conn.run('ls /tmp/dbrestore/*').std_out.lower().split()
             LOG.info('Available backups in server: %s' % backups_in_server)
             for backup in backups_in_server:
@@ -113,7 +113,7 @@ class Redis(object):
         return self.connection.get('revizor.timestamp')
 
     def restore(self, src_path, db=None):
-        with self.node.remote_connection as conn:
+        with self.node.remote_connection() as conn:
             #Kill redis-server
             LOG.info('Stopping Redis server.')
             out = conn.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} "
@@ -178,7 +178,7 @@ class MySQL(object):
         return self.cursor.fetchone()[0]
 
     def restore(self, src_path, db):
-        with self.node.remote_connection as conn:
+        with self.node.remote_connection() as conn:
             backups_in_server = conn.run('ls /tmp/dbrestore/*').std_out.split()
             LOG.info('Available backups in server: %s' % backups_in_server)
             path = os.path.join(src_path, db)
@@ -471,7 +471,7 @@ def download_dump(step, serv_as):
     #TODO: Add support for gce and openstack if Scalr support
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
         if CONF.feature.platform.is_ec2:
             interpretator = 'python'

@@ -253,7 +253,7 @@ def add_global_config(step, proxy_role):
 def check_global_in_config(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         for _ in range(6):
             c = conn.run('cat /etc/haproxy/haproxy.cfg').std_out.strip()
             section_start = c.find('##### main template start #####') + len('##### main template start #####')

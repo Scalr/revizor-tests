@@ -150,7 +150,7 @@ class VerifyProcessWork(object):
     def _verify_process_running(server, process_name):
         LOG.debug('Check process %s in running state on server %s' % (process_name, server.id))
         node = world.cloud.get_node(server)
-        with node.remote_connection as conn:
+        with node.remote_connection() as conn:
             for i in range(3):
                 out = node.run("ps -C %s -o pid=" % process_name)
                 if not out.std_out.strip():
@@ -571,7 +571,7 @@ def change_branch_in_sources(step, serv_as, branch):
     server = getattr(world, serv_as)
     LOG.info('Change branches in sources list in server %s to %s' % (server.id, branch))
     node = world.cloud.get_node(server)
-    with node.remote_connection as conn:
+    with node.remote_connection() as conn:
         if node.os.is_debian:
             LOG.debug('Change in debian')
             for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
@@ -913,8 +913,8 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
         # start_time = time.time()
         # while (time.time() - start_time) < 300:
         #     try:
-        #         if node.remote_connection.open():
-        #             node.remote_connection.close()
+        #         if node.remote_connection().open():
+        #             node.remote_connection().close()
         #             break
         #     except AssertionError:
         #         LOG.warning('Can\'t get ssh for server %s' % node.id)
