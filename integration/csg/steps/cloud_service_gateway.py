@@ -2,9 +2,8 @@ import logging
 
 from lettuce import world, step
 
+from integration.terrain.libs import cloud_services
 from revizor2.backend import IMPL
-from revizor2.conf import CONF
-from revizor2.helpers import cloud_services
 
 
 LOG = logging.getLogger(__name__)
