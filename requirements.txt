@@ -3,3 +3,5 @@ pywinrm==0.2.1
 PyChef==0.2.3
 semver
 githubpy==1.1.0
+boto3==1.4.7
+azure-mgmt-web>=0.34.1
