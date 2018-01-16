@@ -2,7 +2,6 @@ import logging
 
 from lettuce import world, step
 
-from integration.terrain.libs import cloud_services
 from revizor2.backend import IMPL
 
 
@@ -91,7 +90,7 @@ def verify_service(step, service, platform, request_as):
         platform = 'ec2'
     request_id = getattr(world, '%s_request_id' % request_as)
     secret = getattr(world, '%s_request_secret' % request_as)
-    cloud_services.get(platform, service, request_id, secret).verify()
+    world.csg_verify_service(platform, service, request_id, secret)
 
 
 @step("requests to ([\w\d]+) on (AWS|Azure) are present in last proxy logs on ([\w\d]+)")
@@ -105,7 +104,7 @@ def check_proxy_logs(step_instance, service, platform, proxy_as):
     old_logs_count = getattr(world, '%s_proxy_logs_count' % proxy_as, 0)
     logs = node.run('tail -n +%s /var/log/squid3/access.log' % (old_logs_count + 1))[0].splitlines()
     setattr(world, '%s_proxy_logs_count' % proxy_as, len(logs))
-    for record in cloud_services.get_log_records(platform, service):
+    for record in world.csg_get_service_log_records(platform, service):
         LOG.debug('Searching for "%s" in squid logs' % record)
         for line in logs:
             if record in line:

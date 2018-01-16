@@ -1,6 +1,8 @@
 import glob
 import os
 
+import cloud_services
+
 
 def import_libs():
     """Import all .py files in this directory and all functions registers in world (if use decorator world.absorb)"""

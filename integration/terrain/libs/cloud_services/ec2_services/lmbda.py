@@ -1,14 +1,15 @@
-from base_ec2 import Ec2CloudService
-
 from botocore import exceptions as boto_exceptions
 
 
-@Ec2CloudService.register('lambda')
-class Lambda(Ec2CloudService):
+class Lambda(object):
+    service_name = 'lambda'
     log_records = ['CONNECT lambda.us-east-1.amazonaws.com:443']
 
-    def _verify_impl(self):
-        client = self.session.client('lambda', verify=self.cacert_path, config=self.client_config)
+    def __init__(self, platform):
+        self.platform = platform
+
+    def verify(self):
+        client = self.platform.get_client(Lambda.service_name)
         try:
             result = client.list_functions()
             assert result['Functions'] == []
