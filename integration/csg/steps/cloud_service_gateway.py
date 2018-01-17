@@ -82,7 +82,7 @@ def configure_scalr_proxy(step, clouds, proxy_as):
     world.update_scalr_config(params)
 
 
-@step("([\w\d]+) service works on (AWS|Azure) using ([\w\d]+)")
+@step("\"([\w\d\s]+)\" service works on (AWS|Azure) using ([\w\d]+)")
 def verify_service(step, service, platform, request_as):
     service = service.strip().lower()
     platform = platform.strip().lower()
