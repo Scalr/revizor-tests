@@ -242,3 +242,37 @@ def assert_in(first, second, message=''):
 def assert_not_in(first, second, message=''):
     '''Assert if not first in second'''
     assert first in second, message
+
+
+class _AssertRaisesContext(object):
+    def __init__(self, expected_exc, expected_msg=None):
+        self.expected_exc = expected_exc
+        self.expected_msg = expected_msg
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None:
+            try:
+                exc_name = self.expected_exc.__name__
+            except AttributeError:
+                exc_name = str(self.expected_exc)
+            raise AssertionError('%s not raised' % exc_name)
+        if not issubclass(exc_type, self.expected_exc):
+            return False
+        if not self.expected_msg:
+            return True
+        if self.expected_msg not in str(exc_value):
+            raise AssertionError('Exception does not contain expected text. Expected = "%s", actual = "%s"' %
+                                 (self.expected_msg, str(exc_value)))
+        return True
+
+
+@world.absorb
+def assert_raises(exc_class, exc_contains=None, callable_obj=None, *args, **kwargs):
+    context = _AssertRaisesContext(exc_class, exc_contains)
+    if not callable_obj:
+        return context
+    with context:
+        callable_obj(*args, **kwargs)
