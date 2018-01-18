@@ -220,6 +220,9 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                                                             "storageAccounts/revizor"
             elif opt == 'ansible-tower':
                 default_at_opts = DEFAULT_ANSIBLE_TOWER.copy()
+                cred_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
+                at_serverId = getattr(world, 'at_server_id_%s' % cred_name)
+                default_at_opts.update({"base.ansibletower.server": at_serverId})
                 if CONF.feature.dist.is_windows:
                     default_at_opts.update({"base.ansibletower.inventory": "33"})
                 role_options.update(default_at_opts)

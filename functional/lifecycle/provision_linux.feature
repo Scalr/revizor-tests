@@ -78,7 +78,7 @@ Feature: Linux server provision with chef and ansible tower
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
-        And I add a new link with os 'linux' and Inventory 'Revizor_linux' and create credentials 'Revizor_linux_cred' for server '421ec3da-3d86-47b2-bfbf-b89c599d9b49'
+        And I add a new link with os 'linux' and Inventory 'Revizor_linux' and create credentials 'Revizor_linux_cred'
         And credential 'Revizor_linux_cred' exists in ansible-tower credentials list
         When I add role to this farm with ansible-tower
         When I start farm

@@ -161,16 +161,20 @@ def check_failed_status_message(step, phase, msg, serv_as):
         "Initialization was not failed on %s with message %s" % patterns
 
 
-@step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)' for server '([\w-]+)'")
-def create_credential(step, os, inv_name, cred_name, serverId):
-    data = IMPL.ansible_tower.create_credentials(os, cred_name, serverId)
+@step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)'")
+def create_credential(step, os, inv_name, cred_name):
+    at_servers_list = IMPL.ansible_tower.get_at_servers_list()
+    at_serverId = at_servers_list['servers'][0]['id']
+    assert at_serverId, 'The Ansible-Tower server Id was not found'
+    setattr(world, 'at_server_id_%s' % cred_name, at_serverId)
+    data = IMPL.ansible_tower.create_credentials(os, cred_name, at_serverId)
     publicKey = None
     if os == "linux":
         publicKey = data['machineCredentials']['publicKey']
     pk = data['machineCredentials']['id']
     setattr(world, 'at_cred_primary_key_%s' % cred_name, pk)
     passw = data['machineCredentials']['password']
-    save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, serverId, publicKey, passw)
+    save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, at_serverId, publicKey, passw)
     if not save_at_cred['success']:
         raise AssertionError('The credentials: %s have not been saved!' % cred_name)
 
@@ -183,7 +187,6 @@ def check_credential_exists_on_at_server(step, cred_name):
         cred_list = res.list(all_pages=True)
         for m in cred_list['results']:
             if cred_name in m['name'] and m['id'] == pk:
-                # raise Exception(m['name'], m['id'])
                 break
         else:
             raise AssertionError(
@@ -241,7 +244,6 @@ def delete_ansible_tower_credential(feature):
             res = at_get_resource('credential')
             pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
             result = res.delete(pk=pk)
-            assert result['changed'], (
-                    'Credentials with name %s are not deleted from the AT server' % cred_name)
+            assert result['changed'], ('Credentials with name %s are not deleted from the AT server' % cred_name)
             LOG.error('Credentials: %s  with the id: %s were not removed from the AT server' % (
                 cred_name, pk))
