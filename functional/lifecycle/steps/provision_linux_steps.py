@@ -201,7 +201,7 @@ def check_hostname_exists_on_at_server(step, serv_as):
             if hostname in m['name']:
                 break
         else:
-            if len(hosts_list['results']) >= 10:
+            if len(hosts_list['results']) == 10:
                 raise AssertionError(
                     'License count of 10 instances has been reached. Number of hosts: %s .' % (
                         len(hosts_list['results'])))
