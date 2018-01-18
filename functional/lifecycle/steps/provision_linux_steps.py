@@ -3,13 +3,13 @@ import time
 import re
 
 import chef
-from tower_cli import get_resource
-from tower_cli.conf import settings
+from tower_cli import get_resource as at_get_resource
+from tower_cli.conf import settings as at_settings
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform, Dist
 from revizor2.backend import IMPL
-from lettuce import world, step, before
+from lettuce import world, step, before, after
 
 
 LOG = logging.getLogger('chef')
@@ -161,12 +161,41 @@ def check_failed_status_message(step, phase, msg, serv_as):
         "Initialization was not failed on %s with message %s" % patterns
 
 
-@step("server ([\w\d]+) exists on ansiblet-tower hosts list")
+@step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)' for server '([\w-]+)'")
+def create_credential(step, os, inv_name, cred_name, serverId):
+    data = IMPL.ansible_tower.create_credentials(os, cred_name, serverId)
+    publicKey = None
+    if os == "linux":
+        publicKey = data['machineCredentials']['publicKey']
+    pk = data['machineCredentials']['id']
+    setattr(world, 'at_cred_primary_key_%s' % cred_name, pk)
+    passw = data['machineCredentials']['password']
+    save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, serverId, publicKey, passw)
+    if not save_at_cred['success']:
+        raise AssertionError('The credentials: %s have not been saved!' % cred_name)
+
+
+@step("credential '([\w-]+)' exists in ansible-tower credentials list")
+def check_credential_exists_on_at_server(step, cred_name):
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('credential')
+        pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
+        cred_list = res.list(all_pages=True)
+        for m in cred_list['results']:
+            if cred_name in m['name'] and m['id'] == pk:
+                # raise Exception(m['name'], m['id'])
+                break
+        else:
+            raise AssertionError(
+                'Credential name: %s not found in Ansible Tower server.' % cred_name)
+
+
+@step("server ([\w\d]+) exists in ansible-tower hosts list")
 def check_hostname_exists_on_at_server(step, serv_as):
     server = getattr(world, serv_as)
     hostname = world.get_hostname_by_server_format(server)
-    with settings.runtime_values(**at_config):
-        res = get_resource('host')
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('host')
         hosts_list = res.list(group=None, host_filter=None)
         for m in hosts_list['results']:
             if hostname in m['name']:
@@ -181,51 +210,10 @@ def check_hostname_exists_on_at_server(step, serv_as):
         # found
 
 
-@step("credential '([\w-]+)' exists on ansiblet-tower credentials list")
-def check_credential_exists_on_at_server(step, cred_name):
-    with settings.runtime_values(**at_config):
-        res = get_resource('credential')
-        cred_list = res.list(all_pages=True)
-        for m in cred_list['results']:
-            if cred_name in m['name']:
-                break
-        else:
-            raise AssertionError(
-                'Credential name: %s not found in Ansible Tower server.' % cred_name)
-
-
-@step("I delete credential with name '([\w-]+)' on ansiblet-tower server")
-def delete_ansible_tower_credential(step, cred_name):
-    with settings.runtime_values(**at_config):
-        res = get_resource('credential')
-        cred_settings = {
-            "name": cred_name,
-            "description": "",
-            "organization":1,
-            "credential_type": 1,
-            "inputs": {}
-        }
-        res.delete(**cred_settings)
-        cred_list = res.list()
-        for m in cred_list['results']:
-            if cred_name in m['name']:
-                raise AssertionError(
-                    'Credential name: %s not Deleted in Ansible Tower server.' % cred_name)
-
-
-@step("I add a new link with Inventory '([\w-]+)' to scalr and generate credentials '([\w-]+)'")
-def create_credential(step, inv_name, cred_name):
-    data = IMPL.ansible_tower.create_credentials(cred_name)
-    publicKey = data['machineCredentials']['publicKey']
-    id = data['machineCredentials']['id']
-    passw = data['machineCredentials']['password']
-    IMPL.ansible_tower.save_credentials(inv_name, id, cred_name, publicKey, passw)
-
-
 # @step("I launch job '([\w-]+)' with credential '([\w-]+)'")
 # def launch_ansible_tower_job(step, job_name, at_user):
-#     with settings.runtime_values(**at_config):
-#         res = get_resource('job')
+#     with at_settings.runtime_values(**at_config):
+#         res = at_get_resource('job')
 #         job_settings = {
 #             "name": job_name,
 #             "description": "",
@@ -239,3 +227,21 @@ def create_credential(step, inv_name, cred_name):
 #         else:
 #             raise AssertionError(
 #                 'Jod: %s not found in Ansible Tower server.' % job_name)
+
+
+@after.each_feature
+def delete_ansible_tower_credential(feature):
+    provision_feature_list = [
+        'Linux server provision with chef and ansible tower',
+        'Windows server provision with chef and ansible tower'
+    ]
+    if feature.name in provision_feature_list:
+        cred_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
+        with at_settings.runtime_values(**at_config):
+            res = at_get_resource('credential')
+            pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
+            result = res.delete(pk=pk)
+            assert result['changed'], (
+                    'Credentials with name %s are not deleted from the AT server' % cred_name)
+            LOG.error('Credentials: %s  with the id: %s were not removed from the AT server' % (
+                cred_name, pk))
