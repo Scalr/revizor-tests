@@ -249,7 +249,7 @@ class Defaults(object):
             farmrole.OrchestrationRule(event='HostUp', runlist='["recipe[create_file::default]"]',
                                        attributes='{"create_file":{"path":"/root/chef_hostup_result"}}'),
             farmrole.OrchestrationRule(event='HostUp', script='/bin/uname'),
-            farmrole.OrchestrationRule(event='HostUp', script='Sleep 10')
+            farmrole.OrchestrationRule(event='HostUp', script='Sleep 10', timeout=5)
         ]
 
     @staticmethod
