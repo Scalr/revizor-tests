@@ -404,12 +404,13 @@ def start_building(step):
     platform = CONF.feature.platform
     LOG.info('Initiate Start building')
     time.sleep(180)
+    node = world.cloud_server
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
     if platform.is_gce:
-        server_id = world.cloud_server.name
+        server_id = node.name
     else:
-        server_id = world.cloud_server.id
+        server_id = node.id
     res = IMPL.bundle.import_start(platform=platform.name,
                                    location=platform.location,
                                    cloud_id=server_id,
@@ -422,13 +423,19 @@ def start_building(step):
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
     #and then run scalarizr on new screen
-    if CONF.feature.dist.is_windows:
-        def call_in_background(command):
+    if node.os.is_windows:
+        # try:
+        #     world.cloud_server.run(res['scalarizr_run_command'], win_console='ps')
+        # except:
+        #     pass
+        # finally:
+        #     raise Exception(type(world.cloud_server), res['scalarizr_run_command'])
+        def call_in_background(node, command):
             try:
-                world.cloud_server.run(command)
+                node.run(command, win_console='ps')
             except:
                 pass
-        t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
+        t1 = Thread(target=call_in_background, args=(node, res['scalarizr_run_command']))
         t1.start()
     else:
         command = 'screen -d -m %s &' % res['scalarizr_run_command']

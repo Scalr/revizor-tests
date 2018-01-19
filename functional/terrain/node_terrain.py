@@ -13,7 +13,7 @@ from libcloud.compute.types import NodeState
 from datetime import datetime
 
 from revizor2 import consts
-from revizor2.api import IMPL
+from revizor2.api import IMPL, Cloud
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
@@ -775,7 +775,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
             setattr(world, 'role', role['role'])
 
 
-def run_sysprep(uuid, console):
+def run_sysprep(node):
     cmd = dict(
         gce='gcesysprep',
         ec2=world.PS_RUN_AS.format(
@@ -784,16 +784,16 @@ def run_sysprep(uuid, console):
                 '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
                 '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
     try:
-        console.run_cmd(cmd.get(CONF.feature.platform.name))
+        node.run(cmd.get(node.platform_config.name))
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
     end_time = time.time() + 900
     while time.time() <= end_time:
-        node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
-        LOG.debug('Obtained node after sysprep running: %s' % node)
-        LOG.debug('Obtained node status after sysprep running: %s' % node.state)
-        if node.state == NodeState.STOPPED:
+        cloud_node = (filter(lambda n: n.uuid == node.uuid, world.cloud.list_nodes()) or [''])[0]
+        LOG.debug('Obtained node after sysprep running: %s' % cloud_node)
+        LOG.debug('Obtained node status after sysprep running: %s' % cloud_node.state)
+        if cloud_node.state == NodeState.STOPPED:
             break
         time.sleep(10)
     else:
@@ -858,92 +858,29 @@ def get_repo_type(custom_branch, custom_version=None):
 def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
     node = getattr(world, 'cloud_server', None)
     resave_node = True if node else False
-    rv_branch = CONF.feature.branch
-    rv_to_branch = CONF.feature.to_branch
     server = getattr(world, (serv_as or '').strip(), None)
-    base_url = 'https://my.scalr.net'
-    if CONF.scalr.te_id:
-        base_url = 'http://%s.test-env.scalr.com' % CONF.scalr.te_id
     if server:
         server.reload()
-    # Get scalarizr repo type
+    if not node:
+        LOG.debug('Cloud server not found get node from server')
+        node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+        LOG.debug('Node get successfully: %s' % node)
+    rv_branch = CONF.feature.branch
+    rv_to_branch = CONF.feature.to_branch
     if use_rv_to_branch:
         branch = rv_to_branch
     elif custom_branch:
         branch = custom_branch
     else:
         branch = rv_branch
-    repo_type = get_repo_type(branch, custom_version)
-    LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
-    # Windows handler
-    if CONF.feature.dist.is_windows:
-        password = 'Scalrtest123'
-        if node:
-            console_kwargs = dict(
-                public_ip=node.public_ips[0],
-                password=password)
-        else:
-            console_kwargs = dict(server=server)
-            if CONF.feature.platform.is_ec2:
-                console_kwargs.update({'password': password})
-            LOG.debug('Cloud server not found get node from server')
-            node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
-            LOG.debug('Node get successfully: %s' % node)  # Wait ssh
-        console_kwargs.update({'timeout': 1200})
-        # Install scalarizr
-        url = '{base_url}/public/windows/{repo_type}'.format(base_url=base_url, repo_type=repo_type)
-        cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
-        assert not world.run_cmd_command_until(
-            world.PS_RUN_AS.format(command=cmd),
-            **console_kwargs).std_err, "Scalarizr installation failed"
-        LOG.debug('Get scalarizr version after install scalarizr')
-        res = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
-        LOG.debug('Scalarizr version: %s' % res)
-        if use_sysprep:
-            run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
-    # Linux handler
-    else:
-        # Wait cloud server
-        if not node:
-            LOG.debug('Cloud server not found get node from server')
-            node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-            LOG.debug('Node get successfully: %s' % node)
-        # Wait ssh
-        node.check_open_port(22)
-        # start_time = time.time()
-        # while (time.time() - start_time) < 300:
-        #     try:
-        #         if node.remote_connection().open():
-        #             node.remote_connection().close()
-        #             break
-        #     except AssertionError:
-        #         LOG.warning('Can\'t get ssh for server %s' % node.id)
-        #         time.sleep(10)
-        url = '{base_url}/public/linux/{repo_type}'.format(base_url=base_url, repo_type=repo_type)
-        cmd = '{curl_install} && ' \
-            'curl -L {url}/install_scalarizr.sh | bash && sync'.format(
-                curl_install=world.value_for_os_family(
-                    debian="apt-get update && apt-get install curl -y",
-                    centos="yum clean all && yum install curl -y",
-                    server=server,
-                    node=node
-                ),
-                url=url)
-        user = None
-        if CONF.feature.dist.id == 'coreos':
-            cmd = 'PATH=$PATH:/opt/bin; ' + cmd
-            user = 'core'
-        LOG.debug('Install script body: %s' % cmd)
-        out = node.run(cmd, user=user)
-        # get installed scalarizr version
-        version_cmd = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
-        res = node.run(version_cmd).std_out
-    scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    assert scalarizr_ver, 'Scalarizr version is invalid. Command returned: %s' % res
-    setattr(world, 'pre_installed_agent', scalarizr_ver[0])
+    LOG.info('Installing scalarizr from branch %s' % branch)
+    scalarizr_ver = node.install_scalarizr(branch=branch)
+    if use_sysprep and node.os.is_windows:
+        run_sysprep()
+    setattr(world, 'pre_installed_agent', scalarizr_ver)
     if resave_node:
         setattr(world, 'cloud_server', node)
-    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver[0])
+    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver)
 
 
 @step('I have a server([\w ]+)? running in cloud$')

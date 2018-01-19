@@ -211,23 +211,12 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
 def asserting_version(step, version, serv_as):
     server = getattr(world, serv_as)
     default_installed_agent = getattr(world, 'default_agent', None)
-    pre_installed_agent = world.pre_installed_agent
+    pre_installed_agent = world.pre_installed_agent[0]
     server.reload()
     command = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
-    # Windows handler
-    if CONF.feature.dist.is_windows:
-        for _ in range(3):
-            out = world.run_cmd_command_until(command, server=server, timeout=300)
-            LOG.debug('Get scalarizr version from windows: %s (%s)' % (out.std_out, out.std_err))
-            if out.std_out.strip():
-                res = out.std_out.strip()
-                break
-            time.sleep(3)
-    # Linux handler
-    else:
-        node = world.cloud.get_node(server)
-        res = node.run(command).std_out
+    node = world.cloud.get_node(server)
+    res = node.run(command).std_out
     LOG.debug('Result from scalarizr -v: %s' % res)
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert installed_agent, "Can't get scalarizr version: %s" % res
