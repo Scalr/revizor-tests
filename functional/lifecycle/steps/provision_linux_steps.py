@@ -236,7 +236,7 @@ def launch_ansible_tower_job(step, job_name, cred_name):
         job_list = res.get(pk=my_job['id'])
         for _ in range(100):
             time.sleep(1)
-            if job_list['status'] != 'waiting':
+            if job_list['status'] not in ['waiting', 'running']:
                 assert job_list['status'] == 'failed', (job_list['status'])  # "status": "successful"
 
 
