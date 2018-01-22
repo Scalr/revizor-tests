@@ -85,4 +85,4 @@ Feature: Linux server provision with chef and ansible tower
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
-#        And I launch job 'Demo Job Template' with credential 'Revizor_linux_cred'
+        And I launch job 'Revizor linux Job Template' with credential 'Revizor_linux_cred'

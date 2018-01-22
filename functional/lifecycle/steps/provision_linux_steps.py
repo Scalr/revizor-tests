@@ -165,15 +165,15 @@ def check_failed_status_message(step, phase, msg, serv_as):
 def create_credential(step, os, inv_name, cred_name):
     at_servers_list = IMPL.ansible_tower.get_at_servers_list()
     at_serverId = at_servers_list['servers'][0]['id']
+    passw = at_serverId
     assert at_serverId, 'The Ansible-Tower server Id was not found'
     setattr(world, 'at_server_id_%s' % cred_name, at_serverId)
-    data = IMPL.ansible_tower.create_credentials(os, cred_name, at_serverId)
+    data = IMPL.ansible_tower.create_credentials(os, cred_name, at_serverId, passw)
     publicKey = None
     if os == "linux":
         publicKey = data['machineCredentials']['publicKey']
     pk = data['machineCredentials']['id']
     setattr(world, 'at_cred_primary_key_%s' % cred_name, pk)
-    passw = data['machineCredentials']['password']
     save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, at_serverId, publicKey, passw)
     if not save_at_cred['success']:
         raise AssertionError('The credentials: %s have not been saved!' % cred_name)
@@ -195,8 +195,13 @@ def check_credential_exists_on_at_server(step, cred_name):
 
 @step("server ([\w\d]+) exists in ansible-tower hosts list")
 def check_hostname_exists_on_at_server(step, serv_as):
+    """
+    You can search server name by: Public IP or Private IP or Hostname.
+    Check what value is in defaults!
+    If value is Hostname, then hostname = world.get_hostname_by_server_format(server)
+    """
     server = getattr(world, serv_as)
-    hostname = world.get_hostname_by_server_format(server)
+    hostname = server.public_ip
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('host')
         hosts_list = res.list(group=None, host_filter=None)
@@ -213,23 +218,26 @@ def check_hostname_exists_on_at_server(step, serv_as):
         # found
 
 
-# @step("I launch job '([\w-]+)' with credential '([\w-]+)'")
-# def launch_ansible_tower_job(step, job_name, at_user):
-#     with at_settings.runtime_values(**at_config):
-#         res = at_get_resource('job')
-#         job_settings = {
-#             "name": job_name,
-#             "description": "",
-#             "organization": 1,
-#             "variables": ""}
-#         res.launch( **job_settings)
-#         job_list = res.list()
-#         for m in job_list['results']:
-#             if job_name in m['name']:
-#                 break
-#         else:
-#             raise AssertionError(
-#                 'Jod: %s not found in Ansible Tower server.' % job_name)
+@step("I launch job '(.+)' with credential '([\w-]+)'")
+def launch_ansible_tower_job(step, job_name, cred_name):
+    pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('job')
+        job_settings = {
+            "credential_id": pk,
+            "extra_credentials": [],
+            "extra_vars": {}}
+        my_job = res.launch(job_template=job_name,
+                            monitor=False,
+                            wait=False,
+                            timeout=None,
+                            no_input=True,
+                            **job_settings)
+        job_list = res.get(pk=my_job['id'])
+        for _ in range(100):
+            time.sleep(1)
+            if job_list['status'] != 'waiting':
+                assert job_list['status'] == 'failed', (job_list['status'])  # "status": "successful"
 
 
 @after.each_feature
