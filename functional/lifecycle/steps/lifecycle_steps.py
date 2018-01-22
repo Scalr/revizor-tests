@@ -244,7 +244,7 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     node = world.cloud.get_node(to_server)
     with node.remote_connection() as conn:
         for i in range(3):
-            fstab = node.run('cat /etc/fstab').std_out
+            fstab = conn.run('cat /etc/fstab').std_out
             if not fstab: #FIXME: on openstack this trouble was, fix this
                 LOG.warning('cat /etc/fstab return nothing')
                 time.sleep(15)
@@ -260,7 +260,7 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
         if mount_point not in fstab:
             raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
                                  (mount_point, fstab))
-        out = node.run('ls -l "%s"' % (mount_disks[mount_point]))
+        out = conn.run('ls -l "%s"' % (mount_disks[mount_point]))
         if out.std_out.startswith('l'):
             path = os.path.realpath(mount_disks[mount_point] + "/.." + fstab[mount_point])
             if not fstab[mount_point] in path:

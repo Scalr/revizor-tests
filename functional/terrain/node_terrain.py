@@ -5,15 +5,13 @@ import time
 import logging
 import urllib2
 import collections
-import re
 
 from lettuce import world, step
 
 from libcloud.compute.types import NodeState
 from datetime import datetime
 
-from revizor2 import consts
-from revizor2.api import IMPL, Cloud
+from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
@@ -161,14 +159,14 @@ class VerifyProcessWork(object):
                 time.sleep(5)
             return False
 
-    @staticmethod
-    def _verify_open_port(server, port):
-        for i in range(5):
-            opened = world.check_open_port(server, port)
-            if opened:
-                return True
-            time.sleep(15)
-        return False
+    # @staticmethod
+    # def _verify_open_port(server, port):
+    #     for i in range(5):
+    #         opened = world.check_open_port(server, port)
+    #         if opened:
+    #             return True
+    #         time.sleep(15)
+    #     return False
 
     @staticmethod
     def _verify_app(server, port):
@@ -177,40 +175,44 @@ class VerifyProcessWork(object):
         results = [VerifyProcessWork._verify_process_running(server,
                                                              DEFAULT_SERVICES_CONFIG['app'][
                                                                  node.os.family]['service_name']),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         return all(results)
 
     @staticmethod
     def _verify_www(server, port):
         LOG.info('Verify nginx (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server, 'nginx'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         return all(results)
 
     @staticmethod
     def _verify_redis(server, port):
         LOG.info('Verify redis-server (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server, 'redis-server'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         LOG.debug('Redis-server verifying results: %s' % results)
         return all(results)
 
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         if CONF.feature.platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
             port = server.details['scalarizr.ctrl_port']
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         LOG.debug('Scalarizr verifying results: %s' % results)
         return all(results)
 
     @staticmethod
     def _verify_memcached(server, port):
         LOG.info('Verify memcached (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         return all(results)
 
 
@@ -876,7 +878,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
     LOG.info('Installing scalarizr from branch %s' % branch)
     scalarizr_ver = node.install_scalarizr(branch=branch)
     if use_sysprep and node.os.is_windows:
-        run_sysprep()
+        run_sysprep(node)
     setattr(world, 'pre_installed_agent', scalarizr_ver)
     if resave_node:
         setattr(world, 'cloud_server', node)
