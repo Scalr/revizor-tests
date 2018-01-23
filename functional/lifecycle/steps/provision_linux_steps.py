@@ -164,17 +164,17 @@ def check_failed_status_message(step, phase, msg, serv_as):
 @step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)'")
 def create_credential(step, os, inv_name, cred_name):
     at_servers_list = IMPL.ansible_tower.get_at_servers_list()
-    at_serverId = at_servers_list['servers'][0]['id']
-    passw = at_serverId
-    assert at_serverId, 'The Ansible-Tower server Id was not found'
-    setattr(world, 'at_server_id_%s' % cred_name, at_serverId)
-    data = IMPL.ansible_tower.create_credentials(os, cred_name, at_serverId, passw)
-    publicKey = None
+    at_serverid = at_servers_list['servers'][0]['id']
+    passw = at_serverid
+    assert at_serverid, 'The Ansible-Tower server Id was not found'
+    setattr(world, 'at_server_id_%s' % cred_name, at_serverid)
+    data = IMPL.ansible_tower.create_credentials(os, cred_name, at_serverid, passw)
+    publickey = None
     if os == "linux":
-        publicKey = data['machineCredentials']['publicKey']
+        publickey = data['machineCredentials']['publicKey']
     pk = data['machineCredentials']['id']
     setattr(world, 'at_cred_primary_key_%s' % cred_name, pk)
-    save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, at_serverId, publicKey, passw)
+    save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, at_serverid, publickey, passw)
     if not save_at_cred['success']:
         raise AssertionError('The credentials: %s have not been saved!' % cred_name)
 
@@ -233,11 +233,14 @@ def launch_ansible_tower_job(step, job_name, cred_name):
                             timeout=None,
                             no_input=True,
                             **job_settings)
-        job_list = res.get(pk=my_job['id'])
         for _ in range(100):
             time.sleep(1)
-            if job_list['status'] not in ['waiting', 'running']:
-                assert job_list['status'] == 'failed', (job_list['status'])  # "status": "successful"
+            job_info = res.get(pk=my_job['id'])
+            if job_info['status'] not in ['waiting', 'running']:
+                break
+        else:
+            raise AssertionError('Job #%s has not finished in 100s' % my_job['id'])
+        assert job_info['status'] == 'failed', (my_job['id'], job_info['status'])  # It is necessary to change the check 'failed --> successful' when the jobs will work!
 
 
 @after.each_feature
