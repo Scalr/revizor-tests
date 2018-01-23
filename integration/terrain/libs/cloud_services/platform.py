@@ -100,7 +100,9 @@ class AzureServicePlatform(CloudServicePlatform):
 
     def configure(self):
         super(AzureServicePlatform, self).configure()
-        self.subscription_id = self.request['cc_id']
+        # some azure management clients strictly require subscription_id parameter
+        # to be of type `str`, and fail when it's `unicode`
+        self.subscription_id = str(self.request['cc_id'])
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
                       REQUESTS_CA_BUNDLE=self.cacert_path):
             self.credentials = ServicePrincipalCredentials(

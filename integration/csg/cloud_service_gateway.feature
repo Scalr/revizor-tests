@@ -20,9 +20,11 @@ Feature: Check CSG
 
   Scenario: Create and approve Azure service access request
     Given I have requested access to services on Azure as AR2:
-      | service        |
-      | Web            |
-      | Event Hubs     |
+      | service             |
+      | Web                 |
+      | Event Hubs          |
+      | Machine Learning    |
+      | Container Registry  |
     And I see access request AR2 in pending status on environment scope
     And I see access request AR2 in pending status on account scope
     When I approve access request AR2
@@ -36,10 +38,12 @@ Feature: Check CSG
     Given I have active access request <request>
     Then "<service>" service works on <platform> using <request>
     Examples:
-      | request  | platform  | service          |
-      | AR1      | AWS       | Lambda           |
-      | AR2      | Azure     | Web              |
-      | AR2      | Azure     | Event Hubs       |
+      | request  | platform  | service            |
+      | AR1      | AWS       | Lambda             |
+      | AR2      | Azure     | Web                |
+      | AR2      | Azure     | Event Hubs         |
+      | AR2      | Azure     | Machine Learning   |
+      | AR2      | Azure     | Container Registry |
 
   Scenario: Configure proxy server
     Given I have configured revizor environment:

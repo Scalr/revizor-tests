@@ -7,3 +7,4 @@ boto3==1.4.7
 azure-mgmt-web>=0.34.1
 azure-mgmt-eventhub>=1.2.0
 azure-mgmt-machinelearningcompute>=0.4.0
+azure-mgmt-containerregistry>=1.0.1
