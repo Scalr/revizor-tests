@@ -36,7 +36,7 @@ def assert_check_upstream(step, www_serv, app_servers):
     time.sleep(180)
     nginx = getattr(world, www_serv)
     node = world.cloud.get_node(nginx)
-    out = node.run('cat /etc/nginx/app-servers.include')[0]
+    out = node.run('cat /etc/nginx/app-servers.include').std_out
     app_servers = [s.strip() for s in app_servers.split(',')]
     LOG.info('Check upstream list')
     for serv in app_servers:
@@ -100,7 +100,7 @@ def app_server_should_be_clean(step, serv_as):
     LOG.info('Check if default ip is in list')
     wait_until(world.wait_upstream_in_config, args=(node,ip),
                timeout=180,error_text="Server %s (%s) not in upstream list" % (server.id, ip))
-    out = node.run('cat /etc/nginx/app-servers.include')[0]
+    out = node.run('cat /etc/nginx/app-servers.include').std_out
     ips = re.findall(r"((?:\d+\.?){4}:\d+)", out)
     if not len(ips) == 1:
         raise AssertionError('In default app-servers.include must be only one host, but it: %s (%s)' % (len(ips), ips))

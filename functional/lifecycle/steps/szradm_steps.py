@@ -175,32 +175,29 @@ class SzrAdmResultsParser(object):
 def run_command(step, command, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
-    if command == 'szradm q list-farm-role-params':
-        if CONF.feature.dist.is_windows:
-            farm_role_id = json.loads(
-                world.run_cmd_command(
-                    server,
-                    'szradm q list-roles --format=json')
-                .std_out)['roles'][0]['id']
-        else:
-            farm_role_id = json.loads(node.run('szradm q list-roles --format=json')[0])['roles'][0]['id']
-        command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
-    if CONF.feature.dist.id == 'coreos':
-        command = 'PATH=$PATH:/opt/bin; ' + command
-    if CONF.feature.dist.is_windows:
-        result = world.run_cmd_command(server, command)
-        stdout, stderr, exitcode = result.std_out, result.std_err, result.status_code
-    else:
-        stdout, stderr, exitcode = node.run(command)
-    if exitcode:
-        raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %
-                             (command, stderr))
-    LOG.debug('Parsing a command result: %s' % stdout)
-    result = SzrAdmResultsParser.parser(stdout)
-    LOG.debug('Command result was successfully parsed on a remote host:%s\n%s' % (server.id, result))
-    setattr(world, '%s_result' % serv_as, result)
-    LOG.info('Command execution result is stored in world.%s_result' % serv_as)
+    with node.remote_connection() as conn:
+        LOG.info('Execute a command: %s on a remote host: %s' % (command, server.id))
+        if command == 'szradm q list-farm-role-params':
+            if CONF.feature.dist.is_windows:
+                farm_role_id = json.loads(
+                    world.run_cmd_command(
+                        server,
+                        'szradm q list-roles --format=json')
+                    .std_out)['roles'][0]['id']
+            else:
+                farm_role_id = json.loads(conn.run('szradm q list-roles --format=json').std_out)['roles'][0]['id']
+            command = 'szradm q list-farm-role-params farm-role-id=%s' % farm_role_id
+        if CONF.feature.dist.id == 'coreos':
+            command = 'PATH=$PATH:/opt/bin; ' + command
+        out = conn.run(command)
+        if out.status_code:
+            raise AssertionError("Command: %s, was not executed properly. An error has occurred:\n%s" %
+                                 (command, out.std_err))
+        LOG.debug('Parsing a command result: %s' % out.std_out)
+        result = SzrAdmResultsParser.parser(out.std_out)
+        LOG.debug('Command result was successfully parsed on a remote host:%s\n%s' % (server.id, result))
+        setattr(world, '%s_result' % serv_as, result)
+        LOG.info('Command execution result is stored in world.%s_result' % serv_as)
 
 
 @step(r'I compare(?: ([\w]+))? obtained results of ([\w\d,]+)')
@@ -288,33 +285,33 @@ def check_variable(step, var, serv_as):
     script_result = result[0].split('=')[1].strip('"\n')
     #Get an variable from the environment
     LOG.info('Get variable %s from the environment on %s' % (var, server.id))
-    shell = node.get_interactive()
-    if not shell.recv_ready():
-        time.sleep(10)
-    LOG.debug('Received from shell: %s' % shell.recv(4096))
+    with node.remote_connection(shell=True).session as shell:
+        if not shell.recv_ready():
+            time.sleep(10)
+        LOG.debug('Received from shell: %s' % shell.recv(4096))
 
-    shell.send("echo $%s\n" % var)
-    if not shell.recv_ready():
-        time.sleep(10)
-    environment_result = shell.recv(1024)
-    LOG.debug('Environment result received from %s is : %s' % (server.id, environment_result))
+        shell.send("echo $%s\n" % var)
+        if not shell.recv_ready():
+            time.sleep(10)
+        environment_result = shell.recv(1024)
+        LOG.debug('Environment result received from %s is : %s' % (server.id, environment_result))
 
-    if not environment_result:
-        raise AssertionError("Can't get variable %s from the environment on %s." % (var, server.id))
-    environment_result = environment_result.split('\r\n')[1]
+        if not environment_result:
+            raise AssertionError("Can't get variable %s from the environment on %s." % (var, server.id))
+        environment_result = environment_result.split('\r\n')[1]
 
-    if script_result != environment_result:
-        raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." %
-                             (script_result, environment_result, server.id))
-    LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
-    shell.close()
+        if script_result != environment_result:
+            raise AssertionError("Variable %s from scalr_globals.sh does not match the environment %s on %s." %
+                                 (script_result, environment_result, server.id))
+        LOG.info('Variable %s is checked successfully on %s' % (var, server.id))
+        # shell.close()
 
 
 @step(r'([\w]+) has (.+) in virtual hosts configuration')
 def assert_check_vhost(step, serv_as, vhost_as):
     node = world.cloud.get_node(getattr(world, serv_as))
     vhost = getattr(world, vhost_as)
-    out = node.run('ls /etc/scalr/private.d/vhosts/')[0]
+    out = node.run('ls /etc/scalr/private.d/vhosts/').std_out
     if vhost.name in out:
         return True
     LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
@@ -332,10 +329,10 @@ def set_environment_variable(step, pattern, name, command, serv_as):
         result = node.run('export %(var_name)s=%(id)s && %(command)s $%(var_name)s' % {'id': var,
                                                                                        'command': command,
                                                                                        'var_name': name})
-        if result[2]:
+        if result.status_code:
             raise AssertionError("Can't set environment variable $%s = %s or get details on a remote host: %s" %
                                  (name, var, server.id))
-        result = SzrAdmResultsParser.parser(result[0])
+        result = SzrAdmResultsParser.parser(result.std_out)
         setattr(world, '%s_result' % serv_as, result)
         LOG.debug('Environment was successfully set up and details was saved into %s on a remote host:%s\n%s' %
                   ('%s_result' % serv_as, server.id, result))

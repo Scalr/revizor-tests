@@ -20,7 +20,7 @@ def get_nginx_default_server_template():
 
 
 def check_config_for_option(node, config_file, option):
-    config = node.run('cat /etc/nginx/%s' % config_file)[0]
+    config = node.run('cat /etc/nginx/%s' % config_file).std_out
     if config_file == 'proxies.include':
         config = ' '.join(config.split())
     if option in config:
@@ -125,7 +125,7 @@ def check_options_in_nginx_upstream(step, option, serv_as):
                    args=[node, 'app-servers.include', option[0]],
                    timeout=180,
                    error_text="Options '%s' not in upstream config: %s" % (
-                       option, node.run('cat /etc/nginx/app-servers.include')[0]))
+                       option, node.run('cat /etc/nginx/app-servers.include').std_out))
     elif len(option) > 1:
         serv = getattr(world, host, None)
         hostname = serv.private_ip if serv else host
@@ -157,7 +157,7 @@ def validate_clean_nginx_upstream(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info("Check upstream in nginx server")
-    upstream = node.run('cat /etc/nginx/app-servers.include')[0]
+    upstream = node.run('cat /etc/nginx/app-servers.include').std_out
     LOG.info('Upstream list: %s' % upstream)
     if upstream.strip():
         raise AssertionError('Upstream list not clean')

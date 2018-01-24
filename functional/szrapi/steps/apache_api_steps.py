@@ -105,7 +105,7 @@ def create_vhost(step, key_name, domain_as, serv_as):
     # Get node
     node = world.cloud.get_node(server)
     node.run('rm -f /tmp/example/index.html')
-    node.put_file(path='/tmp/example/index.php', content=index)
+    node.put_file('/tmp/example/index.php', index)
     LOG.debug('Uploaded index page %s to server %s' % (domain.name, node.id))
 
 

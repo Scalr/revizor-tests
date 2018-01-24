@@ -42,7 +42,7 @@ def save_config_from_message(step, config_group, message, serv_as):
     cmd = 'szradm message-details %s --json' % msg_id
     if CONF.feature.dist.id == 'coreos':
         cmd = "/opt/bin/" + cmd
-    message_details = json.loads(node.run(cmd)[0])['body']
+    message_details = json.loads(node.run(cmd).std_out)['body']
     LOG.info('Message details is %s' % message_details)
     LOG.info('Save message part %s' % config_group)
     setattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), message_details[config_group])
@@ -59,7 +59,7 @@ def check_message_config(step, config_group, message, serv_as):
     cmd = 'szradm message-details %s --json' % msg_id
     if CONF.feature.dist.id == 'coreos':
         cmd = "/opt/bin/" + cmd
-    message_details = json.loads(node.run(cmd)[0])['body']
+    message_details = json.loads(node.run(cmd).std_out)['body']
     LOG.info('Message details is %s' % message_details)
     old_details = getattr(world, '%s_%s_%s' % (serv_as, message.lower(), config_group), '')
     if not config_group in message_details or old_details == message_details[config_group]:
@@ -71,16 +71,17 @@ def check_message_config(step, config_group, message, serv_as):
 def check_path(step, path, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    for attempt in range(3):
-        out = node.run('/bin/ls %s' % path)
-        if not out[0] and not out[1]:
-            time.sleep(5)
-            continue
-        break
-    LOG.info('Check directory %s' % path)
-    if 'No such file or directory' in out[0] or 'No such file or directory' in out[1] or not out[0]:
-        LOG.error('Directory (file) not exist')
-        raise AssertionError("'%s' not exist in server %s" % (path, server.id))
+    with node.remote_connection() as conn:
+        for attempt in range(3):
+            out = conn.run('/bin/ls %s' % path)
+            if not out.std_out and not out.std_err:
+                time.sleep(5)
+                continue
+            break
+        LOG.info('Check directory %s' % path)
+        if 'No such file or directory' in out.std_out or 'No such file or directory' in out.std_err or not out.std_out:
+            LOG.error('Directory (file) not exist')
+            raise AssertionError("'%s' not exist in server %s" % (path, server.id))
 
 
 @step("I create (\d+) files in '(.+)' in ([\w\d]+)")
@@ -96,7 +97,7 @@ def check_file_count(step, directory, file_count, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Check count of files in directory %s' % directory)
-    out = node.run('cd %s && ls' % directory)[0].split()
+    out = node.run('cd %s && ls' % directory).std_out.split()
     for i in ['..', '.', '...', 'lost+found']:
         if i in out:
             out.remove(i)
@@ -160,14 +161,15 @@ def execute_command(step, command, serv_as):
 @step('server ([\w\d]+) contain \'(.+)\'')
 def check_file(step, serv_as, path):
     node = world.cloud.get_node(getattr(world, serv_as))
-    for attempt in range(5):
-        out = node.run('ls %s' % path)
-        LOG.info('Check exist path: %s. Attempt: %s' % (path, attempt))
-        if out[2] == 0: # success
-            break
-        time.sleep(15)
-    else:
-        raise AssertionError('File \'%s\' not exist: %s' % (path, out))
+    with node.remote_connection() as conn:
+        for attempt in range(5):
+            out = conn.run('ls %s' % path)
+            LOG.info('Check exist path: %s. Attempt: %s' % (path, attempt))
+            if out.status_code == 0: # success
+                break
+            time.sleep(15)
+        else:
+            raise AssertionError('File \'%s\' not exist: %s' % (path, out))
 
 
 @step("I save device for '(.+)' for role")
@@ -214,7 +216,7 @@ def verify_ports_in_iptables(step, ports, serv_as):
     server = getattr(world, serv_as)
     ports = ports.split(',')
     node = world.cloud.get_node(server)
-    rules = node.run('iptables -L')[0]
+    rules = node.run('iptables -L').std_out
     LOG.debug('iptables rules:\n%s' % rules)
 
     for port in ports:
@@ -228,7 +230,7 @@ def save_mount_table(step, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Save mount table from server "%s"' % server.id)
     node = world.cloud.get_node(server)
-    mount_table = node.run('mount')[0].splitlines()
+    mount_table = node.run('mount').std_out.splitlines()
     mount_table = {x.split()[2]: x.split()[0] for x in mount_table if x}
     LOG.debug('Mount table:\n %s' % mount_table)
     setattr(world, '%s_mount_table' % serv_as, mount_table)
@@ -240,33 +242,34 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
              (mount_point, to_server.id))
     node = world.cloud.get_node(to_server)
-    for i in range(3):
-        fstab = node.run('cat /etc/fstab')[0]
-        if not fstab: #FIXME: on openstack this trouble was, fix this
-            LOG.warning('cat /etc/fstab return nothing')
-            time.sleep(15)
-            continue
-        break
-    fstab = fstab.splitlines()
-    fstab = {x.split()[1]: x.split()[0] for x in fstab if x and x.startswith('/')}
-    LOG.debug('Fstab on server "%s" contains:\n %s' % (to_server.id, fstab))
-    mount_disks = getattr(world, '%s_mount_table' % from_serv_as)
-    if mount_point not in mount_disks:
-        raise AssertionError('Mount point "%s" not exist in mount table:\n%s' %
-                             (mount_point, mount_disks))
-    if mount_point not in fstab:
-        raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
-                             (mount_point, fstab))
-    check_symlink, stderr, exit_code = node.run('ls -l "%s"' % (mount_disks[mount_point]))
-    if check_symlink.startswith('l'):
-        path = os.path.realpath(mount_disks[mount_point] + "/.." + fstab[mount_point])
-        if not fstab[mount_point] in path:
-            raise AssertionError('Disk in fstab: "%s" is not in symlink "%s"' %
-                                 (fstab[mount_point], path))
-    else:
-        assert mount_disks[mount_point] == fstab[mount_point], (
-            'Disk from mount != disk in fstab: "%s" != "%s"' % (
-                mount_disks[mount_point], fstab[mount_point]))
+    with node.remote_connection() as conn:
+        for i in range(3):
+            fstab = conn.run('cat /etc/fstab').std_out
+            if not fstab: #FIXME: on openstack this trouble was, fix this
+                LOG.warning('cat /etc/fstab return nothing')
+                time.sleep(15)
+                continue
+            break
+        fstab = fstab.splitlines()
+        fstab = {x.split()[1]: x.split()[0] for x in fstab if x and x.startswith('/')}
+        LOG.debug('Fstab on server "%s" contains:\n %s' % (to_server.id, fstab))
+        mount_disks = getattr(world, '%s_mount_table' % from_serv_as)
+        if mount_point not in mount_disks:
+            raise AssertionError('Mount point "%s" not exist in mount table:\n%s' %
+                                 (mount_point, mount_disks))
+        if mount_point not in fstab:
+            raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
+                                 (mount_point, fstab))
+        out = conn.run('ls -l "%s"' % (mount_disks[mount_point]))
+        if out.std_out.startswith('l'):
+            path = os.path.realpath(mount_disks[mount_point] + "/.." + fstab[mount_point])
+            if not fstab[mount_point] in path:
+                raise AssertionError('Disk in fstab: "%s" is not in symlink "%s"' %
+                                     (fstab[mount_point], path))
+        else:
+            assert mount_disks[mount_point] == fstab[mount_point], (
+                'Disk from mount != disk in fstab: "%s" != "%s"' % (
+                    mount_disks[mount_point], fstab[mount_point]))
 
 
 @step("start time in ([\w\d _-]+) scripts are different for ([\w\d]+)")
@@ -334,10 +337,10 @@ def create_partitions_on_volume(step, mnt_point, serv_as):
     node.put_file(path, script_src % mnt_point)
     out = node.run('source %s' % path)
 
-    partition_table = out[0].strip("\n").splitlines()[-4:]
+    partition_table = out.std_out.strip("\n").splitlines()[-4:]
     LOG.debug('Created partitions table for volume:\n%s' % "\n".join(partition_table))
     assert all(line.startswith('/dev/') for line in partition_table), \
-        "Create volume partitions failed: %s" % out[1]
+        "Create volume partitions failed: %s" % out.std_err
     LOG.info('Partitions table for volume was successfully created')
 
 

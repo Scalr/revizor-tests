@@ -48,7 +48,7 @@ def deploy_agent(step, serv_as):
     deploy_cmd = IMPL.discovery_manager.triggering_agent_deployment(server.id)['deploy_cmd']
     node = world.cloud.get_node(server)
     LOG.info('Run scalarizr: [%s] on the imported server: %s' % (deploy_cmd, server.id))
-    assert not bool(node.run(deploy_cmd)[2])
+    assert not bool(node.run(deploy_cmd).status_code)
 
 
 @step(r'connection with agent on the ([\w\d]+) server was established')

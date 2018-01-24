@@ -104,7 +104,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 continue
         if server.status == ServerStatus.RUNNING and not CONF.feature.dist.is_windows:
             node = world.cloud.get_node(server)
-            out = node.run("ps aux | grep 'bin/scal'")[0]
+            out = node.run("ps aux | grep 'bin/scal'").std_out
             for line in out.splitlines():
                 ram = line.split()[5]
                 if len(ram) > 3:

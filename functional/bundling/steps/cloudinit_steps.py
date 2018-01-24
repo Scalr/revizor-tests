@@ -24,15 +24,16 @@ def remove_unsupported_behaviors(scenario):
 def check_cloudinit(step):
     node = getattr(world, 'cloud_server')
     cmd = 'coreos-cloudinit --version' if CONF.feature.dist.id == 'coreos' else 'cloud-init -v'
-    out = node.run(cmd)[2]
-    if out != 0:
-        if CONF.feature.dist.is_centos:
-            node.run('yum -y install cloud-init')
-        else:
-            node.run('sudo apt-get install cloud-init -y')
-        out = node.run('cloud-init -v')[2]
+    with node.remote_connection() as conn:
+        out = conn.run(cmd).status_code
         if out != 0:
-            raise AssertionError('Cloud-init is not installed!')
+            if CONF.feature.dist.is_centos:
+                conn.run('yum -y install cloud-init')
+            else:
+                conn.run('sudo apt-get install cloud-init -y')
+            out = conn.run('cloud-init -v').status_code
+            if out != 0:
+                raise AssertionError('Cloud-init is not installed!')
 
 
 @step(r"I rebundle ([\w]+)")
