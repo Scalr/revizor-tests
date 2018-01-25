@@ -25,6 +25,7 @@ Feature: Check CSG
       | Event Hubs          |
       | Machine Learning    |
       | Container Registry  |
+      | Container Service   |
     And I see access request AR2 in pending status on environment scope
     And I see access request AR2 in pending status on account scope
     When I approve access request AR2
@@ -44,6 +45,7 @@ Feature: Check CSG
       | AR2      | Azure     | Event Hubs         |
       | AR2      | Azure     | Machine Learning   |
       | AR2      | Azure     | Container Registry |
+      | AR2      | Azure     | Container Service  |
 
   Scenario: Configure proxy server
     Given I have configured revizor environment:
