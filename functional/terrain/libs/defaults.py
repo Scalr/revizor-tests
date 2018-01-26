@@ -314,7 +314,7 @@ class Defaults(object):
         at_server_id = getattr(world, 'at_server_id_%s' % cred_name)
         params.bootstrap_with_at.enabled = True
         params.bootstrap_with_at.server = at_server_id
-        params.bootstrap_with_at.inventory = 33 if CONF.feature.dist.is_windows else 32
+        params.bootstrap_with_at.inventory = getattr(world, 'at_inventory_id_%s' % cred_name)
         params.bootstrap_with_at.name = 'publicIp'
         params.bootstrap_with_at.groups = '[]'
         params.bootstrap_with_at.variables = ''

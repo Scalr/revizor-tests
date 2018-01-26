@@ -162,35 +162,37 @@ def check_failed_status_message(step, phase, msg, serv_as):
 
 
 @step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)'")
-def create_credential(step, os, inv_name, cred_name):
-    at_servers_list = IMPL.ansible_tower.get_at_servers_list()
-    at_serverid = at_servers_list['servers'][0]['id']
-    passw = at_serverid
-    assert at_serverid, 'The Ansible-Tower server Id was not found'
-    setattr(world, 'at_server_id_%s' % cred_name, at_serverid)
-    data = IMPL.ansible_tower.create_credentials(os, cred_name, at_serverid, passw)
+def create_credential(step, os, inv_name, credentials_name):
+    at_servers_list = IMPL.ansible_tower.list_servers()
+    at_server_id = at_servers_list['servers'][0]['id']
+    assert at_server_id, 'The Ansible-Tower server Id was not found'
+    setattr(world, 'at_server_id_%s' % credentials_name, at_server_id)
+    credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
     publickey = None
     if os == "linux":
-        publickey = data['machineCredentials']['publicKey']
-    pk = data['machineCredentials']['id']
-    setattr(world, 'at_cred_primary_key_%s' % cred_name, pk)
-    save_at_cred = IMPL.ansible_tower.save_credentials(inv_name, os, pk, cred_name, at_serverid, publickey, passw)
-    if not save_at_cred['success']:
-        raise AssertionError('The credentials: %s have not been saved!' % cred_name)
+        publickey = credentials['machineCredentials']['publicKey']
+    pk = credentials['machineCredentials']['id']
+    inventory_id = re.search('(\d.*)', inv_name).group(0)
+    setattr(world, 'at_inventory_id_%s' % credentials_name, inventory_id)
+    setattr(world, 'at_cred_primary_key_%s' % credentials_name, pk)
+    inventory_link = IMPL.ansible_tower.add_inventory_link(
+        inv_name, os, pk, credentials_name,at_server_id, publickey, inventory_id)
+    if not inventory_link['success']:
+        raise AssertionError('The credentials: %s have not been saved!' % credentials_name)
 
 
 @step("credential '([\w-]+)' exists in ansible-tower credentials list")
-def check_credential_exists_on_at_server(step, cred_name):
+def check_credential_exists_on_at_server(step, credentials_name):
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('credential')
-        pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
+        pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
         cred_list = res.list(all_pages=True)
         for m in cred_list['results']:
-            if cred_name in m['name'] and m['id'] == pk:
+            if credentials_name in m['name'] and m['id'] == pk:
                 break
         else:
             raise AssertionError(
-                'Credential name: %s not found in Ansible Tower server.' % cred_name)
+                'Credential name: %s not found in Ansible Tower server.' % credentials_name)
 
 
 @step("server ([\w\d]+) exists in ansible-tower hosts list")
@@ -218,9 +220,9 @@ def check_hostname_exists_on_at_server(step, serv_as):
         # found
 
 
-@step("I launch job '(.+)' with credential '([\w-]+)'")
-def launch_ansible_tower_job(step, job_name, cred_name):
-    pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
+@step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)'")
+def launch_ansible_tower_job(step, job_name, credentials_name, job_result):
+    pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job')
         job_settings = {
@@ -233,14 +235,14 @@ def launch_ansible_tower_job(step, job_name, cred_name):
                             timeout=None,
                             no_input=True,
                             **job_settings)
-        for _ in range(100):
-            time.sleep(1)
+        for _ in range(10):
+            time.sleep(5)
             job_info = res.get(pk=my_job['id'])
             if job_info['status'] not in ['waiting', 'running']:
                 break
         else:
-            raise AssertionError('Job #%s has not finished in 100s' % my_job['id'])
-        assert job_info['status'] == 'failed', (my_job['id'], job_info['status'])  # It is necessary to change the check 'failed --> successful' when the jobs will work!
+            raise AssertionError('Job #%s has not finished in 50s' % my_job['id'])
+        assert job_info['status'] == job_result, (my_job['id'], job_info['status'])  # It is necessary to change the check job_result --> 'successful' when the jobs will work!
 
 
 @after.each_feature
@@ -250,11 +252,11 @@ def delete_ansible_tower_credential(feature):
         'Windows server provision with chef and ansible tower'
     ]
     if feature.name in provision_feature_list:
-        cred_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
+        credentials_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
         with at_settings.runtime_values(**at_config):
             res = at_get_resource('credential')
-            pk = getattr(world, 'at_cred_primary_key_%s' % cred_name)
+            pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
             result = res.delete(pk=pk)
-            assert result['changed'], ('Credentials with name %s are not deleted from the AT server' % cred_name)
+            assert result['changed'], ('Credentials with name %s are not deleted from the AT server' % credentials_name)
             LOG.error('Credentials: %s  with the id: %s were not removed from the AT server' % (
-                cred_name, pk))
+                credentials_name, pk))

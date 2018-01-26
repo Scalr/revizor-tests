@@ -78,11 +78,11 @@ Feature: Linux server provision with chef and ansible tower
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
-        And I add a new link with os 'linux' and Inventory 'Revizor_linux' and create credentials 'Revizor_linux_cred'
+        And I add a new link with os 'linux' and Inventory 'Revizor_linux_32' and create credentials 'Revizor_linux_cred'
         And credential 'Revizor_linux_cred' exists in ansible-tower credentials list
         When I add role to this farm with ansible-tower
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
-        And I launch job 'Revizor linux Job Template' with credential 'Revizor_linux_cred'
+        And I launch job 'Revizor linux Job Template' with credential 'Revizor_linux_cred' and expected result 'failed'
