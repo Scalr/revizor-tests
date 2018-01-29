@@ -1,7 +1,7 @@
 import logging
 
 from lettuce import world, step, before
-from revizor2.api import Dist, CONF
+from revizor2.conf import CONF
 
 LOG = logging.getLogger(__name__)
 
