@@ -760,7 +760,7 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
     #Get process pid
     def get_pid():
         return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
-                        {'process': service['node']})[0].rstrip('\n').split('\n')
+                        {'process': service['node']}).std_out.rstrip('\n').split('\n')
 
     #Change status and get pid
     return {
