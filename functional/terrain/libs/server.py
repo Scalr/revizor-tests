@@ -643,7 +643,7 @@ def check_index_page(node, proto, revert, domain_name, name):
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.id))
-        n.run('mkdir -p /var/www/%s' % name)
+        n.run('mkdir -p /var/www/{0} && chmod 777 /var/www/{0}'.format(name))
         n.put_file('/var/www/%s/index.php' % name, index)
     for i in range(10):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
