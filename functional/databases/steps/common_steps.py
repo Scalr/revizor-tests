@@ -476,7 +476,7 @@ def download_dump(step, serv_as):
         if CONF.feature.platform.is_ec2:
             interpretator = 'python'
             check_omnibus = conn.run('ls /opt/scalarizr/embedded/bin/python')
-            if not check_omnibus[1].strip():
+            if not check_omnibus.std_err.strip():
                 interpretator = '/opt/scalarizr/embedded/bin/python'
             out = conn.run('%s /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
                 interpretator, world.cloud.config.libcloud.key,

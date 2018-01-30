@@ -306,7 +306,7 @@ def verify_port_status(step, port, closed, serv_as):
 
     results = []
     for attempt in range(3):
-        results.append(world.check_open_port(server, port))
+        results.append(node.check_open_port(port))
         time.sleep(5)
 
     if closed and results[-1]:
