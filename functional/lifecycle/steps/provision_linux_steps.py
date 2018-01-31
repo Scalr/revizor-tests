@@ -238,7 +238,7 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result):
         for _ in range(10):
             time.sleep(5)
             job_info = res.get(pk=my_job['id'])
-            if job_info['status'] not in ['waiting', 'running']:
+            if job_info['status'] not in ['waiting', 'running', 'pending']:
                 break
         else:
             raise AssertionError('Job #%s has not finished in 50s' % my_job['id'])
