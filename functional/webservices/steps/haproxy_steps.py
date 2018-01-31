@@ -14,7 +14,7 @@ PROXY_TEMPLATE = '    stats enable \n    option forwardfor \n    stats uri /hapr
 
 
 def parse_haproxy_config(node):
-    config = [l for l in node.run('cat /etc/haproxy/haproxy.cfg')[0].splitlines() if l.strip()]
+    config = [l for l in node.run('cat /etc/haproxy/haproxy.cfg').std_out.splitlines() if l.strip()]
     parameters = {'listens': {},
                   'backends': {}}
 
@@ -253,21 +253,22 @@ def add_global_config(step, proxy_role):
 def check_global_in_config(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    for _ in range(6):
-        c = node.run('cat /etc/haproxy/haproxy.cfg')[0].strip()
-        section_start = c.find('##### main template start #####') + len('##### main template start #####')
-        section_end = c.find('##### main template end #####')
-        if section_start == -1 or section_end == -1:
-            time.sleep(10)
-        elif section_start > 0 and section_end > 0:
-            origin_config = [l.strip() for l in re.sub(r'[ ]+', ' ', GLOBAL_TEMPLATE).splitlines() if l.strip()]
-            config = [str(l.strip()) for l in re.sub(r'[ ]+', ' ', c[section_start:section_end]).splitlines() if
-                      l.strip()]
-            LOG.debug('Origin haproxy config:\n%s' % origin_config)
-            LOG.debug('Haproxy config from server:\n%s' % config)
-            if not config == origin_config:
-                raise AssertionError("%s server has invalid global config: %s" % (serv_as, config))
-            else:
-                return
-    else:
-        raise AssertionError('HAProxy config doesn\'t has a main template markers. Config: \n %s' % c)
+    with node.remote_connection() as conn:
+        for _ in range(6):
+            c = conn.run('cat /etc/haproxy/haproxy.cfg').std_out.strip()
+            section_start = c.find('##### main template start #####') + len('##### main template start #####')
+            section_end = c.find('##### main template end #####')
+            if section_start == -1 or section_end == -1:
+                time.sleep(10)
+            elif section_start > 0 and section_end > 0:
+                origin_config = [l.strip() for l in re.sub(r'[ ]+', ' ', GLOBAL_TEMPLATE).splitlines() if l.strip()]
+                config = [str(l.strip()) for l in re.sub(r'[ ]+', ' ', c[section_start:section_end]).splitlines() if
+                          l.strip()]
+                LOG.debug('Origin haproxy config:\n%s' % origin_config)
+                LOG.debug('Haproxy config from server:\n%s' % config)
+                if not config == origin_config:
+                    raise AssertionError("%s server has invalid global config: %s" % (serv_as, config))
+                else:
+                    return
+        else:
+            raise AssertionError('HAProxy config doesn\'t has a main template markers. Config: \n %s' % c)

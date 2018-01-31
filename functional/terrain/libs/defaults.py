@@ -29,6 +29,11 @@ class Defaults(object):
             params.storage.volumes = [
                 farmrole.Volume(size=1, fs='ntfs', type='custom')
             ]
+        elif CONF.feature.platform.is_azure:
+            params.storage.volumes = [
+                farmrole.Volume(size=2, fs='ntfs', mount='E'),
+                farmrole.Volume(size=1, fs='ntfs', mount='F', label='test_label')
+            ]
         elif not CONF.feature.platform.is_rackspacengus:
             params.storage.volumes = [
                 farmrole.Volume(size=2, fs='ntfs', mount='D'),

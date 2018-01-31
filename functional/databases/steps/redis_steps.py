@@ -26,9 +26,9 @@ def assert_check_dumps(step, search, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Search redis-server dump file dump.*.rdb in the /mnt/redisstorage/')
     node_result = world.cloud.get_node(server).run("find /mnt/redisstorage/ -name '%(search)s*'" % {'search': search})
-    if search in node_result[0]:
+    if search in node_result.std_out:
         raise AssertionError("Database dump file: %s, exists. Node run status is: %s. Search mask: %s" %
-                             (node_result[0], node_result[2], search))
+                             (node_result.std_out, node_result.status_code, search))
 
 
 @step('Then I kill (.+) on ([\w]+)')
@@ -58,6 +58,6 @@ def start_redis_process(step, process, serv_as):
               'conf': service_paths.get('conf')})
     # Run command
     node_result = node.run(cmd)
-    if node_result[2]:
-        raise AssertionError("Can't run %s. Error: %s %s" % (process, node_result[0], node_result[1]))
+    if node_result.status_code:
+        raise AssertionError("Can't run %s. Error: %s %s" % (process, node_result.std_out, node_result.std_err))
     LOG.info('%s was successfully started on remote host: %s' % (process, server.public_ip))
