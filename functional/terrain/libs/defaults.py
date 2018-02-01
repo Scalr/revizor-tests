@@ -27,17 +27,12 @@ class Defaults(object):
             params.storage.volumes = [
                 farmrole.Volume(size=1, fs='ntfs', type='custom')
             ]
-        elif CONF.feature.platform.is_azure:
-            params.storage.volumes = [
-                farmrole.Volume(size=2, fs='ntfs', mount='E'),
-                farmrole.Volume(size=1, fs='ntfs', mount='F', label='test_label')
-            ]
         elif not CONF.feature.platform.is_rackspacengus:
             params.storage.volumes = [
-                farmrole.Volume(size=2, fs='ntfs', mount='D'),
+                farmrole.Volume(size=2, fs='ntfs', mount='F'),
                 farmrole.Volume(size=1, fs='ntfs', mount='E', label='test_label')
             ]
-        if CONF.feature.platform.is_ec2 or CONF.feature.platform.is_gce:
+        if CONF.feature.platform in ['ec2', 'gce', 'azure']:
             params.storage.volumes.append(
                 params.storage,
                 farmrole.Volume(size=3, fs='ntfs', mount='C:\diskmount')

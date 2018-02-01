@@ -76,11 +76,12 @@ def check_errors_in_log(step, serv_as):
 
 
 @step(r"server ([\w\d]+) has disks ([((?:\w):(?:\\\w+)?)(?:\(\w+_label\d*\))? (\d+) Gb,]+)")
-@world.run_only_if(platform=(Platform.EC2, Platform.GCE))
+@world.run_only_if(platform=(Platform.EC2, Platform.GCE, Platform.AZURE))
 def check_attached_disk_size(step, serv_as, disks):
     server = getattr(world, serv_as)
     cdisks = re.findall(r'([\w\d\:\\]+)(\([\w\d_]+\))? (\d+) Gb', disks)
-    out = world.run_cmd_command(server, 'wmic volume get Caption,Capacity,Label').std_out
+    node = world.cloud.get_node(server)
+    out = node.run('wmic volume get Caption,Capacity,Label').std_out
     server_disks = [line.split() for line in out.splitlines() if line.strip()][1:]
     for d, label, size in cdisks:
         for disk in server_disks:
