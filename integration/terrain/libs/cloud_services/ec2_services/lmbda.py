@@ -9,7 +9,7 @@ class Lambda(object):
         self.platform = platform
 
     def verify(self):
-        client = self.platform.get_client(Lambda.service_name)
+        client = self.platform.get_client('lambda')
         try:
             result = client.list_functions()
             assert result['Functions'] == []

@@ -31,7 +31,6 @@ class Database(object):
                                       administrator_login_password='qwert123!@#')
         client.servers.create_or_update(resource_group_name=self.platform.resource_group_name, server_name=server_name,
                                         parameters=parameters)
-        availability = client.servers.check_name_availability(server_name)
         for _ in range(30):
             servers = list(client.servers.list_by_resource_group(resource_group_name=self.platform.resource_group_name))
             if len(servers) > servers_count:
@@ -42,6 +41,8 @@ class Database(object):
             raise AssertionError('Operation timed out: SQL server "%s" has not been created '
                                  'within 5 minutes' % server_name)
 
+        availability = client.servers.check_name_availability(server_name)
+        assert not availability.available
         server = client.servers.get(resource_group_name=self.platform.resource_group_name, server_name=server_name)
         assert server.state == 'Ready'
 

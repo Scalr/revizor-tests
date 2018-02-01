@@ -7,8 +7,22 @@ Feature: Check CSG
 
   Scenario: Create and approve AWS service access request
     Given I have requested access to services on AWS as AR1:
-      | service |
-      | Lambda  |
+      | service             |
+      | Api Gateway         |
+      | Cognito Identity    |
+      | Cognito User Pools  |
+      | Device Farm         |
+      | DynamoDb            |
+      | Ecs                 |
+      | Glacier             |
+      | Lambda              |
+      | Mobile              |
+      | Pinpoint            |
+      | Redshift            |
+      | Route53             |
+      | Ses                 |
+      | Sns                 |
+      | Sqs                 |
     And I see access request AR1 in pending status on environment scope
     And I see access request AR1 in pending status on account scope
     When I approve access request AR1
@@ -21,12 +35,15 @@ Feature: Check CSG
   Scenario: Create and approve Azure service access request
     Given I have requested access to services on Azure as AR2:
       | service             |
-      | Web                 |
-      | Event Hubs          |
-      | Machine Learning    |
       | Container Registry  |
       | Container Service   |
       | Database            |
+      | Event Hubs          |
+      | Insights            |
+      | Machine Learning    |
+      | Stream Analytics    |
+      | Web                 |
+
     And I see access request AR2 in pending status on environment scope
     And I see access request AR2 in pending status on account scope
     When I approve access request AR2
@@ -40,14 +57,30 @@ Feature: Check CSG
     Given I have active access request <request>
     Then "<service>" service works on <platform> using <request>
     Examples:
-      | request  | platform  | service            |
-      | AR1      | AWS       | Lambda             |
-      | AR2      | Azure     | Web                |
-      | AR2      | Azure     | Event Hubs         |
-      | AR2      | Azure     | Machine Learning   |
-      | AR2      | Azure     | Container Registry |
-      | AR2      | Azure     | Container Service  |
-      | AR2      | Azure     | Database           |
+      | request  | platform  | service             |
+      | AR1      | AWS       | Api Gateway         |
+      | AR1      | AWS       | Cognito Identity    |
+      | AR1      | AWS       | Cognito User Pools  |
+      | AR1      | AWS       | Device Farm         |
+      | AR1      | AWS       | DynamoDb            |
+      | AR1      | AWS       | Ecs                 |
+      | AR1      | AWS       | Glacier             |
+      | AR1      | AWS       | Lambda              |
+      | AR1      | AWS       | Mobile              |
+      | AR1      | AWS       | Pinpoint            |
+      | AR1      | AWS       | Redshift            |
+      | AR1      | AWS       | Route53             |
+      | AR1      | AWS       | Ses                 |
+      | AR1      | AWS       | Sns                 |
+      | AR1      | AWS       | Sqs                 |
+      | AR2      | Azure     | Container Registry  |
+      | AR2      | Azure     | Container Service   |
+      | AR2      | Azure     | Database            |
+      | AR2      | Azure     | Event Hubs          |
+      | AR2      | Azure     | Insights            |
+      | AR2      | Azure     | Machine Learning    |
+      | AR2      | Azure     | Stream Analytics    |
+      | AR2      | Azure     | Web                 |
 
   Scenario: Configure proxy server
     Given I have configured revizor environment:
@@ -65,8 +98,29 @@ Feature: Check CSG
   Scenario Outline: Check approved services via proxy
     Given I have active access request <request>
     Then "<service>" service works on <platform> using <request>
-    And requests to <service> on <platform> are present in last proxy logs on P1
+    And requests to "<service>" on <platform> are present in last proxy logs on P1
     Examples:
-      | request  | platform  | service   |
-      | AR1      | AWS       | Lambda    |
-      | AR2      | Azure     | Web       |
+      | request  | platform  | service             |
+      | AR1      | AWS       | Api Gateway         |
+      | AR1      | AWS       | Cognito Identity    |
+      | AR1      | AWS       | Cognito User Pools  |
+      | AR1      | AWS       | Device Farm         |
+      | AR1      | AWS       | DynamoDb            |
+      | AR1      | AWS       | Ecs                 |
+      | AR1      | AWS       | Glacier             |
+      | AR1      | AWS       | Lambda              |
+      | AR1      | AWS       | Mobile              |
+      | AR1      | AWS       | Pinpoint            |
+      | AR1      | AWS       | Redshift            |
+      | AR1      | AWS       | Route53             |
+      | AR1      | AWS       | Ses                 |
+      | AR1      | AWS       | Sns                 |
+      | AR1      | AWS       | Sqs                 |
+      | AR2      | Azure     | Container Registry  |
+      | AR2      | Azure     | Container Service   |
+      | AR2      | Azure     | Database            |
+      | AR2      | Azure     | Event Hubs          |
+      | AR2      | Azure     | Insights            |
+      | AR2      | Azure     | Machine Learning    |
+      | AR2      | Azure     | Stream Analytics    |
+      | AR2      | Azure     | Web                 |

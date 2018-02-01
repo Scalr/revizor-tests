@@ -93,7 +93,7 @@ def verify_service(step, service, platform, request_as):
     world.csg_verify_service(platform, service, request_id, secret)
 
 
-@step("requests to ([\w\d]+) on (AWS|Azure) are present in last proxy logs on ([\w\d]+)")
+@step("requests to \"([\w\d\s]+)\" on (AWS|Azure) are present in last proxy logs on ([\w\d]+)")
 def check_proxy_logs(step_instance, service, platform, proxy_as):
     service = service.strip().lower()
     platform = platform.strip().lower()
