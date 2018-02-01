@@ -4,6 +4,7 @@ import requests
 
 from azure.common.credentials import ServicePrincipalCredentials
 from botocore import config as boto_config
+from datetime import datetime
 
 import azure_services
 import ec2_services
@@ -53,6 +54,14 @@ class CloudServicePlatform(object):
 
     def _verify_impl(self, service):
         raise NotImplementedError()
+
+    @staticmethod
+    def get_test_name(*args):
+        if not args:
+            args = ['']
+        suffix = datetime.now().strftime('%m%d%H%M%S')
+        names = ['revizortest%s%s' % (name, suffix) for name in args]
+        return names[0] if len(args) == 1 else names
 
 
 class Ec2ServicePlatform(CloudServicePlatform):
