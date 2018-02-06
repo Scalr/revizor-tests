@@ -32,7 +32,7 @@ class Defaults(object):
                 farmrole.Volume(size=2, fs='ntfs', mount='F'),
                 farmrole.Volume(size=1, fs='ntfs', mount='E', label='test_label')
             ]
-        if CONF.feature.platform in ['ec2', 'gce', 'azure']:
+        if CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE]:
             params.storage.volumes.append(
                 params.storage,
                 farmrole.Volume(size=3, fs='ntfs', mount='C:\diskmount')
