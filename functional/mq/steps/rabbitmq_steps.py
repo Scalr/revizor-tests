@@ -16,12 +16,12 @@ LOG = logging.getLogger(__name__)
 def assert_check_node_type(step, serv_as, node_type):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    out = node.run('rabbitmqctl cluster_status')
-    LOG.info('Rabbitmq serverer %s status: %s' % (server.id, out))
-    disks = re.findall(r'disc,\[(.+)\]},', out.std_out)[0]
+    out = node.run('rabbitmqctl cluster_status').std_out
+    LOG.info('Rabbitmq server %s status: %s' % (server.id, out))
+    disks = re.findall(r'disc,\[(.+)\]},', out)[0]
     disks = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", disks)
     LOG.info('Rabbitmq serverer %s status disks: %s' % (server.id, disks))
-    rams = re.findall(r"{ram,\[(.+)\]}]},", out.std_out)
+    rams = re.findall(r"{ram,\[(.+)\]}]},", out)
     if rams:
         rams = re.findall(r"'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams[0])
         LOG.info('Rabbitmq serverer %s status rams: %s' % (server.id, rams))
@@ -55,16 +55,16 @@ def assert_node_count(step, node_count, serv_as):
 def assert_server_ratio(step, hdd_count, ram_count, serv_as):
     serv = getattr(world, serv_as)
     node = world.cloud.get_node(serv)
-    out = node.run('rabbitmqctl cluster_status')
-    disks = re.findall(r'disc,\[(.+)\]},', out.std_out)[0]
+    out = node.run('rabbitmqctl cluster_status').std_out
+    disks = re.findall(r'disc,\[(.+)\]},', out)[0]
     disks = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", disks)
     LOG.info('Disks nodes in rabbitmq cluster: %s' % disks)
-    rams = re.findall(r"{ram,\[(.+)\]}]},", out[0])
+    rams = re.findall(r"{ram,\[(.+)\]}]},", out)
     if not rams:
-        raise AssertionError('RAM nodes in rabbitmq is unavailable. All nodes: %s' % out.std_out)
+        raise AssertionError('RAM nodes in rabbitmq is unavailable. All nodes: %s' % out)
     rams = re.findall(r"'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", rams[0])
     LOG.info('RAMs nodes in rabbitmq cluster: %s' % rams)
-    runnings = re.findall(r'running_nodes,\[(.+)\]}', out.std_out)[0]
+    runnings = re.findall(r'running_nodes,\[(.+)\]}', out)[0]
     runnings = re.findall("'((?:[a-z0-9@-]+)\@(?:[a-z0-9@-]+))+'", runnings)
     LOG.info('Running nodes in rabbitmq cluster: %s' % runnings)
     all_count = len(disks) + len(rams)
