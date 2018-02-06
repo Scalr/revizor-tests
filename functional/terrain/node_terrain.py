@@ -924,3 +924,24 @@ def given_server_in_cloud(step, user_data):
         if not new_port == 8013:
             raise AssertionError('Import will failed, because opened port is not 8013, '
                                  'an installed port is: %s' % new_port)
+
+
+@step("ports \[([\d,]+)\] (not )?in iptables in ([\w\d]+)")
+@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-7-x', '!coreos'])
+def verify_ports_in_iptables(step, ports, should_not_contain, serv_as):
+    LOG.info('Verify ports "%s" in iptables' % ports)
+    if CONF.feature.platform.is_cloudstack:
+        LOG.info('Not check iptables because CloudStack')
+        return
+    server = getattr(world, serv_as)
+    ports = ports.split(',')
+    node = world.cloud.get_node(server)
+    rules = node.run('iptables -L')[0]
+    LOG.debug('iptables rules:\n%s' % rules)
+
+    for port in ports:
+        LOG.debug('Check port "%s" in iptables rules' % port)
+        if port in rules and should_not_contain:
+            raise AssertionError('Port "%s" in iptables rules!' % port)
+        elif not should_not_contain and port not in rules:
+            raise AssertionError('Port "%s" is NOT in iptables rules!' % port)

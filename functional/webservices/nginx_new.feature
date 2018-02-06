@@ -29,6 +29,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And nginx is running on W1
         Then D1 resolves into W1 ip address
         And http get domain D1 matches H1 index page
+        And ports [80] in iptables in W1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Verify new apache server append and deletes to/from backend
@@ -58,6 +59,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And 'limit_rate 4096;' in W1 proxies file
         And 'limit_rate 8192;' in W1 proxies file
         And nginx is running on W1
+        And ports [8004] in iptables in W1
         Then I start BaseHttpServer on 8004 port in A1
         And http get domain D1/custom_port matches 'It works!'
         And http get domain D1 matches H1 index page
@@ -88,7 +90,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
     Scenario: Add two SSL domains
         When I create domain D3 to www role
         And I add virtual host H3 to app role and domain D3
-        And I add http/https proxy P3 to www role with H3 host to app role
+        And I add http/https proxy P3 with port to www role with H3 host to app role
         When I create domain D4 to www role
         And I add virtual host H4 to app role and domain D4
         And I add https proxy P4 to www role with H4 host to app role
@@ -100,3 +102,27 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         Then D4 resolves into W1 ip address
         And https get domain D4 matches H4 index page
         And D4 http not redirect to D4 https
+
+    @ec2 @gce
+    Scenario: Testing custom proxy ports
+        When I create domain D5 to www role
+        And I add virtual host H3 to app role and domain D5
+        And I add http proxy P5 with port 5000 to www role with H3 host to app role
+        Then I reboot server W1
+        And Scalr receives RebootFinish from W1
+        And process nginx is running in W1
+        Then D5 resolves into W1 ip address
+        And ports [80,5000] in iptables/semanage in W1
+        Then I modify proxy P5 in www role without ip_hash and proxies:
+        #   """
+        #   keepalive_timeout 10s;
+        #   /custom_port A2:5000 default;
+        #   """
+        And I reboot server W1
+        And Scalr receives RebootFinish from W1
+        And process nginx is running in W1
+        Then D5 resolves into W1 ip address
+        And ports [5000] in iptables/semanage in W1
+        Then I start BaseHttpServer on 5000 port in A2
+        And http get domain D5/custom_port matches 'It works!'
+        And http get domain D5 matches H3 index page
