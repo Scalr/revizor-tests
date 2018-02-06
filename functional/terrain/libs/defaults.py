@@ -1,7 +1,7 @@
 import re
 
 from revizor2.conf import CONF
-from revizor2.consts import Dist
+from revizor2.consts import Dist, Platform
 from revizor2.helpers import farmrole
 
 
