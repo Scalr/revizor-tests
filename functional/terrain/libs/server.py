@@ -753,9 +753,8 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 cmd = "systemctl {status} {process} && sleep 3"
             else:
                 cmd = "service {process} {status} && sleep 3"
-            return node.run(cmd.format(
-                process=service['node'],
-                status=status)).std_out
+            result = node.run(cmd.format(process=service['node'], status=status))
+            return result.std_out, result.std_err
 
     # Get process pid
     def get_pid():
