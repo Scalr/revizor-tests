@@ -61,7 +61,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 Defaults.apply_option(role_params, opt)
 
     if CONF.feature.dist.id == 'scientific-6-x' or \
-            (CONF.feature.dist.id == 'centos-7-x' and platform.is_ec2):
+            (CONF.feature.dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
         role_params.advanced.disable_iptables_mgmt = False
 
     if CONF.feature.dist.is_windows:
