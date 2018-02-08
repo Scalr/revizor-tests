@@ -406,8 +406,8 @@ def assert_server_message_count(step, msg, serv_as):
     server.messages.reload()
     incoming_messages = [m.name for m in server.messages if m.type == 'in' and m.name == msg]
     messages_count = len(incoming_messages)
-    mount_device_count = len(
-        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.platform.name])
+    role_options = getattr(world, 'last-role-params')
+    mount_device_count = role_options.storage.volumes.count(role_options.storage)
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
             messages_count, mount_device_count, incoming_messages))
