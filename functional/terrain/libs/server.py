@@ -755,7 +755,7 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 cmd = "service {process} {status} && sleep 3"
             return node.run(cmd.format(
                 process=service['node'],
-                status=status)).std_out
+                status=status))
 
     # Get process pid
     def get_pid():
