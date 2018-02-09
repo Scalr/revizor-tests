@@ -125,13 +125,13 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
             return
     try:
         if windows:
-            log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type, raise_exc=False)
+            log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
-            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type))[0]
+            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type)).std_out
             LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
@@ -201,6 +201,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
     lookup_server = server or None
     lookup_node = None
+    azure_failed = 0
 
     start_time = time.time()
 
@@ -248,6 +249,14 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                     time.sleep(90)
                     lookup_server = None
                     lookup_node = None
+                    continue
+                if platform.is_azure and azure_failed != 2:
+                    LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
+                        lookup_server.id,
+                        azure_failed + 1,
+                        lookup_server.get_failed_status_message()))
+                    azure_failed += 1
+                    time.sleep(15)
                     continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
@@ -361,7 +370,7 @@ def farm_servers_state(state):
 
 
 @world.absorb
-def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=600):
+def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=1000):
     if not isinstance(servers, (list, tuple)):
         servers = [servers]
     delivered_to = []
@@ -572,7 +581,7 @@ def check_script_executed(serv_as,
                         if not found and not CONF.feature.dist.is_windows and 'Log file truncated. See the full log in' in message:
                             full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
                             node = world.cloud.get_node(server)
-                            message = node.run('cat %s' % full_log_path)[0]
+                            message = node.run('cat %s' % full_log_path).std_out
                             ui_message = False
                             found = cond in message
                         if not found:
@@ -592,12 +601,13 @@ def check_script_executed(serv_as,
 @world.absorb
 def get_hostname(server):
     serv = world.cloud.get_node(server)
-    for i in range(3):
-        out = serv.run('/bin/hostname')
-        if out[0].strip():
-            return out[0].strip()
-        time.sleep(5)
-    raise AssertionError('Can\'t get hostname from server: %s' % server.id)
+    with serv.remote_connection() as conn:
+        for i in range(3):
+            out = serv.run('/bin/hostname')
+            if out.std_out.strip():
+                return out.std_out.strip()
+            time.sleep(5)
+        raise AssertionError('Can\'t get hostname from server: %s' % server.id)
 
 
 @world.absorb
@@ -633,8 +643,8 @@ def check_index_page(node, proto, revert, domain_name, name):
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.id))
-        n.run('mkdir -p /var/www/%s' % name)
-        n.put_file(path='/var/www/%s/index.php' % name, content=index)
+        n.run('mkdir -p /var/www/{0} && chmod 777 /var/www/{0}'.format(name))
+        n.put_file('/var/www/%s/index.php' % name, index)
     for i in range(10):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
         try:
@@ -670,7 +680,7 @@ def wait_rabbitmq_cp_url(*args, **kwargs):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
-    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text)[0]
+    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text).std_out
     if text in out:
         return True
     return False
@@ -695,7 +705,7 @@ def set_iptables_rule(server, port):
 def kill_process_by_name(server, process):
     """Kill process on remote host by his name (server(obj),str)->None if success"""
     LOG.info('Kill %s process on remote host %s' % (process, server.public_ip))
-    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % {'process': process})[0]
+    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % {'process': process}).std_out
 
 
 @world.absorb
@@ -747,12 +757,11 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 process=service['node'],
                 status=status))
 
-    #Get process pid
+    # Get process pid
     def get_pid():
         return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
-                        {'process': service['node']})[0].rstrip('\n').split('\n')
-
-    #Change status and get pid
+                        {'process': service['node']}).std_out.rstrip('\n').split('\n')
+    # Change status and get pid
     return {
         'pid_before': get_pid() if change_pid else [''],
         'info': change_status(),
@@ -768,46 +777,47 @@ def is_log_rotate(server, process, rights, group=None):
         group = [group, process]
     LOG.info('Loking for config file:  %s-logrotate on remote host %s' % (process, server.public_ip))
     node = world.cloud.get_node(server)
-    logrotate_conf = node.run('cat /etc/logrotate.d/%s-logrotate' % process)
-    if not logrotate_conf[1]:
-        logrotate_param = {}
-        #Get the directory from the first line config file
-        logrotate_param['dir'] = '/'.join(logrotate_conf[0].split('\n')[0].split('/')[0:-1])
-        #Check the archive log files
-        logrotate_param['compress'] = 'compress' in logrotate_conf[0]
-        #Get the log file mask from the first line config
-        logrotate_param['log_mask'] = logrotate_conf[0].split('\n')[0].split('/')[-1].rstrip('.log {')
-        #Performing rotation and receive a list of log files
-        LOG.info('Performing rotation and receive a list of log files for % remote host %s' % (process, server.public_ip))
-        rotated_logs = node.run('logrotate -f /etc/logrotate.d/%s-logrotate && stat --format="%%n %%U %%G %%a"  %s/%s' %
-                                (process, logrotate_param['dir'], logrotate_param['log_mask']))
-        if not rotated_logs[2]:
-            try:
-                log_files = []
-                for str in rotated_logs[0].rstrip('\n').split('\n'):
-                    tmp_str = str.split()
-                    log_files.append(dict([['rights', tmp_str[3]], ['user', tmp_str[1]], ['group', tmp_str[2]],  ['file', tmp_str[0]]]))
-                    has_gz = False
-                for log_file_atr in log_files:
-                    if log_file_atr['file'].split('.')[-1] == 'gz' and not has_gz:
-                        has_gz = True
-                    if not (log_file_atr['rights'] == rights and
-                                    log_file_atr['user'] == process and
-                                    log_file_atr['group'] in group):
-                        raise AssertionError("%(file)s file attributes are not correct. Wrong attributes %(atr)s: " %
-                                             {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'],
-                                                                                    log_file_atr['user'],
-                                                                                    log_file_atr['group'])})
-                if logrotate_param['compress'] and not has_gz:
-                    raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
-            except IndexError, e:
-                raise Exception('Error occurred at get list of log files: %s' % e)
+    with node.remote_connection() as conn:
+        logrotate_conf = conn.run('cat /etc/logrotate.d/%s-logrotate' % process)
+        if not logrotate_conf.std_err:
+            logrotate_param = {}
+            #Get the directory from the first line config file
+            logrotate_param['dir'] = '/'.join(logrotate_conf.std_out.split('\n')[0].split('/')[0:-1])
+            #Check the archive log files
+            logrotate_param['compress'] = 'compress' in logrotate_conf.std_out
+            #Get the log file mask from the first line config
+            logrotate_param['log_mask'] = logrotate_conf.std_out.split('\n')[0].split('/')[-1].rstrip('.log {')
+            #Performing rotation and receive a list of log files
+            LOG.info('Performing rotation and receive a list of log files for % remote host %s' % (process, server.public_ip))
+            rotated_logs = conn.run('logrotate -f /etc/logrotate.d/%s-logrotate && stat --format="%%n %%U %%G %%a"  %s/%s' %
+                                    (process, logrotate_param['dir'], logrotate_param['log_mask']))
+            if not rotated_logs.status_code:
+                try:
+                    log_files = []
+                    for str in rotated_logs.std_out.rstrip('\n').split('\n'):
+                        tmp_str = str.split()
+                        log_files.append(dict([['rights', tmp_str[3]], ['user', tmp_str[1]], ['group', tmp_str[2]],  ['file', tmp_str[0]]]))
+                        has_gz = False
+                    for log_file_atr in log_files:
+                        if log_file_atr['file'].split('.')[-1] == 'gz' and not has_gz:
+                            has_gz = True
+                        if not (log_file_atr['rights'] == rights and
+                                        log_file_atr['user'] == process and
+                                        log_file_atr['group'] in group):
+                            raise AssertionError("%(file)s file attributes are not correct. Wrong attributes %(atr)s: " %
+                                                 {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'],
+                                                                                        log_file_atr['user'],
+                                                                                        log_file_atr['group'])})
+                    if logrotate_param['compress'] and not has_gz:
+                        raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
+                except IndexError, e:
+                    raise Exception('Error occurred at get list of log files: %s' % e)
+            else:
+                raise AssertionError("Can't logrotate to force the rotation. Error message:%s" % logrotate_conf.std_err)
         else:
-            raise AssertionError("Can't logrotate to force the rotation. Error message:%s" % logrotate_conf[1])
-    else:
-        raise AssertionError("Can't get config file:%s-logrotate. Error message:%s" %
-                             (process, logrotate_conf[1]))
-    return True
+            raise AssertionError("Can't get config file:%s-logrotate. Error message:%s" %
+                                 (process, logrotate_conf.std_err))
+        return True
 
 
 @world.absorb
@@ -820,7 +830,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     # Get os family result
     os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family) if CONF.feature.dist.id != 'coreos' else 'echo'
     if not os_family_res:
-        raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
+        raise OSFamilyValueFailed('No value for node os: %s' % node.os.id)
     return os_family_res
 
 
@@ -830,16 +840,17 @@ def get_service_paths(service_name, server=None, node=None, service_conf=None, s
         node = world.cloud.get_node(server)
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
-    # Get service path
-    service_path = node.run('which %s' % service_name)
-    if service_path[2]:
-        raise AssertionError("Can't get %s service path: %s" % (service_name, service_path))
-    service_path = dict(bin=service_path[0].split()[0], conf='')
-    # Get service config path
-    if service_conf:
-        base_path = service_conf_base_path or '/etc'
-        service_conf_path = node.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
-        if service_conf_path[2]:
-            raise AssertionError("Can't find service %s configs : %s" % (service_name, service_conf_path))
-        service_path.update({'conf': service_conf_path[0].split()[0]})
-    return service_path
+    with node.remote_connection() as conn:
+        # Get service path
+        service_path = conn.run('which %s' % service_name)
+        if service_path.status_code:
+            raise AssertionError("Can't get %s service path: %s" % (service_name, service_path))
+        service_path = dict(bin=service_path.std_out.split()[0], conf='')
+        # Get service config path
+        if service_conf:
+            base_path = service_conf_base_path or '/etc'
+            service_conf_path = conn.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
+            if service_conf_path.status_code:
+                raise AssertionError("Can't find service %s configs : %s" % (service_name, service_conf_path))
+            service_path.update({'conf': service_conf_path.std_out.split()[0]})
+        return service_path

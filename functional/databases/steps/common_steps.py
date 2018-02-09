@@ -64,22 +64,23 @@ class PostgreSQL(object):
         return self.cursor.fetchone()[0]
 
     def restore(self, src_path, db):
-        backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].lower().split()
-        LOG.info('Available backups in server: %s' % backups_in_server)
-        for backup in backups_in_server:
-            if os.path.join(src_path, db).lower() in backup.lower():
-                path = backup
-                break
-        else:
-            raise AssertionError('Database %s backup not exist in path %s. Available backups: %s' %
-                                 (db, src_path, ','.join(backups_in_server)))
-        LOG.info('Creating db: %s in server.' % db)
-        self._role.db.database_create(db, self.server)
-        out = self.node.run('export PGPASSWORD=%s && psql -U scalr -d %s -h %s -f %s' %
-                            (self._role.db.password, db.lower(), self.server.public_ip, path))
-        if out[1]:
-            raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
-        LOG.info('Data base: %s was successfully created in server.' % db)
+        with self.node.remote_connection() as conn:
+            backups_in_server = conn.run('ls /tmp/dbrestore/*').std_out.lower().split()
+            LOG.info('Available backups in server: %s' % backups_in_server)
+            for backup in backups_in_server:
+                if os.path.join(src_path, db).lower() in backup.lower():
+                    path = backup
+                    break
+            else:
+                raise AssertionError('Database %s backup not exist in path %s. Available backups: %s' %
+                                     (db, src_path, ','.join(backups_in_server)))
+            LOG.info('Creating db: %s in server.' % db)
+            self._role.db.database_create(db, self.server)
+            out = conn.run('export PGPASSWORD=%s && psql -U scalr -d %s -h %s -f %s' %
+                                (self._role.db.password, db.lower(), self.server.public_ip, path))
+            if out.std_err:
+                raise AssertionError('Get error on restore database %s: %s' % (db, out.std_err))
+            LOG.info('Data base: %s was successfully created in server.' % db)
 
     @close
     def check_data(self, pattern):
@@ -112,40 +113,41 @@ class Redis(object):
         return self.connection.get('revizor.timestamp')
 
     def restore(self, src_path, db=None):
-        #Kill redis-server
-        LOG.info('Stopping Redis server.')
-        out = self.node.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} "
-                            "&& sleep 5 "
-                            "&& pgrep -l redis-server | awk {print'$1'}")[0]
-        if out:
-            raise AssertionError('Redis server, pid:%s  was not killed on %s' % (out, self.server.public_ip))
-        LOG.info('Redis server was successfully stopped. Getting backups and moving to redis storage.')
-        #Move dump to redis storage
-        out = self.node.run("find %s -name '*%s*' -print0 | "
-                            "xargs -i{} -0 -r cp -v {} /mnt/redisstorage/" %
-                            (src_path, self.snapshotting_type))
-        if not out[0]:
-            raise AssertionError("Can't move dump to redis-server storage.  Error is: %s %s" % (out[0], out[1]))
-        LOG.info('Available backups in server: %s. Backups was successfully moved to redis storage.' % out[0].split()[0])
+        with self.node.remote_connection() as conn:
+            #Kill redis-server
+            LOG.info('Stopping Redis server.')
+            out = conn.run("pgrep -l redis-server | awk {print'$1'} | xargs -i{}  kill {} "
+                                "&& sleep 5 "
+                                "&& pgrep -l redis-server | awk {print'$1'}").std_out
+            if out:
+                raise AssertionError('Redis server, pid:%s  was not killed on %s' % (out, self.server.public_ip))
+            LOG.info('Redis server was successfully stopped. Getting backups and moving to redis storage.')
+            #Move dump to redis storage
+            out = conn.run("find %s -name '*%s*' -print0 | "
+                                "xargs -i{} -0 -r cp -v {} /mnt/redisstorage/" %
+                                (src_path, self.snapshotting_type))
+            if not out.std_out:
+                raise AssertionError("Can't move dump to redis-server storage.  Error is: %s %s" % (out.std_out, out.std_err))
+            LOG.info('Available backups in server: %s. Backups was successfully moved to redis storage.' % out.std_out.split()[0])
 
-        #Run redis-server
-        LOG.info('Running Redis server.')
-        # Setup attrs
-        # Get default redis path
-        service_paths= world.get_service_paths('redis-server', node=self.node, service_conf='redis.6379.conf')
-        LOG.info('Start redis-server on remote host: %s' % self.server.public_ip)
-        # Set run command
-        cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
-              "&& sleep 5 " \
-              "&&  pgrep -l redis-server | awk {print'$1'}" % ({
-                  'bin': service_paths.get('bin'),
-                  'conf': service_paths.get('conf')})
+            #Run redis-server
+            LOG.info('Running Redis server.')
+            # Setup attrs
+            # Get default redis path
+            service_paths= world.get_service_paths('redis-server', node=self.node, service_conf='redis.6379.conf')
+            LOG.info('Start redis-server on remote host: %s' % self.server.public_ip)
+            # Set run command
+            cmd = "/bin/su redis -s /bin/bash -c \"%(bin)s %(conf)s\" " \
+                  "&& sleep 5 " \
+                  "&&  pgrep -l redis-server | awk {print'$1'}" % ({
+                      'bin': service_paths.get('bin'),
+                      'conf': service_paths.get('conf')})
 
-        # Run command
-        node_result = self.node.run(cmd)
-        if node_result[2]:
-            raise AssertionError("Can't run redis-server. Error: %s %s" % (node_result[0], node_result[1]))
-        LOG.info('Redis server was successfully run.')
+            # Run command
+            node_result = conn.run(cmd)
+            if node_result.status_code:
+                raise AssertionError("Can't run redis-server. Error: %s %s" % (node_result.std_out, node_result.std_err))
+            LOG.info('Redis server was successfully run.')
 
     def check_data(self, pattern):
         return len(self.connection.keys('*%s*' % pattern))
@@ -176,21 +178,22 @@ class MySQL(object):
         return self.cursor.fetchone()[0]
 
     def restore(self, src_path, db):
-        backups_in_server = self.node.run('ls /tmp/dbrestore/*')[0].split()
-        LOG.info('Available backups in server: %s' % backups_in_server)
-        path = os.path.join(src_path, db)
-        if not path in backups_in_server:
-            raise AssertionError('Database %s backup not exist in path %s' % (db, path))
-        #Create auth file for mysql
-        out = self.node.run("echo $'[client]\nuser=scalr\npassword=%s' > ~/.my.cnf" % self._role.db.password)
-        if out[1]:
-            raise AssertionError("Can't create ~/.my.cnf.\n%s" % out[1])
-        LOG.info('Creating db: %s in server.' % db)
-        self._role.db.database_create(db, self.server)
-        out = self.node.run('mysql %s < %s' % (db, path))
-        if out[1]:
-            raise AssertionError('Get error on restore database %s: %s' % (db, out[1]))
-        LOG.info('Data base: %s was successfully created in server.' % db)
+        with self.node.remote_connection() as conn:
+            backups_in_server = conn.run('ls /tmp/dbrestore/*').std_out.split()
+            LOG.info('Available backups in server: %s' % backups_in_server)
+            path = os.path.join(src_path, db)
+            if not path in backups_in_server:
+                raise AssertionError('Database %s backup not exist in path %s' % (db, path))
+            #Create auth file for mysql
+            out = conn.run("echo $'[client]\nuser=scalr\npassword=%s' > ~/.my.cnf" % self._role.db.password)
+            if out.std_err:
+                raise AssertionError("Can't create ~/.my.cnf.\n%s" % out.std_err)
+            LOG.info('Creating db: %s in server.' % db)
+            self._role.db.database_create(db, self.server)
+            out = conn.run('mysql %s < %s' % (db, path))
+            if out.std_err:
+                raise AssertionError('Get error on restore database %s: %s' % (db, out.std_err))
+            LOG.info('Data base: %s was successfully created in server.' % db)
 
     @close
     def check_data(self, pattern):
@@ -468,28 +471,29 @@ def download_dump(step, serv_as):
     #TODO: Add support for gce and openstack if Scalr support
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
-    if CONF.feature.platform.is_ec2:
-        interpretator = 'python'
-        check_omnibus = node.run('ls /opt/scalarizr/embedded/bin/python')
-        if not check_omnibus[1].strip():
-            interpretator = '/opt/scalarizr/embedded/bin/python'
-        out = node.run('%s /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
-            interpretator, world.cloud.config.libcloud.key,
-            world.cloud.config.libcloud.secret,
-            world.last_backup_url
-            ))
-        if out[2] == '1':
-            raise AssertionError('Backup download failed. Error: %s' % out[1])
-    # elif CONF.feature.driver.current_cloud == Platform.GCE:
-    #     with open(world.cloud.config.libcloud.key, 'r+') as key:
-    #         node.put_file('/tmp/gcs_pk.p12', key.readall())
-    #     node.run('python /tmp/download_backup.py --platform=gce --key=%s --url=%s' % (world.cloud.config.libcloud.username,
-    #                                                                                   world.last_backup_url))
-    # elif CONF.feature.driver.current_cloud == Platform.RACKSPACE_US:
-    #     node.run('python /tmp/download_backup.py --platform=rackspaceng --key=%s --secret=%s --url=%s' % (
-    #         world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
-    #     ))
+    with node.remote_connection() as conn:
+        node.put_file('/tmp/download_backup.py', resources('scripts/download_backup.py').get())
+        if CONF.feature.platform.is_ec2:
+            interpretator = 'python'
+            check_omnibus = conn.run('ls /opt/scalarizr/embedded/bin/python')
+            if not check_omnibus.std_err.strip():
+                interpretator = '/opt/scalarizr/embedded/bin/python'
+            out = conn.run('%s /tmp/download_backup.py --platform=ec2 --key=%s --secret=%s --url=%s' % (
+                interpretator, world.cloud.config.libcloud.key,
+                world.cloud.config.libcloud.secret,
+                world.last_backup_url
+                ))
+            if out.status_code == '1':
+                raise AssertionError('Backup download failed. Error: %s' % out.std_err)
+        # elif CONF.feature.driver.current_cloud == Platform.GCE:
+        #     with open(world.cloud.config.libcloud.key, 'r+') as key:
+        #         node.put_file('/tmp/gcs_pk.p12', key.readall())
+        #     conn.run('python /tmp/download_backup.py --platform=gce --key=%s --url=%s' % (world.cloud.config.libcloud.username,
+        #                                                                                   world.last_backup_url))
+        # elif CONF.feature.driver.current_cloud == Platform.RACKSPACE_US:
+        #     conn.run('python /tmp/download_backup.py --platform=rackspaceng --key=%s --secret=%s --url=%s' % (
+        #         world.cloud.config.libcloud.key, world.cloud.config.libcloud.secret, world.last_backup_url
+        #     ))
 
 
 @step('I delete databases ([\w\d,]+) in ([\w\d]+)$')
@@ -633,6 +637,6 @@ def check_errors_in_message(step, message_name, serv_as):
     cmd = 'szradm md --json %s' % message_id
     if CONF.feature.dist.id == 'coreos':
         cmd = "/opt/bin/" + cmd
-    message = json.loads(node.run(cmd)[0])
+    message = json.loads(node.run(cmd).std_out)
     if 'last_error' in message['body']:
         raise AssertionError('Message %s at %s contains error: %s' % (message_name, serv_as, message['body']['last_error']))

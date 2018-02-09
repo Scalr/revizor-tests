@@ -259,7 +259,7 @@ def check_processes(step, count, serv_as):
     time.sleep(60)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    list_proc = node.run("pgrep -l scalarizr | awk {print'$1'}")[0]
+    list_proc = node.run("pgrep -l scalarizr | awk {print'$1'}").std_out
     LOG.info('Scalarizr count of processes %s' % len(list_proc.strip().splitlines()))
     world.assert_not_equal(len(list_proc.strip().splitlines()), int(count),
                            'Scalarizr processes is: %s but processes \n%s' % (
@@ -272,8 +272,8 @@ def verify_string_in_file(step, file_path, value, serv_as):
     LOG.info('Verify file "%s" in %s not contain "%s"' % (file_path, server.id, value))
     node = world.cloud.get_node(server)
     out = node.run('cat %s | grep %s' % (file_path, value))
-    if out[0].strip():
-        raise AssertionError('File %s contain: %s. Result of grep: %s' % (file_path, value, out[0]))
+    if out.std_out.strip():
+        raise AssertionError('File %s contain: %s. Result of grep: %s' % (file_path, value, out.std_out))
 
 
 @step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
@@ -404,12 +404,13 @@ def start_building(step):
     platform = CONF.feature.platform
     LOG.info('Initiate Start building')
     time.sleep(180)
+    node = world.cloud_server
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
     if platform.is_gce:
-        server_id = world.cloud_server.name
+        server_id = node.name
     else:
-        server_id = world.cloud_server.id
+        server_id = node.id
     res = IMPL.bundle.import_start(platform=platform.name,
                                    location=platform.location,
                                    cloud_id=server_id,
@@ -422,15 +423,19 @@ def start_building(step):
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
     #and then run scalarizr on new screen
-    if CONF.feature.dist.is_windows:
-        password = 'Scalrtest123'
-        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
-        def call_in_background(command):
+    if node.os.is_windows:
+        # try:
+        #     world.cloud_server.run(res['scalarizr_run_command'], win_console='ps')
+        # except:
+        #     pass
+        # finally:
+        #     raise Exception(type(world.cloud_server), res['scalarizr_run_command'])
+        def call_in_background(node, command):
             try:
-                console.run_cmd(command)
+                node.run(command, win_console='ps')
             except:
                 pass
-        t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
+        t1 = Thread(target=call_in_background, args=(node, res['scalarizr_run_command']))
         t1.start()
     else:
         command = 'screen -d -m %s &' % res['scalarizr_run_command']
@@ -455,19 +460,4 @@ def start_building(step):
 @world.run_only_if(dist=['!coreos'])
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
-    if CONF.feature.dist.is_windows:
-        password = 'Scalrtest123'
-        console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
-        #TODO: Change to installation via Fatmouse task
-        # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
-        command = ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install -version 12.19.36"
-        console.run_ps(command)
-        chef_version = console.run_cmd("chef-client --version")
-        assert chef_version.std_out, "Chef was not installed"
-    else:
-        node.run('rm -rf /tmp/chef-solo/cookbooks/*')
-        command = "curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 12.19.36 \
-            && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
-        node.run(command)
-        chef_version = node.run("chef-client --version")
-        assert chef_version[2] == 0, "Chef was not installed"
+    return node.install_chef()
