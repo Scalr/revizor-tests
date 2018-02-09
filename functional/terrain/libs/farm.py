@@ -141,7 +141,7 @@ def add_role_to_farm(behavior, options, role_id=None):
                 value=getattr(world, 'test_id')
             )
         )
-    setattr(world, 'last-role-params', options)
+    setattr(world, 'role_params_%s' % IMPL.role.get(CONF.feature.role_id)['id'], options)
     world.farm.add_role(role['id'], options=options.to_json())
     time.sleep(3)
     world.farm.roles.reload()
