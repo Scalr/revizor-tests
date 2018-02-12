@@ -14,7 +14,6 @@ from xml.etree import ElementTree as ET
 from collections import defaultdict
 from lettuce import world, step
 
-from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES as storages
 from revizor2.conf import CONF
 
 LOG = logging.getLogger(__name__)
