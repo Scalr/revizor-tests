@@ -12,7 +12,6 @@ from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
-from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -207,7 +206,7 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 
 @step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-7-x', '!coreos'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos'])
 def verify_ports_in_iptables(step, ports, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.platform.is_cloudstack:
@@ -406,8 +405,8 @@ def assert_server_message_count(step, msg, serv_as):
     server.messages.reload()
     incoming_messages = [m.name for m in server.messages if m.type == 'in' and m.name == msg]
     messages_count = len(incoming_messages)
-    mount_device_count = len(
-        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.platform.name])
+    role_options = getattr(world, 'role_params_%s' % server.farm_role_id)
+    mount_device_count = role_options.storage.volumes.count(role_options.storage)
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
             messages_count, mount_device_count, incoming_messages))

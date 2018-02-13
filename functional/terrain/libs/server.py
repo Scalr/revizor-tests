@@ -643,7 +643,7 @@ def check_index_page(node, proto, revert, domain_name, name):
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.id))
-        n.run('mkdir -p /var/www/%s' % name)
+        n.run('mkdir -p /var/www/{0} && chmod 777 /var/www/{0}'.format(name))
         n.put_file('/var/www/%s/index.php' % name, index)
     for i in range(10):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
@@ -757,12 +757,11 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 process=service['node'],
                 status=status))
 
-    #Get process pid
+    # Get process pid
     def get_pid():
         return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
                         {'process': service['node']}).std_out.rstrip('\n').split('\n')
-
-    #Change status and get pid
+    # Change status and get pid
     return {
         'pid_before': get_pid() if change_pid else [''],
         'info': change_status(),

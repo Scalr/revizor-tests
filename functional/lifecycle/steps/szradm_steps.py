@@ -14,7 +14,6 @@ from xml.etree import ElementTree as ET
 from collections import defaultdict
 from lettuce import world, step
 
-from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES as storages
 from revizor2.conf import CONF
 
 LOG = logging.getLogger(__name__)
@@ -347,5 +346,7 @@ def check_volumes(step, serv_as):
     server = getattr(world, serv_as)
     node_volumes = getattr(world, '%s_result' % serv_as)['response']['volumes']['item']
     LOG.debug('Server %s configured volumes: %s' % (server.id, node_volumes))
-    configured_volumes_count = len(storages.get(CONF.feature.platform.cloud_family))
-    assert len(node_volumes) == configured_volumes_count, 'Server volumes mismatch'
+    role_options = getattr(world, 'role_params_%s' % server.farm_role_id)
+    configured_volumes_count = role_options.storage.volumes.count(role_options.storage)
+    assert len(node_volumes) == configured_volumes_count, 'Server volumes mismatch: %s != %s' % (
+        len(node_volumes), configured_volumes_count)
