@@ -90,7 +90,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
     Scenario: Add two SSL domains
         When I create domain D3 to www role
         And I add virtual host H3 to app role and domain D3
-        And I add http/https proxy P3 with port to www role with H3 host to app role
+        And I add http/https proxy P3 to www role with H3 host to app role
         When I create domain D4 to www role
         And I add virtual host H4 to app role and domain D4
         And I add https proxy P4 to www role with H4 host to app role
@@ -107,22 +107,24 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
     Scenario: Testing custom proxy ports
         When I create domain D5 to www role
         And I add virtual host H3 to app role and domain D5
-        And I add http proxy P5 with port 5000 to www role with H3 host to app role
+        And I add http proxy P5 with port 8004 to www role with H3 host to app role
         Then I reboot server W1
         And Scalr receives RebootFinish from W1
         And process nginx is running in W1
         Then D5 resolves into W1 ip address
-        And ports [80,5000] in iptables/semanage in W1
+        And ports [80,8004] in iptables/semanage in W1
         Then I modify proxy P5 in www role without ip_hash and proxies:
-        #   """
-        #   keepalive_timeout 10s;
-        #   /custom_port A2:5000 default;
-        #   """
+          """
+          keepalive_timeout 10s;
+          / A2 default 1 limit_rate 4096;
+          / A1 backup 2
+          / example.com down
+          /custom_port A2:8004 default limit_rate 8192;
+          """
         And I reboot server W1
         And Scalr receives RebootFinish from W1
         And process nginx is running in W1
         Then D5 resolves into W1 ip address
-        And ports [5000] in iptables/semanage in W1
-        Then I start BaseHttpServer on 5000 port in A2
-        And http get domain D5/custom_port matches 'It works!'
-        And http get domain D5 matches H3 index page
+        And ports [8004] in iptables/semanage in W1
+        Then I start BaseHttpServer on 8004 port in A2
+        And http get domain D5:8004 matches H3 index page
