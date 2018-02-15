@@ -520,12 +520,12 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
 
     #Verify change status
     if any(pid in res['pid_before'] for pid in res['pid_after']):
-        LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'][0], res['info'][1])
+        LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'].std_out, res['info'].std_err)
         if not is_api
         else 'Status of the process has not changed, pid have not changed. pib before: %s pid after: %s' % (res['pid_before'], res['pid_after']))
         raise AssertionError("Can't {0} service. No such process {1}".format(status_as, service['node']))
 
-    LOG.info('Service change status info: {0}'.format(res['info'][0] if not is_api
+    LOG.info('Service change status info: {0}'.format(res['info'].std_out if not is_api
         else '%s.%s() complete successfully' % (service['api'], status)))
     LOG.info("Service status was successfully changed : {0} {1} {2}".format(service['node'], status_as,
                                                                             'by api call' if is_api else ''))
