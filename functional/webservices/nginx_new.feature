@@ -126,5 +126,4 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And process nginx is running in W1
         Then D5 resolves into W1 ip address
         And ports [8004] in iptables/semanage in W1
-        Then I start BaseHttpServer on 8004 port in A2
         And http get domain D5:8004 matches H3 index page
