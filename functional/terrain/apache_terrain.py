@@ -97,13 +97,13 @@ def get_nginx_default_server_template():
     return template
 
 
-@step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
-def check_index(step, proto, revert, domain_as, vhost_as):
+@step(r'([\w]+)(?: (not))? get domain ([\w\d]+)(:[\d]+)? matches ([\w\d]+) index page$')
+def check_index(step, proto, revert, domain_as, port, vhost_as):
     #TODO: Rewrite this ugly
     revert = False if not revert else True
     domain = getattr(world, domain_as)
     vhost = getattr(world, vhost_as)
-    domain_address = domain.name
+    domain_address = domain.name + port if port else domain.name
 
     if CONF.feature.platform.is_cloudstack:
         domain_server = domain.role.servers[0]

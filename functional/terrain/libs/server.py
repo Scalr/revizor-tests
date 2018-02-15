@@ -621,7 +621,7 @@ def get_hostname_by_server_format(server):
 
 @world.absorb
 def wait_upstream_in_config(node, ip, contain=True):
-    out = node.run('cat /etc/nginx/app-servers.include')
+    out = node.run('cat /etc/nginx/app-servers.include').std_out
     if contain:
         if ip in "".join([str(i) for i in out]):
             return True
