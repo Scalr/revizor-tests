@@ -7,3 +7,4 @@ class Redshift(object):
 
     def verify(self):
         client = self.platform.get_client('redshift')
+        assert isinstance(client.describe_clusters()['Clusters'], list)

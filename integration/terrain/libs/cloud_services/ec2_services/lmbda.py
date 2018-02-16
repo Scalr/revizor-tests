@@ -1,6 +1,3 @@
-from botocore import exceptions as boto_exceptions
-
-
 class Lambda(object):
     service_name = 'lambda'
     log_records = ['CONNECT lambda.us-east-1.amazonaws.com:443']
@@ -10,8 +7,4 @@ class Lambda(object):
 
     def verify(self):
         client = self.platform.get_client('lambda')
-        try:
-            result = client.list_functions()
-            assert result['Functions'] == []
-        except boto_exceptions.ClientError as e:
-            raise AssertionError(e.message)
+        assert isinstance(client.list_functions()['Functions'], list)
