@@ -25,10 +25,8 @@ def request_access(step, cloud, request_as):
 
 
 @step('I see access request ([\w\d]+) in ([\w\d]+) status(?: on (environment|account) scope)?')
-def verify_request_status(step, request_as, status, scope):
+def verify_request_status(step, request_as, status, scope='environment'):
     id = getattr(world, '%s_request_id' % request_as)
-    if scope is None:
-        scope = 'environment'
     request = IMPL.csg.get_request(id, scope)
     if request['status'].lower() != status.lower():
         raise AssertionError('Cloud service access request status is incorrect. '
