@@ -87,8 +87,11 @@ class Ec2ServicePlatform(CloudServicePlatform):
                                      aws_secret_access_key=self.secret,
                                      region_name=Ec2ServicePlatform.region)
 
-    def get_client(self, service_name):
-        return self.session.client(service_name, verify=self.cacert_path, config=self.client_config)
+    def get_client(self, service_name, region=None):
+        return self.session.client(service_name,
+                                   verify=self.cacert_path,
+                                   config=self.client_config,
+                                   region_name=region or Ec2ServicePlatform.region)
 
     def _verify_impl(self, service):
         service.verify()
