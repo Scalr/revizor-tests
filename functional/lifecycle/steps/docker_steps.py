@@ -72,10 +72,11 @@ def install_docker(step, serv_as):
         docker pull ubuntu; \
         docker pull nginx; \
         docker pull alpine'''.format(conf_folder, echo_line, conf_file, restart_cmd)
-    node.run(command)
-    node.run("iptables -I INPUT 1 -p tcp --dport 9999 -j ACCEPT")
-    node.run('echo "sleep 1d" >> /home/scalr/{}'.format(NON_ASCII_SCRIPT))
-    assert node.run('docker --version')
+    with node.remote_connection() as conn:
+        conn.run(command)
+        conn.run("iptables -I INPUT 1 -p tcp --dport 9999 -j ACCEPT")
+        conn.run('echo "sleep 1d" >> /home/scalr/{}'.format(NON_ASCII_SCRIPT))
+        assert conn.run('docker --version')
     client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
     setattr(world, serv_as + '_client', client)
 

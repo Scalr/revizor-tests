@@ -5,21 +5,18 @@ import time
 import logging
 import urllib2
 import collections
-import re
 
 from lettuce import world, step
 
 from libcloud.compute.types import NodeState
 from datetime import datetime
 
-from revizor2 import consts
 from revizor2.api import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
-from revizor2.helpers.parsers import parse_apt_repository, parse_rpm_repository, parser_for_os_family
-from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, \
-    DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
+from revizor2.helpers.parsers import parser_for_os_family, get_repo_url
+from revizor2.defaults import DEFAULT_SERVICES_CONFIG, DEFAULT_API_TEMPLATES as templates, DEFAULT_PY3_BRANCH
 from revizor2.consts import Dist, SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Platform
 from revizor2 import szrapi
 from revizor2.fixtures import tables
@@ -151,24 +148,25 @@ class VerifyProcessWork(object):
     def _verify_process_running(server, process_name):
         LOG.debug('Check process %s in running state on server %s' % (process_name, server.id))
         node = world.cloud.get_node(server)
-        for i in range(3):
-            out = node.run("ps -C %s -o pid=" % process_name)
-            if not out[0].strip():
-                LOG.warning("Process %s don't work in server %s (attempt %s)" % (process_name, server.id, i))
-            else:
-                LOG.info("Process %s work in server %s" % (process_name, server.id))
-                return True
-            time.sleep(5)
-        return False
+        with node.remote_connection() as conn:
+            for i in range(3):
+                out = node.run("ps -C %s -o pid=" % process_name)
+                if not out.std_out.strip():
+                    LOG.warning("Process %s don't work in server %s (attempt %s)" % (process_name, server.id, i))
+                else:
+                    LOG.info("Process %s work in server %s" % (process_name, server.id))
+                    return True
+                time.sleep(5)
+            return False
 
-    @staticmethod
-    def _verify_open_port(server, port):
-        for i in range(5):
-            opened = world.check_open_port(server, port)
-            if opened:
-                return True
-            time.sleep(15)
-        return False
+    # @staticmethod
+    # def _verify_open_port(server, port):
+    #     for i in range(5):
+    #         opened = world.check_open_port(server, port)
+    #         if opened:
+    #             return True
+    #         time.sleep(15)
+    #     return False
 
     @staticmethod
     def _verify_app(server, port):
@@ -176,41 +174,45 @@ class VerifyProcessWork(object):
         node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server,
                                                              DEFAULT_SERVICES_CONFIG['app'][
-                                                                 Dist(node.os).family]['service_name']),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                                                                 node.os.family]['service_name']),
+                   node.check_open_port(port)]
         return all(results)
 
     @staticmethod
     def _verify_www(server, port):
         LOG.info('Verify nginx (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server, 'nginx'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         return all(results)
 
     @staticmethod
     def _verify_redis(server, port):
         LOG.info('Verify redis-server (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server, 'redis-server'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         LOG.debug('Redis-server verifying results: %s' % results)
         return all(results)
 
     @staticmethod
     def _verify_scalarizr(server, port=8010):
         LOG.info('Verify scalarizr (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         if CONF.feature.platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
             port = server.details['scalarizr.ctrl_port']
         results = [VerifyProcessWork._verify_process_running(server, 'scalarizr'),
                    VerifyProcessWork._verify_process_running(server, 'scalr-upd-client'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         LOG.debug('Scalarizr verifying results: %s' % results)
         return all(results)
 
     @staticmethod
     def _verify_memcached(server, port):
         LOG.info('Verify memcached (%s) work in server %s' % (port, server.id))
+        node = world.cloud.get_node(server)
         results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
-                   VerifyProcessWork._verify_open_port(server, port)]
+                   node.check_open_port(port)]
         return all(results)
 
 
@@ -222,11 +224,11 @@ def change_repo(step, serv_as):
 
 
 def change_repo_to_branch(node, branch):
-    if 'ubuntu' in node.os[0].lower() or 'debian' in node.os[0].lower():
+    if 'ubuntu' in node.os.id or 'debian' in node.os.id:
         LOG.info('Change repo in Ubuntu')
         node.put_file('/etc/apt/sources.list.d/scalr-branch.list',
                       'deb http://buildbot.scalr-labs.com/apt/debian %s/\n' % branch)
-    elif 'centos' in node.os[0].lower():
+    elif 'centos' in node.os.id:
         LOG.info('Change repo in CentOS')
         node.put_file('/etc/yum.repos.d/scalr-stable.repo',
                       '[scalr-branch]\n' +
@@ -245,13 +247,13 @@ def pin_repo(step, repo, serv_as):
         branch = CONF.feature.branch.replace('/', '-').replace('.', '').strip()
     else:
         branch = os.environ.get('RV_TO_BRANCH', 'master').replace('/', '-').replace('.', '').strip()
-    if 'ubuntu' in node.os[0].lower():
+    if 'ubuntu' in node.os.id:
         LOG.info('Pin repository for branch %s in Ubuntu' % branch)
         node.put_file('/etc/apt/preferences',
                       'Package: *\n' +
                       'Pin: release a=%s\n' % branch +
                       'Pin-Priority: 990\n')
-    elif 'centos' in node.os[0].lower():
+    elif 'centos' in node.os.id:
         LOG.info('Pin repository for branch %s in CentOS' % repo)
         node.run('yum install yum-protectbase -y')
 
@@ -261,11 +263,11 @@ def update_scalarizr(step, serv_as):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     platform = CONF.feature.platform
-    if 'ubuntu' in node.os[0].lower():
+    if 'ubuntu' in node.os.id:
         LOG.info('Update scalarizr in Ubuntu')
         node.run('apt-get update')
         node.run('apt-get install scalarizr-base scalarizr-%s -y' % platform.name)
-    elif 'centos' in node.os[0].lower():
+    elif 'centos' in node.os.id:
         LOG.info('Update scalarizr in CentOS')
         node.run('yum install scalarizr-base scalarizr-%s -y' % platform.name)
 
@@ -275,7 +277,7 @@ def check_process(step, process, negation, serv_as):
     LOG.info("Check running process %s on server" % process)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    list_proc = node.run('ps aux | grep %s' % process)[0].split('\n')
+    list_proc = node.run('ps aux | grep %s' % process).std_out.split('\n')
     processes = filter(lambda x: 'grep' not in x and x, list_proc)
     msg = "Process {} on server {} not in valid state".format(
         process,
@@ -304,7 +306,7 @@ def verify_port_status(step, port, closed, serv_as):
 
     results = []
     for attempt in range(3):
-        results.append(world.check_open_port(server, port))
+        results.append(node.check_open_port(port))
         time.sleep(5)
 
     if closed and results[-1]:
@@ -366,8 +368,10 @@ def find_string_in_debug_log(step, serv_as, string):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     out = node.run('grep "%s" /var/log/scalarizr_debug.log' % string)
-    if not string in out[0]:
+    if not string in out.std_out:
         raise AssertionError('String "%s" not found in scalarizr_debug.log. Grep result: %s' % (string, out))
+
+
 
 
 @step('scalarizr version from (\w+) repo is last in (.+)$')
@@ -379,17 +383,18 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     Role repo - CONF.feature.to_branch
     """
     if repo == 'system':
-        repo = CONF.feature.branch
+        branch = CONF.feature.branch
     elif repo == 'role':
-        repo = CONF.feature.to_branch
+        branch = CONF.feature.to_branch
     server = getattr(world, serv_as)
-    if consts.Dist(server.role.dist).is_centos:
-        repo_data = parse_rpm_repository(repo)
-    elif consts.Dist(server.role.dist).is_debian:
-        repo_data = parse_apt_repository(repo)
+    if branch == 'latest' and 'base' in server.role.behaviors:
+        branch = DEFAULT_PY3_BRANCH
+    os_family = Dist(server.role.dist).family
+    index_url = get_repo_url(os_family, branch)
+    repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
-    LOG.info('Scalarizr versions in repository %s: %s' % (repo, versions))
+    LOG.info('Scalarizr versions in repository %s: %s' % (branch, versions))
     try:
         server_info = server.upd_api.status(cached=False)
     except Exception:
@@ -416,21 +421,16 @@ def assert_scalarizr_version(step, branch, serv_as):
         branch = CONF.feature.branch
     elif branch == 'role':
         branch = CONF.feature.to_branch
-    # Get custom repo url
     os_family = Dist(server.role.dist).family
+    # if branch == 'latest' and 'base' in server.role.behaviors:
+    #     branch = DEFAULT_PY3_BRANCH
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
-        if branch in ['stable', 'latest']:
-            default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
-        else:
-            url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
-            path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-            default_repo = url.format(path=path) if os_family != 'coreos' else path
-        # Get last scalarizr version from custom repo
-        index_url = default_repo.format(branch=branch)
+        # Get custom repo url
+        index_url = get_repo_url(os_family, branch)
         LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.dist)(branch=branch, index_url=index_url)
+        repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
         versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
         versions.sort(reverse=True)
         last_version = versions[0]
@@ -501,7 +501,7 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
         status = common_config['api_endpoint']['service_methods'].get(status_as) if is_api else status_as
         service.update({'node': common_config.get('service_name')})
         if not service['node']:
-            service.update({'node': common_config.get(consts.Dist(node.os).family).get('service_name')})
+            service.update({'node': common_config.get(node.os.family).get('service_name')})
         if is_api:
             service.update({'api': common_config['api_endpoint'].get('name')})
             if not service['api']:
@@ -520,12 +520,12 @@ def change_service_status(step, status_as, behavior, is_change_pid, serv_as, is_
 
     #Verify change status
     if any(pid in res['pid_before'] for pid in res['pid_after']):
-        LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'][0], res['info'][1])
+        LOG.error('Service change status info: {0} Service change status error: {1}'.format(res['info'].std_out, res['info'].std_err)
         if not is_api
         else 'Status of the process has not changed, pid have not changed. pib before: %s pid after: %s' % (res['pid_before'], res['pid_after']))
         raise AssertionError("Can't {0} service. No such process {1}".format(status_as, service['node']))
 
-    LOG.info('Service change status info: {0}'.format(res['info'][0] if not is_api
+    LOG.info('Service change status info: {0}'.format(res['info'].std_out if not is_api
         else '%s.%s() complete successfully' % (service['api'], status)))
     LOG.info("Service status was successfully changed : {0} {1} {2}".format(service['node'], status_as,
                                                                             'by api call' if is_api else ''))
@@ -572,28 +572,24 @@ def change_branch_in_sources(step, serv_as, branch):
         branch = branch.replace('/', '-').replace('.', '').strip()
     server = getattr(world, serv_as)
     LOG.info('Change branches in sources list in server %s to %s' % (server.id, branch))
-    if Dist(server.role.dist).is_debian:
-        LOG.debug('Change in debian')
-        node = world.cloud.get_node(server)
-        for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
-            LOG.info("Change branch in %s to %s" % (repo_file, branch))
-            node.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
-    elif Dist(server.role.dist).is_centos:
-        LOG.debug('Change in centos')
-        node = world.cloud.get_node(server)
-        for repo_file in ['/etc/yum.repos.d/scalr-stable.repo']:
-            LOG.info("Change branch in %s to %s" % (repo_file, branch))
-            node.run('echo "[scalr-branch]\nname=scalr-branch\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
-        node.run('echo > /etc/yum.repos.d/scalr-latest.repo')
-    elif Dist(server.role.dist).is_windows:
-        # LOG.debug('Change in windows')
-        import winrm
-        console = winrm.Session('http://%s:5985/wsman' % server.public_ip,
-                                auth=("Administrator", server.windows_password))
-        for repo_file in ['C:\Program Files\Scalarizr\etc\scalr-latest.winrepo',
-                          'C:\Program Files\Scalarizr\etc\scalr-stable.winrepo']:
-            # LOG.info("Change branch in %s to %s" % (repo_file, branch))
-            console.run_cmd('echo http://buildbot.scalr-labs.com/win/%s/x86_64/ > "%s"' % (branch, repo_file))
+    node = world.cloud.get_node(server)
+    with node.remote_connection() as conn:
+        if node.os.is_debian:
+            LOG.debug('Change in debian')
+            for repo_file in ['/etc/apt/sources.list.d/scalr-stable.list', '/etc/apt/sources.list.d/scalr-latest.list']:
+                LOG.info("Change branch in %s to %s" % (repo_file, branch))
+                conn.run('echo "deb http://buildbot.scalr-labs.com/apt/debian %s/" > %s' % (branch, repo_file))
+        elif node.os.is_centos:
+            LOG.debug('Change in centos')
+            for repo_file in ['/etc/yum.repos.d/scalr-stable.repo']:
+                LOG.info("Change branch in %s to %s" % (repo_file, branch))
+                conn.run('echo "[scalr-branch]\nname=scalr-branch\nbaseurl=http://buildbot.scalr-labs.com/rpm/%s/rhel/\$releasever/\$basearch\nenabled=1\ngpgcheck=0" > %s' % (branch, repo_file))
+            conn.run('echo > /etc/yum.repos.d/scalr-latest.repo')
+        elif node.os.is_windows:
+            for repo_file in ['C:\Program Files\Scalarizr\etc\scalr-latest.winrepo',
+                              'C:\Program Files\Scalarizr\etc\scalr-stable.winrepo']:
+                # LOG.info("Change branch in %s to %s" % (repo_file, branch))
+                conn.run('echo http://buildbot.scalr-labs.com/win/%s/x86_64/ > "%s"' % (branch, repo_file))
 
 
 # Step used revizor2.szrapi classes functional
@@ -614,7 +610,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         else:
             pattern = [element.strip() for element in str(pattern).split(',')]
         cmd = "ps aux | grep {pattern} | grep -v grep | awk {{print'$2'}}".format(pattern='\|'.join(pattern))
-        return node.run(cmd)[0].rstrip('\n').split('\n')
+        return node.run(cmd).std_out.rstrip('\n').split('\n')
 
     # Set attributes
     server = getattr(world, serv_as)
@@ -650,7 +646,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
         behavior = server.role.behaviors[0]
         common_config = DEFAULT_SERVICES_CONFIG.get(behavior)
         pattern = common_config.get('service_name',
-                                    common_config.get(consts.Dist(node.os).family).get('service_name'))
+                                    common_config.get(node.os.family).get('service_name'))
     LOG.debug('Set search condition: (%s) to get service pid.' % pattern)
     # Run api command
     pid_before = get_pid(pattern)
@@ -781,7 +777,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
             setattr(world, 'role', role['role'])
 
 
-def run_sysprep(uuid, console):
+def run_sysprep(node):
     cmd = dict(
         gce='gcesysprep',
         ec2=world.PS_RUN_AS.format(
@@ -790,16 +786,16 @@ def run_sysprep(uuid, console):
                 '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
                 '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
     try:
-        console.run_cmd(cmd.get(CONF.feature.platform.name))
+        node.run(cmd.get(node.platform_config.name))
     except Exception as e:
         LOG.error('Run sysprep exception : %s' % e.message)
     # Check that instance has stopped after sysprep
     end_time = time.time() + 900
     while time.time() <= end_time:
-        node = (filter(lambda n: n.uuid == uuid, world.cloud.list_nodes()) or [''])[0]
-        LOG.debug('Obtained node after sysprep running: %s' % node)
-        LOG.debug('Obtained node status after sysprep running: %s' % node.state)
-        if node.state == NodeState.STOPPED:
+        cloud_node = (filter(lambda n: n.uuid == node.uuid, world.cloud.list_nodes()) or [''])[0]
+        LOG.debug('Obtained node after sysprep running: %s' % cloud_node)
+        LOG.debug('Obtained node status after sysprep running: %s' % cloud_node.state)
+        if cloud_node.state == NodeState.STOPPED:
             break
         time.sleep(10)
     else:
@@ -864,90 +860,29 @@ def get_repo_type(custom_branch, custom_version=None):
 def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
     node = getattr(world, 'cloud_server', None)
     resave_node = True if node else False
-    rv_branch = CONF.feature.branch
-    rv_to_branch = CONF.feature.to_branch
     server = getattr(world, (serv_as or '').strip(), None)
-    base_url = 'https://my.scalr.net'
-    if CONF.scalr.te_id:
-        base_url = 'http://%s.test-env.scalr.com' % CONF.scalr.te_id
     if server:
         server.reload()
-    # Get scalarizr repo type
+    if not node:
+        LOG.debug('Cloud server not found get node from server')
+        node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
+        LOG.debug('Node get successfully: %s' % node)
+    rv_branch = CONF.feature.branch
+    rv_to_branch = CONF.feature.to_branch
     if use_rv_to_branch:
         branch = rv_to_branch
     elif custom_branch:
         branch = custom_branch
     else:
         branch = rv_branch
-    repo_type = get_repo_type(branch, custom_version)
-    LOG.info('Installing scalarizr from repo_type: %s' % repo_type)
-    # Windows handler
-    if CONF.feature.dist.is_windows:
-        password = 'Scalrtest123'
-        if node:
-            console_kwargs = dict(
-                public_ip=node.public_ips[0],
-                password=password)
-        else:
-            console_kwargs = dict(server=server)
-            if CONF.feature.platform.is_ec2:
-                console_kwargs.update({'password': password})
-            LOG.debug('Cloud server not found get node from server')
-            node = wait_until(world.cloud.get_node, args=(server,), timeout=300, logger=LOG)
-            LOG.debug('Node get successfully: %s' % node)  # Wait ssh
-        console_kwargs.update({'timeout': 1200})
-        # Install scalarizr
-        url = '{base_url}/public/windows/{repo_type}'.format(base_url=base_url, repo_type=repo_type)
-        cmd = "iex ((new-object net.webclient).DownloadString('{url}/install_scalarizr.ps1'))".format(url=url)
-        assert not world.run_cmd_command_until(
-            world.PS_RUN_AS.format(command=cmd),
-            **console_kwargs).std_err, "Scalarizr installation failed"
-        LOG.debug('Get scalarizr version after install scalarizr')
-        res = world.run_cmd_command_until('scalarizr -v', **console_kwargs).std_out
-        LOG.debug('Scalarizr version: %s' % res)
-        if use_sysprep:
-            run_sysprep(node.uuid, world.get_windows_session(**console_kwargs))
-    # Linux handler
-    else:
-        # Wait cloud server
-        if not node:
-            LOG.debug('Cloud server not found get node from server')
-            node = wait_until(world.cloud.get_node, args=(server, ), timeout=300, logger=LOG)
-            LOG.debug('Node get successfully: %s' % node)
-        # Wait ssh
-        start_time = time.time()
-        while (time.time() - start_time) < 300:
-            try:
-                if node.get_ssh():
-                    break
-            except AssertionError:
-                LOG.warning('Can\'t get ssh for server %s' % node.id)
-                time.sleep(10)
-        url = '{base_url}/public/linux/{repo_type}'.format(base_url=base_url, repo_type=repo_type)
-        cmd = '{curl_install} && ' \
-            'curl -L {url}/install_scalarizr.sh | bash && sync'.format(
-                curl_install=world.value_for_os_family(
-                    debian="apt-get update && apt-get install curl -y",
-                    centos="yum clean all && yum install curl -y",
-                    server=server,
-                    node=node
-                ),
-                url=url)
-        user = None
-        if CONF.feature.dist.id == 'coreos':
-            cmd = 'PATH=$PATH:/opt/bin; ' + cmd
-            user = 'core'
-        LOG.debug('Install script body: %s' % cmd)
-        out = node.run(cmd, user=user)
-        # get installed scalarizr version
-        version_cmd = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
-        res = node.run(version_cmd)[0]
-    scalarizr_ver = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
-    assert scalarizr_ver, 'Scalarizr version is invalid. Command returned: %s' % res
-    setattr(world, 'pre_installed_agent', scalarizr_ver[0])
+    LOG.info('Installing scalarizr from branch %s' % branch)
+    scalarizr_ver = node.install_scalarizr(branch=branch)
+    if use_sysprep and node.os.is_windows:
+        run_sysprep(node)
+    setattr(world, 'pre_installed_agent', scalarizr_ver)
     if resave_node:
         setattr(world, 'cloud_server', node)
-    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver[0])
+    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver)
 
 
 @step('I have a server([\w ]+)? running in cloud$')
@@ -977,15 +912,41 @@ def given_server_in_cloud(step, user_data):
     if platform.is_cloudstack:
         #Run command
         out = node.run('wget -qO- ifconfig.me/ip')
-        if not out[1]:
+        if not out.std_err:
             ip_address = out[0].rstrip("\n")
             LOG.info('Received external ip address of the node. IP:%s' % ip_address)
             setattr(world, 'ip', ip_address)
         else:
-            raise AssertionError("Can't get node external ip address. Original error: %s" % out[1])
+            raise AssertionError("Can't get node external ip address. Original error: %s" % out.std_err)
         #Open port, set firewall rule
         new_port = world.cloud.open_port(node, 8013, ip=ip_address)
         setattr(world, 'forwarded_port', new_port)
         if not new_port == 8013:
             raise AssertionError('Import will failed, because opened port is not 8013, '
                                  'an installed port is: %s' % new_port)
+
+
+@step("ports \[([\d,]+)\] (not )?in iptables(/semanage)? in ([\w\d]+)")
+@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-7-x', '!coreos'])
+def verify_ports_in_iptables(step, ports, should_not_contain, semanage, serv_as):
+    LOG.info('Verify ports "%s" in iptables' % ports)
+    if CONF.feature.platform.is_cloudstack:
+        LOG.info('Not check iptables because CloudStack')
+        return
+    server = getattr(world, serv_as)
+    ports = ports.split(',')
+    node = world.cloud.get_node(server)
+    iptables_rules = node.run('iptables -L').std_out
+    LOG.debug('iptables rules:\n%s' % iptables_rules)
+    rules = [iptables_rules]
+    if semanage and node.os.is_centos:
+        semanage_rules = node.run('semanage port -l | grep http_port').std_out
+        LOG.debug('semanage rules:\n%s' % semanage_rules)
+        rules.append(semanage_rules)
+
+    for port in ports:
+        LOG.debug('Check port "%s" in iptables rules' % port)
+        if all(port in rule for rule in rules) and should_not_contain:
+            raise AssertionError('Port "%s" in iptables rules!' % port)
+        elif not should_not_contain and not all(port in rule for rule in rules):
+            raise AssertionError('Port "%s" is NOT in iptables rules!' % port)

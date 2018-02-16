@@ -11,7 +11,7 @@ LOG = logging.getLogger(__name__)
 @step(r'Scalr file "StatusAdapter.php" modified for test')
 def modify_poller_file(step):
     LOG.info('Get file "StatusAdapter.php')
-    world.files['StatusAdapter.php'] = world.testenv.get_file('/opt/scalr-server/embedded/scalr/'
+    world.files['StatusAdapter.php'] = world.testenv.sftp_get_file('/opt/scalr-server/embedded/scalr/'
                                         'app/src/Scalr/Modules/Platforms/Openstack/Adapters/StatusAdapter.php')
     with open(world.files['StatusAdapter.php'], 'r') as php_file:
         content = php_file.readlines()

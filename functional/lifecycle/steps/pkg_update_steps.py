@@ -17,6 +17,7 @@ except ImportError:
 
 from revizor2.api import IMPL
 from revizor2.conf import CONF
+from revizor2.helpers import farmrole
 from lettuce import step, world, after
 from urllib2 import URLError
 
@@ -134,10 +135,11 @@ def having_branch_copy(step, branch=None, is_patched=False):
 def waiting_new_package(step):
     '''Get build status'''
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
+    label_name = 'continuous-integration/drone/push'
     for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(world.build_commit_sha).status.get()
         if res.statuses:
-            status = filter(lambda x: x['context'] == 'continuous-integration/drone', res.statuses)[0]
+            status = filter(lambda x: x['context'] == label_name, res.statuses)[0]
             LOG.debug('Patch commit build status: %s' % status)
             if status.state == 'success':
                 LOG.info('Drone status: %s' % status.description)
@@ -171,22 +173,17 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
     farm = world.farm
     branch = CONF.feature.branch
     platform = CONF.feature.platform
-    role_kwargs = dict(
-        location=platform.location if not platform.is_gce else "",
-        options={
-            "user-data.scm_branch": branch if not use_stable else "",
-            "base.upd.repository": "stable" if use_stable else "",
-            "base.devel_repository": CONF.feature.ci_repo if not use_stable else ""
-        },
-        alias=world.role['name']
-    )
+    location=platform.location if not platform.is_gce else ""
+    role_options = farmrole.FarmRoleParams(platform, alias=world.role['name'])
+    role_options.advanced.agent_update_repository = 'stable' if use_stable else ''
+    role_options.development.scalarizr_branch = branch if not use_stable else ''
+    role_options.development.scalarizr_repo = CONF.feature.ci_repo if not use_stable else ''
     if use_manual_scaling:
-        manual_scaling = {
-            "scaling.one_by_one": 0,
-            "scaling.enabled": 0}
-        role_kwargs['options'].update(manual_scaling)
-    LOG.debug('Add created role to farm with options %s' % role_kwargs)
-    farm.add_role(world.role['id'], **role_kwargs)
+        role_options.scaling.automatic = False
+        role_options.scaling.wait_running_state = False
+    options = role_options.to_json()
+    LOG.debug('Add created role to farm with options %s' % options)
+    farm.add_role(world.role['id'], location=location, options=options)
     farm.roles.reload()
     farm_role = farm.roles[0]
     setattr(world, '%s_role' % world.role['name'], farm_role)
@@ -214,23 +211,12 @@ def updating_scalarizr_by_scalr_ui(step, serv_as):
 def asserting_version(step, version, serv_as):
     server = getattr(world, serv_as)
     default_installed_agent = getattr(world, 'default_agent', None)
-    pre_installed_agent = world.pre_installed_agent
+    pre_installed_agent = world.pre_installed_agent[0]
     server.reload()
     command = '/opt/bin/scalarizr -v' if CONF.feature.dist.id == 'coreos' else 'scalarizr -v'
     err_msg = 'Scalarizr version not valid %s:%s'
-    # Windows handler
-    if CONF.feature.dist.is_windows:
-        for _ in range(3):
-            out = world.run_cmd_command_until(command, server=server, timeout=300)
-            LOG.debug('Get scalarizr version from windows: %s (%s)' % (out.std_out, out.std_err))
-            if out.std_out.strip():
-                res = out.std_out.strip()
-                break
-            time.sleep(3)
-    # Linux handler
-    else:
-        node = world.cloud.get_node(server)
-        res = node.run(command)[0]
+    node = world.cloud.get_node(server)
+    res = node.run(command).std_out
     LOG.debug('Result from scalarizr -v: %s' % res)
     installed_agent = re.findall('(?:Scalarizr\s)([a-z0-9/./-]+)', res)
     assert installed_agent, "Can't get scalarizr version: %s" % res
