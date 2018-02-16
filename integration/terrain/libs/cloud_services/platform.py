@@ -1,18 +1,17 @@
+from datetime import datetime
+
 import boto3
 import os
 import requests
-
 from azure.common.credentials import ServicePrincipalCredentials
 from botocore import config as boto_config
-from datetime import datetime
+from lettuce import world
 
 import azure_services
 import ec2_services
 from revizor2.backend import IMPL
 from revizor2.conf import CONF
-from revizor2.testenv import TestEnv
 from revizor2.utils import env_vars
-from revizor2.utils import get_dict_value
 
 
 class CloudServicePlatform(object):
@@ -31,8 +30,7 @@ class CloudServicePlatform(object):
         self.request = IMPL.csg.get_request(self.request_id)
 
         te_url = '%s.test-env.scalr.com' % CONF.scalr.te_id
-        te_cfg = TestEnv(CONF.scalr.te_id).get_config()
-        csg_port = get_dict_value(te_cfg, 'scalr.csg.endpoint.port')
+        csg_port = world.get_scalr_config_value('scalr.csg.endpoint.port')
         self.csg_proxy = '%s:%s' % (te_url, csg_port)
 
         if not os.path.exists(CONF.main.keysdir):
