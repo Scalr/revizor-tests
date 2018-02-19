@@ -56,6 +56,8 @@ def run_only_if(*args, **kwargs):
         current.append(CONF.feature.storage)
     if kwargs.get('dist'):
         current.append(CONF.feature.dist.id)
+    if kwargs.get('family'):
+        current.append(CONF.feature.dist.family)
     options = []
     pass_list = []
     skip_list = []
