@@ -927,7 +927,7 @@ def given_server_in_cloud(step, user_data):
 
 
 @step("ports \[([\d,]+)\] (not )?in iptables(/semanage)? in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-7-x', '!coreos'])
+@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos'])
 def verify_ports_in_iptables(step, ports, should_not_contain, semanage, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.platform.is_cloudstack:
@@ -939,7 +939,7 @@ def verify_ports_in_iptables(step, ports, should_not_contain, semanage, serv_as)
     iptables_rules = node.run('iptables -L').std_out
     LOG.debug('iptables rules:\n%s' % iptables_rules)
     rules = [iptables_rules]
-    if semanage and node.os.is_centos:
+    if semanage:
         semanage_rules = node.run('semanage port -l | grep http_port').std_out
         LOG.debug('semanage rules:\n%s' % semanage_rules)
         rules.append(semanage_rules)
