@@ -926,9 +926,10 @@ def given_server_in_cloud(step, user_data):
                                  'an installed port is: %s' % new_port)
 
 
-@step("ports \[([\d,]+)\] (not )?in iptables(/semanage)? in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos'])
-def verify_ports_in_iptables(step, ports, should_not_contain, semanage, serv_as):
+@step("ports \[([\d,]+)\] (not )?in iptables in ([\w\d]+)")
+@world.run_only_if(platform=['!%s' % Platform.RACKSPACENGUS, '!%s' % Platform.CLOUDSTACK],
+    dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos'])
+def verify_ports_in_iptables(step, ports, should_not_contain, serv_as):
     LOG.info('Verify ports "%s" in iptables' % ports)
     if CONF.feature.platform.is_cloudstack:
         LOG.info('Not check iptables because CloudStack')
@@ -938,15 +939,25 @@ def verify_ports_in_iptables(step, ports, should_not_contain, semanage, serv_as)
     node = world.cloud.get_node(server)
     iptables_rules = node.run('iptables -L').std_out
     LOG.debug('iptables rules:\n%s' % iptables_rules)
-    rules = [iptables_rules]
-    if semanage:
-        semanage_rules = node.run('semanage port -l | grep http_port').std_out
-        LOG.debug('semanage rules:\n%s' % semanage_rules)
-        rules.append(semanage_rules)
-
     for port in ports:
         LOG.debug('Check port "%s" in iptables rules' % port)
-        if all(port in rule for rule in rules) and should_not_contain:
+        if port in iptables_rules and should_not_contain:
             raise AssertionError('Port "%s" in iptables rules!' % port)
-        elif not should_not_contain and not all(port in rule for rule in rules):
+        elif not should_not_contain and not port in iptables_rules:
             raise AssertionError('Port "%s" is NOT in iptables rules!' % port)
+
+
+@step("ports \[([\d,]+)\] (not )?in semanage in ([\w\d]+)")
+@world.run_only_if(family='centos')
+def verify_ports_in_semanage(step, ports, should_not_contain, serv_as):
+    server = getattr(world, serv_as)
+    ports = ports.split(',')
+    node = world.cloud.get_node(server)
+    semanage_rules = node.run('semanage port -l | grep http_port').std_out
+    LOG.debug('semanage rules:\n%s' % semanage_rules)
+    for port in ports:
+        LOG.debug('Check port "%s" in semanage rules' % port)
+        if port in semanage_rules and should_not_contain:
+            raise AssertionError('Port "%s" in semanage rules!' % port)
+        elif not should_not_contain and not port in semanage_rules:
+            raise AssertionError('Port "%s" is NOT in semanage rules!' % port)
