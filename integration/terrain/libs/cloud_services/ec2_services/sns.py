@@ -4,7 +4,7 @@ from lettuce import world
 
 class Sns(object):
     service_name = 'sns'
-    log_records = []
+    log_records = ['CONNECT sns.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

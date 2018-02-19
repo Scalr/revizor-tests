@@ -1,9 +1,6 @@
-import os
-
-
 class Glacier(object):
     service_name = 'glacier'
-    log_records = []
+    log_records = ['CONNECT glacier.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

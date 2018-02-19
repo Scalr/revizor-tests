@@ -1,6 +1,6 @@
 class Mobile(object):
     service_name = 'mobile'
-    log_records = []
+    log_records = ['CONNECT mobile.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

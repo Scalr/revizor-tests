@@ -6,7 +6,7 @@ from lettuce import world
 
 class DynamoDb(object):
     service_name = 'dynamodb'
-    log_records = []
+    log_records = ['CONNECT dynamodb.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

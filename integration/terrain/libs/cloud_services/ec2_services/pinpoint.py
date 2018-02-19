@@ -4,7 +4,7 @@ from lettuce import world
 
 class Pinpoint(object):
     service_name = 'pinpoint'
-    log_records = []
+    log_records = ['CONNECT pinpoint.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

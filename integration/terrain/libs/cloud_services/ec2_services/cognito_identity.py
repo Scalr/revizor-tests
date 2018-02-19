@@ -4,7 +4,7 @@ from lettuce import world
 
 class CognitoIdentity(object):
     service_name = 'cognito identity'
-    log_records = []
+    log_records = ['CONNECT cognito-identity.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

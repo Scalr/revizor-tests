@@ -1,6 +1,6 @@
 class Ecs(object):
     service_name = 'ecs'
-    log_records = []
+    log_records = ['CONNECT ecs.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

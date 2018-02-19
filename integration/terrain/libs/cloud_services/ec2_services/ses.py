@@ -4,7 +4,7 @@ from lettuce import world
 
 class Ses(object):
     service_name = 'ses'
-    log_records = []
+    log_records = ['CONNECT email.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

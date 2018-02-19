@@ -4,7 +4,7 @@ from lettuce import world
 
 class DeviceFarm(object):
     service_name = 'device farm'
-    log_records = []
+    log_records = ['CONNECT devicefarm.us-west-2.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

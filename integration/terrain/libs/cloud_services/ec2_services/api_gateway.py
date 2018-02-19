@@ -4,7 +4,7 @@ from lettuce import world
 
 class ApiGateway(object):
     service_name = 'api gateway'
-    log_records = []
+    log_records = ['CONNECT apigateway.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

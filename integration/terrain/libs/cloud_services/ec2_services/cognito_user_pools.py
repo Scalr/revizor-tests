@@ -4,7 +4,7 @@ from lettuce import world
 
 class CognitoUserPools(object):
     service_name = 'cognito user pools'
-    log_records = []
+    log_records = ['CONNECT cognito-idp.us-east-1.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

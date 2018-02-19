@@ -4,7 +4,7 @@ from lettuce import world
 
 class Route53(object):
     service_name = 'route53'
-    log_records = []
+    log_records = ['CONNECT route53.amazonaws.com:443']
 
     def __init__(self, platform):
         self.platform = platform

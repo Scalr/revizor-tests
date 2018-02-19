@@ -101,7 +101,7 @@ def check_proxy_logs(step_instance, service, platform, proxy_as):
     node = world.cloud.get_node(server)
     old_logs_count = getattr(world, '%s_proxy_logs_count' % proxy_as, 0)
     logs = node.run('tail -n +%s /var/log/squid3/access.log' % (old_logs_count + 1)).std_out.splitlines()
-    setattr(world, '%s_proxy_logs_count' % proxy_as, len(logs))
+    setattr(world, '%s_proxy_logs_count' % proxy_as, len(logs) + old_logs_count)
     for record in world.csg_get_service_log_records(platform, service):
         LOG.debug('Searching for "%s" in squid logs' % record)
         for line in logs:
