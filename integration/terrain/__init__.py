@@ -1,6 +1,9 @@
+import glob
 import os
 import sys
-import glob
+
+import libs
+
 
 ROOT_PATH = os.path.abspath(os.path.join(__file__, '..', '..', '..'))
 sys.path.append(ROOT_PATH)
@@ -12,5 +15,6 @@ def import_terrains():
     for module in glob.glob(os.path.join(path, '*_terrain.py')):
         __import__(module.split('/')[-1].split('.')[0], globals(), locals())
     __import__('functional.terrain', globals(), locals())
+
 
 import_terrains()
