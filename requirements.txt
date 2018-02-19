@@ -10,3 +10,4 @@ azure-mgmt-machinelearningcompute>=0.4.0
 azure-mgmt-containerregistry>=1.0.1
 azure-mgmt-containerservice>=2.0.0
 azure-mgmt-sql>=0.8.3
+azure-mgmt-applicationinsights>=0.1.1
