@@ -4,3 +4,11 @@ PyChef==0.2.3
 semver
 githubpy==1.1.0
 ansible-tower-cli==3.2.1
+boto3==1.4.7
+azure-mgmt-web>=0.34.1
+azure-mgmt-eventhub>=1.2.0
+azure-mgmt-machinelearningcompute>=0.4.0
+azure-mgmt-containerregistry>=1.0.1
+azure-mgmt-containerservice>=2.0.0
+azure-mgmt-sql>=0.8.3
+azure-mgmt-applicationinsights>=0.1.1
