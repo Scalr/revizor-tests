@@ -113,13 +113,9 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And process nginx is running in W1
         Then D5 resolves into W1 ip address
         And ports [80,8004] in iptables in W1
-        And ports [80,8004] in semanage in W1
         Then I modify proxy P5 in www role without ip_hash and proxies:
           """
           keepalive_timeout 10s;
-          / A2 default 1 limit_rate 4096;
-          / A1 backup 2
-          / example.com down
           /custom_port A2:8004 default limit_rate 8192;
           """
         And I reboot server W1
