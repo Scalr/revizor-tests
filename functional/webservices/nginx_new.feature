@@ -112,7 +112,7 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And Scalr receives RebootFinish from W1
         And process nginx is running in W1
         Then D5 resolves into W1 ip address
-        And ports [80,8004] in iptables/semanage in W1
+        And ports [80,8004] in iptables in W1
         Then I modify proxy P5 in www role without ip_hash and proxies:
           """
           keepalive_timeout 10s;
@@ -125,5 +125,6 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And Scalr receives RebootFinish from W1
         And process nginx is running in W1
         Then D5 resolves into W1 ip address
-        And ports [8004] in iptables/semanage in W1
+        And ports [8004] in iptables in W1
+        And ports [8004] in semanage in W1
         And http get domain D5:8004 matches H3 index page
