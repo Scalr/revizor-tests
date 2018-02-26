@@ -220,8 +220,10 @@ def check_hostname_exists_on_at_server(step, serv_as):
         # found
 
 
-@step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)'")
-def launch_ansible_tower_job(step, job_name, credentials_name, job_result):
+@step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
+def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_as):
+    if CONF.feature.dist.id == 'ubuntu-16-04':
+        job_name = 'Revizor ubuntu-16-04 Template'
     pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job')
@@ -231,7 +233,7 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result):
             "extra_vars": {}}
         my_job = res.launch(job_template=job_name,
                             monitor=False,
-                            wait=False,
+                            wait=True,
                             timeout=None,
                             no_input=True,
                             **job_settings)
@@ -242,7 +244,16 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result):
                 break
         else:
             raise AssertionError('Job #%s has not finished in 50s' % my_job['id'])
-        assert job_info['status'] == job_result, (my_job['id'], job_info['status'])  # It is necessary to change the check job_result --> 'successful' when the jobs will work!
+        assert job_info['status'] == job_result, (my_job['id'], job_info['status'])
+
+
+@step("I checked that deployment through AT was performed in (.+) and the output is '([\w-]+)'")
+def check_deployment_work(step, serv_as, expected_output):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    actual_output = node.run('ls /home/scalr-ansible/').std_out.split()
+    if not expected_output in actual_output:
+        raise AssertionError('Deployment does not work! Output: %s' % actual_output)
 
 
 @after.each_feature

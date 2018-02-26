@@ -85,4 +85,6 @@ Feature: Linux server provision with chef and ansible tower
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
-        And I launch job 'Revizor linux Job Template' with credential 'Revizor_linux_cred' and expected result 'failed'
+        And I launch job 'Revizor linux Job Template' with credential 'Revizor_linux_cred' and expected result 'successful' in M1
+        And I checked that deployment through AT was performed in M1 and the output is 'dir1'
+
