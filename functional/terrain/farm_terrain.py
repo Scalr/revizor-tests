@@ -29,20 +29,16 @@ def having_a_stopped_farm(step):
     world.give_empty_farm(launched=False)
 
 
-@step(r"I add(?P<behavior> \w+-?\w+?)? role(?P<saved_role> [\w\d]+)? to this farm(?: with (?P<options>(?:(?! as )[ \w\d,-])+))?(?: as (?P<alias>[\w\d]+))?")
-def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=None):
-    role_id = None
-    old_branch = CONF.feature.branch
-    options = options or []
-
-    if saved_role:
-        role_id = getattr(world, '%s_id' % saved_role.strip())
-    if not behavior:
-        behavior = os.environ.get('RV_BEHAVIOR', 'base')
-    else:
-        behavior = behavior.strip()
-
+@step(r"I add(?:\s(?P<behavior>[\w\d-]+))? role(?:\s(?P<role_name>[\w\d-]+))? to this farm(?:\swith\s(?P<options>[\w\d,-]+))?(?:\sas\s(?P<alias>[\w\d-]+))?")
+def add_role_to_farm(step, behavior=None, role_name=None, options=None, alias=None):
     platform = CONF.feature.platform
+    dist = CONF.feature.dist
+
+    options = options or []
+    role_name = (role_name or '').strip()
+    role_id = getattr(world, '%s_id' % role_name, None)
+    behavior = (behavior or os.environ.get('RV_BEHAVIOR', 'base')).strip()
+
     role_params = farmrole.FarmRoleParams(platform, alias=alias)
     Defaults.set_hostname(role_params)
 
@@ -50,7 +46,7 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
             if opt in ('branch_latest', 'branch_stable'):
-                CONF.feature.branch = opt.split('_')[1]
+                role_params.development.scalarizr_branch = opt.split('_')[1]
             elif 'redis processes' in opt:
                 redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
                 LOG.info('Setup %s redis processes' % redis_count)
@@ -59,31 +55,24 @@ def add_role_to_farm(step, behavior=None, saved_role=None, options=None, alias=N
                 Defaults.set_chef_solo(role_params, opt)
             else:
                 Defaults.apply_option(role_params, opt)
-
-    if CONF.feature.dist.id == 'scientific-6-x' or \
-            (CONF.feature.dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
+    if dist.id == 'scientific-6-x' or \
+            (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
         role_params.advanced.disable_iptables_mgmt = False
-
-    if CONF.feature.dist.is_windows:
+    elif dist.is_windows:
         role_params.advanced.reboot_after_hostinit = True
-
     if behavior == 'rabbitmq':
         role_params.network.hostname_template = ''
-
-    if behavior == 'redis':
-        LOG.info('Insert redis settings')
-        role_params.database.redis_persistence_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
-        role_params.database.redis_use_password = True
-
-    if behavior in DATABASE_BEHAVIORS:
+    elif behavior in DATABASE_BEHAVIORS:
         Defaults.set_db_storage(role_params)
+        if behavior == 'redis':
+            LOG.info('Insert redis settings')
+            snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
+            role_params.database.redis_persistence_type = snapshotting_type
+            role_params.database.redis_use_password = True
 
     role = world.add_role_to_farm(behavior, role_params, role_id)
-
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
-    if 'branch_latest' in options or 'branch_stable' in options:
-        CONF.feature.branch = old_branch
 
 
 @step('I delete (\w+) role from this farm')
