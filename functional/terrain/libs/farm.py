@@ -147,6 +147,7 @@ def add_role_to_farm(behavior, options, role_id=None):
     new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
     if not new_role:
         raise AssertionError('Added role "%s" not found in farm' % role['name'])
+    setattr(world, 'role_params_%s' % new_role[0].id, options)
     return new_role[0]
 
 

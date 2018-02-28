@@ -12,7 +12,6 @@ from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
-from revizor2.defaults import DEFAULT_ADDITIONAL_STORAGES
 
 
 LOG = logging.getLogger(__name__)
@@ -206,25 +205,6 @@ def verify_saved_and_new_volumes(step, mount_point):
         raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
 
 
-@step("ports \[([\d,]+)\] not in iptables in ([\w\d]+)")
-@world.run_only_if(platform='!%s' % Platform.RACKSPACENGUS, dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos'])
-def verify_ports_in_iptables(step, ports, serv_as):
-    LOG.info('Verify ports "%s" in iptables' % ports)
-    if CONF.feature.platform.is_cloudstack:
-        LOG.info('Not check iptables because CloudStack')
-        return
-    server = getattr(world, serv_as)
-    ports = ports.split(',')
-    node = world.cloud.get_node(server)
-    rules = node.run('iptables -L').std_out
-    LOG.debug('iptables rules:\n%s' % rules)
-
-    for port in ports:
-        LOG.debug('Check port "%s" in iptables rules' % port)
-        if port in rules:
-            raise AssertionError('Port "%s" in iptables rules!' % port)
-
-
 @step("I save mount table on ([\w\d]+)")
 def save_mount_table(step, serv_as):
     server = getattr(world, serv_as)
@@ -406,8 +386,8 @@ def assert_server_message_count(step, msg, serv_as):
     server.messages.reload()
     incoming_messages = [m.name for m in server.messages if m.type == 'in' and m.name == msg]
     messages_count = len(incoming_messages)
-    mount_device_count = len(
-        DEFAULT_ADDITIONAL_STORAGES[CONF.feature.platform.name])
+    role_options = getattr(world, 'role_params_%s' % server.farm_role_id)
+    mount_device_count = role_options.storage.volumes.count(role_options.storage)
     assert messages_count == mount_device_count, (
         'Scalr internal messages count %s != %s Mounted storages count. List of all Incoming msg names: %s ' % (
             messages_count, mount_device_count, incoming_messages))
