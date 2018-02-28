@@ -251,7 +251,8 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_
 def check_deployment_work(step, serv_as, expected_output):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    actual_output = node.run('ls /home/scalr-ansible/').std_out.split()
+    cmd = 'dir /B C:\scalr-ansible' if CONF.feature.dist.is_windows else 'ls /home/scalr-ansible/'
+    actual_output = node.run(cmd).std_out.split()
     if not expected_output in actual_output:
         raise AssertionError('Deployment does not work! Output: %s' % actual_output)
 

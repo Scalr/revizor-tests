@@ -72,4 +72,4 @@ Feature: Windows server provision with chef and ansible tower
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
         And I launch job 'Revizor windows Job Template' with credential 'Revizor_windows_cred' and expected result 'successful' in M1
-#        And I checked that deployment through AT was performed in M1 and the output is 'dir1'
+        And I checked that deployment through AT was performed in M1 and the output is 'dir1'
