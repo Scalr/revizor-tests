@@ -27,4 +27,3 @@ Feature: Memcached service standart port 11211 with behavior memcached
         When I initialize instance memcache Client on M2
         Then I run a "memcached_command" to "set key" for new item on M2
         And I run a "memcached_command" to "get key" from item on M2
-        
