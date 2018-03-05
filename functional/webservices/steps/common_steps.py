@@ -64,19 +64,20 @@ def start_basehttpserver(step, port, serv_as):
     server = getattr(world, serv_as)
     LOG.info('Run BaseHttpServer in server %s' % server.id)
     node = world.cloud.get_node(server)
-    LOG.debug('Put base_server.py script')
-    node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
-    LOG.debug('Run BaseHttpServer script')
-    if CONF.feature.dist.is_debian:
-        node.run('apt-get install screen -y')
-    elif CONF.feature.dist.is_centos:
-        node.run('yum install screen -y')
-    node.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
-    if node.run('which python3')[2] == 0:
-        python_alias = 'python3'
-    else:
-        python_alias = 'python'
-    node.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
+    with node.remote_connection() as conn:
+        LOG.debug('Put base_server.py script')
+        node.put_file('/tmp/base_server.py', resources('scripts/base_server.py').get())
+        LOG.debug('Run BaseHttpServer script')
+        if CONF.feature.dist.is_debian:
+            conn.run('apt-get install screen -y')
+        elif CONF.feature.dist.is_centos:
+            conn.run('yum install screen -y')
+        conn.run('iptables -I INPUT 1 -p tcp --dport %s -j ACCEPT' % port)
+        if node.run('which python3').status_code == 0:
+            python_alias = 'python3'
+        else:
+            python_alias = 'python'
+        conn.run('screen -d -m %s /tmp/base_server.py %s' % (python_alias, port))
 
 
 @step(r'virtual host has a valid SSL certificate')
@@ -116,9 +117,9 @@ def check_rpaf(step, serv_as, domain_as, ssl=None):
     path = '/var/log/http-%s-access.log' % domain.name
     LOG.info('Check my IP in %s log' % path)
     out = node.run('cat %s' % path)
-    LOG.debug('Access log (%s) contains: %s' % (path, out[0]))
+    LOG.debug('Access log (%s) contains: %s' % (path, out.std_out))
     ip = world.get_external_local_ip()
-    if not ip in out[0]:
+    if not ip in out.std_out:
         raise AssertionError('Not see my IP in access log')
     LOG.info('My public IP %s in %s access log' % (ip, server.id))
 

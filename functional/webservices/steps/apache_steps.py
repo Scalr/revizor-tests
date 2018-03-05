@@ -14,7 +14,7 @@ def assert_check_vhost(step, serv_as, vhost_as):
     node = world.cloud.get_node(getattr(world, serv_as))
     vhost = getattr(world, vhost_as)
     out = node.run('ls /etc/scalr/private.d/vhosts/')
-    if vhost.name not in out[0]:
+    if vhost.name not in out.std_out:
         LOG.error('Domain %s not in vhosts, it have: %s' % (vhost.name, out))
         raise AssertionError('VHost "%s" not in apache config, in out: %s' % (vhost.name, out))
     return True
@@ -25,7 +25,7 @@ def check_deleted_vhost(step, serv_as, vhost_as):
     vhost = getattr(world, vhost_as)
     node = world.cloud.get_node(getattr(world, serv_as))
     out = node.run('ls -la /etc/scalr/private.d/vhosts/%s' % vhost.name)
-    for line in out[0].splitlines()+out[1].splitlines():
+    for line in out.std_out.splitlines()+out.std_err.splitlines():
         if 'No such file or directory' in line:
             break
     else:

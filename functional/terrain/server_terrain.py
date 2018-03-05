@@ -15,7 +15,6 @@ from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
 
-
 COOKBOOKS_BEHAVIOR = {
     'app': 'apache2',
     'www': 'nginx',
@@ -35,7 +34,8 @@ BEHAVIOR_SETS = {
 def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
     """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
     role = world.get_role(role_type) if role_type else None
-    if CONF.feature.driver.cloud_family in (Platform.CLOUDSTACK, Platform.OPENSTACK, Platform.AZURE):
+    platform = CONF.feature.platform
+    if (platform.is_cloudstack or platform.is_openstack or platform.is_azure):
         timeout = 3000
     LOG.info('Expect server bootstrapping as %s for %s role' % (serv_as,
                                                                 role_type))
@@ -54,7 +54,7 @@ def waiting_for_assertion(step, state, serv_as, timeout=1400):
 
 @step('I wait and see (?:[\w]+\s)*([\w]+) server ([\w\d]+)$')
 def waiting_server(step, state, serv_as, timeout=1400):
-    if CONF.feature.dist.is_windows or CONF.feature.driver.is_platform_azure:
+    if CONF.feature.dist.is_windows or CONF.feature.platform.is_azure:
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
@@ -202,6 +202,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
 
 @step(r"I execute '([\w\W]+)?' '([\w\W]+)' '([\w]+)' on ([\w\d]+)")
 def script_executing(step, script_type, script_name, execute_type, serv_as):
+    #TODO: Remove this step
     if script_type:
         script_type = ' %s ' % script_type.strip()
     else:
@@ -258,7 +259,7 @@ def check_processes(step, count, serv_as):
     time.sleep(60)
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
-    list_proc = node.run("pgrep -l scalarizr | awk {print'$1'}")[0]
+    list_proc = node.run("pgrep -l scalarizr | awk {print'$1'}").std_out
     LOG.info('Scalarizr count of processes %s' % len(list_proc.strip().splitlines()))
     world.assert_not_equal(len(list_proc.strip().splitlines()), int(count),
                            'Scalarizr processes is: %s but processes \n%s' % (
@@ -271,8 +272,8 @@ def verify_string_in_file(step, file_path, value, serv_as):
     LOG.info('Verify file "%s" in %s not contain "%s"' % (file_path, server.id, value))
     node = world.cloud.get_node(server)
     out = node.run('cat %s | grep %s' % (file_path, value))
-    if out[0].strip():
-        raise AssertionError('File %s contain: %s. Result of grep: %s' % (file_path, value, out[0]))
+    if out.std_out.strip():
+        raise AssertionError('File %s contain: %s. Result of grep: %s' % (file_path, value, out.std_out))
 
 
 @step(r'I have a ([\w\d]+) attached volume as ([\w\d]+)')
@@ -281,7 +282,8 @@ def save_attached_volume_id(step, serv_as, volume_as):
     server = getattr(world, serv_as)
     attached_volume = None
     node = world.cloud.get_node(server)
-    if CONF.feature.driver.is_platform_ec2:
+    platform = CONF.feature.platform
+    if platform.is_ec2:
         volumes = server.get_volumes()
         if not volumes:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -289,7 +291,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
         attached_volume = filter(lambda x:
                                  x.extra['device'] != node.extra['root_device_name'],
                                  volumes)[0]
-    elif CONF.feature.driver.is_platform_gce:
+    elif platform.is_gce:
         volumes = filter(lambda x: x['deviceName'] != 'root',
                          node.extra.get('disks', []))
         if not volumes:
@@ -300,7 +302,7 @@ def save_attached_volume_id(step, serv_as, volume_as):
                                  server.id)
         attached_volume = filter(lambda x: x.name == volumes[0]['deviceName'],
                                  world.cloud.list_volumes())[0]
-    elif CONF.feature.driver.is_platform_cloudstack:
+    elif platform.is_cloudstack:
         volumes = server.get_volumes()
         if len(volumes) == 1:
             raise AssertionError('Server %s doesn\'t has attached volumes!' %
@@ -320,7 +322,7 @@ def verify_attached_volume_size(step, volume_as, size):
     size = int(size)
     volume = getattr(world, '%s_volume' % volume_as)
     volume_size = int(volume.size)
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.platform.is_cloudstack:
         volume_size = volume_size / 1024 / 1024 / 1024
     if not size == volume_size:
         raise AssertionError('VolumeId "%s" has size "%s" but must be "%s"'
@@ -374,7 +376,7 @@ def install_behaviors(step, behavior_set=None):
     LOG.info('Initiate the installation behaviors on the server: %s' %
              world.cloud_server.name)
     install_behaviors_on_node(world.cloud_server, cookbooks,
-                              CONF.feature.driver.scalr_cloud.lower(),
+                              CONF.feature.platform.name,
                               branch=CONF.feature.branch)
 
 
@@ -399,17 +401,18 @@ def create_role(step):
 
 @step('I trigger the Start building and run scalarizr')
 def start_building(step):
-    time.sleep(180)
+    platform = CONF.feature.platform
     LOG.info('Initiate Start building')
-
+    time.sleep(180)
+    node = world.cloud_server
     #Emulation pressing the 'Start building' key on the form 'Create role from
     #Get CloudServerId, Command to run scalarizr
-    if CONF.feature.driver.is_platform_gce:
-        server_id = world.cloud_server.name
+    if platform.is_gce:
+        server_id = node.name
     else:
-        server_id = world.cloud_server.id
-    res = IMPL.bundle.import_start(platform=CONF.feature.driver.scalr_cloud,
-                                   location=CONF.platforms[CONF.feature.platform]['location'],
+        server_id = node.id
+    res = IMPL.bundle.import_start(platform=platform.name,
+                                   location=platform.location,
                                    cloud_id=server_id,
                                    name='test-import-%s' % datetime.now().strftime('%m%d-%H%M'))
     if not res:
@@ -419,37 +422,42 @@ def start_building(step):
     world.server = Server(**{'id': res['server_id']})
 
     #Run screen om remote host in "detached" mode (-d -m This creates a new session but doesn't  attach  to  it)
-    #and then run scalari4zr on new screen
-    if CONF.feature.dist.is_windows:
-        password = 'Scalrtest123'
-        console = world.get_windows_session(public_ip=world.cloud_server.public_ips[0], password=password)
-        def call_in_background(command):
+    #and then run scalarizr on new screen
+    if node.os.is_windows:
+        # try:
+        #     world.cloud_server.run(res['scalarizr_run_command'], win_console='ps')
+        # except:
+        #     pass
+        # finally:
+        #     raise Exception(type(world.cloud_server), res['scalarizr_run_command'])
+        def call_in_background(node, command):
             try:
-                console.run_cmd(command)
+                node.run(command, win_console='ps')
             except:
                 pass
-        t1 = Thread(target=call_in_background, args=(res['scalarizr_run_command'],))
+        t1 = Thread(target=call_in_background, args=(node, res['scalarizr_run_command']))
         t1.start()
     else:
-        world.cloud_server.run('screen -d -m %s &' % res['scalarizr_run_command'])
+        command = 'screen -d -m %s &' % res['scalarizr_run_command']
+        if CONF.feature.dist.is_coreos:
+            command = 'docker run -it -d ' \
+                      '--privileged ' \
+                      '--net=scalr-int ' \
+                      '--entrypoint=scalarizr ' \
+                      '--volume=/etc/scalr:/etc/scalr ' \
+                      '--volume=/var/lib/scalarizr:/var/lib/scalarizr ' \
+                      '--volume=/var/log:/var/log ' \
+                      '--volume=/var/run/scalarizr:/var/run/scalarizr ' \
+                      '--volume=/dev:/dev ' \
+                      '--volume=/:/rootfs ' \
+                      '-p 8010:8010 -p 8013:8013 ' \
+                      'scalr/scalarizr %s' % res['scalarizr_run_command'].split(' ', 1)[1]
+        out = world.cloud_server.run(command)
+        LOG.debug('Output from start import command: %s' % out)
+
 
 @step(r'I install Chef on server')
 @world.run_only_if(dist=['!coreos'])
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
-    if CONF.feature.dist.is_windows:
-        password = 'Scalrtest123'
-        console = world.get_windows_session(public_ip=node.public_ips[0], password=password)
-        #TODO: Change to installation via Fatmouse task
-        # command = "msiexec /i https://opscode-omnibus-packages.s3.amazonaws.com/windows/2008r2/i386/chef-client-12.5.1-1-x86.msi /passive"
-        command = ". { iwr -useb https://omnitruck.chef.io/install.ps1 } | iex; install -version 12.19.36"
-        console.run_ps(command)
-        chef_version = console.run_cmd("chef-client --version")
-        assert chef_version.std_out, "Chef was not installed"
-    else:
-        node.run('rm -rf /tmp/chef-solo/cookbooks/*')
-        command = "curl -L https://omnitruck.chef.io/install.sh | sudo bash -s -- -v 12.19.36 \
-            && git clone https://github.com/Scalr/cookbooks.git /tmp/chef-solo/cookbooks"
-        node.run(command)
-        chef_version = node.run("chef-client --version")
-        assert chef_version[2] == 0, "Chef was not installed"
+    return node.install_chef()

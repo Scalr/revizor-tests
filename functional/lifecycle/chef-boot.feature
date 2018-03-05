@@ -46,6 +46,7 @@ Feature: Check chef attributes set
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And file '/root/<settings>' exist in M1
+        And last script data is deleted on M1
 
     Examples:
       | settings                |
@@ -59,7 +60,7 @@ Feature: Check chef attributes set
         When I add role to this farm with chef-fail
         When I start farm
         Then I see failed server M1
-        And Initialization was failed on "BeforeHostUp" phase with "/usr/bin/chef-client exited with code 1" message on M1
+        And Initialization was failed on "HostInit" phase with "/usr/bin/chef-client exited with code 1" message on M1
         And chef log in M1 contains "ERROR: undefined method `fatal!'"
         And chef bootstrap failed in M1
 

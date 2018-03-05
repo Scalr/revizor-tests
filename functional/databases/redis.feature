@@ -71,7 +71,7 @@ Feature: Redis database server functional test
         And Scalr receives DbMsr_CreateDataBundleResult from M1
         And Last databundle date updated to current
 
-    @ec2 @cloudstack @rackspaceng @reboot
+    @ec2 @gce @cloudstack @rackspaceng @reboot
     Scenario: Reboot server
         When I reboot server M1
         And Scalr receives RebootFinish from M1
@@ -108,6 +108,19 @@ Feature: Redis database server functional test
        And scalarizr is running on M2
        And not ERROR in M2 scalarizr log
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @reboot
+    Scenario: Reboot master and slave
+        When I reboot server M1
+        When I reboot server M2
+        And Scalr receives RebootFinish from M1
+        And Scalr receives RebootFinish from M2
+        And scalarizr is running on M1
+        And scalarizr is running on M2
+        And redis is running on M1
+        And redis is running on M2
+        And not ERROR in M1 scalarizr log
+        And not ERROR in M2 scalarizr log
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
     Scenario: Slave force termination
         When I force terminate M2
@@ -118,6 +131,14 @@ Feature: Redis database server functional test
         And not ERROR in M1 scalarizr log
         And not ERROR in M2 scalarizr log
         And redis is running on M1
+
+    @ec2 @grow
+    Scenario: Grow storage
+        When I increase storage to 5 Gb in redis role
+        Then grow status is completed
+        And new storage size is 5 Gb in redis role
+        And not ERROR in M1 scalarizr log
+        And not ERROR in M2 scalarizr log
 
     @ec2 @cloudstack @volumes
     Scenario: Slave delete volumes
@@ -176,7 +197,7 @@ Feature: Redis database server functional test
     Scenario: Restart farm
         When I stop farm
         And wait all servers are terminated
-        Then I increase storage size to 7 Gb in farm settings for redis role
+#        Then I increase storage size to 7 Gb in farm settings for redis role
         Then I start farm with delay
         And I expect server bootstrapping as M1
         And redis is running on M1
@@ -187,7 +208,7 @@ Feature: Redis database server functional test
         And M2 contains database 3
         And M2 contains database 4
         Given I have a M1 attached volume as V1
-        And attached volume V1 has size 7 Gb
+#        And attached volume V1 has size 7 Gb
 
     @ec2 @persistent
     Scenario: Verify storage recreation
@@ -198,6 +219,6 @@ Feature: Redis database server functional test
         Then I start farm with delay
         And I expect server bootstrapping as M1
         Then I expect server bootstrapping as M2
-        And attached volume V1 has size 7 Gb
+#        And attached volume V1 has size 7 Gb
         And M1 doesn't has any databases
         And M2 is slave of M1

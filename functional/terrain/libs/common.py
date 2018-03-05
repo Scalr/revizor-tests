@@ -51,11 +51,13 @@ def run_only_if(*args, **kwargs):
             version = m.group(1).replace('b', '')
     current = []
     if kwargs.get('platform'):
-        current.append(CONF.feature.driver.current_cloud)
+        current.append(CONF.feature.platform.name)
     if kwargs.get('storage'):
         current.append(CONF.feature.storage)
     if kwargs.get('dist'):
         current.append(CONF.feature.dist.id)
+    if kwargs.get('family'):
+        current.append(CONF.feature.dist.family)
     options = []
     pass_list = []
     skip_list = []
@@ -137,17 +139,17 @@ def check_resolving(domain):
         return False
 
 
-@world.absorb
-def check_open_port(server, port):
-    LOG.debug('Check open port %s:%s' % (server.public_ip, port))
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.settimeout(5.0)
-    try:
-        s.connect((server.public_ip, int(port)))
-        s.shutdown(2)
-        return True
-    except socket.error:
-        return False
+# @world.absorb
+# def check_open_port(server, port):
+#     LOG.debug('Check open port %s:%s' % (server.public_ip, port))
+#     s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+#     s.settimeout(5.0)
+#     try:
+#         s.connect((server.public_ip, int(port)))
+#         s.shutdown(2)
+#         return True
+#     except socket.error:
+#         return False
 
 
 @world.absorb
@@ -186,9 +188,9 @@ def get_szr_messages(node, convert=False):
     cmd = '/opt/bin/szradm list-messages' if CONF.feature.dist.id == 'coreos' else 'szradm list-messages'
     out = node.run(cmd)
 
-    if out[0] in ('', ' '):
+    if out.std_out in ('', ' '):
         return []
-    lines = out[0].splitlines()
+    lines = out.std_out.splitlines()
     # remove horizontal borders
     lines = filter(lambda x: not x.startswith("+"), lines)
     # split each line
@@ -242,3 +244,37 @@ def assert_in(first, second, message=''):
 def assert_not_in(first, second, message=''):
     '''Assert if not first in second'''
     assert first in second, message
+
+
+class _AssertRaisesContext(object):
+    def __init__(self, expected_exc, expected_msg=None):
+        self.expected_exc = expected_exc
+        self.expected_msg = expected_msg
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback):
+        if exc_type is None:
+            try:
+                exc_name = self.expected_exc.__name__
+            except AttributeError:
+                exc_name = str(self.expected_exc)
+            raise AssertionError('%s not raised' % exc_name)
+        if not issubclass(exc_type, self.expected_exc):
+            return False
+        if not self.expected_msg:
+            return True
+        if self.expected_msg not in str(exc_value):
+            raise AssertionError('Exception does not contain expected text. Expected = "%s", actual = "%s"' %
+                                 (self.expected_msg, str(exc_value)))
+        return True
+
+
+@world.absorb
+def assert_raises(exc_class, exc_contains=None, callable_obj=None, *args, **kwargs):
+    context = _AssertRaisesContext(exc_class, exc_contains)
+    if not callable_obj:
+        return context
+    with context:
+        callable_obj(*args, **kwargs)

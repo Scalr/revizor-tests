@@ -21,10 +21,9 @@ from revizor2.cloud import Cloud
 from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
-from revizor2.consts import ServerStatus, Dist, Platform
+from revizor2.consts import ServerStatus, Dist
 from revizor2.fixtures import manifests
-from revizor2.defaults import DEFAULT_SCALARIZR_DEVEL_REPOS, DEFAULT_SCALARIZR_RELEASE_REPOS
-from revizor2.helpers.parsers import parser_for_os_family
+from revizor2.helpers.parsers import parser_for_os_family, get_repo_url
 
 
 LOG = logging.getLogger(__name__)
@@ -53,7 +52,7 @@ GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
 
 def get_all_logs_and_info(scenario, outline='', outline_failed=None):
-    if CONF.feature.driver.current_cloud == Platform.AZURE:
+    if CONF.feature.platform.is_azure:
         return
     # Get Farm
     LOG.warning('Get scalarizr logs after scenario %s' % scenario.name)
@@ -105,7 +104,7 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 continue
         if server.status == ServerStatus.RUNNING and not CONF.feature.dist.is_windows:
             node = world.cloud.get_node(server)
-            out = node.run("ps aux | grep 'bin/scal'")[0]
+            out = node.run("ps aux | grep 'bin/scal'").std_out
             for line in out.splitlines():
                 ram = line.split()[5]
                 if len(ram) > 3:
@@ -155,14 +154,8 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
 
 def get_scalaraizr_latest_version(branch):
     os_family = CONF.feature.dist.family
-    if branch in ['stable', 'latest']:
-        default_repo = DEFAULT_SCALARIZR_RELEASE_REPOS[os_family]
-    else:
-        url = DEFAULT_SCALARIZR_DEVEL_REPOS['url'][CONF.feature.ci_repo]
-        path = DEFAULT_SCALARIZR_DEVEL_REPOS['path'][os_family]
-        default_repo = url.format(path=path) if os_family != 'coreos' else path
-    index_url = default_repo.format(branch=branch)
-    repo_data = parser_for_os_family(CONF.feature.dist.mask)(branch=branch, index_url=index_url)
+    index_url = get_repo_url(os_family, branch)
+    repo_data = parser_for_os_family(CONF.feature.dist.mask)(index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
     versions.sort(reverse=True)
     return versions[0]
@@ -413,7 +406,7 @@ def cleanup_all(total):
             except Exception as e:
                 LOG.warning('Farm cannot be deleted: %s' % str(e))
 
-        if CONF.feature.driver.is_platform_ec2:
+        if CONF.feature.platform.is_ec2:
             try:
                 wait_until(world.farm_servers_state, args=('terminated',),
                            timeout=1800, error_text=('Servers in farm have no status terminated'))
@@ -445,6 +438,6 @@ def cleanup_all(total):
             world.__delattr__(v)
 
     # Cleanup Azure resources
-    if CONF.feature.driver.is_platform_azure:
+    if CONF.feature.platform.is_azure:
         cloud = getattr(world, 'cloud', Cloud())
         cloud._driver.resources_cleaner()

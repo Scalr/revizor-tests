@@ -13,10 +13,11 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-from revizor2.api import Server
 from revizor2.conf import CONF
+from revizor2.api import Server
+from revizor2.consts import Platform
 from revizor2.fixtures import resources
-from revizor2.consts import ServerStatus, MessageStatus, Dist, Platform
+from revizor2.consts import ServerStatus, MessageStatus, Dist
 
 from revizor2.exceptions import ScalarizrLogError, ServerTerminated, \
     ServerFailed, TimeoutError, \
@@ -34,7 +35,7 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
     'error was thrown due to the hostname format',
-    'Unable to synchronize time, cause ntpdate binary is not found' # FAM-1050
+    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded"
 ]
 
 # Run powershell script as Administrator
@@ -43,6 +44,7 @@ world.PS_RUN_AS = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "{co
 
 @world.absorb
 def get_windows_session(server=None, public_ip=None, password=None, timeout=None):
+    platform = CONF.feature.platform
     time_until = time.time() + timeout if timeout else None
     username = 'Administrator'
     port = 5985
@@ -54,9 +56,9 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
                 password = password or server.windows_password
                 if not password:
                     password = 'Scalrtest123'
-            if CONF.feature.driver.current_cloud in (Platform.AZURE, Platform.GCE):
+            if platform.is_gce or platform.is_azure:
                 username = 'scalr'
-            elif CONF.feature.driver.is_platform_cloudstack and world.cloud._driver.use_port_forwarding():
+            elif platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
                 node = world.cloud.get_node(server)
                 port = world.cloud.open_port(node, port)
             LOG.info('Used credentials for windows session: %s:%s %s:%s' % (public_ip, port, username, password))
@@ -123,13 +125,13 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
             return
     try:
         if windows:
-            log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type, raise_exc=False)
+            log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = run_cmd_command(server, "findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
-            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type))[0]
+            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type)).std_out
             LOG.debug('Grep result: %s' % log_out)
     except BaseException, e:
         LOG.error('Can\'t connect to server: %s' % e)
@@ -185,6 +187,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
     :param class:Role role: Show in which role lookup a new server
     :return class:Server: Return a new Server
     """
+    platform = CONF.feature.platform
     status = ServerStatus.from_code(status)
 
     LOG.info('Launch process looking for new server in farm %s for role %s, wait status %s' %
@@ -198,6 +201,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
     lookup_server = server or None
     lookup_node = None
+    azure_failed = 0
 
     start_time = time.time()
 
@@ -236,13 +240,23 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
 
             LOG.debug('Check lookup server launch failed')
             if lookup_server.is_launch_failed:
+                err_msg = (
+                    'Can not decode json response data',
+                    'Cannot establish connection with CloudStack server. (Server returned nothing )'
+                )
                 failed_message = lookup_server.get_failed_status_message()
-                if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK \
-                and ('Can not decode json response data' in failed_message
-                     or 'Cannot establish connection with CloudStack server. (Server returned nothing )' in failed_message):
+                if platform.is_cloudstack and any(msg in failed_message for msg in err_msg):
                     time.sleep(90)
                     lookup_server = None
                     lookup_node = None
+                    continue
+                if platform.is_azure and azure_failed != 2:
+                    LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
+                        lookup_server.id,
+                        azure_failed + 1,
+                        lookup_server.get_failed_status_message()))
+                    azure_failed += 1
+                    time.sleep(15)
                     continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
@@ -272,10 +286,11 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status == ServerStatus.PENDING and status != ServerStatus.PENDING:
                 LOG.debug('Check scalarizr update log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
+                if not Dist(lookup_server.role.dist).is_windows and not platform.is_azure:
                     verify_scalarizr_log(lookup_node, log_type='update')
                 else:
-                    verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
+                    if platform != Platform.RACKSPACENGUS:
+                        verify_scalarizr_log(lookup_node, log_type='update', windows=True, server=lookup_server)
 
             LOG.debug('Verify debug log in node')
             if lookup_node and lookup_server.status not in [ServerStatus.PENDING_LAUNCH,
@@ -285,7 +300,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                                                             ServerStatus.SUSPENDED]\
                     and not status == ServerStatus.FAILED:
                 LOG.debug('Check scalarizr debug log in lookup server')
-                if not Dist(lookup_server.role.dist).is_windows and not CONF.feature.driver.is_platform_azure:
+                if not Dist(lookup_server.role.dist).is_windows and not platform.is_azure:
                     verify_scalarizr_log(lookup_node)
                 else:
                     verify_scalarizr_log(lookup_node, windows=True, server=lookup_server)
@@ -303,7 +318,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                 LOG.info('Lookup server in right status now: %s' % lookup_server.status)
                 if status == ServerStatus.RUNNING:
                     lookup_server.messages.reload()
-                    if CONF.feature.driver.is_platform_azure \
+                    if platform.is_azure \
                             and not Dist(lookup_server.role.dist).is_windows \
                             and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
                         LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
@@ -355,7 +370,7 @@ def farm_servers_state(state):
 
 
 @world.absorb
-def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=600):
+def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=1000):
     if not isinstance(servers, (list, tuple)):
         servers = [servers]
     delivered_to = []
@@ -498,11 +513,20 @@ def check_script_executed(serv_as,
     Verifies that server scripting log contains info about script execution.
     """
     out_name = 'STDERR' if std_err else 'STDOUT'
+    server = getattr(world, serv_as)
+    contain = log_contains.split(';') if log_contains else []
+    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
+    # Convert script name, because scalr converts name to:
+    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
+    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
+    if not name.startswith('http') and not name.startswith('/'):
+        name = name.replace('.', '')
+    timeout = timeout // 10
     LOG.debug('Checking scripting %s logs on %s by parameters:\n'
-              '  script name:\t%s\n'
+              '  script name:\t"%s"\n'
               '  event:\t\t%s\n'
-              '  user:\t\t%s\n'
-              '  log_contains:\t%s\n'
+              '  user:\t\t"%s"\n'
+              '  log_contains:\t"%s"\n'
               '  exitcode:\t%s\n'
               '  new_only:\t%s\n'
               '  timeout:\t%s'
@@ -516,24 +540,17 @@ def check_script_executed(serv_as,
                  new_only,
                  timeout))
 
-    server = getattr(world, serv_as)
-    contain = log_contains.split(';') if log_contains else []
-    last_scripts = getattr(world, '_server_%s_last_scripts' % server.id) if new_only else []
-    # Convert script name, because scalr converts name to:
-    # substr(preg_replace("/[^A-Za-z0-9]+/", "_", $script->name), 0, 50)
-    name = re.sub('[^A-Za-z0-9/.:]+', '_', name)[:50]
-    timeout = timeout // 10
     for _ in range(timeout + 1):
         server.scriptlogs.reload()
         for log in server.scriptlogs:
             LOG.debug('Checking script log:\n'
-                      '  name:\t%s\n'
-                      '  event:\t%s\n'
-                      '  run as:\t%s\n'
-                      '  exitcode:\t%s'
+                      '  name:\t"%s"\n'
+                      '  event:\t"%s"\n'
+                      '  run as:\t"%s"\n'
+                      '  exitcode:\t"%s"'
                       % (log.name, log.event, log.run_as, log.exitcode))
             if log in last_scripts:
-                # skip old log
+                LOG.debug('Pass this log because it in last scripts')
                 continue
             if log.run_as is None:
                 log.run_as = 'Administrator' if CONF.feature.dist.is_windows else 'root'
@@ -544,6 +561,8 @@ def check_script_executed(serv_as,
                 or (name.startswith('http') and log.name.strip().startswith(name)) \
                 or (name.startswith('local') and log.name.strip().startswith(name)) \
                 or log.name.strip() == name
+            LOG.debug('Script matched parameters: event - %s, user - %s, name - %s' % (
+                event_matched, user_matched, name_matched))
             if name_matched and event_matched and user_matched:
                 LOG.debug('Script log matched search parameters')
                 if exitcode is None or log.exitcode == int(exitcode):
@@ -562,7 +581,7 @@ def check_script_executed(serv_as,
                         if not found and not CONF.feature.dist.is_windows and 'Log file truncated. See the full log in' in message:
                             full_log_path = re.findall(r'Log file truncated. See the full log in ([.\w\d/-]+)', message)[0]
                             node = world.cloud.get_node(server)
-                            message = node.run('cat %s' % full_log_path)[0]
+                            message = node.run('cat %s' % full_log_path).std_out
                             ui_message = False
                             found = cond in message
                         if not found:
@@ -582,12 +601,13 @@ def check_script_executed(serv_as,
 @world.absorb
 def get_hostname(server):
     serv = world.cloud.get_node(server)
-    for i in range(3):
-        out = serv.run('/bin/hostname')
-        if out[0].strip():
-            return out[0].strip()
-        time.sleep(5)
-    raise AssertionError('Can\'t get hostname from server: %s' % server.id)
+    with serv.remote_connection() as conn:
+        for i in range(3):
+            out = serv.run('/bin/hostname')
+            if out.std_out.strip():
+                return out.std_out.strip()
+            time.sleep(5)
+        raise AssertionError('Can\'t get hostname from server: %s' % server.id)
 
 
 @world.absorb
@@ -601,7 +621,7 @@ def get_hostname_by_server_format(server):
 
 @world.absorb
 def wait_upstream_in_config(node, ip, contain=True):
-    out = node.run('cat /etc/nginx/app-servers.include')
+    out = node.run('cat /etc/nginx/app-servers.include').std_out
     if contain:
         if ip in "".join([str(i) for i in out]):
             return True
@@ -623,8 +643,8 @@ def check_index_page(node, proto, revert, domain_name, name):
     nodes = node if isinstance(node, (list, tuple)) else [node]
     for n in nodes:
         LOG.debug('Upload index page %s to server %s' % (name, n.id))
-        n.run('mkdir -p /var/www/%s' % name)
-        n.put_file(path='/var/www/%s/index.php' % name, content=index)
+        n.run('mkdir -p /var/www/{0} && chmod 777 /var/www/{0}'.format(name))
+        n.put_file('/var/www/%s/index.php' % name, index)
     for i in range(10):
         LOG.info('Try get index from URL: %s, attempt %s ' % (url, i+1))
         try:
@@ -660,7 +680,7 @@ def wait_rabbitmq_cp_url(*args, **kwargs):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
-    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text)[0]
+    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text).std_out
     if text in out:
         return True
     return False
@@ -685,7 +705,7 @@ def set_iptables_rule(server, port):
 def kill_process_by_name(server, process):
     """Kill process on remote host by his name (server(obj),str)->None if success"""
     LOG.info('Kill %s process on remote host %s' % (process, server.public_ip))
-    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % {'process': process})[0]
+    return world.cloud.get_node(server).run("pgrep -l %(process)s | awk {print'$1'} | xargs -i{}  kill {} && sleep 5 && pgrep -l %(process)s | awk {print'$1'}" % {'process': process}).std_out
 
 
 @world.absorb
@@ -737,12 +757,11 @@ def change_service_status(server, service, status, use_api=False, change_pid=Fal
                 process=service['node'],
                 status=status))
 
-    #Get process pid
+    # Get process pid
     def get_pid():
         return node.run("pgrep -l %(process)s | awk {print'$1'} && sleep 5" %
-                        {'process': service['node']})[0].rstrip('\n').split('\n')
-
-    #Change status and get pid
+                        {'process': service['node']}).std_out.rstrip('\n').split('\n')
+    # Change status and get pid
     return {
         'pid_before': get_pid() if change_pid else [''],
         'info': change_status(),
@@ -758,46 +777,47 @@ def is_log_rotate(server, process, rights, group=None):
         group = [group, process]
     LOG.info('Loking for config file:  %s-logrotate on remote host %s' % (process, server.public_ip))
     node = world.cloud.get_node(server)
-    logrotate_conf = node.run('cat /etc/logrotate.d/%s-logrotate' % process)
-    if not logrotate_conf[1]:
-        logrotate_param = {}
-        #Get the directory from the first line config file
-        logrotate_param['dir'] = '/'.join(logrotate_conf[0].split('\n')[0].split('/')[0:-1])
-        #Check the archive log files
-        logrotate_param['compress'] = 'compress' in logrotate_conf[0]
-        #Get the log file mask from the first line config
-        logrotate_param['log_mask'] = logrotate_conf[0].split('\n')[0].split('/')[-1].rstrip('.log {')
-        #Performing rotation and receive a list of log files
-        LOG.info('Performing rotation and receive a list of log files for % remote host %s' % (process, server.public_ip))
-        rotated_logs = node.run('logrotate -f /etc/logrotate.d/%s-logrotate && stat --format="%%n %%U %%G %%a"  %s/%s' %
-                                (process, logrotate_param['dir'], logrotate_param['log_mask']))
-        if not rotated_logs[2]:
-            try:
-                log_files = []
-                for str in rotated_logs[0].rstrip('\n').split('\n'):
-                    tmp_str = str.split()
-                    log_files.append(dict([['rights', tmp_str[3]], ['user', tmp_str[1]], ['group', tmp_str[2]],  ['file', tmp_str[0]]]))
-                    has_gz = False
-                for log_file_atr in log_files:
-                    if log_file_atr['file'].split('.')[-1] == 'gz' and not has_gz:
-                        has_gz = True
-                    if not (log_file_atr['rights'] == rights and
-                                    log_file_atr['user'] == process and
-                                    log_file_atr['group'] in group):
-                        raise AssertionError("%(file)s file attributes are not correct. Wrong attributes %(atr)s: " %
-                                             {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'],
-                                                                                    log_file_atr['user'],
-                                                                                    log_file_atr['group'])})
-                if logrotate_param['compress'] and not has_gz:
-                    raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
-            except IndexError, e:
-                raise Exception('Error occurred at get list of log files: %s' % e)
+    with node.remote_connection() as conn:
+        logrotate_conf = conn.run('cat /etc/logrotate.d/%s-logrotate' % process)
+        if not logrotate_conf.std_err:
+            logrotate_param = {}
+            #Get the directory from the first line config file
+            logrotate_param['dir'] = '/'.join(logrotate_conf.std_out.split('\n')[0].split('/')[0:-1])
+            #Check the archive log files
+            logrotate_param['compress'] = 'compress' in logrotate_conf.std_out
+            #Get the log file mask from the first line config
+            logrotate_param['log_mask'] = logrotate_conf.std_out.split('\n')[0].split('/')[-1].rstrip('.log {')
+            #Performing rotation and receive a list of log files
+            LOG.info('Performing rotation and receive a list of log files for % remote host %s' % (process, server.public_ip))
+            rotated_logs = conn.run('logrotate -f /etc/logrotate.d/%s-logrotate && stat --format="%%n %%U %%G %%a"  %s/%s' %
+                                    (process, logrotate_param['dir'], logrotate_param['log_mask']))
+            if not rotated_logs.status_code:
+                try:
+                    log_files = []
+                    for str in rotated_logs.std_out.rstrip('\n').split('\n'):
+                        tmp_str = str.split()
+                        log_files.append(dict([['rights', tmp_str[3]], ['user', tmp_str[1]], ['group', tmp_str[2]],  ['file', tmp_str[0]]]))
+                        has_gz = False
+                    for log_file_atr in log_files:
+                        if log_file_atr['file'].split('.')[-1] == 'gz' and not has_gz:
+                            has_gz = True
+                        if not (log_file_atr['rights'] == rights and
+                                        log_file_atr['user'] == process and
+                                        log_file_atr['group'] in group):
+                            raise AssertionError("%(file)s file attributes are not correct. Wrong attributes %(atr)s: " %
+                                                 {'file': log_file_atr['file'], 'atr': (log_file_atr['rights'],
+                                                                                        log_file_atr['user'],
+                                                                                        log_file_atr['group'])})
+                    if logrotate_param['compress'] and not has_gz:
+                        raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
+                except IndexError, e:
+                    raise Exception('Error occurred at get list of log files: %s' % e)
+            else:
+                raise AssertionError("Can't logrotate to force the rotation. Error message:%s" % logrotate_conf.std_err)
         else:
-            raise AssertionError("Can't logrotate to force the rotation. Error message:%s" % logrotate_conf[1])
-    else:
-        raise AssertionError("Can't get config file:%s-logrotate. Error message:%s" %
-                             (process, logrotate_conf[1]))
-    return True
+            raise AssertionError("Can't get config file:%s-logrotate. Error message:%s" %
+                                 (process, logrotate_conf.std_err))
+        return True
 
 
 @world.absorb
@@ -810,7 +830,7 @@ def value_for_os_family(debian, centos, server=None, node=None):
     # Get os family result
     os_family_res = dict(debian=debian, centos=centos).get(CONF.feature.dist.family) if CONF.feature.dist.id != 'coreos' else 'echo'
     if not os_family_res:
-        raise OSFamilyValueFailed('No value for node os: %s' % node.os[0])
+        raise OSFamilyValueFailed('No value for node os: %s' % node.os.id)
     return os_family_res
 
 
@@ -820,16 +840,17 @@ def get_service_paths(service_name, server=None, node=None, service_conf=None, s
         node = world.cloud.get_node(server)
     elif not node:
         raise AttributeError("Not enough required arguments: server and node both can't be empty")
-    # Get service path
-    service_path = node.run('which %s' % service_name)
-    if service_path[2]:
-        raise AssertionError("Can't get %s service path: %s" % (service_name, service_path))
-    service_path = dict(bin=service_path[0].split()[0], conf='')
-    # Get service config path
-    if service_conf:
-        base_path = service_conf_base_path or '/etc'
-        service_conf_path = node.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
-        if service_conf_path[2]:
-            raise AssertionError("Can't find service %s configs : %s" % (service_name, service_conf_path))
-        service_path.update({'conf': service_conf_path[0].split()[0]})
-    return service_path
+    with node.remote_connection() as conn:
+        # Get service path
+        service_path = conn.run('which %s' % service_name)
+        if service_path.status_code:
+            raise AssertionError("Can't get %s service path: %s" % (service_name, service_path))
+        service_path = dict(bin=service_path.std_out.split()[0], conf='')
+        # Get service config path
+        if service_conf:
+            base_path = service_conf_base_path or '/etc'
+            service_conf_path = conn.run('find %s -type f -name "%s" -print' % (base_path, service_conf))
+            if service_conf_path.status_code:
+                raise AssertionError("Can't find service %s configs : %s" % (service_name, service_conf_path))
+            service_path.update({'conf': service_conf_path.std_out.split()[0]})
+        return service_path

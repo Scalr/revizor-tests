@@ -12,7 +12,6 @@ from lettuce import world, step
 from revizor2.utils import wait_until
 from revizor2.api import Certificate, IMPL
 from revizor2.conf import CONF
-from revizor2.consts import Platform, Dist
 
 LOG = logging.getLogger(__name__)
 
@@ -98,15 +97,15 @@ def get_nginx_default_server_template():
     return template
 
 
-@step(r'([\w]+)(?: (not))? get domain ([\w\d]+) matches ([\w\d]+) index page$')
-def check_index(step, proto, revert, domain_as, vhost_as):
+@step(r'([\w]+)(?: (not))? get domain ([\w\d]+)(:[\d]+)? matches ([\w\d]+) index page$')
+def check_index(step, proto, revert, domain_as, port, vhost_as):
     #TODO: Rewrite this ugly
     revert = False if not revert else True
     domain = getattr(world, domain_as)
     vhost = getattr(world, vhost_as)
-    domain_address = domain.name
+    domain_address = domain.name + port if port else domain.name
 
-    if CONF.feature.driver.cloud_family == Platform.CLOUDSTACK:
+    if CONF.feature.platform.is_cloudstack:
         domain_server = domain.role.servers[0]
         public_port = world.cloud.open_port(
             world.cloud.get_node(domain_server),
@@ -138,8 +137,8 @@ def check_index(step, proto, revert, domain_as, vhost_as):
 
 
 @step(
-    r"I add (http|https|http/https) proxy (\w+) to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
-def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, backend_role, ip_hash,
+    r"I add (http|https|http/https) proxy (\w+)(?: with port (\d+))? to (\w+) role with ([\w\d]+) host to (\w+) role( with ip_hash)?(?: with (private|public) network)?")
+def add_nginx_proxy_for_role(step, proto, proxy_name, port, proxy_role, vhost_name, backend_role, ip_hash,
                              network_type='private'):
     """This step add to nginx new proxy to any role with http/https and ip_hash
     :param proto: Has 3 states: http, https, http/https. If http/https - autoredirect will enabled
@@ -157,19 +156,17 @@ def add_nginx_proxy_for_role(step, proto, proxy_name, proxy_role, vhost_name, ba
     backend_role = world.get_role(backend_role)
     vhost = getattr(world, vhost_name)
     opts = {}
+    port = int(port) if port else 80
     if proto == 'http':
         LOG.info('Add http proxy')
-        port = 80
     elif proto == 'https':
         LOG.info('Add https proxy')
-        port = 80
         opts['ssl'] = True
         opts['ssl_port'] = 443
         opts['cert_id'] = Certificate.get_by_name('revizor-key').id
         opts['http'] = True
     elif proto == 'http/https':
         LOG.info('Add http/https proxy')
-        port = 80
         opts['ssl'] = True
         opts['ssl_port'] = 443
         opts['cert_id'] = Certificate.get_by_name('revizor-key').id

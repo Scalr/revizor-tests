@@ -14,14 +14,16 @@ from revizor2.exceptions import TimeoutError
 
 LOG = logging.getLogger(__name__)
 
+
 @step(r'I get an image from the server running in the cloud')
 def get_node_image(step):
     node = getattr(world, 'cloud_server')
-    if CONF.feature.driver.is_platform_gce:
+    platform = CONF.feature.platform
+    if platform.is_gce:
         image = node.driver.ex_get_image(node.extra['image'])
-    elif CONF.feature.driver.is_platform_ec2:
+    elif platform.is_ec2:
         image = node.driver.get_image(node.extra['image_id'])
-    LOG.debug('Obtained image (%s - %s) from cloud instance %s' %(image.name, image.id, node.id))
+    LOG.debug('Obtained image (%s - %s) from cloud instance %s' % (image.name, image.id, node.id))
     setattr(world, 'image', image)
 
 
@@ -33,7 +35,7 @@ def launch_import_server(step):
     LOG.info('Import to Scalr instance: %s' % node.id)
     import_res = IMPL.discovery_manager.import_server(
         farm_role_id=farm_role.id,
-        platform=CONF.feature.driver.scalr_cloud,
+        platform=CONF.feature.platform.name,
         instance_id=node.id
     )
     assert import_res['success']
@@ -46,7 +48,7 @@ def deploy_agent(step, serv_as):
     deploy_cmd = IMPL.discovery_manager.triggering_agent_deployment(server.id)['deploy_cmd']
     node = world.cloud.get_node(server)
     LOG.info('Run scalarizr: [%s] on the imported server: %s' % (deploy_cmd, server.id))
-    assert not bool(node.run(deploy_cmd)[2])
+    assert not bool(node.run(deploy_cmd).status_code)
 
 
 @step(r'connection with agent on the ([\w\d]+) server was established')

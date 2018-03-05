@@ -4,7 +4,7 @@ Feature: Linux server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @boot
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @boot
     Scenario: Bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with storages,noiptables
@@ -18,7 +18,7 @@ Feature: Linux server lifecycle
         And I verify right count of incoming messages BlockDeviceMounted from M1
 
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @szradm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @szradm
     Scenario: Verify szradm list-roles
         When I run "szradm -q list-roles" on M1
         And output contain M1 external ip
@@ -27,16 +27,16 @@ Feature: Linux server lifecycle
         When I run "szradm list-messages" on M1
         And the key "name" has record "HostUp" on M1
 
-    @ec2 @cloudstack @gce @storages
+    @ec2 @cloudstack @gce @storages @azure
     Scenario: Check attached storages
         Given I have running server M1
         Then I save volumes configuration in 'HostUp' message in M1
         And disk types in role are valid
         And directory '/media/diskmount' exist in M1
-#        And directory '/media/raidmount' exist in M1
+        And directory '/media/raidmount' exist in M1
         And directory '/media/partition' exist in M1
         And I create 100 files in '/media/diskmount' in M1
-#        And I create 100 files in '/media/raidmount' in M1
+        And I create 100 files in '/media/raidmount' in M1
 
     @ec2 @partition
     Scenario: Create volume snapshot
@@ -44,45 +44,45 @@ Feature: Linux server lifecycle
         And I trigger snapshot creation from volume for '/media/partition' on role
         Then Volume snapshot creation become completed
 
-    @ec2 @cloudstack @gce @storages @fstab
+    @ec2 @cloudstack @gce @storages @fstab @azure
     Scenario: Verify attached storages in fstab
         When I save mount table on M1
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
-#        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @vmware @cloudstack @gce @rackspaceng @eucalyptus @azure @reboot
+    @ec2 @vmware @cloudstack @gce @rackspaceng @azure @reboot
     Scenario: Linux reboot
         Given I have running server M1
         When I reboot server M1
         And Scalr receives RebootFinish from M1
 
-    @ec2 @cloudstack @storages @fstab
+    @ec2 @cloudstack @storages @fstab @azure
     Scenario: Verify attached storages in fstab after reboot
         And disk from M1 mount points for '/media/diskmount' exist in fstab on M1
-#        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
+        And disk from M1 mount points for '/media/raidmount' exist in fstab on M1
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Execute script on Linux
         Given I have running server M1
         When I execute script 'Linux ping-pong' synchronous on M1
         And I see script result in M1
         And script output contains 'pong' in M1
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Execute non-ascii script on Linux
         Given I have running server M1
         When I execute script 'Non ascii script' synchronous on M1
         Then I see script result in M1
         And script output contains 'Non_ascii_script' in M1
 
-    @ec2 @gce @cloudstack @rackspaceng @openstack @eucalyptus @scripting
+    @ec2 @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Execute non-ascii script with wrong interpreter on Linux
         Given I have running server M1
         When I execute script 'Non ascii script wrong interpreter' synchronous on M1
         And I see script result in M1
         And script stderr output contains 'Interpreter not found u'/no/\xc3\u0192\xc2\xa7\xc3\u0192\xc2\xa3o'' in M1
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @scripting
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @scripting
     Scenario: Check non-ascii script output on Linux
         Given I have running server M1
         When I execute script 'non-ascii-output' synchronous on M1
@@ -98,14 +98,14 @@ Feature: Linux server lifecycle
         Then I see script result in M1
         And script output contains 'REVIZOR_HIDDEN_VARIABLE' in M1
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restart
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @restart
     Scenario: Restart scalarizr
         Given I have running server M1
         When I reboot scalarizr in M1
         And see "Scalarizr terminated" in M1 log
         And not ERROR in M1 scalarizr log
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @event
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @event
     Scenario: Custom event
         Given I define event 'TestEvent'
         And I attach a script 'TestingEventScript' on this event
@@ -114,7 +114,7 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/f1'
         And server M1 contain '/tmp/f2'
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @event
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @event
     Scenario: Caching custom event parameters
         Given I define event 'TestEvent'
         And I attach a script 'TestingEventScript' on this event
@@ -123,7 +123,7 @@ Feature: Linux server lifecycle
         And server M1 contain '/tmp/nocache1'
         And server M1 contain '/tmp/nocache2'
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @restartfarm
     Scenario: Stop farm
         When I stop farm
         And wait all servers are terminated
@@ -133,7 +133,7 @@ Feature: Linux server lifecycle
         When I save device for '/media/diskmount' for role
         And I delete saved device '/media/diskmount'
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @azure @restartfarm
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @restartfarm
     Scenario: Start farm
         When I start farm with delay
         Then I expect server bootstrapping as M1
@@ -144,11 +144,11 @@ Feature: Linux server lifecycle
         Given I have running server M1
         Then volumes configuration in 'HostInitResponse' message in M1 is old
         And directory '/media/diskmount' exist in M1
-#        And directory '/media/raidmount' exist in M1
-#        And count of files in directory '/media/raidmount' is 100 in M1
+        And directory '/media/raidmount' exist in M1
+        And count of files in directory '/media/raidmount' is 100 in M1
         And saved device for '/media/diskmount' for role is another
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure @eucalyptus
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @azure
     Scenario: Reboot on bootstraping
         Given I have a clean and stopped farm
         And I add role to this farm with init_reboot,small_linux_orchestration
@@ -169,10 +169,21 @@ Feature: Linux server lifecycle
         And I see pending server M1
         And I wait server M1 in failed state
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @eucalyptus @failedbootstrap
+    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @failedbootstrap
     Scenario: Failed bootstrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
         When I start farm
         And I see pending server M1
         And I wait server M1 in failed state
+
+    @azure
+    Scenario: Check attached unmanaged storage
+        Given I have a clean and stopped farm
+        And I add role to this farm with unmanaged
+        When I start farm
+        And I see pending server M1
+        When I wait server M1 in running state
+        And disk types in role are valid
+        And directory '/media/diskmount' exist in M1
+        And I create 100 files in '/media/diskmount' in M1
