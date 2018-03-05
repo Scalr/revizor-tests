@@ -27,11 +27,3 @@ Feature: Memcached service standart port 11211 with behavior memcached
         When I initialize instance memcache Client on M2
         Then I run a "memcached_command" to "set key" for new item on M2
         And I run a "memcached_command" to "get key" from item on M2
-
-    @ec2 @gce @cloudstack @rackspaceng @reboot
-    Scenario: Reboot server after bundling
-        When I reboot server M2
-        And Scalr receives RebootFinish from M2
-        And scalarizr is running on M2
-        And memcached is running on M2
-        And not ERROR in M2 scalarizr log
