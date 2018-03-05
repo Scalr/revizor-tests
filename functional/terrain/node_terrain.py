@@ -11,7 +11,7 @@ from lettuce import world, step
 from libcloud.compute.types import NodeState
 from datetime import datetime
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
