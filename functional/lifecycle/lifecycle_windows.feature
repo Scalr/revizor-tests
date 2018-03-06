@@ -83,7 +83,7 @@ Feature: Windows server lifecycle
         | Exit 1 with stdout message | asynchronous | | Message in stdout section | |
         | local script with stdout checking | asynchronous | | Directory: C:\; local_script.ps1 | |
         | Non ascii script corect execution | asynchronous | | TUVWXyz; A?AA?AA?A-A?AA?AA?A | |
-#        | C:\local_script.ps1 | asynchronous | local       | Local script work! |
+        | C:\local_script.ps1 | asynchronous | local       | Local script work! |             |
 
     @ec2 @gce @openstack @azure
     Scenario: Restart farm
