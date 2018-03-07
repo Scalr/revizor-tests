@@ -27,8 +27,10 @@ def change_branch_in_role_for_system(step, branch=None, role_type=None):
     else:
         branch = branch.strip()
     LOG.info('Change branch to system for %s role' % role_type)
+    role_options = {farmrole.DevelopmentGroup.scalarizr_branch.name: branch,
+                    farmrole.DevelopmentGroup.scalarizr_repo.name: CONF.feature.ci_repo}
     role = world.get_role(role_type)
-    role.edit(options={"user-data.scm_branch": branch})
+    role.edit(options=role_options)
 
 
 @step('I increase minimum servers to (.+) for (.+) role')
