@@ -169,7 +169,7 @@ Feature: Linux server lifecycle
         And I see pending server M1
         And I wait server M1 in failed state
 
-    @ec2 @vmware @gce @cloudstack @rackspaceng @openstack @failedbootstrap
+    @ec2 @vmware @gce @rackspaceng @openstack @failedbootstrap
     Scenario: Failed bootstrap by hostname
         Given I have a clean and stopped farm
         And I add role to this farm with failed_hostname
