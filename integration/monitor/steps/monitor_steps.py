@@ -51,19 +51,20 @@ def check_pulling_or_pushing(step, serv_as, method):
         LOG.debug("Check %s for %s" % (method, server.id))
         regex = "server.apps.monitor: Received message: ({(?:.+)?'type': 'agent-stat'(?:.+)?})"  # Search criteria for Pushing
         search_string = 'server.tasks.monitor.health: Server %s agent_stat is {' % server.id  # Search criteria for Pulling
-        for i in range(5):
+        for i in range(10):
+            LOG.debug("%s attempt to get agent_stat message" % i)
             monitor_log = world.testenv.get_ssh().run('cat /opt/scalr-server/var/log/service/monitor.log')[0]
-            if method == 'Pulling':
-                if search_string in monitor_log:
-                    return True
-                time.sleep(10)
-            else:
-                messages = re.findall(regex, monitor_log)
-                LOG.debug("Pushing messages:\n%s" % messages)
-                for message in messages:
-                    if server.id in message:
+            if monitor_log:
+                if method == 'Pulling':
+                    if search_string in monitor_log:
                         return True
-                time.sleep(10)
+                else:
+                    messages = re.findall(regex, monitor_log)
+                    LOG.debug("Pushing messages:\n%s" % messages)
+                    for message in messages:
+                        if server.id in message:
+                            return True
+            time.sleep(5)
         raise AssertionError('%s message for server %s was not found in monitor log!' % (method, server.id))
 
 
