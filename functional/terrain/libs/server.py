@@ -35,7 +35,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
     'error was thrown due to the hostname format',
-    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded"
+    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded",
+    "Error synchronizing server time: Unable to synchronize time, cause ntpdate binary is not found in $PATH"
 ]
 
 # Run powershell script as Administrator
