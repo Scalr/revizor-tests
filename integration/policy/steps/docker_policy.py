@@ -92,9 +92,9 @@ POLICIES = {
 }
 VALIDATIONS = {
     'escalating': {
-        'cmd': 'docker stop $(docker ps -aq)'
-               ' && docker rm $(docker ps -aq)'
-               ' && docker run -d --name rev1 spotify/alpine /bin/sh -c \'while :; do echo .; sleep 1; done\''
+        'cmd': 'docker stop rev1'
+               '; docker rm rev1'
+               '; docker run -d --name rev1 spotify/alpine /bin/sh -c \'while :; do echo .; sleep 1; done\''
                ' && docker exec --privileged rev1 /bin/sh -c \'sleep 1s\'',
         'err': 'authorization denied by plugin scalr-auth: Privileged mode is not allowed',
         'code': 1
