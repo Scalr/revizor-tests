@@ -305,3 +305,10 @@ class Defaults(object):
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostInit', script='Revizor scaling prepare windows')
         ]
+
+    @staticmethod
+    def set_docker(params):
+        params.orchestration.rules.append(
+            params.orchestration,
+            farmrole.OrchestrationRule(event='HostInit', script='https://get.docker.com')
+        )
