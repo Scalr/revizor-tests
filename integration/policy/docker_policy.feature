@@ -50,7 +50,6 @@ Feature: Check docker policy and scalr-authz plugin
     And I delete policy group P2
     And I delete base role from this farm
     And I add role to this farm with docker
-    When I start farm
     Then I expect server bootstrapping as D3
     And docker-authz plugin is not installed on D3
     And all policies do not work on D3
@@ -102,3 +101,11 @@ Feature: Check docker policy and scalr-authz plugin
     And docker-authz plugin is installed on D5
     And ports,mounts policies work on D5
     And escalating,privileged,sources policies do not work on D5
+
+  Scenario: Policy configured, windows instance is launched
+    Given I delete base role from this farm
+    And I have configured revizor environment:
+      | name           | value          |
+      | dist           | win2012        |
+    And I add role to this farm
+    Then I expect server bootstrapping as W1
