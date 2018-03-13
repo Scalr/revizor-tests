@@ -16,13 +16,9 @@ class Database(object):
         self.platform = platform
 
     def verify(self):
-        suffix = datetime.now().strftime('%m%d%H%M%S')
-        server_name = 'revizorsqlserver' + suffix
-        database_name = 'revizordb' + suffix
-
         client = SqlManagementClient(credentials=self.platform.credentials,
                                      subscription_id=self.platform.subscription_id)
-
+        server_name, database_name = self.platform.get_test_name('sqlserver', 'db')
         servers = list(client.servers.list_by_resource_group(resource_group_name=self.platform.resource_group_name))
         servers_count = len(servers)
         availability = client.servers.check_name_availability(server_name)

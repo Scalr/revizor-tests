@@ -13,13 +13,14 @@ class Web(object):
     def verify(self):
         client = WebSiteManagementClient(credentials=self.platform.credentials,
                                          subscription_id=self.platform.subscription_id)
-        assert client.check_name_availability('revizor-test-app', 'Site').name_available
+        app_name = self.platform.get_test_name()
+        assert client.check_name_availability(app_name, 'Site').name_available
         site = az_models.Site(location='Central US')
-        client.web_apps.create_or_update(self.platform.resource_group_name, 'revizor-test-app', site)
+        client.web_apps.create_or_update(self.platform.resource_group_name, app_name, site)
         try:
-            assert not client.check_name_availability('revizor-test-app', 'Site').name_available
-            app = client.web_apps.get(self.platform.resource_group_name, 'revizor-test-app')
+            assert not client.check_name_availability(app_name, 'Site').name_available
+            app = client.web_apps.get(self.platform.resource_group_name, app_name)
             assert app.state == 'Running'
         finally:
-            client.web_apps.delete(self.platform.resource_group_name, 'revizor-test-app')
-        assert client.check_name_availability('revizor-test-app', 'Site').name_available
+            client.web_apps.delete(self.platform.resource_group_name, app_name)
+        assert client.check_name_availability(app_name, 'Site').name_available

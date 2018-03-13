@@ -11,7 +11,7 @@ class Ses(object):
 
     def verify(self):
         client = self.platform.get_client('ses')
-        conf_name, tpl_name = self.platform.get_test_name('conf', 'tpl')
+        conf_name = self.platform.get_test_name()
         client.create_configuration_set(
             ConfigurationSet={
                 'Name': conf_name
