@@ -45,7 +45,7 @@ def expect_server_bootstraping_for_role(step, serv_as, role_type, timeout=1800):
 
 
 @step('I see (.+) server (.+)$')
-def waiting_for_assertion(step, state, serv_as, timeout=1400):
+def waiting_for_assertion(step, state, serv_as, timeout=300):
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
     setattr(world, serv_as, server)
