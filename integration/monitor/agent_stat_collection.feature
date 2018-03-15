@@ -11,7 +11,7 @@ Feature: Check monitor pulling/pushing mechanism
     And not ERROR in S1,S2,S3 scalarizr log
     And Scalr services are in RUNNING state
     And agent stat for S1,S2,S3 is collected via Pulling
-    And data for S1,S2,S2 is present in influx
+    And data for S1,S2,S3 is present in influx
     And no "Traceback" in service "monitor" log
 
   Scenario: Check Pushing mechanism
@@ -25,7 +25,7 @@ Feature: Check monitor pulling/pushing mechanism
     And not ERROR in S1,S2,S3 scalarizr log
     And Scalr services are in RUNNING state
     And agent stat for S1,S2,S3 is collected via Pushing
-    And data for S1,S2,S2 is present in influx
+    And data for S1,S2,S3 is present in influx
     And no "Traceback" in service "monitor" log
 
   # Scenario: Configure proxy server
