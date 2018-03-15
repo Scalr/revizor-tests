@@ -1,4 +1,12 @@
+import logging
+
 from lettuce import world, step
+
+LOG = logging.getLogger(__name__)
+
+SERVICE_IGNORE_ERRORS = [
+    "celery.worker.consumer.consumer: consumer: Cannot connect to amqp:"
+]
 
 
 @step('I set proxy for ([\w\d,]+) in Scalr to ([\w\d]+)')
@@ -18,6 +26,7 @@ def configure_scalr_proxy(step, clouds, proxy_as):
         params.append(
             {'name': 'scalr.%s.use_proxy' % cloud, 'value': True}
         )
+    LOG.debug('Proxy params:\n%s' % params)
     world.update_scalr_config(params)
 
 
@@ -29,3 +38,18 @@ def check_scalr_service_status(step, services, state):
         for status in statuses:
             if status['state'].lower() != state.lower():
                 raise AssertionError("Service %s status is %s. Expected status - %s" % (service, status, state))
+
+
+@step('no "(.+)" in service "(\w+)" log')
+def check_service_logs(step, search_string, service):
+    ssh = world.testenv.get_ssh()
+    LOG.debug("Check %s log for %s" % (service, search_string))
+    out = ssh.run("cat /opt/scalr-server/var/log/service/%s.log | grep %s" % (service.strip(), search_string.strip()))
+    if out[0]:
+        errors = []
+        logs = out[0].splitlines()
+        for line in logs:
+            if any(error in line for error in SERVICE_IGNORE_ERRORS) and line not in errors:
+                errors.append(line)
+        if errors:
+            raise AssertionError("Found unexpected errors in %s service log. Errors:\n%s" % (service, errors))

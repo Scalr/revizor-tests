@@ -47,9 +47,9 @@ def check_pulling_or_pushing(step, serv_as, method):
     serv_as = serv_as.split(',')
     servers = [getattr(world, s) for s in serv_as]
     LOG.debug("Servers: %s" % servers)
+    regex = "server.apps.monitor: Received message: ({(?:.+)?'type': 'agent-stat'(?:.+)?})"  # Search criteria for Pushing
     for server in servers:
         LOG.debug("Check %s for %s" % (method, server.id))
-        regex = "server.apps.monitor: Received message: ({(?:.+)?'type': 'agent-stat'(?:.+)?})"  # Search criteria for Pushing
         search_string = 'server.tasks.monitor.health: Server %s agent_stat is {' % server.id  # Search criteria for Pulling
         for i in range(10):
             LOG.debug("%s attempt to get agent_stat message" % i)
@@ -76,3 +76,21 @@ def verify_proxy_working(step, proxy_as, message):
     logs = node.run("cat /var/log/squid3/access.log").std_out
     if message not in logs:
         raise AssertionError("No messages indicating that proxy is working were found in log!")
+
+
+@step(r'data for ([\w\d,]+) is present in influx')
+def verify_influx(step, servers):
+    ssh = world.testenv.get_ssh()
+    influx_command = re.search("alias influx='(.+)'", ssh.run('cat ~/.bashrc')[0]).group(1)
+    LOG.debug("Influx command %s" % influx_command)
+    if not influx_command:
+        raise AssertionError("Can't find influx alias on TestEnv %s" % world.testenv.te_id)
+    servers = [getattr(world, s) for s in servers.split(',')]
+    for server in servers:
+        cmd = """%s -execute "select * from "week".stat_memory_cpu where farm_role_id = '%s' and farm_id = '%s' and server_index = '%s'" -database='scalr'""" % (influx_command,
+            server.farm_role.id, server.farm.id, server.index)
+        LOG.debug("Try to get influx data for server %s.\n Command - %s" % (server.id, cmd))
+        out = ssh.run(cmd)
+        if not out[0]:
+            raise AssertionError("Can't get influx data for server %s. Error - %s" % (server.id, out[1]))
+        LOG.debug("Influx command output:\n%s" % (out[0]))
