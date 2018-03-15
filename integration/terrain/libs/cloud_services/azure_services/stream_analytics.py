@@ -1,6 +1,6 @@
 class StreamAnalytics(object):
     service_name = 'stream analytics'
-    log_records = ['CONNECT login.microsoftonline.com:443']
+    log_records = ['https://login.microsoftonline.com']
 
     def __init__(self, platform):
         self.platform = platform

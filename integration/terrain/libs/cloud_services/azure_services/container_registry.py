@@ -4,8 +4,9 @@ import azure.mgmt.containerregistry.models as az_models
 
 class ContainerRegistry(object):
     service_name = 'container registry'
-    log_records = ['CONNECT login.microsoftonline.com:443',
-                   'CONNECT management.azure.com:443']
+    log_records = ['https://login.microsoftonline.com',
+                   'https://management.azure.com',
+                   'providers/Microsoft.ContainerRegistry']
 
     def __init__(self, platform):
         self.platform = platform

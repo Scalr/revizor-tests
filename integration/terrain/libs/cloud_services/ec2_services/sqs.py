@@ -4,7 +4,7 @@ from lettuce import world
 
 class Sqs(object):
     service_name = 'sqs'
-    log_records = ['CONNECT queue.amazonaws.com:443']
+    log_records = ['https://queue.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform

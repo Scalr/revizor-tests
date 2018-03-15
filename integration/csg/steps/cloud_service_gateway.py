@@ -65,7 +65,7 @@ def configure_scalr_proxy(step, clouds, proxy_as):
     clouds = [c.strip().lower() for c in clouds.split(',')]
     server = getattr(world, proxy_as)
     params = [
-        {'name': 'scalr.connections.proxy.host', 'value': server.public_ip},
+        {'name': 'scalr.connections.proxy.host', 'value': str(server.public_ip)},
         {'name': 'scalr.connections.proxy.port', 'value': 3128},
         {'name': 'scalr.connections.proxy.user', 'value': 'testuser'},
         {'name': 'scalr.connections.proxy.pass', 'value': 'p@ssw0rd'},
@@ -100,14 +100,14 @@ def check_proxy_logs(step_instance, service, platform, proxy_as):
     server = getattr(world, proxy_as)
     node = world.cloud.get_node(server)
     old_logs_count = getattr(world, '%s_proxy_logs_count' % proxy_as, 0)
-    logs = node.run('tail -n +%s /var/log/squid3/access.log' % (old_logs_count + 1)).std_out.splitlines()
+    logs = node.run('tail -n +%s /var/log/mitmproxy.log' % (old_logs_count + 1)).std_out.splitlines()
     setattr(world, '%s_proxy_logs_count' % proxy_as, len(logs) + old_logs_count)
     for record in world.csg_get_service_log_records(platform, service):
-        LOG.debug('Searching for "%s" in squid logs' % record)
+        LOG.debug('Searching for "%s" in proxy logs' % record)
         for line in logs:
             if record in line:
                 break
         else:
             # record not found in logs
-            LOG.debug('Received squid logs:\n%s' % logs)
+            LOG.debug('Received proxy logs:\n%s' % logs)
             raise AssertionError('Text "%s" not found in last proxy logs' % record)

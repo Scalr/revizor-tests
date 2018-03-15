@@ -1,6 +1,6 @@
 class Lambda(object):
     service_name = 'lambda'
-    log_records = ['CONNECT lambda.us-east-1.amazonaws.com:443']
+    log_records = ['https://lambda.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform

@@ -3,8 +3,9 @@ from azure.mgmt.containerservice import ContainerServiceClient
 
 class ContainerService(object):
     service_name = 'container service'
-    log_records = ['CONNECT login.microsoftonline.com:443',
-                   'CONNECT management.azure.com:443']
+    log_records = ['https://login.microsoftonline.com',
+                   'https://management.azure.com',
+                   'providers/Microsoft.ContainerService']
 
     def __init__(self, platform):
         self.platform = platform

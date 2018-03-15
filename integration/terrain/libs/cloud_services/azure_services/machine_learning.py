@@ -3,8 +3,9 @@ from azure.mgmt.machinelearningcompute import MachineLearningComputeManagementCl
 
 class MachineLearning(object):
     service_name = 'machine learning'
-    log_records = ['CONNECT login.microsoftonline.com:443',
-                   'CONNECT management.azure.com:443']
+    log_records = ['https://login.microsoftonline.com',
+                   'https://management.azure.com',
+                   'providers/Microsoft.MachineLearningCompute']
 
     def __init__(self, platform):
         self.platform = platform

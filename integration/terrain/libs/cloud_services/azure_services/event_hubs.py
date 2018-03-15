@@ -7,8 +7,9 @@ from lettuce import world
 
 class EventHubs(object):
     service_name = 'event hubs'
-    log_records = ['CONNECT login.microsoftonline.com:443',
-                   'CONNECT management.azure.com:443']
+    log_records = ['https://login.microsoftonline.com',
+                   'https://management.azure.com',
+                   'providers/Microsoft.EventHub']
 
     def __init__(self, platform):
         self.platform = platform

@@ -1,6 +1,6 @@
 class Redshift(object):
     service_name = 'redshift'
-    log_records = ['CONNECT redshift.us-east-1.amazonaws.com:443']
+    log_records = ['https://redshift.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform

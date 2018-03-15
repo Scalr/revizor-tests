@@ -3,7 +3,7 @@ from azure.mgmt.applicationinsights import ApplicationInsightsManagementClient
 
 class Insights(object):
     service_name = 'insights'
-    log_records = ['CONNECT login.microsoftonline.com:443']
+    log_records = ['https://login.microsoftonline.com']
 
     def __init__(self, platform):
         self.platform = platform

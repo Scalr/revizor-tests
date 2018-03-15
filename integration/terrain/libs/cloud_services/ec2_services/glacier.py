@@ -1,6 +1,6 @@
 class Glacier(object):
     service_name = 'glacier'
-    log_records = ['CONNECT glacier.us-east-1.amazonaws.com:443']
+    log_records = ['https://glacier.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform
