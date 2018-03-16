@@ -207,7 +207,6 @@ Feature: MySQL database server with behavior mysql2
 
     @ec2 @gce @rackspaceng @openstack @pmalaunch
     Scenario: Launch phpMyAdmin after farm restart
-        When I trigger pmaaccess creation
         Then I launch pma session
         And pma is available, I see the phpMyAdmin in the title
 

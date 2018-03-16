@@ -250,17 +250,13 @@ def session_is_available(step, service, search_string, element):
        Takes a variable as argument world.launch_request out of step launch_session"""
     if not world.launch_request:
         raise Exception('The %s service page is not found') % service
+    pma_page = world.launch_request.content.decode('utf8', 'ignore')
+    if not pma_page.index(b'%s' % search_string):
+        raise Exception(world.launch_request.history, resp.url, pma_page)
     for resp in world.launch_request.history:
-        LOG.debug('Response from: %s' % resp.url)
-        try:
-            tree = html.fromstring(resp.text)
-            if search_string in tree.xpath('//%s' % element)[0].text:
-                LOG.info("The %s service is launched." % service)
-                break
-        except etree.XMLSyntaxError:
-            continue
-    else:
-        raise AssertionError("The %s service is not launched." % service)
+        LOG.debug('Response history: %s' % world.launch_request.history)
+        LOG.debug('Response from url: %s' % resp.url)
+        LOG.debug('PMA Page: %s' % pma_page)
 
 
 @step(r'Last (.+) date updated to current')
