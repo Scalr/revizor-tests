@@ -263,6 +263,7 @@ def session_is_available(step, service, search_string, element):
     else:
         raise AssertionError("The %s service is not launched." % service)
 
+
 @step(r'Last (.+) date updated to current')
 def assert_check_databundle_date(step, back_type):
     LOG.info("Check %s date" % back_type)
