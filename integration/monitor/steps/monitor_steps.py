@@ -11,6 +11,7 @@ LOG = logging.getLogger(__name__)
 
 @step("I configure roles in testenv")
 def configure_roles_in_testenv(step):
+    index = 0
     for role_opts in step.hashes:
         step.behave_as("""
             And I have configured revizor environment:
@@ -19,19 +20,25 @@ def configure_roles_in_testenv(step):
                 | dist           | {dist}      |
                 | branch         | {branch}    |
                 | ci_repo        | {ci_repo}   |
-            And I add role to this farm
-            Then I see pending server {index}""".format(
-                    platform=role_opts['platform'],
-                    dist=role_opts['dist'],
-                    branch=role_opts['branch'],
-                    ci_repo=role_opts['ci_repo'],
-                    index=role_opts['server_index']))
+            And I add role to this farm""".format(
+                platform=role_opts['platform'],
+                dist=role_opts['dist'],
+                branch=role_opts['branch'],
+                ci_repo=role_opts['ci_repo']))
+        role = world.farm.roles[index]
+        state = 'pending'
+        timeout = 1400
+        server = world.wait_server_bootstrapping(role, state, timeout)
+        setattr(world, role_opts['server_index'], server)
+        LOG.info('Server %s (%s) successfully in %s state' % (server.id, role_opts['server_index'], state))
+        index += 1
 
 
 @step('I wait server ([\w\d,]+) in (\w+) state')
 def multiple_bootstrapping(step, servers, state):
     servers = servers.split(',')
     for server in servers:
+        LOG.debug("Checking server %s in multistep" % server)
         step.behave_as("I wait server %s in %s state" % (server, state))
 
 
@@ -49,23 +56,28 @@ def check_pulling_or_pushing(step, serv_as, method):
     LOG.debug("Servers: %s" % servers)
     regex = "server.apps.monitor: Received message: ({(?:.+)?'type': 'agent-stat'(?:.+)?})"  # Search criteria for Pushing
     for server in servers:
-        LOG.debug("Check %s for %s" % (method, server.id))
+        LOG.debug("Check %s mechanism for %s" % (method, server.id))
         search_string = 'server.tasks.monitor.health: Server %s agent_stat is {' % server.id  # Search criteria for Pulling
+        success = False
         for i in range(10):
             LOG.debug("%s attempt to get agent_stat message" % i)
             monitor_log = world.testenv.get_ssh().run('cat /opt/scalr-server/var/log/service/monitor.log')[0]
             if monitor_log:
                 if method == 'Pulling':
                     if search_string in monitor_log:
-                        return True
+                        success = True
                 else:
                     messages = re.findall(regex, monitor_log)
                     LOG.debug("Pushing messages:\n%s" % messages)
                     for message in messages:
                         if server.id in message:
-                            return True
+                            success = True
+                            break
+            if success:
+                break
             time.sleep(5)
-        raise AssertionError('%s message for server %s was not found in monitor log!' % (method, server.id))
+        if not success:
+            raise AssertionError('%s message for server %s was not found in monitor log!' % (method, server.id))
 
 
 @step(r'proxy ([\w\d]+) log contains message "(.+)"$')
