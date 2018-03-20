@@ -9,7 +9,6 @@ from lettuce import world, step
 from libs.defaults import Defaults
 from revizor2.api import Role
 from revizor2.conf import CONF
-from revizor2.consts import DATABASE_BEHAVIORS
 from revizor2.helpers import farmrole
 from revizor2.utils import wait_until
 
@@ -32,16 +31,12 @@ def having_a_stopped_farm(step):
 @step(r"I add(?:\s(?P<behavior>[\w\d-]+))? role(?:\s(?P<role_name>[\w\d-]+))? to this farm(?:\swith\s(?P<options>[\w\d,-]+))?(?:\sas\s(?P<alias>[\w\d-]+))?")
 def add_role_to_farm(step, behavior=None, role_name=None, options=None, alias=None):
     platform = CONF.feature.platform
-    dist = CONF.feature.dist
 
-    options = options or []
     role_name = (role_name or '').strip()
     role_id = getattr(world, '%s_id' % role_name, None)
     behavior = (behavior or os.environ.get('RV_BEHAVIOR', 'base')).strip()
 
     role_params = farmrole.FarmRoleParams(platform, alias=alias)
-    Defaults.set_hostname(role_params)
-
     if options:
         for opt in [o.strip() for o in options.strip().split(',')]:
             LOG.info('Inspect option: %s' % opt)
@@ -55,21 +50,6 @@ def add_role_to_farm(step, behavior=None, role_name=None, options=None, alias=No
                 Defaults.set_chef_solo(role_params, opt)
             else:
                 Defaults.apply_option(role_params, opt)
-    if dist.id == 'scientific-6-x' or \
-            (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
-        role_params.advanced.disable_iptables_mgmt = False
-    elif dist.is_windows:
-        role_params.advanced.reboot_after_hostinit = True
-    if behavior == 'rabbitmq':
-        role_params.network.hostname_template = ''
-    elif behavior in DATABASE_BEHAVIORS:
-        Defaults.set_db_storage(role_params)
-        if behavior == 'redis':
-            LOG.info('Insert redis settings')
-            snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
-            role_params.database.redis_persistence_type = snapshotting_type
-            role_params.database.redis_use_password = True
-
     role = world.add_role_to_farm(behavior, role_params, role_id)
     LOG.debug('Save role object with name %s' % role.alias)
     setattr(world, '%s_role' % role.alias, role)
