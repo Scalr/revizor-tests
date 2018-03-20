@@ -1,10 +1,8 @@
 __author__ = 'gigimon'
-import os
 import logging
 
 from lettuce import world, step
 
-from libs.defaults import Defaults
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.helpers import farmrole
