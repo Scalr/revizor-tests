@@ -309,6 +309,13 @@ class Defaults(object):
         ]
 
     @staticmethod
+    def set_docker(params):
+        params.orchestration.rules.append(
+            params.orchestration,
+            farmrole.OrchestrationRule(event='HostInit', script='https://get.docker.com')
+        )
+
+    @staticmethod
     def set_ansible_tower(params):
         cred_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
         at_server_id = getattr(world, 'at_server_id_%s' % cred_name)
