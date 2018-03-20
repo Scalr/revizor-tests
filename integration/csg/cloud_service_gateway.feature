@@ -56,6 +56,7 @@ Feature: Check CSG
   Scenario Outline: Check approved services
     Given I have active access request <request>
     Then "<service>" service works on <platform> using <request>
+    And there are no errors in CSG log
     Examples:
       | request  | platform  | service             |
       | AR1      | AWS       | Api Gateway         |
@@ -99,6 +100,7 @@ Feature: Check CSG
     Given I have active access request <request>
     Then "<service>" service works on <platform> using <request>
     And requests to "<service>" on <platform> are present in last proxy logs on P1
+    And there are no errors in CSG log
     Examples:
       | request  | platform  | service             |
       | AR1      | AWS       | Api Gateway         |
