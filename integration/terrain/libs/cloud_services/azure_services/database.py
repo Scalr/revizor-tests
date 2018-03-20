@@ -1,10 +1,9 @@
 import time
-from datetime import datetime
 
 import azure.mgmt.sql.models as az_models
 from azure.mgmt.sql import SqlManagementClient
+import azure.common.exceptions as az_exceptions
 from lettuce import world
-from msrestazure import azure_exceptions
 
 
 class Database(object):
@@ -17,7 +16,7 @@ class Database(object):
         self.platform = platform
 
     def verify(self):
-        client = SqlManagementClient(credentials=self.platform.credentials,
+        client = SqlManagementClient(credentials=self.platform.get_credentials(),
                                      subscription_id=self.platform.subscription_id)
         server_name, database_name = self.platform.get_test_name('sqlserver', 'db')
         servers = list(client.servers.list_by_resource_group(resource_group_name=self.platform.resource_group_name))
@@ -77,7 +76,7 @@ class Database(object):
             raise AssertionError('Operation timed out: database "%s" has not been deleted '
                                  'within 5 minutes' % database_name)
 
-        with world.assert_raises(azure_exceptions.CloudError, 'ResourceNotFound'):
+        with world.assert_raises(az_exceptions.CloudError, 'ResourceNotFound'):
             client.databases.get(resource_group_name=self.platform.resource_group_name, server_name=server_name,
                                  database_name=database_name)
 
@@ -91,5 +90,11 @@ class Database(object):
             raise AssertionError('Operation timed out: SQL server "%s" has not been deleted '
                                  'within 5 minutes' % server_name)
 
-        with world.assert_raises(azure_exceptions.CloudError, 'ResourceNotFound'):
+        with world.assert_raises(az_exceptions.CloudError, 'ResourceNotFound'):
             client.servers.get(resource_group_name=self.platform.resource_group_name, server_name=server_name)
+
+    def verify_denied(self, error_text):
+        with world.assert_raises(az_exceptions.ClientException, error_text):
+            client = SqlManagementClient(credentials=self.platform.get_credentials(),
+                                         subscription_id=self.platform.subscription_id)
+            list(client.servers.list_by_resource_group(resource_group_name=self.platform.resource_group_name))

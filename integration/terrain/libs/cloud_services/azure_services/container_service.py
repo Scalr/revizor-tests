@@ -1,4 +1,6 @@
 from azure.mgmt.containerservice import ContainerServiceClient
+import azure.common.exceptions as az_exceptions
+from lettuce import world
 
 
 class ContainerService(object):
@@ -11,9 +13,16 @@ class ContainerService(object):
         self.platform = platform
 
     def verify(self):
-        client = ContainerServiceClient(credentials=self.platform.credentials,
+        client = ContainerServiceClient(credentials=self.platform.get_credentials(),
                                         subscription_id=self.platform.subscription_id)
         services = client.container_services.list_by_resource_group(resource_group_name=self.platform.resource_group_name)
         assert len(list(services)) == 0
         clusters = client.managed_clusters.list_by_resource_group(resource_group_name=self.platform.resource_group_name)
         assert len(list(clusters)) == 0
+
+    def verify_denied(self, error_text):
+        with world.assert_raises(az_exceptions.ClientException, error_text):
+            client = ContainerServiceClient(credentials=self.platform.get_credentials(),
+                                            subscription_id=self.platform.subscription_id)
+            list(client.container_services.list_by_resource_group(
+                resource_group_name=self.platform.resource_group_name))

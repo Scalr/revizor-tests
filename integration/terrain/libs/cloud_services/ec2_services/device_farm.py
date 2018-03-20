@@ -19,3 +19,8 @@ class DeviceFarm(object):
         client.delete_project(arn=project_arn)
         with world.assert_raises(boto_exceptions.ClientError, 'NotFound'):
             client.get_project(arn=project_arn)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('devicefarm')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_projects()

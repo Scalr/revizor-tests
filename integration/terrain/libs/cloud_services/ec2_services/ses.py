@@ -22,3 +22,8 @@ class Ses(object):
         client.delete_configuration_set(ConfigurationSetName=conf_name)
         with world.assert_raises(boto_exceptions.ClientError, 'ConfigurationSetDoesNotExist'):
             client.describe_configuration_set(ConfigurationSetName=conf_name)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('ses')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_configuration_sets()

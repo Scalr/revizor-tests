@@ -28,3 +28,8 @@ class CognitoIdentity(object):
         client.delete_identity_pool(IdentityPoolId=pool_id)
         with world.assert_raises(boto_exceptions.ClientError, 'ResourceNotFoundException'):
             client.describe_identity_pool(IdentityPoolId=pool_id)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('cognito-identity')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_identity_pools(MaxResults=10)

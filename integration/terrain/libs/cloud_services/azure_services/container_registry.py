@@ -1,5 +1,7 @@
 from azure.mgmt.containerregistry import ContainerRegistryManagementClient
 import azure.mgmt.containerregistry.models as az_models
+import azure.common.exceptions as az_exceptions
+from lettuce import world
 
 
 class ContainerRegistry(object):
@@ -12,7 +14,7 @@ class ContainerRegistry(object):
         self.platform = platform
 
     def verify(self):
-        client = ContainerRegistryManagementClient(credentials=self.platform.credentials,
+        client = ContainerRegistryManagementClient(credentials=self.platform.get_credentials(),
                                                    subscription_id=self.platform.subscription_id)
         registry_name = self.platform.get_test_name()
         registries = client.registries.list_by_resource_group(resource_group_name=self.platform.resource_group_name)
@@ -37,3 +39,9 @@ class ContainerRegistry(object):
         assert len(list(registries)) == registries_count
         availability = client.registries.check_name_availability(registry_name)
         assert availability.name_available
+
+    def verify_denied(self, error_text):
+        with world.assert_raises(az_exceptions.ClientException, error_text):
+            client = ContainerRegistryManagementClient(credentials=self.platform.get_credentials(),
+                                                       subscription_id=self.platform.subscription_id)
+            list(client.registries.list_by_resource_group(resource_group_name=self.platform.resource_group_name))

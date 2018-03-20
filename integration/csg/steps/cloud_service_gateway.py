@@ -33,14 +33,21 @@ def verify_request_status(step, request_as, status, scope='environment'):
                              'Expected = "%s", actual = "%s"' % (status, request['status']))
 
 
-@step('I approve access request ([\w\d]+)')
-def approve_request(step, request_as):
+@step('I (approve|deny|revoke|archive) access request ([\w\d]+)')
+def approve_request(step, action, request_as):
     id = getattr(world, '%s_request_id' % request_as)
-    cloud = getattr(world, '%s_request_cloud' % request_as)
-    result = IMPL.csg.approve_request(id, cloud)
-    if not result:
-        raise AssertionError('Cloud service access request has not been approved')
-    LOG.debug('Approved cloud service access request, id=%s' % id)
+    if action == 'approve':
+        cloud = getattr(world, '%s_request_cloud' % request_as)
+        result = IMPL.csg.approve_request(id, cloud)
+        if not result:
+            raise AssertionError('Cloud service access request has not been approved')
+        LOG.debug('Approved cloud service access request, id=%s' % id)
+    elif action == 'deny':
+        IMPL.csg.deny_request(id)
+    elif action == 'revoke':
+        IMPL.csg.revoke_request(id)
+    elif action == 'archive':
+        IMPL.csg.archive_request(id)
 
 
 @step('I obtain secret key for access request ([\w\d]+)')
@@ -80,15 +87,21 @@ def configure_scalr_proxy(step, clouds, proxy_as):
     world.update_scalr_config(params)
 
 
-@step("\"([\w\d\s]+)\" service works on (AWS|Azure) using ([\w\d]+)")
-def verify_service(step, service, platform, request_as):
+@step("\"([\w\d\s]+)\" service is (active|restricted|disabled) on (AWS|Azure) using ([\w\d]+)")
+def verify_service(step, service, status, platform, request_as):
+    """`status` - defines in which state the service should be
+      - active: service is approved and should work properly
+      - restricted: access request is approved, but this service is not in a list of requested services
+      - disabled: access request was approved once but then revoked or archived
+    Both restricted/disabled states do mean that the service doesn't work, but the error expected differs for them
+    """
     service = service.strip().lower()
     platform = platform.strip().lower()
     if platform == 'aws':
         platform = 'ec2'
     request_id = getattr(world, '%s_request_id' % request_as)
     secret = getattr(world, '%s_request_secret' % request_as)
-    world.csg_verify_service(platform, service, request_id, secret)
+    world.csg_verify_service(platform, service, request_id, secret, status)
 
 
 @step("requests to \"([\w\d\s]+)\" on (AWS|Azure) are present in last proxy logs on ([\w\d]+)")

@@ -22,3 +22,8 @@ class ApiGateway(object):
         client.delete_rest_api(restApiId=api_id)
         with world.assert_raises(boto_exceptions.ClientError, 'NotFound'):
             client.get_rest_api(restApiId=api_id)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('apigateway')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.get_rest_apis()

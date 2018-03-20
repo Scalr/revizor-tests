@@ -1,5 +1,7 @@
 from azure.mgmt.web import WebSiteManagementClient
 import azure.mgmt.web.models as az_models
+import azure.common.exceptions as az_exceptions
+from lettuce import world
 
 
 class Web(object):
@@ -12,7 +14,7 @@ class Web(object):
         self.platform = platform
 
     def verify(self):
-        client = WebSiteManagementClient(credentials=self.platform.credentials,
+        client = WebSiteManagementClient(credentials=self.platform.get_credentials(),
                                          subscription_id=self.platform.subscription_id)
         app_name = self.platform.get_test_name()
         assert client.check_name_availability(app_name, 'Site').name_available
@@ -25,3 +27,9 @@ class Web(object):
         finally:
             client.web_apps.delete(self.platform.resource_group_name, app_name)
         assert client.check_name_availability(app_name, 'Site').name_available
+
+    def verify_denied(self, error_text):
+        with world.assert_raises(az_exceptions.ClientException, error_text):
+            client = WebSiteManagementClient(credentials=self.platform.get_credentials(),
+                                             subscription_id=self.platform.subscription_id)
+            client.check_name_availability('some_name', 'Site')

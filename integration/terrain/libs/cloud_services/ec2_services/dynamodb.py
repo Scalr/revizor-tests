@@ -58,3 +58,8 @@ class DynamoDb(object):
                                  'within 5 minutes' % table_name)
         with world.assert_raises(boto_exceptions.ClientError, 'ResourceNotFoundException'):
             client.describe_table(TableName=table_name)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('dynamodb')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_tables()

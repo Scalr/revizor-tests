@@ -31,3 +31,8 @@ class Pinpoint(object):
         client.delete_app(ApplicationId=app_id)
         with world.assert_raises(boto_exceptions.ClientError, 'NotFoundException'):
             client.get_app(ApplicationId=app_id)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('pinpoint')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.get_apps()

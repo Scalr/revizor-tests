@@ -2,6 +2,7 @@ import time
 
 import azure.mgmt.eventhub.models as az_models
 from azure.mgmt.eventhub import EventHubManagementClient
+import azure.common.exceptions as az_exceptions
 from lettuce import world
 
 
@@ -15,7 +16,7 @@ class EventHubs(object):
         self.platform = platform
 
     def verify(self):
-        client = EventHubManagementClient(credentials=self.platform.credentials,
+        client = EventHubManagementClient(credentials=self.platform.get_credentials(),
                                           subscription_id=self.platform.subscription_id)
         ns_name, hub_name, group_name = self.platform.get_test_name('ns', 'hub', 'group')
         assert client.namespaces.check_name_availability(ns_name).name_available
@@ -81,3 +82,9 @@ class EventHubs(object):
                                  'within 5 minutes' % ns_name)
 
         assert client.namespaces.check_name_availability(ns_name).name_available
+
+    def verify_denied(self, error_text):
+        with world.assert_raises(az_exceptions.ClientException, error_text):
+            client = EventHubManagementClient(credentials=self.platform.get_credentials(),
+                                              subscription_id=self.platform.subscription_id)
+            client.namespaces.check_name_availability('some_name')

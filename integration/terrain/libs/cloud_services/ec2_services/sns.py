@@ -17,3 +17,8 @@ class Sns(object):
         client.delete_topic(TopicArn=topic_arn)
         with world.assert_raises(boto_exceptions.ClientError, 'NotFound'):
             client.get_topic_attributes(TopicArn=topic_arn)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('sns')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_topics()
