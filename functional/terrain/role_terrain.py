@@ -76,17 +76,16 @@ def add_new_role_to_farm(step, alias=None):
 
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
+    setup_hostname = True if len('{}-{}'.format(world.farm.name, alias)) >= 63 else False
+    setup_db_storage = True if alias in DATABASE_BEHAVIORS else False
 
-    options = farmrole.FarmRoleParams(CONF.feature.platform, alias=alias)
-    if alias in DATABASE_BEHAVIORS:
-        Defaults.set_db_storage(options)
-
-    if 'redis' in bundled_role.behaviors:
-        options.database.redis_persistence_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
-        options.database.redis_use_password = True
-
-    if len('{}-{}'.format(world.farm.name, alias)) >= 63:
-        Defaults.set_hostname(options)
+    options = world.setup_farmrole_params(
+        setup_bundled_role=True,
+        setup_hostname=setup_hostname,
+        setup_db_storage=setup_db_storage,
+        alias=alias,
+        behaviors=bundled_role.behaviors
+    )
 
     world.farm.add_role(world.bundled_role_id, options=options.to_json())
     world.farm.roles.reload()
