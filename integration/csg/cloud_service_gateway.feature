@@ -233,7 +233,7 @@ Feature: Check CSG
     And I add role to this farm
     When I start farm
     Then I expect server bootstrapping as P1
-    And I execute local script 'https://git.io/vxLKt' synchronous on P1
+    And I execute script 'Launch mitmproxy' synchronous on P1
     And I set proxy for AWS,Azure in Scalr to P1
     And I restart service "cloud-service-gateway"
 
