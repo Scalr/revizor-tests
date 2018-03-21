@@ -67,26 +67,6 @@ def have_request(step, status, request_as):
         status=status))
 
 
-@step('I set proxy for ([\w\d,]+) in Scalr to ([\w\d]+)')
-def configure_scalr_proxy(step, clouds, proxy_as):
-    clouds = [c.strip().lower() for c in clouds.split(',')]
-    server = getattr(world, proxy_as)
-    params = [
-        {'name': 'scalr.connections.proxy.host', 'value': str(server.public_ip)},
-        {'name': 'scalr.connections.proxy.port', 'value': 3128},
-        {'name': 'scalr.connections.proxy.user', 'value': 'testuser'},
-        {'name': 'scalr.connections.proxy.pass', 'value': 'p@ssw0rd'},
-        {'name': 'scalr.connections.proxy.type', 'value': 0},
-        {'name': 'scalr.connections.proxy.authtype', 'value': 1},
-        {'name': 'scalr.connections.proxy.use_on', 'value': 'scalr'}
-    ]
-    for cloud in clouds:
-        params.append(
-            {'name': 'scalr.%s.use_proxy' % cloud, 'value': True}
-        )
-    world.update_scalr_config(params)
-
-
 @step("\"([\w\d\s]+)\" service is (active|restricted|disabled) on (AWS|Azure) using ([\w\d]+)")
 def verify_service(step, service, status, platform, request_as):
     """`status` - defines in which state the service should be
