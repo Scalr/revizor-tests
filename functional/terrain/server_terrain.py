@@ -58,7 +58,7 @@ def waiting_server(step, state, serv_as, timeout=1400):
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
-    LOG.info('Server succesfully %s' % state)
+    LOG.info('Server %s succesfully %s' % (server.id, state))
     setattr(world, serv_as, server)
 
 
