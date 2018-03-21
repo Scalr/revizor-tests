@@ -102,13 +102,13 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
 
 
-@before.each_feature
-def exclude_scenario_without_systemd(feature):
-    if not CONF.feature.dist.is_systemd and feature.name == 'Linux server provision with chef and ansible tower':
-        scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
-        feature.scenarios.remove(scenario)
-        LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
-            scenario.name, feature.name))
+# @before.each_feature
+# def exclude_scenario_without_systemd(feature):
+#     if not CONF.feature.dist.is_systemd and feature.name == 'Linux server provision with chef and ansible tower':
+#         scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
+#         feature.scenarios.remove(scenario)
+#         LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
+#             scenario.name, feature.name))
 
 
 @step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
@@ -167,17 +167,20 @@ def create_credential(step, os, inv_name, credentials_name):
     at_server_id = at_servers_list['servers'][0]['id']
     assert at_server_id, 'The Ansible-Tower server Id was not found'
     setattr(world, 'at_server_id_%s' % credentials_name, at_server_id)
+    os = 1 if os == 'linux' else 2
+
     credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
     publickey = None
-    if os == "linux":
+    if os == 1: # "linux"
         publickey = credentials['machineCredentials']['publicKey']
     pk = credentials['machineCredentials']['id']
     inventory_id = re.search('(\d.*)', inv_name).group(0)
     setattr(world, 'at_inventory_id_%s' % credentials_name, inventory_id)
     setattr(world, 'at_cred_primary_key_%s' % credentials_name, pk)
-    inventory_link = IMPL.ansible_tower.add_inventory_link(
-        inv_name, os, pk, credentials_name,at_server_id, publickey, inventory_id)
-    if not inventory_link['success']:
+
+    bootstrap_configurations = IMPL.ansible_tower.add_bootstrap_configurations(
+        os, pk, credentials_name,at_server_id, publickey, inventory_id)
+    if not bootstrap_configurations['success']:
         raise AssertionError('The credentials: %s have not been saved!' % credentials_name)
 
 
@@ -264,7 +267,7 @@ def delete_ansible_tower_credential(feature):
         'Windows server provision with chef and ansible tower'
     ]
     if feature.name in provision_feature_list:
-        credentials_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
+        credentials_name = 'Revizor-windows-cred' if CONF.feature.dist.is_windows else 'Revizor-linux-cred'
         with at_settings.runtime_values(**at_config):
             res = at_get_resource('credential')
             pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)

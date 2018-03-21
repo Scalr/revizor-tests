@@ -64,12 +64,12 @@ Feature: Windows server provision with chef and ansible tower
     @ec2 @gce @openstack @azure
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
-        And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor_windows_cred'
-        And credential 'Revizor_windows_cred' exists in ansible-tower credentials list
+        And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor-windows-cred'
+        And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
         When I add role to this farm with ansible-tower
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
-        And I launch job 'Revizor windows Job Template' with credential 'Revizor_windows_cred' and expected result 'successful' in M1
+        And I launch job 'Revizor windows Job Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
         And I checked that deployment through AT was performed in M1 and the output is 'dir1'
