@@ -306,7 +306,8 @@ def delete_ansible_tower_group_credential(feature):
             res = at_get_resource('credential')
             pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
             result = res.delete(pk=pk)
-            assert result['changed'], ('Credentials with name %s are not deleted from the AT server' % credentials_name)
+            assert result['changed'], (
+                    'Credentials with name %s are not deleted from the AT server' % credentials_name)
             LOG.error('Credentials: %s  with the id: %s were not removed from the AT server' % (
                 credentials_name, pk))
             res = at_get_resource('group')
