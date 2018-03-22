@@ -50,7 +50,14 @@ class CloudServicePlatform(object):
         service = self.get_service(service_name)(self)
         self._verify_impl(service)
 
+    def verify_denied(self, service_name, reason):
+        service = self.get_service(service_name)(self)
+        self._verify_denied_impl(service, reason)
+
     def _verify_impl(self, service):
+        raise NotImplementedError()
+
+    def _verify_denied_impl(self, service, reason):
         raise NotImplementedError()
 
     @staticmethod
@@ -69,6 +76,10 @@ class Ec2ServicePlatform(CloudServicePlatform):
     """
     services = ec2_services.services
     region = 'us-east-1'
+    error_text = {
+        'restricted': 'Client is unknown or has no access to service',
+        'disabled': 'Client is not Active'
+    }
 
     def __init__(self, request_id, secret):
         super(Ec2ServicePlatform, self).__init__(request_id, secret)
@@ -94,6 +105,9 @@ class Ec2ServicePlatform(CloudServicePlatform):
     def _verify_impl(self, service):
         service.verify()
 
+    def _verify_denied_impl(self, service, reason):
+        service.verify_denied(Ec2ServicePlatform.error_text[reason])
+
 
 class AzureServicePlatform(CloudServicePlatform):
     """
@@ -101,6 +115,10 @@ class AzureServicePlatform(CloudServicePlatform):
     Contains Azure-specific logic that is common for all services
     """
     services = azure_services.services
+    error_text = {
+        'restricted': 'Bad Request',
+        'disabled': 'Client is not Active'
+    }
 
     def __init__(self, request_id, secret):
         super(AzureServicePlatform, self).__init__(request_id, secret)
@@ -113,15 +131,23 @@ class AzureServicePlatform(CloudServicePlatform):
         # some azure management clients strictly require subscription_id parameter
         # to be of type `str`, and fail when it's `unicode`
         self.subscription_id = str(self.request['cc_id'])
+
+    def get_credentials(self):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
                       REQUESTS_CA_BUNDLE=self.cacert_path):
-            self.credentials = ServicePrincipalCredentials(
+            creds = ServicePrincipalCredentials(
                 client_id=self.request['client_id'],
                 secret=self.secret,
                 tenant=self.request['tenant_id']
             )
+        return creds
 
     def _verify_impl(self, service):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
                       REQUESTS_CA_BUNDLE=self.cacert_path):
             service.verify()
+
+    def _verify_denied_impl(self, service, reason):
+        with env_vars(https_proxy='http://%s' % self.csg_proxy,
+                      REQUESTS_CA_BUNDLE=self.cacert_path):
+            service.verify_denied(AzureServicePlatform.error_text[reason])

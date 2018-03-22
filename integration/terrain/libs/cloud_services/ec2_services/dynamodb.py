@@ -6,7 +6,7 @@ from lettuce import world
 
 class DynamoDb(object):
     service_name = 'dynamodb'
-    log_records = ['CONNECT dynamodb.us-east-1.amazonaws.com:443']
+    log_records = ['https://dynamodb.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform
@@ -58,3 +58,8 @@ class DynamoDb(object):
                                  'within 5 minutes' % table_name)
         with world.assert_raises(boto_exceptions.ClientError, 'ResourceNotFoundException'):
             client.describe_table(TableName=table_name)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('dynamodb')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_tables()
