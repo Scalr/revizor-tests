@@ -161,12 +161,44 @@ def check_failed_status_message(step, phase, msg, serv_as):
         "Initialization was not failed on %s with message %s" % patterns
 
 
-@step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)'")
-def create_credential(step, os, inv_name, credentials_name):
+@step("I get Ansible Tower server id")
+def get_at_server_id(step):
     at_servers_list = IMPL.ansible_tower.list_servers()
     at_server_id = at_servers_list['servers'][0]['id']
     assert at_server_id, 'The Ansible-Tower server Id was not found'
-    setattr(world, 'at_server_id_%s' % credentials_name, at_server_id)
+    setattr(world, 'at_server_id', at_server_id)
+
+
+@step("I create a New AT '([\w-]+)' group with name '([\w-]+)' for Inventory '([\w-]+)'")
+def create_at_group(step, group_type, group_name, inv_name):
+    """
+    :param group_type: You can set 'regular' or 'template' type.
+    """
+    at_server_id = getattr(world, 'at_server_id')
+    inventory_id = re.search('(\d.*)', inv_name).group(0)
+    at_group = IMPL.ansible_tower.create_inventory_groups(
+        group_name, group_type, at_server_id, inventory_id)
+    if not at_group['success']:
+        raise AssertionError('The AT inventory group: %s have not been saved!' % group_name)
+    at_group_id = at_group['group']['id']
+    setattr(world, 'at_group_id', at_group_id)
+
+
+@step("AT group '([\w-]+)' exists in inventory '([\w-]+)' in AT server")
+def check_at_group_exists_in_inventory(step, group_name, inv_name):
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('group')
+        pk = getattr(world, 'at_group_id')
+        find_group = res.get(pk=pk)
+        if not group_name and pk in find_group:
+            raise AssertionError(
+                'Group: %s with id: %s not found in Ansible Tower. Response from server: %s.' % (
+                    group_name, pk, find_group))
+
+
+@step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)'")
+def create_credential(step, os, inv_name, credentials_name):
+    at_server_id = getattr(world, 'at_server_id')
     os = 1 if os == 'linux' else 2
 
     credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
@@ -175,11 +207,13 @@ def create_credential(step, os, inv_name, credentials_name):
         publickey = credentials['machineCredentials']['publicKey']
     pk = credentials['machineCredentials']['id']
     inventory_id = re.search('(\d.*)', inv_name).group(0)
-    setattr(world, 'at_inventory_id_%s' % credentials_name, inventory_id)
+    setattr(world, 'at_inventory_id', inventory_id)
     setattr(world, 'at_cred_primary_key_%s' % credentials_name, pk)
+    at_group_id = getattr(world, 'at_group_id')
 
     bootstrap_configurations = IMPL.ansible_tower.add_bootstrap_configurations(
-        os, pk, credentials_name,at_server_id, publickey, inventory_id)
+        os, pk, credentials_name,at_server_id, publickey, inventory_id, at_group_id)
+
     if not bootstrap_configurations['success']:
         raise AssertionError('The credentials: %s have not been saved!' % credentials_name)
 
@@ -195,7 +229,7 @@ def check_credential_exists_on_at_server(step, credentials_name):
                 break
         else:
             raise AssertionError(
-                'Credential name: %s not found in Ansible Tower server.' % credentials_name)
+                'Credential: %s with id: %s not found in Ansible Tower server.' % credentials_name, pk)
 
 
 @step("server ([\w\d]+) exists in ansible-tower hosts list")
@@ -261,7 +295,7 @@ def check_deployment_work(step, serv_as, expected_output):
 
 
 @after.each_feature
-def delete_ansible_tower_credential(feature):
+def delete_ansible_tower_group_credential(feature):
     provision_feature_list = [
         'Linux server provision with chef and ansible tower',
         'Windows server provision with chef and ansible tower'
@@ -275,3 +309,8 @@ def delete_ansible_tower_credential(feature):
             assert result['changed'], ('Credentials with name %s are not deleted from the AT server' % credentials_name)
             LOG.error('Credentials: %s  with the id: %s were not removed from the AT server' % (
                 credentials_name, pk))
+            res = at_get_resource('group')
+            at_group_id = getattr(world, 'at_group_id')
+            result = res.delete(pk=at_group_id)
+            assert result['changed'], ('Group with id: %s is not deleted from the AT server' % at_group_id)
+            LOG.error('Group with id: %s is not deleted from the AT server' % at_group_id)

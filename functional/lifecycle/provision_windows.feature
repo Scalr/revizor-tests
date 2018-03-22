@@ -62,14 +62,23 @@ Feature: Windows server provision with chef and ansible tower
         And hostname in M1 is valid
 
     @ec2 @gce @openstack @azure
+    Scenario: Setup Ansible Tower Bootstrap Configurations
+        Given I get Ansible Tower server id
+        And I create a New AT 'regular' group with name 'group1' for Inventory 'Revizor_linux_33'
+        And AT group 'group1' exists in inventory 'Revizor_linux_33' in AT server
+        And I add a new link with os 'windows' and Inventory 'Revizor_windows_32' and create credentials 'Revizor-windows-cred'
+        And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
+
+   @ec2 @gce @openstack @azure
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
-        And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor-windows-cred'
-        And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
         When I add role to this farm with ansible-tower
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
-        And I launch job 'Revizor windows Job Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
-        And I checked that deployment through AT was performed in M1 and the output is 'dir1'
+
+    @ec2 @gce @openstack @azure
+    Scenario: Lounch Ansible Tower Job
+        When I launch job 'Revizor windows Job Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
+        Then I checked that deployment through AT was performed in M1 and the output is 'dir1'

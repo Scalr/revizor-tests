@@ -76,14 +76,23 @@ Feature: Linux server provision with chef and ansible tower
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
-    Scenario: Bootstrapping role with Ansible Tower
-        Given I have a clean and stopped farm
+    Scenario: Setup Ansible Tower Bootstrap Configurations
+        Given I get Ansible Tower server id
+        And I create a New AT 'regular' group with name 'group1' for Inventory 'Revizor_linux_32'
+        And AT group 'group1' exists in inventory 'Revizor_linux_32' in AT server
         And I add a new link with os 'linux' and Inventory 'Revizor_linux_32' and create credentials 'Revizor-linux-cred'
         And credential 'Revizor-linux-cred' exists in ansible-tower credentials list
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario: Bootstrapping role with Ansible Tower
+        Given I have a clean and stopped farm
         When I add role to this farm with ansible-tower
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
-        And I launch job 'Revizor linux Job Template' with credential 'Revizor-linux-cred' and expected result 'successful' in M1
-        And I checked that deployment through AT was performed in M1 and the output is 'dir1'
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario: Lounch Ansible Tower Job
+        When I launch job 'Revizor linux Job Template' with credential 'Revizor-linux-cred' and expected result 'successful' in M1
+        Then I checked that deployment through AT was performed in M1 and the output is 'dir1'

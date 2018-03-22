@@ -317,11 +317,11 @@ class Defaults(object):
 
     @staticmethod
     def set_ansible_tower(params):
-        cred_name = 'Revizor_windows_cred' if CONF.feature.dist.is_windows else 'Revizor_linux_cred'
-        at_server_id = getattr(world, 'at_server_id_%s' % cred_name)
+        at_server_id = getattr(world, 'at_server_id')
+        at_group_id = '[%s]' % getattr(world, 'at_group_id')
         params.bootstrap_with_at.enabled = True
         params.bootstrap_with_at.server = at_server_id
-        params.bootstrap_with_at.inventory = getattr(world, 'at_inventory_id_%s' % cred_name)
+        params.bootstrap_with_at.inventory = getattr(world, 'at_inventory_id')
         params.bootstrap_with_at.name = 'publicIp'
-        params.bootstrap_with_at.groups = '[]'
+        params.bootstrap_with_at.groups = at_group_id
         params.bootstrap_with_at.variables = ''
