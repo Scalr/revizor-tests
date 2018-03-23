@@ -4,7 +4,7 @@ from lettuce import world
 
 class Pinpoint(object):
     service_name = 'pinpoint'
-    log_records = ['CONNECT pinpoint.us-east-1.amazonaws.com:443']
+    log_records = ['https://pinpoint.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform
@@ -31,3 +31,8 @@ class Pinpoint(object):
         client.delete_app(ApplicationId=app_id)
         with world.assert_raises(boto_exceptions.ClientError, 'NotFoundException'):
             client.get_app(ApplicationId=app_id)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('pinpoint')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.get_apps()

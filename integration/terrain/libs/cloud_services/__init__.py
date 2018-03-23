@@ -10,12 +10,15 @@ available_platforms = {
 
 
 @world.absorb
-def csg_verify_service(platform_name, service_name, request_id, secret):
+def csg_verify_service(platform_name, service_name, request_id, secret, status='active'):
     if platform_name not in available_platforms:
         raise NotImplementedError('Platform %s is not supported' % platform_name)
     service_platform = available_platforms[platform_name](request_id, secret)
     service_platform.configure()
-    service_platform.verify(service_name)
+    if status == 'active':
+        service_platform.verify(service_name)
+    else:
+        service_platform.verify_denied(service_name, status)
 
 
 @world.absorb
