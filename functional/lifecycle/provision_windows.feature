@@ -64,8 +64,8 @@ Feature: Windows server provision with chef and ansible tower
     @ec2 @gce @openstack @azure
     Scenario: Setup Ansible Tower Bootstrap Configurations
         Given I get Ansible Tower server id
-        And I create a New AT 'regular' group with name 'group1' for Inventory 'Revizor_linux_33'
-        And AT group 'group1' exists in inventory 'Revizor_linux_33' in AT server
+        And I create a New AT 'regular' group 'G1' for Inventory 'Revizor_linux_33'
+        And AT group 'G1' exists in inventory 'Revizor_linux_33' in AT server
         And I add a new link with os 'windows' and Inventory 'Revizor_windows_32' and create credentials 'Revizor-windows-cred'
         And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
 

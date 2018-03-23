@@ -169,23 +169,26 @@ def get_at_server_id(step):
     setattr(world, 'at_server_id', at_server_id)
 
 
-@step("I create a New AT '([\w-]+)' group with name '([\w-]+)' for Inventory '([\w-]+)'")
+@step("I create a New AT '([\w-]+)' group '([\w-]+)' for Inventory '([\w-]+)'")
 def create_at_group(step, group_type, group_name, inv_name):
     """
     :param group_type: You can set 'regular' or 'template' type.
     """
     at_server_id = getattr(world, 'at_server_id')
     inventory_id = re.search('(\d.*)', inv_name).group(0)
+    group_name = group_name + time.strftime("-%a-%d-%b-%Y-%H:%M:%S:%MS")
     at_group = IMPL.ansible_tower.create_inventory_groups(
         group_name, group_type, at_server_id, inventory_id)
     if not at_group['success']:
         raise AssertionError('The AT inventory group: %s have not been saved!' % group_name)
     at_group_id = at_group['group']['id']
+    setattr(world, 'at_group_name', group_name)
     setattr(world, 'at_group_id', at_group_id)
 
 
 @step("AT group '([\w-]+)' exists in inventory '([\w-]+)' in AT server")
 def check_at_group_exists_in_inventory(step, group_name, inv_name):
+    group_name = getattr(world, 'at_group_name')
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('group')
         pk = getattr(world, 'at_group_id')

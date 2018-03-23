@@ -78,8 +78,8 @@ Feature: Linux server provision with chef and ansible tower
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Setup Ansible Tower Bootstrap Configurations
         Given I get Ansible Tower server id
-        And I create a New AT 'regular' group with name 'group1' for Inventory 'Revizor_linux_32'
-        And AT group 'group1' exists in inventory 'Revizor_linux_32' in AT server
+        And I create a New AT 'regular' group 'G1' for Inventory 'Revizor_linux_32'
+        And AT group 'G1' exists in inventory 'Revizor_linux_32' in AT server
         And I add a new link with os 'linux' and Inventory 'Revizor_linux_32' and create credentials 'Revizor-linux-cred'
         And credential 'Revizor-linux-cred' exists in ansible-tower credentials list
 
