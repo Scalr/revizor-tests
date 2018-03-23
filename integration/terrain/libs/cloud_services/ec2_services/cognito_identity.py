@@ -4,7 +4,7 @@ from lettuce import world
 
 class CognitoIdentity(object):
     service_name = 'cognito identity'
-    log_records = ['CONNECT cognito-identity.us-east-1.amazonaws.com:443']
+    log_records = ['https://cognito-identity.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform
@@ -28,3 +28,8 @@ class CognitoIdentity(object):
         client.delete_identity_pool(IdentityPoolId=pool_id)
         with world.assert_raises(boto_exceptions.ClientError, 'ResourceNotFoundException'):
             client.describe_identity_pool(IdentityPoolId=pool_id)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('cognito-identity')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_identity_pools(MaxResults=10)
