@@ -54,10 +54,17 @@ class CloudServicePlatform(object):
         service = self.get_service(service_name)(self)
         self._verify_denied_impl(service, reason)
 
+    def verify_policy(self, service_name, **rules):
+        service = self.get_service(service_name)(self)
+        self._verify_policy_impl(service, **rules)
+
     def _verify_impl(self, service):
         raise NotImplementedError()
 
     def _verify_denied_impl(self, service, reason):
+        raise NotImplementedError()
+
+    def _verify_policy_impl(self, service, **rules):
         raise NotImplementedError()
 
     @staticmethod
@@ -107,6 +114,12 @@ class Ec2ServicePlatform(CloudServicePlatform):
 
     def _verify_denied_impl(self, service, reason):
         service.verify_denied(Ec2ServicePlatform.error_text[reason])
+
+    def _verify_policy_impl(self, service, **rules):
+        if hasattr(service, 'verify_policy') and callable(service.verify_policy):
+            service.verify_policy(**rules)
+        else:
+            raise NotImplementedError('Policy validation is not supported in %s service' % service)
 
 
 class AzureServicePlatform(CloudServicePlatform):
