@@ -103,6 +103,74 @@ POLICIES = {
                 ]
             }
         },
+        'api_pattern': {
+            'type': 'csg.resource.name.validation_pattern',
+            'status': 1,
+            'value': {
+                'conditions': {
+                    'cloud': 'ec2',
+                    'cloud.service': 'apigateway',
+                    'service.resource': 'CreateRestApi'
+                },
+                'rules': [
+                    {
+                        'type': 'validation',
+                        'value': '/[A-Z_]+api_\d+/i'
+                    }
+                ]
+            }
+        },
+        'dynamo_prefix': {
+            'type': 'csg.resource.name.prefix',
+            'status': 1,
+            'value': {
+                'conditions': {
+                    'cloud': 'ec2',
+                    'cloud.service': 'dynamodb',
+                    'service.resource': 'CreateTable'
+                },
+                'rules': [
+                    {
+                        'type': 'validation',
+                        'value': 'tmp_'
+                    }
+                ]
+            }
+        },
+        'dynamo_pattern': {
+            'type': 'csg.resource.name.validation_pattern',
+            'status': 1,
+            'value': {
+                'conditions': {
+                    'cloud': 'ec2',
+                    'cloud.service': 'dynamodb',
+                    'service.resource': 'CreateTable'
+                },
+                'rules': [
+                    {
+                        'type': 'validation',
+                        'value': '/[A-Z_]+table_\d+/i'
+                    }
+                ]
+            }
+        },
+        'ses_pattern': {
+            'type': 'csg.resource.name.validation_pattern',
+            'status': 1,
+            'value': {
+                'conditions': {
+                    'cloud': 'ec2',
+                    'cloud.service': 'ses',
+                    'service.resource': 'CreateConfigurationSet'
+                },
+                'rules': [
+                    {
+                        'type': 'validation',
+                        'value': '/[A-Z_]+set_\d+/i'
+                    }
+                ]
+            }
+        },
         'sqs_prefix': {
             'type': 'csg.resource.name.prefix',
             'status': 1,
@@ -116,23 +184,6 @@ POLICIES = {
                     {
                         'type': 'validation',
                         'value': 'tmp_'
-                    }
-                ]
-            }
-        },
-        'ecs_pattern': {
-            'type': 'csg.resource.name.validation_pattern',
-            'status': 1,
-            'value': {
-                'conditions': {
-                    'cloud': 'ec2',
-                    'cloud.service': 'ecs',
-                    'service.resource': 'CreateCluster'
-                },
-                'rules': [
-                    {
-                        'type': 'validation',
-                        'value': '/[a-z]+/i'
                     }
                 ]
             }
