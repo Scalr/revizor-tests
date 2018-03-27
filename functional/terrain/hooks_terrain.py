@@ -175,7 +175,7 @@ def verify_testenv():
 
 
 @before.all
-def upload_fixtures():
+def upload_scripts():
     if CONF.scalr.te_id:
         LOG.info("Upload scripts")
         path_to_scripts = os.path.join(CONF.main.home, 'fixtures', 'testusing', 'scripts')
