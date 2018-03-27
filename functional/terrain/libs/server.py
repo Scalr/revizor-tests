@@ -35,7 +35,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
     'error was thrown due to the hostname format',
-    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded"
+    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded",
+    "Error synchronizing server time: Unable to synchronize time, cause ntpdate binary is not found in $PATH"
 ]
 
 # Run powershell script as Administrator
@@ -612,7 +613,7 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    return '%s-%s-%s' % (
+    return 'r%s-%s-%s' % (
         world.farm.id,
         server.farm_role_id,
         server.index

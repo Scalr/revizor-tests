@@ -4,7 +4,7 @@ from lettuce import world
 
 class CognitoUserPools(object):
     service_name = 'cognito user pools'
-    log_records = ['CONNECT cognito-idp.us-east-1.amazonaws.com:443']
+    log_records = ['https://cognito-idp.us-east-1.amazonaws.com']
 
     def __init__(self, platform):
         self.platform = platform
@@ -21,3 +21,8 @@ class CognitoUserPools(object):
         client.delete_user_pool(UserPoolId=pool_id)
         with world.assert_raises(boto_exceptions.ClientError, 'ResourceNotFoundException'):
             client.describe_user_pool(UserPoolId=pool_id)
+
+    def verify_denied(self, error_text):
+        client = self.platform.get_client('cognito-idp')
+        with world.assert_raises(boto_exceptions.ClientError, error_text):
+            client.list_user_pools(MaxResults=10)
