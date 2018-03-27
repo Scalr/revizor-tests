@@ -179,20 +179,22 @@ def upload_fixtures():
     if CONF.scalr.te_id:
         LOG.info("Upload scripts")
         path_to_scripts = os.path.join(CONF.main.home, 'fixtures', 'testusing', 'scripts')
-        for i, script_path in enumerate(os.listdir(path_to_scripts)):
+        upload_counter = 0
+        for _, script_path in enumerate(os.listdir(path_to_scripts)):
             with open(os.path.join(path_to_scripts, script_path), 'r') as f:
                 script = json.load(f)
             exist_scripts = Script.get_id(name=script['name'])
             if exist_scripts:
-                LOG.info("%s. Script '%s' already exist" % (i+1, script['name']))
+                LOG.info("Script '%s' already exist" % (script['name']))
             else:
                 IMPL.script.create(
                     name=script['name'],
                     description=script['description'],
                     content=script['content']
                 )
-                LOG.info("%s. Script '%s' upload successfully" % (i+1, script['name']))
-        LOG.info("All scripts uploaded")
+                LOG.info("Script '%s' upload successfully" % (script['name']))
+                upload_counter += 1
+        LOG.info("Total number of uploaded scripts: %s" % upload_counter)
 
 
 @before.all
