@@ -7,7 +7,6 @@ from lxml import etree
 
 from revizor2.api import Role, IMPL
 from revizor2.conf import CONF
-from revizor2.consts import DATABASE_BEHAVIORS
 from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.utils import wait_until
@@ -63,8 +62,8 @@ def add_role_to_farm(step, behavior=None, role_name=None, options=None, alias=No
 
     if not added_role:
         raise AssertionError('Added role "%s" not found in farm' % role['name'])
-    LOG.debug('Save role object with name %s' % role.alias)
-    setattr(world, '%s_role' % role.alias, added_role[0])
+    LOG.debug('Save role object with name %s' % added_role[0].alias)
+    setattr(world, '%s_role' % added_role[0].alias, added_role[0])
     setattr(world, 'role_params_%s' % added_role[0].id, role_params)
 
 
