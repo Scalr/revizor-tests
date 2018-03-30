@@ -16,7 +16,7 @@ from lxml import etree
 from lettuce import world, after, before
 
 from revizor2.conf import CONF
-from revizor2.backend import IMPL
+from revizor2.api import IMPL, Script
 from revizor2.cloud import Cloud
 from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
@@ -172,6 +172,29 @@ def verify_testenv():
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
     elif CONF.scalr.te_id:
         world.testenv = TestEnv(CONF.scalr.te_id)
+
+
+@before.all
+def upload_scripts():
+    if CONF.scalr.te_id:
+        LOG.info("Upload scripts")
+        path_to_scripts = os.path.join(CONF.main.home, 'fixtures', 'testusing', 'scripts')
+        upload_counter = 0
+        for _, script_path in enumerate(os.listdir(path_to_scripts)):
+            with open(os.path.join(path_to_scripts, script_path), 'r') as f:
+                script = json.load(f)
+            exist_scripts = Script.get_id(name=script['name'])
+            if exist_scripts:
+                LOG.info("Script '%s' already exist" % (script['name']))
+            else:
+                IMPL.script.create(
+                    name=script['name'],
+                    description=script['description'],
+                    content=script['content']
+                )
+                LOG.info("Script '%s' upload successfully" % (script['name']))
+                upload_counter += 1
+        LOG.info("Total number of uploaded scripts: %s" % upload_counter)
 
 
 @before.all
