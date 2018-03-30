@@ -5,6 +5,7 @@ import re
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform, Dist
+from revizor2.api import IMPL
 from lettuce import world, step, before
 
 
@@ -155,3 +156,19 @@ def check_failed_status_message(step, phase, msg, serv_as):
     LOG.debug('Initialization status message: %s' % msg_head)
     assert all(pattern in msg_head for pattern in patterns), \
         "Initialization was not failed on %s with message %s" % patterns
+
+
+@step("I set hostname '(.+)' that will be configured via the cookbook")
+def save_chef_cookbook_hostname(step, chef_host_name):
+    setattr(world, 'chef_hostname_for_cookbook', chef_host_name)
+    LOG.debug('Chef hostname for cookbook: %s' % chef_host_name)
+
+
+@step("server hostname in ([\w\d]+) is the same '(.+)'")
+def verify_chef_cookbook_hostname(step, serv_as, chef_hostname):
+    server = getattr(world, serv_as)
+    server_hostname = IMPL.server.get(server.id)['hostname']
+    if not server_hostname == chef_hostname:
+        raise AssertionError(
+            'Hostname on server "%s" != chef hostname configured via the cookbook "%s"' % (
+                server_hostname, chef_hostname))

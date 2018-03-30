@@ -78,10 +78,9 @@ Feature: Check chef attributes set
     @ec2 @vmware @gce @cloudstack @openstack @azure @rackspaceng
     Scenario: Chef bootstrap with configure the host name via cookbooks
         Given I have a clean and stopped farm
+        And I set hostname 'hostname-for-test-LIX050' that will be configured via the cookbook
         When I add role to this farm with chef-hostname
         When I start farm
         Then I expect server bootstrapping as M1
-#        And scalarizr version is last in M1
-        And server M1 exists on chef nodes list
-        And chef node_name in M1 set by global hostname
-        And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
+        And scalarizr version is last in M1
+        And server hostname in M1 is the same 'hostname-for-test-LIX050'
