@@ -40,16 +40,13 @@ def launch_import_server(step):
         node_id = node.id
         res_group = None
     LOG.info('Import to Scalr instance: %s' % node_id)
-    try:
-        import_res = IMPL.discovery_manager.import_server(
-            farm_role_id=farm_role.id,
-            platform=CONF.feature.platform.name,
-            instance_id=node_id,
-            resource_group=res_group
-        )
-    except:
-        pass
-    # assert import_res['success']
+    import_res = IMPL.discovery_manager.import_server(
+        farm_role_id=farm_role.id,
+        platform=CONF.feature.platform.name,
+        instance_id=node_id,
+        resource_group=res_group
+    )
+    assert import_res['success']
     setattr(world, 'cloud_server', None)
 
 
