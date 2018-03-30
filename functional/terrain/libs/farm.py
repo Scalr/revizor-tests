@@ -13,8 +13,6 @@ from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.helpers.roles import get_role_versions
 
-from lxml import etree
-
 LOG = logging.getLogger(__name__)
 
 
@@ -58,43 +56,6 @@ def give_empty_farm(launched=False):
 
 
 @world.absorb
-def add_role_to_farm(behavior, role_params, role_id=None):
-    """
-    Insert role to farm by behavior and find role in Scalr by generated name.
-    Role name generate by the following format:
-    {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
-    Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
-    """
-    env_role_id = CONF.feature.role_id
-    if env_role_id and env_role_id.isdigit():
-        LOG.info("Get role by env id: '%s'" % env_role_id)
-        role = IMPL.role.get(env_role_id)
-    elif env_role_id or not role_id:
-        role = get_role_by_mask(behavior, env_role_id)
-    else:
-        role = IMPL.role.get(role_id)
-    if not role:
-        raise NotFound('Role with id %s not found in Scalr' % (env_role_id or role_id))
-
-    world.wrt(etree.Element('meta', name='role', value=role['name']))
-    world.wrt(etree.Element('meta', name='dist', value=role['dist']))
-    previously_added_roles = [r.id for r in world.farm.roles]
-
-    alias = role_params.alias or role['name']
-    LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
-
-    role_params = setup_farmrole_params(role_params, alias=alias, behaviors=behavior)
-    world.farm.add_role(role['id'], options=role_params.to_json())
-    world.farm.roles.reload()
-
-    added_role = [r for r in world.farm.roles if r.id not in previously_added_roles]
-    if added_role:
-        setattr(world, 'role_params_%s' % added_role[0].id, role_params)
-        return added_role[0]
-    raise AssertionError('Added role "%s" not found in farm' % role['name'])
-
-
-@world.absorb
 def get_farm_state(state):
     world.farm = Farm.get(world.farm.id)
     if world.farm.status == state:
@@ -105,20 +66,34 @@ def get_farm_state(state):
 
 @world.absorb
 def setup_farmrole_params(
-        setup_bundled_role=False,
-        setup_hostname=True,
-        setup_db_storage=True,
-        role_params=None,
+        role_options=None,
         alias=None,
-        behaviors=None):
+        behaviors=None,
+        setup_bundled_role=False,
+        setup_hostname=True):
 
     platform = CONF.feature.platform
     dist = CONF.feature.dist
     behaviors = behaviors or []
+    role_options = role_options or []
+    role_params = farmrole.FarmRoleParams(platform, alias=alias)
+
     if isinstance(behaviors, str):
         behaviors = [behaviors]
 
-    role_params = role_params or farmrole.FarmRoleParams(platform, alias=alias)
+    for opt in role_options:
+        LOG.info('Inspect role option: %s' % opt)
+        if opt in ('branch_latest', 'branch_stable'):
+            role_params.advanced.agent_update_repository = opt.split('_')[1]
+        elif 'redis processes' in opt:
+            redis_count = re.findall(r'(\d+) redis processes', opt)[0].strip()
+            LOG.info('Setup %s redis processes' % redis_count)
+            role_params.database.redis_processes = int(redis_count)
+        elif 'chef-solo' in opt:
+            Defaults.set_chef_solo(role_params, opt)
+        else:
+            Defaults.apply_option(role_params, opt)
+
     if setup_hostname:
         Defaults.set_hostname(role_params)
 
@@ -126,7 +101,6 @@ def setup_farmrole_params(
         if dist.is_windows:
             role_params.advanced.reboot_after_hostinit = True
             if dist.mask in ('windows-2008', 'windows-2012') and platform.is_azure:
-                LOG.debug('Dist is windows, set instance type')
                 role_params.instance_type = 'Standard_A1'
         elif dist.id == 'scientific-6-x' or \
                 (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
@@ -140,11 +114,11 @@ def setup_farmrole_params(
                     value=getattr(world, 'test_id')
                 )
             )
-    if 'rabbitmq' in behaviors and not setup_bundled_role:
-        role_params.network.hostname_template = ''
-    elif any(b in DATABASE_BEHAVIORS for b in behaviors):
-        if setup_db_storage:
-            Defaults.set_db_storage(role_params)
+        if 'rabbitmq' in behaviors:
+            role_params.network.hostname_template = ''
+
+    if any(b in DATABASE_BEHAVIORS for b in behaviors):
+        Defaults.set_db_storage(role_params)
         if 'redis' in behaviors:
             LOG.info('Insert redis settings')
             snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
@@ -153,6 +127,7 @@ def setup_farmrole_params(
     return role_params
 
 
+@world.absorb
 def get_role_by_mask(behavior, mask=None):
     behavior = BEHAVIORS_ALIASES.get(behavior, None) or behavior
     if not mask:

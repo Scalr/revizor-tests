@@ -1,14 +1,14 @@
 __author__ = 'gigimon'
-import os
-import re
 import time
 import logging
 
 from lettuce import world, step
+from lxml import etree
 
-from libs.defaults import Defaults
-from revizor2.api import Role
+from revizor2.api import Role, IMPL
 from revizor2.conf import CONF
+from revizor2.consts import DATABASE_BEHAVIORS
+from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.utils import wait_until
 
@@ -30,29 +30,42 @@ def having_a_stopped_farm(step):
 
 @step(r"I add(?:\s(?P<behavior>[\w\d-]+))? role(?:\s(?P<role_name>[\w\d-]+))? to this farm(?:\swith\s(?P<options>[\w\d,-]+))?(?:\sas\s(?P<alias>[\w\d-]+))?")
 def add_role_to_farm(step, behavior=None, role_name=None, options=None, alias=None):
-    platform = CONF.feature.platform
-
+    behavior = (behavior or CONF.feature.behavior).strip()
+    role_options = (o.strip() for o in options.strip().split(','))
     role_name = (role_name or '').strip()
-    role_id = getattr(world, '%s_id' % role_name, None)
-    behavior = (behavior or os.environ.get('RV_BEHAVIOR', 'base')).strip()
+    role_id = CONF.feature.role_id or getattr(world, '%s_id' % role_name, None)
 
-    role_params = farmrole.FarmRoleParams(platform, alias=alias)
-    if options:
-        for opt in [o.strip() for o in options.strip().split(',')]:
-            LOG.info('Inspect option: %s' % opt)
-            if opt in ('branch_latest', 'branch_stable'):
-                role_params.advanced.agent_update_repository = opt.split('_')[1]
-            elif 'redis processes' in opt:
-                redis_count = re.findall(r'(\d+) redis processes', options)[0].strip()
-                LOG.info('Setup %s redis processes' % redis_count)
-                role_params.database.redis_processes = int(redis_count)
-            elif 'chef-solo' in opt:
-                Defaults.set_chef_solo(role_params, opt)
-            else:
-                Defaults.apply_option(role_params, opt)
-    role = world.add_role_to_farm(behavior, role_params, role_id)
+    if role_id and role_id.isdigit():
+        LOG.info("Get role by id: '%s'" % role_id)
+        role = IMPL.role.get(role_id)
+    else:
+        role = world.get_role_by_mask(
+            behavior,
+            role_id)
+    if not role:
+        raise NotFound('Role with id or by mask "%s" not found in Scalr' % (
+            role_id or behavior))
+
+    world.wrt(etree.Element('meta', name='role', value=role['name']))
+    world.wrt(etree.Element('meta', name='dist', value=role['dist']))
+    previously_added_roles = [r.id for r in world.farm.roles]
+
+    alias = alias or role['name']
+    LOG.info('Add role %s with alias %s to farm' % (role['id'], alias))
+    role_params = world.setup_farmrole_params(
+        role_options=role_options,
+        alias=alias,
+        behaviors=behavior)
+
+    world.farm.add_role(role['id'], options=role_params.to_json())
+    world.farm.roles.reload()
+    added_role = [r for r in world.farm.roles if r.id not in previously_added_roles]
+
+    if not added_role:
+        raise AssertionError('Added role "%s" not found in farm' % role['name'])
     LOG.debug('Save role object with name %s' % role.alias)
-    setattr(world, '%s_role' % role.alias, role)
+    setattr(world, '%s_role' % role.alias, added_role[0])
+    setattr(world, 'role_params_%s' % added_role[0].id, role_params)
 
 
 @step('I delete (\w+) role from this farm')

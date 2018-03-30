@@ -71,24 +71,20 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 def add_new_role_to_farm(step, alias=None):
     # TODO: Add support for HVM (and VPC)
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
-
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
-    setup_hostname = True if len('{}-{}'.format(world.farm.name, alias)) >= 63 else False
-    setup_db_storage = True if alias in DATABASE_BEHAVIORS else False
+    setup_hostname = False if len('{}-{}'.format(world.farm.name, alias)) < 63 else True
 
-    options = world.setup_farmrole_params(
-        setup_bundled_role=True,
-        setup_hostname=setup_hostname,
-        setup_db_storage=setup_db_storage,
+    role_params = world.setup_farmrole_params(
         alias=alias,
-        behaviors=bundled_role.behaviors
+        behaviors=bundled_role.behaviors,
+        setup_bundled_role=True,
+        setup_hostname=setup_hostname
     )
 
-    world.farm.add_role(world.bundled_role_id, options=options.to_json())
+    world.farm.add_role(world.bundled_role_id, options=role_params.to_json())
     world.farm.roles.reload()
     role = world.get_role(alias)
     LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
     setattr(world, '%s_role' % alias, role)
-
 
