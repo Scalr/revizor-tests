@@ -76,7 +76,7 @@ Feature: Check chef attributes set
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
     @ec2 @vmware @gce @cloudstack @openstack @azure @rackspaceng
-    Scenario: Chef bootstrap with configure the host name via cookbooks
+    Scenario: Chef bootstrapping with hostname configured via cookbooks
         Given I have a clean and stopped farm
         And I set hostname 'hostname-for-test-LIX050' that will be configured via the cookbook
         When I add role to this farm with chef-hostname
