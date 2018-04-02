@@ -212,7 +212,7 @@ class Defaults(object):
     @staticmethod
     def set_hostname(params):
         params.network.hostname_source = 'template'
-        params.network.hostname_template = 'r{SCALR_FARM_ID}-{SCALR_FARM_ROLE_ID}-{SCALR_INSTANCE_INDEX}'
+        params.network.hostname_template = r'{SCALR_FARM_ID}-{SCALR_FARM_ROLE_ID}-{SCALR_INSTANCE_INDEX}'
 
     @staticmethod
     def set_termination_preferences(params):

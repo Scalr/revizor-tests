@@ -27,13 +27,13 @@ def having_a_stopped_farm(step):
     world.give_empty_farm(launched=False)
 
 
-@step(r"I add(?:\s(?P<behavior>[\w\d-]+))? role(?:\s(?P<role_name>[\w\d-]+))? to this farm(?:\swith\s(?P<options>[\w\d,-]+))?(?:\sas\s(?P<alias>[\w\d-]+))?")
-def add_role_to_farm(step, behavior=None, role_name=None, options=None, alias=None):
+@step(r"I add(?:\s(?P<behavior>[\w\d-]+))? role(?:\s(?P<role_name>[\w\d-]+))? to this farm(?:\swith\s(?P<role_options>[\w\d,-]+))?(?:\sas\s(?P<alias>[\w\d-]+))?")
+def add_role_to_farm(step, behavior=None, role_name=None, role_options=None, alias=None):
     behavior = (behavior or CONF.feature.behavior).strip()
-    role_options = (o.strip() for o in options.strip().split(','))
     role_name = (role_name or '').strip()
     role_id = CONF.feature.role_id or getattr(world, '%s_id' % role_name, None)
-
+    if role_options:
+        role_options = (o.strip() for o in role_options.strip().split(','))
     if role_id and role_id.isdigit():
         LOG.info("Get role by id: '%s'" % role_id)
         role = IMPL.role.get(role_id)
