@@ -140,20 +140,20 @@ def get_role_by_mask(behavior, mask=None):
 
         if use_cloudinit_role:
             dist_mask = dist.id
-            ver_mask_tpl = 'tmp-{beh}-{dist}-*-*'
+            role_ver_tpl = 'tmp-{beh}-{dist}-*-*'
             role_name_tpl = 'tmp-{beh}-{dist}-{ver}'
         else:
             dist_mask = dist.mask
-            ver_mask_tpl = '{beh}*-{dist}-{type}'
+            role_ver_tpl = '{beh}*-{dist}-{type}'
             role_name_tpl = '{beh}{ver}-{dist}-{type}'
 
-        mask = ver_mask_tpl.format(
+        role_ver_mask = role_ver_tpl.format(
             beh=behavior,
             dist=dist_mask,
             type=role_type)
-        LOG.info('Get role versions by mask: %s' % mask)
+        LOG.info('Get role versions by mask: %s' % role_ver_mask)
 
-        role_version = get_role_versions(mask, use_latest=True)
+        role_version = get_role_versions(role_ver_mask, use_latest=True)
         role_name = role_name_tpl.format(
             beh=behavior,
             dist=dist_mask,
