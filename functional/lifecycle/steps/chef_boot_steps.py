@@ -5,7 +5,6 @@ import re
 
 from revizor2.conf import CONF
 from revizor2.consts import Platform, Dist
-from revizor2.api import IMPL
 from lettuce import world, step, before
 
 
@@ -167,8 +166,8 @@ def save_chef_cookbook_hostname(step, chef_host_name):
 @step("server hostname in ([\w\d]+) is the same '(.+)'")
 def verify_chef_cookbook_hostname(step, serv_as, chef_hostname):
     server = getattr(world, serv_as)
-    server_hostname = IMPL.server.get(server.id)['hostname']
-    if not server_hostname == chef_hostname:
+    server.reload()
+    if not server.hostname == chef_hostname:
         raise AssertionError(
             'Hostname on server "%s" != chef hostname configured via the cookbook "%s"' % (
-                server_hostname, chef_hostname))
+                server.hostname, chef_hostname))
