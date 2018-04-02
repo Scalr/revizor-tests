@@ -9,7 +9,8 @@ from lettuce import world, step
 
 from revizor2.utils import wait_until
 from revizor2.fixtures import tables
-from revizor2.api import CONF, IMPL
+from revizor2.conf import CONF
+from revizor2.backend import IMPL
 
 
 LOG = logging.getLogger(__name__)

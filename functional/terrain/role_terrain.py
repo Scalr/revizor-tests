@@ -73,13 +73,11 @@ def add_new_role_to_farm(step, alias=None):
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
-    setup_hostname = False if len('{}-{}'.format(world.farm.name, alias)) < 63 else True
 
     role_params = world.setup_farmrole_params(
         alias=alias,
         behaviors=bundled_role.behaviors,
         setup_bundled_role=True,
-        setup_hostname=setup_hostname
     )
 
     world.farm.add_role(world.bundled_role_id, options=role_params.to_json())

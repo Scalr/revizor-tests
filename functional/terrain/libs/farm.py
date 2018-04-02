@@ -1,6 +1,7 @@
 import os
 import re
 import logging
+import types
 from datetime import datetime
 
 from lettuce import world
@@ -69,16 +70,16 @@ def setup_farmrole_params(
         role_options=None,
         alias=None,
         behaviors=None,
-        setup_bundled_role=False,
-        setup_hostname=True):
+        setup_bundled_role=False):
 
     platform = CONF.feature.platform
     dist = CONF.feature.dist
     behaviors = behaviors or []
     role_options = role_options or []
     role_params = farmrole.FarmRoleParams(platform, alias=alias)
+    setup_hostname = True
 
-    if isinstance(behaviors, str):
+    if isinstance(behaviors, types.StringType):
         behaviors = [behaviors]
 
     for opt in role_options:
@@ -93,9 +94,6 @@ def setup_farmrole_params(
             Defaults.set_chef_solo(role_params, opt)
         else:
             Defaults.apply_option(role_params, opt)
-
-    if setup_hostname:
-        Defaults.set_hostname(role_params)
 
     if not setup_bundled_role:
         if dist.is_windows:
@@ -116,6 +114,8 @@ def setup_farmrole_params(
             )
         if 'rabbitmq' in behaviors:
             role_params.network.hostname_template = ''
+    elif len('{}-{}'.format(world.farm.name, alias)) < 63:
+        setup_hostname = False
 
     if any(b in DATABASE_BEHAVIORS for b in behaviors):
         Defaults.set_db_storage(role_params)
@@ -124,18 +124,19 @@ def setup_farmrole_params(
             snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
             role_params.database.redis_persistence_type = snapshotting_type
             role_params.database.redis_use_password = True
+
+    if setup_hostname:
+        Defaults.set_hostname(role_params)
     return role_params
 
 
 @world.absorb
 def get_role_by_mask(behavior, mask=None):
     behavior = BEHAVIORS_ALIASES.get(behavior, None) or behavior
+    dist = CONF.feature.dist
     if not mask:
-        use_cloudinit_role = re.search(
-            pattern="(-cloudinit)$",
-            string=behavior)
+        use_cloudinit_role = "-cloudinit" in behavior
         role_type = CONF.feature.role_type
-        dist = CONF.feature.dist
 
         if use_cloudinit_role:
             dist_mask = dist.id
@@ -146,26 +147,22 @@ def get_role_by_mask(behavior, mask=None):
             ver_mask_tpl = '{beh}*-{dist}-{type}'
             role_name_tpl = '{beh}{ver}-{dist}-{type}'
 
-        ver_mask_tpl_params = dict(
+        mask = ver_mask_tpl.format(
             beh=behavior,
             dist=dist_mask,
-            type=role_type
-        )
-        mask = ver_mask_tpl.format(**ver_mask_tpl_params)
+            type=role_type)
         LOG.info('Get role versions by mask: %s' % mask)
 
         role_version = get_role_versions(mask, use_latest=True)
-        role_tpl_params = dict(
+        role_name = role_name_tpl.format(
             beh=behavior,
             dist=dist_mask,
             ver=role_version,
-            type=role_type
-        )
-        role_name = role_name_tpl.format(**role_tpl_params)
+            type=role_type)
     else:
         role_name = mask
     LOG.info('Get role by name: %s' % role_name)
-    roles = IMPL.role.list(query=role_name)
+    roles = IMPL.role.list(dist=dist.dist, query=role_name)
     if roles:
         return roles[0]
     if mask:
