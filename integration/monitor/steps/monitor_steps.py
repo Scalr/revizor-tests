@@ -4,8 +4,6 @@ import logging
 
 from lettuce import world, step
 
-from revizor2.api import Cloud
-
 LOG = logging.getLogger(__name__)
 
 
@@ -78,16 +76,6 @@ def check_pulling_or_pushing(step, serv_as, method):
             time.sleep(5)
         if not success:
             raise AssertionError('%s message for server %s was not found in monitor log!' % (method, server.id))
-
-
-@step(r'proxy ([\w\d]+) log contains message "(.+)"$')
-def verify_proxy_working(step, proxy_as, message):
-    server = getattr(world, proxy_as)
-    proxy_cloud = Cloud(server.platform)
-    node = proxy_cloud.get_node(server)
-    logs = node.run("cat /var/log/squid3/access.log").std_out
-    if message not in logs:
-        raise AssertionError("No messages indicating that proxy is working were found in log!")
 
 
 @step(r'data for ([\w\d,]+) is present in influx')
