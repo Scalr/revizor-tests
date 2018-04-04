@@ -33,14 +33,22 @@ def verify_request_status(step, request_as, status, scope='environment'):
                              'Expected = "%s", actual = "%s"' % (status, request['status']))
 
 
-@step('I approve access request ([\w\d]+)')
-def approve_request(step, request_as):
+@step('I (approve|deny|revoke|archive) access request ([\w\d]+)(?: with policy group ([\w\d]+))?')
+def approve_request(step, action, request_as, policy_group_as=None):
     id = getattr(world, '%s_request_id' % request_as)
-    cloud = getattr(world, '%s_request_cloud' % request_as)
-    result = IMPL.csg.approve_request(id, cloud)
-    if not result:
-        raise AssertionError('Cloud service access request has not been approved')
-    LOG.debug('Approved cloud service access request, id=%s' % id)
+    policy_group_id = getattr(world, 'policy_group_%s' % policy_group_as) if policy_group_as else None
+    if action == 'approve':
+        cloud = getattr(world, '%s_request_cloud' % request_as)
+        result = IMPL.csg.approve_request(id, cloud, policy_group_id)
+        if not result:
+            raise AssertionError('Cloud service access request has not been approved')
+        LOG.debug('Approved cloud service access request, id=%s' % id)
+    elif action == 'deny':
+        IMPL.csg.deny_request(id)
+    elif action == 'revoke':
+        IMPL.csg.revoke_request(id)
+    elif action == 'archive':
+        IMPL.csg.archive_request(id)
 
 
 @step('I obtain secret key for access request ([\w\d]+)')
@@ -60,15 +68,21 @@ def have_request(step, status, request_as):
         status=status))
 
 
-@step("\"([\w\d\s]+)\" service works on (AWS|Azure) using ([\w\d]+)")
-def verify_service(step, service, platform, request_as):
+@step("\"([\w\d\s]+)\" service is (active|restricted|disabled) on (AWS|Azure) using ([\w\d]+)")
+def verify_service(step, service, status, platform, request_as):
+    """`status` - defines in which state the service should be
+      - active: service is approved and should work properly
+      - restricted: access request is approved, but this service is not in a list of requested services
+      - disabled: access request was approved once but then revoked or archived
+    Both restricted/disabled states do mean that the service doesn't work, but the error expected differs for them
+    """
     service = service.strip().lower()
     platform = platform.strip().lower()
     if platform == 'aws':
         platform = 'ec2'
     request_id = getattr(world, '%s_request_id' % request_as)
     secret = getattr(world, '%s_request_secret' % request_as)
-    world.csg_verify_service(platform, service, request_id, secret)
+    world.csg_verify_service(platform, service, request_id, secret, status)
 
 
 @step("requests to \"([\w\d\s]+)\" on (AWS|Azure) are present in last proxy logs on ([\w\d]+)")
@@ -80,14 +94,26 @@ def check_proxy_logs(step_instance, service, platform, proxy_as):
     server = getattr(world, proxy_as)
     node = world.cloud.get_node(server)
     old_logs_count = getattr(world, '%s_proxy_logs_count' % proxy_as, 0)
-    logs = node.run('tail -n +%s /var/log/squid3/access.log' % (old_logs_count + 1)).std_out.splitlines()
+    logs = node.run('tail -n +%s /var/log/mitmproxy.log' % (old_logs_count + 1)).std_out.splitlines()
     setattr(world, '%s_proxy_logs_count' % proxy_as, len(logs) + old_logs_count)
     for record in world.csg_get_service_log_records(platform, service):
-        LOG.debug('Searching for "%s" in squid logs' % record)
+        LOG.debug('Searching for "%s" in proxy logs' % record)
         for line in logs:
             if record in line:
                 break
         else:
             # record not found in logs
-            LOG.debug('Received squid logs:\n%s' % logs)
+            LOG.debug('Received proxy logs:\n%s' % logs)
             raise AssertionError('Text "%s" not found in last proxy logs' % record)
+
+
+@step("([\w,]+) rule works for \"([\w\d\s]+)\" service on (AWS|Azure) using ([\w\d]+)")
+def verify_policy(step, rules, service, platform, request_as):
+    rules = rules.strip().split(',')
+    service = service.strip().lower()
+    platform = platform.strip().lower()
+    if platform == 'aws':
+        platform = 'ec2'
+    request_id = getattr(world, '%s_request_id' % request_as)
+    secret = getattr(world, '%s_request_secret' % request_as)
+    world.csg_verify_service_policy(platform, service, request_id, secret, **{rule: True for rule in rules})

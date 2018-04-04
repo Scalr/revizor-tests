@@ -723,6 +723,9 @@ def creating_role(step, image_type=None, non_scalarized=None):
     if platform.is_gce:
         cloud_location = ""
         image_id = image.extra['selfLink'].split('projects')[-1][1:]
+    elif platform.is_azure:
+        cloud_location = platform.location
+        image_id = '/'.join(image.name.split(' ')[:-1]) + '/latest'
     else:
         cloud_location = platform.location
         image_id = image.id
@@ -732,6 +735,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
         cloud_location=cloud_location,
         image_id=image_id
     )
+    if platform.is_azure:
+        image_kwargs['cloud_location'] = ""
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
             image_type,
             CONF.feature.dist.id,
@@ -952,7 +957,7 @@ def verify_ports_in_iptables(step, ports, should_not_contain, serv_as):
         LOG.debug('Check port "%s" in iptables rules' % port)
         if port in iptables_rules and should_not_contain:
             raise AssertionError('Port "%s" in iptables rules!' % port)
-        elif not should_not_contain and not port in iptables_rules:
+        elif not should_not_contain and port not in iptables_rules:
             raise AssertionError('Port "%s" is NOT in iptables rules!' % port)
 
 

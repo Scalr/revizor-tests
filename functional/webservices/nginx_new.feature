@@ -59,7 +59,6 @@ Feature: Nginx load balancer role test with apache backends and new proxy settin
         And 'limit_rate 4096;' in W1 proxies file
         And 'limit_rate 8192;' in W1 proxies file
         And nginx is running on W1
-        And ports [8004] in iptables in W1
         Then I start BaseHttpServer on 8004 port in A1
         And http get domain D1/custom_port matches 'It works!'
         And http get domain D1 matches H1 index page

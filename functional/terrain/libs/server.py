@@ -251,14 +251,14 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                     lookup_server = None
                     lookup_node = None
                     continue
-                if platform.is_azure and azure_failed != 2:
-                    LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
-                        lookup_server.id,
-                        azure_failed + 1,
-                        lookup_server.get_failed_status_message()))
-                    azure_failed += 1
-                    time.sleep(15)
-                    continue
+                # if platform.is_azure and azure_failed != 2:
+                #     LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
+                #         lookup_server.id,
+                #         azure_failed + 1,
+                #         lookup_server.get_failed_status_message()))
+                #     azure_failed += 1
+                #     time.sleep(15)
+                #     continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
                     return lookup_server
@@ -321,7 +321,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                     lookup_server.messages.reload()
                     if platform.is_azure \
                             and not Dist(lookup_server.role.dist).is_windows \
-                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
+                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)) \
+                            and lookup_server.is_scalarized:
                         LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
                         wait_server_message(
                             lookup_server,
