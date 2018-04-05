@@ -2,6 +2,7 @@ import os
 
 from lettuce import world, step
 
+from revizor2.api import Cloud
 from revizor2.conf import CONF
 from revizor2.consts import Dist, Platform
 
@@ -13,6 +14,7 @@ def configure_revizor(step):
         CONF.feature[revizor_opt['name']] = revizor_opt['value']
         if revizor_opt['name'] == 'platform':
             CONF.feature.platform = Platform(os.environ.get('RV_PLATFORM', 'gce'))
+            world.cloud = Cloud(os.environ.get('RV_PLATFORM', 'gce'))
         elif revizor_opt['name'] == 'dist':
             CONF.feature.dist = Dist(os.environ.get('RV_DIST', 'ubuntu1604'))
 

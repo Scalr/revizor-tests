@@ -10,7 +10,7 @@ from revizor2.conf import CONF
 from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import MessageFailed
+from revizor2.exceptions import MessageFailed, MessageNotFounded
 from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def waiting_server(step, state, serv_as, timeout=1400):
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
-    LOG.info('Server succesfully %s' % state)
+    LOG.info('Server %s succesfully %s' % (server.id, state))
     setattr(world, serv_as, server)
 
 
@@ -148,6 +148,12 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_me
             world.farm.servers.reload()
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
         LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
+        if msg == 'VhostReconfigure' and CONF.feature.platform.is_ec2 and failed:
+            server.logs.reload()
+            for log in server.logs:
+                if msg in log.message:
+                    return
+            raise MessageNotFounded("%s was not found in %s system logs!" % (msg, server.id))
         try:
             s = find_message(server, msg.strip(), msgtype, timeout=timeout)
             setattr(world, serv_as, s)

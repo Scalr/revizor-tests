@@ -102,6 +102,19 @@ Feature: MySQL database server with behavior mysql2
        And scalarizr is running on M2
        And not ERROR in M2 scalarizr log
 
+    @ec2 @gce @cloudstack @rackspaceng @openstack @reboot
+    Scenario: Reboot master and slave
+        When I reboot server M1
+        When I reboot server M2
+        And Scalr receives RebootFinish from M1
+        And Scalr receives RebootFinish from M2
+        And scalarizr is running on M1
+        And scalarizr is running on M2
+        And mysql is running on M1
+        And mysql is running on M2
+        And not ERROR in M1 scalarizr log
+        And not ERROR in M2 scalarizr log
+
     @ec2 @gce @cloudstack @rackspaceng @openstack @slavetermination
     Scenario: Slave force termination
         When I force terminate M2
