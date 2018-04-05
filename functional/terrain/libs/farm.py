@@ -77,10 +77,12 @@ def setup_farmrole_params(
     behaviors = behaviors or []
     role_options = role_options or []
     role_params = farmrole.FarmRoleParams(platform, alias=alias)
-    setup_default_hostname = True
 
     if isinstance(behaviors, types.StringType):
         behaviors = [behaviors]
+
+    if not (setup_bundled_role and len('{}-{}'.format(world.farm.name, alias)) < 63):
+        Defaults.set_hostname(role_params)
 
     for opt in role_options:
         LOG.info('Inspect role option: %s' % opt)
@@ -114,8 +116,6 @@ def setup_farmrole_params(
             )
         if 'rabbitmq' in behaviors:
             role_params.network.hostname_template = ''
-    elif len('{}-{}'.format(world.farm.name, alias)) < 63:
-        setup_default_hostname = False
 
     if any(b in DATABASE_BEHAVIORS for b in behaviors):
         Defaults.set_db_storage(role_params)
@@ -125,8 +125,6 @@ def setup_farmrole_params(
             role_params.database.redis_persistence_type = snapshotting_type
             role_params.database.redis_use_password = True
 
-    if setup_default_hostname and not role_params.network.hostname_template.is_set:
-        Defaults.set_hostname(role_params)
     return role_params
 
 
