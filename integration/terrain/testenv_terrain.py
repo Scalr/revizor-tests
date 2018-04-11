@@ -61,8 +61,7 @@ def check_service_logs(step, search_string, service):
 
 @step("I configure roles in testenv")
 def configure_roles_in_testenv(step):
-    index = 0
-    for role_opts in step.hashes:
+    for index, role_opts in enumerate(step.hashes):
         step.behave_as("""
             And I have configured revizor environment:
                 | name           | value       |

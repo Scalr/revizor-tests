@@ -30,9 +30,10 @@ def configure_webhooks(step, serv_as):
     created_webhooks = []
     created_endpoints = []
     current_endpoints = IMPL.webhooks.list_endpoints()
+    current_endpoint_urls = [e['url'] for e in current_endpoints.values()] if current_endpoints else None
     for opts in step.hashes:
         url = "%s://%s%s" % (opts['schema'].strip(), server.public_ip, opts['endpoint'].strip())
-        if current_endpoints and any(e for e in current_endpoints.values() if e['url'] == url):
+        if url in current_endpoint_urls:
             continue
         scalr_endpoint = IMPL.webhooks.create_endpoint(url)
         created_endpoints.append(scalr_endpoint)
@@ -77,13 +78,17 @@ def assert_webhooks(step, serv_as):
                 result['handleAttempts'])
 
 
-@step(r'I configure SCALR_MAIL_SERVICE')
-def configure_scalr_mail_service(step):
+@step(r'I set scalr_mail_service_url in TestEnv config')
+def set_mail_service_url(step):
     url = "http://%s.test-env.scalr.com/webhook_mail.php" % world.testenv.te_id
     step.behave_as("""
         And I have configured scalr config:
             | name                                          | value |
             | scalr.system.webhooks.scalr_mail_service_url  | {url} |""".format(url=url))
+
+
+@step(r'I add SCALR_MAIL_SERVICE webhook')
+def add_mail_service_webhook(step):
     if not any(hook for hook in IMPL.webhooks.list_webhooks() if hook['name'] == 'test_mail_service'):
         endpoints = IMPL.webhooks.list_endpoints()
         if endpoints:
