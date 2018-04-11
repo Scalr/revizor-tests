@@ -14,9 +14,9 @@ def configure_flask(step, serv_as, tls):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     if tls:
-        node.put_file("/tmp/default", resources('configs/nginx4.conf').get())
+        node.put_file("/tmp/default", resources('configs/nginx_to_flask_proxy_tls.conf').get())
     else:
-        node.put_file("/tmp/default", resources('configs/nginx3.conf').get())  # Put custom nginx config in server
+        node.put_file("/tmp/default", resources('configs/nginx_to_flask_proxy.conf').get())  # Put custom nginx config in server
     node.put_file("/tmp/prepare_flask.sh", resources('scripts/prepare_flask.sh').get()) # Put flask preparation script in server
     node.put_file('webhooks.py', resources('scripts/webhooks.py').get())  # Put flask script
     with node.remote_connection() as conn:
