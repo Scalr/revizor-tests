@@ -78,7 +78,7 @@ def setup_farmrole_params(
     role_options = role_options or []
     role_params = farmrole.FarmRoleParams(platform, alias=alias)
 
-    if isinstance(behaviors, types.StringType):
+    if isinstance(behaviors, types.StringTypes):
         behaviors = [behaviors]
 
     if not (setup_bundled_role and len('{}-{}'.format(world.farm.name, alias)) < 63):
@@ -118,6 +118,7 @@ def setup_farmrole_params(
             role_params.network.hostname_template = ''
 
     if any(b in DATABASE_BEHAVIORS for b in behaviors):
+        LOG.debug('Setup default db storages')
         Defaults.set_db_storage(role_params)
         if 'redis' in behaviors:
             LOG.info('Insert redis settings')

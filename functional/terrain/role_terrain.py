@@ -83,6 +83,6 @@ def add_new_role_to_farm(step, alias=None):
     world.farm.add_role(world.bundled_role_id, options=role_params.to_json())
     world.farm.roles.reload()
     role = world.get_role(alias)
-    LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
+    LOG.debug('Save Role object after insert rebundled role to farm as: %s_role' % alias)
     setattr(world, '%s_role' % alias, role)
 
