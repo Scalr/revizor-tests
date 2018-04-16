@@ -21,27 +21,27 @@ Feature: Check fatmouse/workflow_engine webhooks implementation
     And http/https get F1 contains default welcome message
 
 
-  Scenario: Check Webhooks with ssl_verify=false
-    And Scalr services zmq_service,workflow-engine are in RUNNING state
-    And Scalr services dbqueue are in STOPPED state
-    Then I add F1 webhooks to Scalr:
-      | schema | endpoint    | trigger_event | name           |
-      | http   | /           | AccountEvent  | http_normal    |
-      | https  | /redirect   | AccountEvent  | https_redirect |
-      | https  | /abort404   | AccountEvent  | https_404      |
-      | https  | /abort500   | AccountEvent  | https_500      |
-      | https  | /retry      | AccountEvent  | https_retry    |
-      | https  | /           | AccountEvent  | https_normal   |
-    When I execute 'szradm --fire-event AccountEvent' in F1
-    And I assert F1 webhook results:
-      | webhook_name   | expected_response | attempts | error |
-      | http_normal    | 200               | 1        |       |
-      | https_redirect | 200               | 1        |       |
-      | https_404      | 404               | 1        |       |
-      | https_500      | 500               | 2        |       |
-      | https_retry    | 200               | 2        |       |
-      | https_normal   | 200               | 1        |       |
-    And no "Traceback" in service "workflow-engine" log
+  # Scenario: Check Webhooks with ssl_verify=false
+  #   And Scalr services zmq_service,workflow-engine are in RUNNING state
+  #   And Scalr services dbqueue are in STOPPED state
+  #   Then I add F1 webhooks to Scalr:
+  #     | schema | endpoint    | trigger_event | name           |
+  #     | http   | /           | AccountEvent  | http_normal    |
+  #     | https  | /redirect   | AccountEvent  | https_redirect |
+  #     | https  | /abort404   | AccountEvent  | https_404      |
+  #     | https  | /abort500   | AccountEvent  | https_500      |
+  #     | https  | /retry      | AccountEvent  | https_retry    |
+  #     | https  | /           | AccountEvent  | https_normal   |
+  #   When I execute 'szradm --fire-event AccountEvent' in F1
+  #   And I assert F1 webhook results:
+  #     | webhook_name   | expected_response | attempts | error |
+  #     | http_normal    | 200               | 1        |       |
+  #     | https_redirect | 200               | 1        |       |
+  #     | https_404      | 404               | 1        |       |
+  #     | https_500      | 500               | 2        |       |
+  #     | https_retry    | 200               | 2        |       |
+  #     | https_normal   | 200               | 1        |       |
+  #   And no "Traceback" in service "workflow-engine" log
 
 
   @tls

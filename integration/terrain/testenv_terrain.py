@@ -80,7 +80,6 @@ def configure_roles_in_testenv(step):
         server = world.wait_server_bootstrapping(role, state, timeout)
         setattr(world, role_opts['server_index'], server)
         LOG.info('Server %s (%s) successfully in %s state' % (server.id, role_opts['server_index'], state))
-        index += 1
 
 
 @step(r'proxy ([\w\d]+) log contains message "(.+)"(?: for ([\w\d]+))?')

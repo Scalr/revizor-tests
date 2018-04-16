@@ -13,10 +13,9 @@ LOG = logging.getLogger(__name__)
 def configure_flask(step, serv_as, tls):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
+    node.put_file("/tmp/default", resources('configs/nginx_to_flask_proxy.conf').get())  # Put custom nginx config in server
     if tls:
-        node.put_file("/tmp/default", resources('configs/nginx_to_flask_proxy_tls.conf').get())
-    else:
-        node.put_file("/tmp/default", resources('configs/nginx_to_flask_proxy.conf').get())  # Put custom nginx config in server
+        node.run("ex -sc '13i|        ssl_protocols TLSv1.2;' -cx /tmp/default")
     node.put_file("/tmp/prepare_flask.sh", resources('scripts/prepare_flask.sh').get()) # Put flask preparation script in server
     node.put_file('webhooks.py', resources('scripts/webhooks.py').get())  # Put flask script
     with node.remote_connection() as conn:
@@ -38,10 +37,10 @@ def configure_webhooks(step, serv_as):
         scalr_endpoint = IMPL.webhooks.create_endpoint(url)
         created_endpoints.append(scalr_endpoint)
         webhook = IMPL.webhooks.create_webhook(
-            opts['name'].strip() + '-' + server.id.split('-')[0],
-            [scalr_endpoint['endpointId']],
-            [opts['trigger_event'].strip()],
-            [world.farm.id],
+            '%s-%s' % (opts['name'].strip(), server.id.split('-')[0]),
+            scalr_endpoint['endpointId'],
+            opts['trigger_event'].strip(),
+            world.farm.id,
             attempts=2)
         created_webhooks.append(webhook)
     setattr(world, 'test_endpoints', created_endpoints)
@@ -53,7 +52,7 @@ def assert_webhooks(step, serv_as):
     server = getattr(world, serv_as)
     webhooks = getattr(world, 'test_webhooks')
     for opts in step.hashes:
-        webhook_name = opts['webhook_name'] + '-' + server.id.split('-')[0]
+        webhook_name = '%s-%s' % (opts['webhook_name'], server.id.split('-')[0])
         webhook = [w for w in webhooks if w['name'] == webhook_name][0]
         LOG.debug('Check webhook %s' % webhook['name'])
         fail = True if opts['expected_response'] == "None" else False
@@ -91,37 +90,34 @@ def set_mail_service_url(step):
 def add_mail_service_webhook(step):
     if not any(hook for hook in IMPL.webhooks.list_webhooks() if hook['name'] == 'test_mail_service'):
         endpoints = IMPL.webhooks.list_endpoints()
-        if endpoints:
-            endpoint = [endp for endp in endpoints.values() if endp['url'] == 'http://mail.test']
-            endpoint = endpoint[0] if endpoint else IMPL.webhooks.create_endpoint("http://mail.test")
+        if endpoints and any(e for e in endpoints if e['url'] == 'SCALR_MAIL_SERVICE'):
+            endpoint = [endp for endp in endpoints if endp['url'] == 'SCALR_MAIL_SERVICE'][0]
         else:
             endpoint = IMPL.webhooks.create_endpoint("http://mail.test")
-        cmd = """mysql --database="scalr" --execute 'update webhook_endpoints set url="SCALR_MAIL_SERVICE" where url="http://mail.test"'"""
+            cmd = """mysql --database="scalr" --execute 'update webhook_endpoints set url="SCALR_MAIL_SERVICE" where url="http://mail.test"'"""
         world.testenv.get_ssh().run(cmd)  # Change url to SCALR_MAIL_SERVICE
         webhook = IMPL.webhooks.create_webhook(
             "test_mail_service",
-            [endpoint['endpointId']],
+            endpoint['endpointId'],
             'ScalrEvent',
-            [world.farm.id],
+            world.farm.id,
             attempts=2,
             user_data='test@scalr.com')
-        setattr(world, 'mail_endpoint', endpoint)
-        setattr(world, 'mail_webhook', webhook)
+        setattr(world, 'test_endpoints', endpoint)
+        setattr(world, 'test_webhooks', webhook)
 
 
 @step(r'SCALR_MAIL_SERVICE result is successful')
 def assert_mail_service(step):
-    webhook = getattr(world, 'mail_webhook')
-    endpoint = getattr(world, 'mail_endpoint', None)
+    webhook = getattr(world, 'test_webhooks')
+    endpoint = getattr(world, 'test_endpoints', None)
     result = wait_webhook_result(webhook)
     assert result['responseCode'] == 200, "SCALR_MAIL_SERVICE has unexpected exit code %s" % result['responseCode']
-    IMPL.webhooks.delete_webhooks([webhook['webhookId']])
-    IMPL.webhooks.delete_endpoints([endpoint['endpointId']])
 
 
 def wait_webhook_result(webhook, attempts=None, expect_to_fail=False):
-    for i in range(20):
-        result = IMPL.webhooks.get_webhook_results(webhook_ids=[webhook['webhookId']])
+    for _ in range(20):
+        result = IMPL.webhooks.get_webhook_results(webhook_ids=webhook['webhookId'])
         if result:
             LOG.debug('Webhook %s current history:\n%s' % (webhook['name'], result[0]))
             if attempts and result[0]['handleAttempts'] != attempts:
