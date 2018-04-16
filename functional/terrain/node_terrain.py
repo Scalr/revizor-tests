@@ -389,11 +389,7 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     server = getattr(world, serv_as)
     if branch == 'latest' and 'base' in server.role.behaviors:
         branch = DEFAULT_PY3_BRANCH
-    os_family = Dist(server.role.dist).family
-    index_url = get_repo_url(os_family, branch)
-    repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
-    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
-    versions.sort()
+    version_old = world.get_scalaraizr_latest_version(branch)
     LOG.info('Scalarizr versions in repository %s: %s' % (branch, versions))
     try:
         server_info = server.upd_api.status(cached=False)
@@ -403,9 +399,21 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     # if not repo == server_info['repository']:
     #     raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'
     #                          % (server_info['repository'], repo))
-    if not versions[-1] == server_info['installed']:
+    if not version_old == server_info['installed']:
         raise AssertionError('Installed scalarizr version is not last! Installed %s, last: %s'
-                             % (server_info['installed'], versions[-1]))
+                             % (server_info['installed'], version_old))
+
+
+@world.absorb
+def get_scalaraizr_latest_version(branch):
+    os_family = CONF.feature.dist.family
+    index_url = get_repo_url(os_family, branch)
+    LOG.debug('Check package from index_url: %s' % index_url)
+    repo_data = parser_for_os_family(CONF.feature.dist.mask)(index_url=index_url)
+    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
+    # raise Exception(versions)
+    versions.sort(reverse=True)
+    return versions[0]
 
 
 @step(r'scalarizr version(?:\sfrom\s([\w\d_]+))* is last in ([\w\d]+)$')
@@ -421,19 +429,13 @@ def assert_scalarizr_version(step, branch, serv_as):
         branch = CONF.feature.branch
     elif branch == 'role':
         branch = CONF.feature.to_branch
-    os_family = Dist(server.role.dist).family
     # if branch == 'latest' and 'base' in server.role.behaviors:
     #     branch = DEFAULT_PY3_BRANCH
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
         # Get custom repo url
-        index_url = get_repo_url(os_family, branch)
-        LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
-        versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
-        versions.sort(reverse=True)
-        last_version = versions[0]
+        last_version = world.get_scalaraizr_latest_version(branch)
         if last_version.strip().endswith('-1'):
             last_version = last_version.strip()[:-2]
     LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))

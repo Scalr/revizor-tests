@@ -23,7 +23,6 @@ from revizor2.utils import wait_until
 from revizor2.cloud.node import ExtendedNode
 from revizor2.consts import ServerStatus, Dist
 from revizor2.fixtures import manifests
-from revizor2.helpers.parsers import parser_for_os_family, get_repo_url
 
 
 LOG = logging.getLogger(__name__)
@@ -150,15 +149,6 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
         if domains:
             with open(os.path.join(path, 'domains.json'), "w+") as f:
                 f.write(json.dumps(domains, indent=2))
-
-
-def get_scalaraizr_latest_version(branch):
-    os_family = CONF.feature.dist.family
-    index_url = get_repo_url(os_family, branch)
-    repo_data = parser_for_os_family(CONF.feature.dist.mask)(index_url=index_url)
-    versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
-    versions.sort(reverse=True)
-    return versions[0]
 
 
 @before.all
@@ -293,9 +283,9 @@ def exclude_update_from_branch_to_stable(feature):
         downgrade_blacklist = map(itemgetter('version'), json.loads(b64decode(downgrade_content)))
     LOG.info('Packages downgrade blacklist: %s' % downgrade_blacklist)
     # get latest scalarizr ver for stable
-    stable_ver = get_scalaraizr_latest_version('stable').rsplit('-1')[0]
+    stable_ver = world.get_scalaraizr_latest_version('stable').rsplit('-1')[0]
     # get latest scalarizr ver for tested branch
-    branch_ver = get_scalaraizr_latest_version(CONF.feature.branch).rsplit('-1')[0]
+    branch_ver = world.get_scalaraizr_latest_version(CONF.feature.branch).rsplit('-1')[0]
     LOG.info('Last package version from stable-[%s]; branch-[%s]' % (stable_ver, branch_ver))
     if LooseVersion(stable_ver) < LooseVersion('5.4') \
             and LooseVersion(branch_ver) > LooseVersion('5.3') \
@@ -316,7 +306,7 @@ def exclude_update_from_latest(feature):
             match = True
         else:
             for br in [branch, 'latest']:
-                last_version = get_scalaraizr_latest_version(br)
+                last_version = world.get_scalaraizr_latest_version(br)
                 if len(last_version.split('.')) == 3:
                     minor = int(last_version.split('.')[2][0])
                 else:
