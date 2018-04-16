@@ -166,7 +166,15 @@ def verify_testenv():
     if CONF.scalr.branch and not CONF.scalr.te_id:
         LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
         sys.stdout.write('\x1b[1mPrepare Scalr environment\x1b[0m\n')
-        world.testenv = TestEnv.create(CONF.scalr.branch)
+        notes = []
+        if len(sys.argv) > 1:
+            notes.append('[%s]' % sys.argv[1])
+        for k, v in os.environ.iteritems():
+            if k.startswith('RV_'):
+                notes.append('%s=%s' % (k, v))
+        if CONF.credentials.scalr.accounts.default.username:
+            notes.append('<%s>' % CONF.credentials.scalr.accounts.default.username)
+        world.testenv = TestEnv.create(branch=CONF.scalr.branch, notes='\n'.join(notes))
         time.sleep(10)
         CONF.scalr.te_id = world.testenv.te_id
         sys.stdout.write('\x1b[1mTest will run in this test environment:\x1b[0m http://%s.test-env.scalr.com\n\n' % CONF.scalr.te_id)
