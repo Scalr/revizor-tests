@@ -29,7 +29,7 @@ def configure_webhooks(step, serv_as):
     created_webhooks = []
     created_endpoints = []
     current_endpoints = IMPL.webhooks.list_endpoints()
-    current_endpoint_urls = [e['url'] for e in current_endpoints.values()] if current_endpoints else None
+    current_endpoint_urls = [e['url'] for e in current_endpoints] if current_endpoints else None
     for opts in step.hashes:
         url = "%s://%s%s" % (opts['schema'].strip(), server.public_ip, opts['endpoint'].strip())
         if url in current_endpoint_urls:
