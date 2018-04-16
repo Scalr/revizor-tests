@@ -380,11 +380,11 @@ def remove_test_webhooks(scenario):
             LOG.debug('Found test webhooks %s. Attempting to remove.' % webhooks)
             webhook_ids = [e['webhookId'] for e in webhooks]
             IMPL.webhooks.delete_webhooks(webhook_ids)
-            endpoints = getattr(world, 'test_endpoints', None)
-            if endpoints:
-                LOG.debug('Found test endpoints %s. Attempting to remove.' % endpoints)
-                endpoint_ids = [e['endpointId'] for e in endpoints]
-                IMPL.webhooks.delete_endpoints(endpoint_ids)
+        endpoints = getattr(world, 'test_endpoints', None)
+        if endpoints:
+            LOG.debug('Found test endpoints %s. Attempting to remove.' % endpoints)
+            endpoint_ids = [e['endpointId'] for e in endpoints]
+            IMPL.webhooks.delete_endpoints(endpoint_ids)
 
 
 @after.all
