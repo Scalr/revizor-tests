@@ -748,7 +748,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
-        IMPL.image.check(**image_kwargs)
+        image_check_result = IMPL.image.check(**image_kwargs)
         image_registered = False
     except Exception as e:
         if not ('Image has already been registered' in e.message):
@@ -763,7 +763,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
             software=behaviors,
             name=name,
             is_scalarized=is_scalarized,
-            has_cloudinit=has_cloudinit))
+            has_cloudinit=has_cloudinit,
+            image_volumes=image_check_result.get('volumes', None)))
         image = IMPL.image.create(**image_kwargs)
     else:
         image = IMPL.image.get(image_id=image_id)
