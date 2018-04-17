@@ -110,8 +110,7 @@ def add_mail_service_webhook(step):
 
 @step(r'SCALR_MAIL_SERVICE result is successful')
 def assert_mail_service(step):
-    webhook = getattr(world, 'test_webhooks')
-    endpoint = getattr(world, 'test_endpoints', None)
+    webhook = getattr(world, 'test_webhooks')[0]
     result = wait_webhook_result(webhook)
     assert result['responseCode'] == 200, "SCALR_MAIL_SERVICE has unexpected exit code %s" % result['responseCode']
 
