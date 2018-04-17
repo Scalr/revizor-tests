@@ -1,4 +1,5 @@
 import logging
+import time
 
 from lettuce import world, step
 
@@ -28,7 +29,7 @@ def configure_scalr_proxy(step, modules, proxy_as):
     ]
     for module in modules:
         params.append(
-            {'name': 'scalr.%s.use_proxy' % str(module), 'value': True}
+            {'name': 'scalr.%s.use_proxy' % str(module), 'value': 'true'}
         )
     LOG.debug('Proxy params:\n%s' % params)
     world.update_scalr_config(params)
@@ -87,12 +88,15 @@ def verify_proxy_working(step, proxy_as, message, serv_as):
     proxy = getattr(world, proxy_as)
     proxy_cloud = Cloud(proxy.platform)
     node = proxy_cloud.get_node(proxy)
-    logs = node.run("cat /var/log/squid3/access.log").std_out
     if serv_as:
         server = getattr(world, serv_as)
         message = message + " %s:443" % server.public_ip
-    if message not in logs:
-        raise AssertionError("No messages indicating that proxy is working were found in log!")
+    for _ in range(5):
+        logs = node.run("cat /var/log/squid3/access.log").std_out
+        if message in logs:
+            return True
+        time.sleep(5)
+    raise AssertionError("No messages indicating that proxy is working were found in log!")
 
 
 @step("there are no (errors|warnings) in ([\w\d_-]+) log")
