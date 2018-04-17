@@ -12,10 +12,11 @@ def update_scalr_config(params):
         value = get_dict_value(config, str(config_group))
         if param['value'] in ['true', 'false']:
             param['value'] = True if param['value'] == 'true' else False
-        elif param['value'].isdigit():
-            param['value'] = int(param['value'])
-        else:
-            param['value'] = str(param['value'])
+        elif not (isinstance(param['value'], int) or isinstance(param['value'], bool)):
+            if param['value'].isdigit():
+                param['value'] = int(param['value'])
+            else:
+                param['value'] = str(param['value'])
         value[str(config_name)] = param['value']
     world.testenv.put_config(config)
 
