@@ -14,8 +14,8 @@ def configure_flask(step, serv_as, tls):
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.put_file("/tmp/default", resources('configs/nginx_to_flask_proxy.conf').get())  # Put custom nginx config in server
-    if tls:
-        node.run("ex -sc '13i|        ssl_protocols TLSv1.2;' -cx /tmp/default")
+    # if tls:
+    #     node.run("ex -sc '13i|        ssl_protocols TLSv1.2;' -cx /tmp/default")
     node.put_file("/tmp/prepare_flask.sh", resources('scripts/prepare_flask.sh').get()) # Put flask preparation script in server
     node.put_file('webhooks.py', resources('scripts/webhooks.py').get())  # Put flask script
     with node.remote_connection() as conn:
@@ -32,7 +32,7 @@ def configure_webhooks(step, serv_as):
     current_endpoint_urls = [e['url'] for e in current_endpoints] if current_endpoints else None
     for opts in step.hashes:
         url = "%s://%s%s" % (opts['schema'].strip(), server.public_ip, opts['endpoint'].strip())
-        if url in current_endpoint_urls:
+        if current_endpoint_urls and url in current_endpoint_urls:
             continue
         scalr_endpoint = IMPL.webhooks.create_endpoint(url)
         created_endpoints.append(scalr_endpoint)
