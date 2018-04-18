@@ -29,6 +29,7 @@ def configure_webhooks(step, serv_as):
     created_webhooks = []
     created_endpoints = []
     current_endpoints = IMPL.webhooks.list_endpoints()
+    LOG.debug('Current endpoints:%s' % current_endpoints)
     current_endpoint_urls = [e['url'] for e in current_endpoints] if current_endpoints else None
     for opts in step.hashes:
         url = "%s://%s%s" % (opts['schema'].strip(), server.public_ip, opts['endpoint'].strip())
@@ -43,6 +44,8 @@ def configure_webhooks(step, serv_as):
             world.farm.id,
             attempts=2)
         created_webhooks.append(webhook)
+    LOG.debug('Created test endpoints: %s' % created_endpoints)
+    LOG.debug('Created test webhooks: %s' % created_webhooks)
     setattr(world, 'test_endpoints', created_endpoints)
     setattr(world, 'test_webhooks', created_webhooks)
 
@@ -51,6 +54,7 @@ def configure_webhooks(step, serv_as):
 def assert_webhooks(step, serv_as):
     server = getattr(world, serv_as)
     webhooks = getattr(world, 'test_webhooks')
+    LOG.debug("Found test webhooks: %s" % webhooks)
     for opts in step.hashes:
         webhook_name = '%s-%s' % (opts['webhook_name'], server.id.split('-')[0])
         webhook = [w for w in webhooks if w['name'] == webhook_name][0]
@@ -88,24 +92,24 @@ def set_mail_service_url(step):
 
 @step(r'I add SCALR_MAIL_SERVICE webhook')
 def add_mail_service_webhook(step):
-    if not any(hook for hook in IMPL.webhooks.list_webhooks() if hook['name'] == 'test_mail_service'):
-        endpoints = IMPL.webhooks.list_endpoints()
-        if endpoints and any(e for e in endpoints if e['url'] == 'SCALR_MAIL_SERVICE'):
-            endpoint = [endp for endp in endpoints if endp['url'] == 'SCALR_MAIL_SERVICE'][0]
-        else:
-            endpoint = IMPL.webhooks.create_endpoint("http://mail.test")
-            endpoint['id'] = endpoint['endpointId']
-            cmd = """mysql --database="scalr" --execute 'update webhook_endpoints set url="SCALR_MAIL_SERVICE" where url="http://mail.test"'"""
-            world.testenv.get_ssh().run(cmd)  # Change url to SCALR_MAIL_SERVICE
-        webhook = IMPL.webhooks.create_webhook(
-            "test_mail_service",
-            endpoint['id'],
-            'ScalrEvent',
-            world.farm.id,
-            attempts=2,
-            user_data='test@scalr.com')
-        setattr(world, 'test_endpoints', [endpoint])
-        setattr(world, 'test_webhooks', [webhook])
+    endpoints = IMPL.webhooks.list_endpoints()
+    if endpoints and any(e for e in endpoints if e['url'] == 'SCALR_MAIL_SERVICE'):
+        endpoint = [endp for endp in endpoints if endp['url'] == 'SCALR_MAIL_SERVICE'][0]
+    else:
+        endpoint = IMPL.webhooks.create_endpoint("http://mail.test")
+        endpoint['id'] = endpoint['endpointId']
+        cmd = """mysql --database="scalr" --execute 'update webhook_endpoints set url="SCALR_MAIL_SERVICE" where url="http://mail.test"'"""
+        world.testenv.get_ssh().run(cmd)  # Change url to SCALR_MAIL_SERVICE
+    webhook = IMPL.webhooks.create_webhook(
+        "test_mail_service",
+        endpoint['id'],
+        'ScalrEvent',
+        world.farm.id,
+        attempts=2,
+        user_data='test@scalr.com')
+    setattr(world, 'test_endpoints', [endpoint])
+    setattr(world, 'test_webhooks', [webhook])
+    LOG.debug('Mail service endpoint %s.\nMail service webhook %s' % (endpoint, webhook))
 
 
 @step(r'SCALR_MAIL_SERVICE result is successful')

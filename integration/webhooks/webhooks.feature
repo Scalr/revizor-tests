@@ -6,6 +6,7 @@ Feature: Check fatmouse/workflow_engine webhooks implementation
         | scalr.system.webhooks.scalr_labs_workflow_engine | true  |
         | scalr.system.webhooks.ssl_verify                 | false |
         | scalr.system.webhooks.retry_interval             | 5     |
+        | scalr.system.webhooks.use_proxy                  | false |
     Then I stop service "dbqueue"
     Then I restart service "workflow-engine"
     Then I restart service "zmq_service"
@@ -54,8 +55,10 @@ Feature: Check fatmouse/workflow_engine webhooks implementation
   Scenario: Check SCALR_MAIL_SERVICE
     Given I set scalr_mail_service_url in TestEnv config
     And I add SCALR_MAIL_SERVICE webhook
+    Then I restart service "workflow-engine"
     When I execute 'szradm --fire-event ScalrEvent' in F1
     Then SCALR_MAIL_SERVICE result is successful
+    And no "Traceback" in service "workflow-engine" log
 
 
   @proxy
