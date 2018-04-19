@@ -216,6 +216,15 @@ class VerifyProcessWork(object):
         return all(results)
 
 
+@step('I execute \'(.+)\' in (.+)$')
+def execute_command(step, command, serv_as):
+    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
+        command = '/opt/bin/' + command
+    node = world.cloud.get_node(getattr(world, serv_as))
+    LOG.info('Execute command on server: %s' % command)
+    node.run(command)
+
+
 @step('I change repo in ([\w\d]+) to system$')
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
