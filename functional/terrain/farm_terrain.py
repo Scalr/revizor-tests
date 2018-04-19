@@ -35,13 +35,13 @@ def add_role_to_farm(step, behavior=None, role_name=None, role_options=None, ali
     if role_options:
         LOG.debug('Additional role options: %s' % role_options)
         role_options = (o.strip() for o in role_options.strip().split(','))
-    if role_id and role_id.isdigit():
+    if role_id:
+        if not role_id.isdigit():
+            raise AssertionError("Role environment variable can't be only in digit format")
         LOG.info("Get role by id: '%s'" % role_id)
         role = IMPL.role.get(role_id)
     else:
-        role = world.get_role_by_mask(
-            behavior,
-            role_id)
+        role = world.get_role_by_behavior(behavior)
     if not role:
         raise NotFound('Role with id or by mask "%s" not found in Scalr' % (
             role_id or behavior))

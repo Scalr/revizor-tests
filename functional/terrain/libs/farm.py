@@ -100,8 +100,6 @@ def setup_farmrole_params(
     if not setup_bundled_role:
         if dist.is_windows:
             role_params.advanced.reboot_after_hostinit = True
-            if dist.mask in ('windows-2008', 'windows-2012') and platform.is_azure:
-                role_params.instance_type = 'Standard_A1'
         elif dist.id == 'scientific-6-x' or \
                 (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
             role_params.advanced.disable_iptables_mgmt = False
@@ -122,48 +120,42 @@ def setup_farmrole_params(
         Defaults.set_db_storage(role_params)
         if 'redis' in behaviors:
             LOG.info('Insert redis settings')
-            snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
+            snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', CONF.feature.redis_snapshotting)
             role_params.database.redis_persistence_type = snapshotting_type
             role_params.database.redis_use_password = True
-
     return role_params
 
 
 @world.absorb
-def get_role_by_mask(behavior, mask=None):
-    behavior = BEHAVIORS_ALIASES.get(behavior, None) or behavior
+def get_role_by_behavior(behavior):
+    behavior = BEHAVIORS_ALIASES.get(behavior, behavior)
     dist = CONF.feature.dist
-    if not mask:
-        use_cloudinit_role = "-cloudinit" in behavior
-        role_type = CONF.feature.role_type
+    use_cloudinit_role = "-cloudinit" in behavior
+    role_type = CONF.feature.role_type
 
-        if use_cloudinit_role:
-            dist_mask = dist.id
-            role_ver_tpl = 'tmp-{beh}-{dist}-*-*'
-            role_name_tpl = 'tmp-{beh}-{dist}-{ver}'
-        else:
-            dist_mask = dist.mask
-            role_ver_tpl = '{beh}*-{dist}-{type}'
-            role_name_tpl = '{beh}{ver}-{dist}-{type}'
-
-        role_ver_mask = role_ver_tpl.format(
-            beh=behavior,
-            dist=dist_mask,
-            type=role_type)
-        LOG.info('Get role versions by mask: %s' % role_ver_mask)
-
-        role_version = get_role_versions(role_ver_mask, use_latest=True)
-        role_name = role_name_tpl.format(
-            beh=behavior,
-            dist=dist_mask,
-            ver=role_version,
-            type=role_type)
+    if use_cloudinit_role:
+        dist_mask = dist.id
+        role_ver_tpl = 'tmp-{beh}-{dist}-*-*'
+        role_name_tpl = 'tmp-{beh}-{dist}-{ver}'
     else:
-        role_name = mask
+        dist_mask = dist.mask
+        role_ver_tpl = '{beh}*-{dist}-{type}'
+        role_name_tpl = '{beh}{ver}-{dist}-{type}'
+
+    role_ver_mask = role_ver_tpl.format(
+        beh=behavior,
+        dist=dist_mask,
+        type=role_type)
+    LOG.info('Get role versions by mask: %s' % role_ver_mask)
+
+    role_version = get_role_versions(role_ver_mask, use_latest=True)
+    role_name = role_name_tpl.format(
+        beh=behavior,
+        dist=dist_mask,
+        ver=role_version,
+        type=role_type)
     LOG.info('Get role by name: %s' % role_name)
     roles = IMPL.role.list(dist=dist.dist, query=role_name)
     if roles:
         return roles[0]
-    if mask:
-        get_role_by_mask(behavior)
     raise NotFound('Role with name: %s not found in Scalr' % role_name)
