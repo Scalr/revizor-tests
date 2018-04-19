@@ -46,8 +46,7 @@ def configure_webhooks(step, serv_as):
         created_webhooks.append(webhook)
     LOG.debug('Created test endpoints: %s' % created_endpoints)
     LOG.debug('Created test webhooks: %s' % created_webhooks)
-    setattr(world, 'test_endpoints', created_endpoints)
-    setattr(world, 'test_webhooks', created_webhooks)
+    update_saved_endpoints_and_hooks(created_endpoints, created_webhooks)
 
 
 @step(r'I assert ([\w\d]+) webhook results')
@@ -107,8 +106,7 @@ def add_mail_service_webhook(step):
         world.farm.id,
         attempts=2,
         user_data='test@scalr.com')
-    setattr(world, 'test_endpoints', [endpoint])
-    setattr(world, 'test_webhooks', [webhook])
+    update_saved_endpoints_and_hooks([endpoint], [webhook])
     LOG.debug('Mail service endpoint %s.\nMail service webhook %s' % (endpoint, webhook))
 
 
@@ -131,3 +129,12 @@ def wait_webhook_result(webhook, attempts=None, expect_to_fail=False):
                 return result[0]
         time.sleep(10)
     raise AssertionError('Cant find results for webhook %s.' % webhook['name'])
+
+
+def update_saved_endpoints_and_hooks(endpoints, webhooks):
+    updated_endpoints = getattr(world, 'test_endpoints', []) + endpoints
+    updated_webhooks = getattr(world, 'test_webhooks', []) + webhooks
+    setattr(world, 'test_endpoints', updated_endpoints)
+    LOG.debug('Updated endpoints in world:%s' % updated_endpoints)
+    setattr(world, 'test_webhooks', updated_webhooks)
+    LOG.debug("Updated webhooks in world:%s" % updated_webhooks)
