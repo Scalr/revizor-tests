@@ -19,7 +19,7 @@ Feature: Check fatmouse/workflow_engine webhooks implementation
     When I start farm
     Then I expect server bootstrapping as F1
     When I configure nginx/flask on F1
-    And http/https get F1 contains default welcome message
+    And http get F1 contains default welcome message
 
 
   Scenario: Check Webhooks with ssl_verify=false
