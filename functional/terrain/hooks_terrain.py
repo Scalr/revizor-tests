@@ -380,6 +380,23 @@ def get_logs_and_info_after_scenario(scenario):
     get_all_logs_and_info(scenario)
 
 
+@after.each_scenario
+def remove_test_webhooks(scenario):
+    if not scenario.failed:
+        webhooks = getattr(world, 'test_webhooks', None)
+        if webhooks:
+            LOG.debug('Found test webhooks %s. Attempting to remove.' % webhooks)
+            webhook_ids = [e['webhookId'] for e in webhooks]
+            IMPL.webhooks.delete_webhooks(webhook_ids)
+            setattr(world, 'test_webhooks', [])
+        endpoints = getattr(world, 'test_endpoints', None)
+        if endpoints:
+            LOG.debug('Found test endpoints %s. Attempting to remove.' % endpoints)
+            endpoint_ids = [e['endpointId'] for e in endpoints]
+            IMPL.webhooks.delete_endpoints(endpoint_ids)
+            setattr(world, 'test_endpoints', [])
+
+
 @after.all
 def cleanup_all(total):
     """If not have problem - stop farm and delete roles, vhosts, domains"""
