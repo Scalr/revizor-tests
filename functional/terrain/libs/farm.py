@@ -120,7 +120,7 @@ def setup_farmrole_params(
         Defaults.set_db_storage(role_params)
         if 'redis' in behaviors:
             LOG.info('Insert redis settings')
-            snapshotting_type = os.environ.get('RV_REDIS_SNAPSHOTTING', CONF.feature.redis_snapshotting)
+            snapshotting_type = CONF.feature.redis_snapshotting
             role_params.database.redis_persistence_type = snapshotting_type
             role_params.database.redis_use_password = True
     return role_params
