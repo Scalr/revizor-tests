@@ -7,7 +7,7 @@ from itertools import chain
 
 from lettuce import world, step, after, before
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
