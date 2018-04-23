@@ -11,7 +11,7 @@ from lettuce import world, step
 from libcloud.compute.types import NodeState
 from datetime import datetime
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
@@ -214,6 +214,15 @@ class VerifyProcessWork(object):
         results = [VerifyProcessWork._verify_process_running(server, 'memcached'),
                    node.check_open_port(port)]
         return all(results)
+
+
+@step('I execute \'(.+)\' in (.+)$')
+def execute_command(step, command, serv_as):
+    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
+        command = '/opt/bin/' + command
+    node = world.cloud.get_node(getattr(world, serv_as))
+    LOG.info('Execute command on server: %s' % command)
+    node.run(command)
 
 
 @step('I change repo in ([\w\d]+) to system$')
@@ -739,7 +748,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
-        IMPL.image.check(**image_kwargs)
+        image_check_result = IMPL.image.check(**image_kwargs)
         image_registered = False
     except Exception as e:
         if not ('Image has already been registered' in e.message):
@@ -754,7 +763,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
             software=behaviors,
             name=name,
             is_scalarized=is_scalarized,
-            has_cloudinit=has_cloudinit))
+            has_cloudinit=has_cloudinit,
+            image_volumes=image_check_result.get('volumes', None)))
         image = IMPL.image.create(**image_kwargs)
     else:
         image = IMPL.image.get(image_id=image_id)
