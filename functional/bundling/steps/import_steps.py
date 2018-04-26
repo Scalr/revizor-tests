@@ -3,7 +3,7 @@ import logging
 
 from lettuce import world, step, after
 from revizor2.conf import CONF
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)

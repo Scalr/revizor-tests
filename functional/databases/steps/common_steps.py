@@ -7,7 +7,7 @@ from datetime import timedelta
 from lettuce import world, step
 from lxml import html, etree
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
@@ -17,9 +17,15 @@ from revizor2.consts import ServerStatus, Platform
 
 LOG = logging.getLogger(__name__)
 
-###DataBases handlers
+### DataBases handlers
 #####################
-#{'mysql': Mysql, 'mysql2': Mysql, 'percona': Mysql, 'mariadb': Mysql, 'redis': Redis, 'postgresql': PostgreSQL}
+# {'mysql': Mysql,
+# 'mysql2': Mysql,
+# 'percona': Mysql,
+# 'mariadb': Mysql,
+# 'redis': Redis,
+# 'postgresql': PostgreSQL}
+
 realisations = dict()
 
 

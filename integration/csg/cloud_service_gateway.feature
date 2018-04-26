@@ -224,18 +224,39 @@ Feature: Check CSG
       | AR_AZ_2  | Azure    | Stream Analytics    | disabled       |
       | AR_AZ_2  | Azure    | Web                 | disabled       |
 
-  Scenario: Configure proxy server
-    Given I have configured revizor environment:
-      | name           | value          |
-      | platform       | gce            |
-      | dist           | ubuntu1404     |
-    And I have a clean and stopped farm
-    And I add role to this farm
-    When I start farm
-    Then I expect server bootstrapping as P1
-    And I execute script 'Launch mitmproxy' synchronous on P1
-    And I set proxy for AWS,Azure in Scalr to P1
-    And I restart service "cloud-service-gateway"
+  Scenario: Approve access request with policy
+    Given I add new CSG policy group 'rev-csg' as PG1
+    And I have requested access to services on AWS as AR_AWS_4:
+      | service             |
+      | Api Gateway         |
+      | Cognito Identity    |
+      | Device Farm         |
+      | DynamoDb            |
+      | Route53             |
+      | Ses                 |
+      | Sqs                 |
+    When I approve access request AR_AWS_4 with policy group PG1
+    And I obtain secret key for access request AR_AWS_4
+    Then I have active access request AR_AWS_4
+
+  Scenario Outline: Check policy for services
+    Then <rule> rule works for "<service>" service on <platform> using <request>
+    And there are no errors in CSG log
+    Examples:
+      | request  | platform | service             | rule           |
+      | AR_AWS_4 | AWS      | Api Gateway         | prefix,pattern |
+      | AR_AWS_4 | AWS      | DynamoDb            | prefix,pattern |
+      | AR_AWS_4 | AWS      | Ses                 | pattern        |
+      | AR_AWS_4 | AWS      | Sqs                 | prefix         |
+
+  Scenario Outline: Check services not affected with policies
+    Then "<service>" service is <service_status> on <platform> using <request>
+    And there are no errors in CSG log
+    Examples:
+      | request  | platform | service             | service_status |
+      | AR_AWS_4 | AWS      | Cognito Identity    | active         |
+      | AR_AWS_4 | AWS      | Device Farm         | active         |
+      | AR_AWS_4 | AWS      | Route53             | active         |
 
   Scenario: Create and approve service access requests for proxy check
     Given I have requested access to services on AWS as AR_AWS_P:
@@ -269,6 +290,19 @@ Feature: Check CSG
     And I approve access request AR_AZ_P
     And I obtain secret key for access request AR_AWS_P
     And I obtain secret key for access request AR_AZ_P
+
+  Scenario: Configure proxy server
+    Given I have configured revizor environment:
+      | name           | value          |
+      | platform       | gce            |
+      | dist           | ubuntu1404     |
+    And I have a clean and stopped farm
+    And I add role to this farm
+    When I start farm
+    Then I expect server bootstrapping as P1
+    And I execute script 'Launch mitmproxy' synchronous on P1
+    And I set proxy for AWS,Azure in Scalr to P1
+    And I restart service "cloud-service-gateway"
 
   Scenario Outline: Check approved services via proxy
     Given I have active access request <request>

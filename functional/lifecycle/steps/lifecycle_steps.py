@@ -7,7 +7,7 @@ from itertools import chain
 
 from lettuce import world, step, after, before
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
@@ -146,15 +146,6 @@ def attach_script(step, script_name):
             "runAs": ""
         }]
     )
-
-
-@step('I execute \'(.+)\' in (.+)$')
-def execute_command(step, command, serv_as):
-    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
-        command = '/opt/bin/' + command
-    node = world.cloud.get_node(getattr(world, serv_as))
-    LOG.info('Execute command on server: %s' % command)
-    node.run(command)
 
 
 @step('server ([\w\d]+) contain \'(.+)\'')

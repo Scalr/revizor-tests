@@ -149,6 +149,18 @@ class Defaults(object):
             params.bootstrap_with_chef.daemonize = True
 
     @staticmethod
+    def set_chef_hostname(params):
+        if CONF.feature.dist.id != Dist('coreos').id:
+            chef_host_name = getattr(world, 'chef_hostname_for_cookbook')
+            params.bootstrap_with_chef.enabled = True
+            params.bootstrap_with_chef.server = farmrole.ChefServer(
+                url='https://api.opscode.com/organizations/webta')
+            params.bootstrap_with_chef.runlist = '["recipe[set_hostname_attr::default]"]'
+            params.bootstrap_with_chef.daemonize = True
+            params.bootstrap_with_chef.attributes = '{"new_hostname": "%s"}' % chef_host_name
+            params.network.hostname_template = ''
+
+    @staticmethod
     def set_winchef(params):
         params.bootstrap_with_chef.enabled = True
         params.bootstrap_with_chef.server = farmrole.ChefServer(

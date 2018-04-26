@@ -7,7 +7,7 @@ from datetime import timedelta
 from lettuce import world, step
 from lxml import html
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources

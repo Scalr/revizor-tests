@@ -75,6 +75,16 @@ Feature: Linux server provision with chef and ansible tower
         And chef node_name in M1 set by global hostname
         And chef log in M1 contains "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK"
 
+    @ec2 @vmware @gce @cloudstack @openstack @azure @rackspaceng
+    Scenario: Chef bootstrapping with hostname configured via cookbooks
+        Given I have a clean and stopped farm
+        And I set hostname 'hostname-for-test-LIX050' that will be configured via the cookbook
+        When I add role to this farm with chef-hostname
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
+        And server hostname in M1 is the same 'hostname-for-test-LIX050'
+
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Setup Ansible Tower Bootstrap Configurations
         Given I get Ansible Tower server id
@@ -96,3 +106,4 @@ Feature: Linux server provision with chef and ansible tower
     Scenario: Lounch Ansible Tower Job
         When I launch job 'Revizor linux Job Template' with credential 'Revizor-linux-cred' and expected result 'successful' in M1
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
+
