@@ -15,9 +15,13 @@ from revizor2.backend import IMPL
 
 LOG = logging.getLogger(__name__)
 
-NON_ASCII_SCRIPT = u'\u0442\u0435\u0441\u0442.sh'.encode('utf-8')
+# NON_ASCII_SCRIPT = u'\u0442\u0435\u0441\u0442.sh'.encode('utf-8')
 
-NON_ASCII_COMMAND = u'bash /test/\u0442\u0435\u0441\u0442.sh'.encode('utf-8')
+# NON_ASCII_COMMAND = u'bash /test/\u0442\u0435\u0441\u0442.sh'.encode('utf-8')
+
+SCRIPT = u'test.sh'.encode('utf-8')
+
+COMMAND = u'bash /test/test.sh'.encode('utf-8')
 
 
 def get_server_containers(serv_as):
@@ -75,7 +79,7 @@ def install_docker(step, serv_as):
     with node.remote_connection() as conn:
         conn.run(command)
         conn.run("iptables -I INPUT 1 -p tcp --dport 9999 -j ACCEPT")
-        conn.run('echo "sleep 1d" >> /home/scalr/{}'.format(NON_ASCII_SCRIPT))
+        conn.run('echo "sleep 1d" >> /home/scalr/{}'.format(SCRIPT))
         assert conn.run('docker --version')
     client = docker.Client(base_url='http://%s:9999' % server.public_ip, version='auto')
     setattr(world, serv_as + '_client', client)
@@ -97,7 +101,7 @@ def start_containers(step, serv_as):
                 if conf == 'vol1' and image != 'alpine':
                     container = client.create_container(
                         host_config=client.create_host_config(binds=configs[conf]),
-                        image=image, command=NON_ASCII_COMMAND, detach=True)
+                        image=image, command=COMMAND, detach=True)
                 else:
                     container = client.create_container(
                         host_config=client.create_host_config(binds=configs[conf]),
