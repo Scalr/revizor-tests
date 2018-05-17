@@ -1,1 +1,0 @@
-{"rsync":{"/vagrant":{"type":"rsync","rsync__excludes":[".git/","screen/.meteor/local/"],"guestpath":"/vagrant","hostpath":"/Users/Theramas/Documents/Scalr/revizor-tests/ui","disabled":false,"excludes":[".git/","screen/.meteor/local/"],"owner":"vagrant","group":"vagrant"}}}

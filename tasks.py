@@ -18,15 +18,16 @@ def grid(ctx, docs=False, port='4444'):
     if 'grid' not in docker_networks.stdout:
         ctx.run('docker network create grid')
     grid_cmd = """
-        docker run -d -p {port}:{port} --name selenium-hub selenium/hub:3.12.0-americium &&
+        docker run -d -p {}:{} --name selenium-hub selenium/hub:3.12.0-americium &&
         docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome:3.12.0-americium &&
         docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox:3.12.0-americium""".format(port)
     ctx.run(grid_cmd)
 
 
 def pip_install(command):
+    run('/usr/local/pyenv/shims/pip --version')
     pip = '/usr/local/pyenv/shims/pip install'
-    run('{} {}'.format(pip, command))
+    run('sudo {} {}'.format(pip, command))
 
 
 def apt_get_install(packages):
@@ -85,11 +86,11 @@ def pythons(ctx):
             print('update pyenv')
             ctx.run('git pull origin master')
 
-    # if not os.path.exists(PYENV_PROFILE):
-    #     # create pyenv bash profile
-    #     create_file(PYENV_PROFILE,
-    #                 source='/vagrant/pyenv.bash_profile',
-    #                 mode=0o644)
+    if not os.path.exists(PYENV_PROFILE):
+        # create pyenv bash profile
+        create_file(PYENV_PROFILE,
+                    source='/vagrant/pyenv.bash_profile',
+                    mode=0o644)
 
     # update inprocess ENV variables
     os.environ['PATH'] = '{0}/shims:{0}/bin'.format(PYENV_ROOT) + ':' + os.environ['PATH']
@@ -109,7 +110,7 @@ def pythons(ctx):
 
 
 @task
-def requirements(ctx, py_version=None, update=True):
+def requirements(ctx, py_version=None, update=True, path=None):
     """Install python requirements for specific python versions
     """
     # install python requirements for specified version or for all available
@@ -118,6 +119,7 @@ def requirements(ctx, py_version=None, update=True):
     for version in py_versions:
         print('install {} requirements'.format(version))
         with pyenv_version(version):
+            path = path if path else '/vagrant/requirements.txt'
             pip_install(
-                ' --no-deps {} -r /vagrant/requirements.txt'.format(flags)
+                '{} -r {} --upgrade'.format(flags, path)
             )
