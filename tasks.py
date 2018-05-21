@@ -14,14 +14,15 @@ PY_VERSIONS = (PY2_VERSION, PY3_VERSION)
 
 @task
 def grid(ctx, docs=False, port='4444'):
-    docker_networks = ctx.run('docker network ls')
-    if 'grid' not in docker_networks.stdout:
-        ctx.run('docker network create grid')
-    grid_cmd = """
-        docker run -d -p {}:{} --name selenium-hub selenium/hub:3.12.0-americium &&
-        docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome:3.12.0-americium &&
-        docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox:3.12.0-americium""".format(port)
-    ctx.run(grid_cmd)
+    if 'selenium-hub' not in ctx.run('docker ps -a').stdout:
+        docker_networks = ctx.run('docker network ls')
+        if 'grid' not in docker_networks.stdout:
+            ctx.run('docker network create grid')
+        grid_cmd = """
+            docker run -d -p {port}:{port} --name selenium-hub selenium/hub:3.12.0-americium &&
+            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome:3.12.0-americium &&
+            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox:3.12.0-americium""".format(port=port)
+        ctx.run(grid_cmd)
 
 
 def pip_install(command):
@@ -110,16 +111,23 @@ def pythons(ctx):
 
 
 @task
-def requirements(ctx, py_version=None, update=True, path=None):
-    """Install python requirements for specific python versions
+def requirements(ctx, py_versions='', update=False, path='/vagrant/requirements.txt'):
+    """Install python requirements for specific python versions or for all available
     """
-    # install python requirements for specified version or for all available
-    flags = ' -U ' if update != 'False' else ''
-    py_versions = [py_version] if py_version else PY_VERSIONS
+    flags = ' --upgrade ' if update else ''
+    py_versions = py_versions.split(',') if py_versions else PY_VERSIONS
     for version in py_versions:
         print('install {} requirements'.format(version))
         with pyenv_version(version):
-            path = path if path else '/vagrant/requirements.txt'
             pip_install(
-                '{} -r {} --upgrade'.format(flags, path)
+                ' -r {} {}'.format(path, flags)
             )
+
+
+@task(grid)
+def webtests(ctx, test_cases='', browsers='all', processes='auto'):
+    browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
+    for browser in browsers:
+        command = 'python -m pytest -n %s --driver Remote --host 0.0.0.0 --port 4444 --capability browserName %s %s' % (processes, browser, test_cases)
+        print(command)
+        ctx.run(command)
