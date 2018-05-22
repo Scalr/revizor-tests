@@ -200,6 +200,7 @@ def create_at_group(step, group_type, group_name, inv_name):
     at_group_id = at_group['group']['id']
     setattr(world, 'at_group_name', group_name)
     setattr(world, 'at_group_id', at_group_id)
+    setattr(world, 'at_group_type', group_type)
 
 
 @step("AT group '([\w-]+)' exists in inventory '([\w-]+)' in AT server")
@@ -219,8 +220,8 @@ def check_at_group_exists_in_inventory(step, group_name, inv_name):
 def create_credential(step, os, inv_name, credentials_name):
     at_server_id = getattr(world, 'at_server_id')
     os = 1 if os == 'linux' else 2
-
     credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
+
     publickey = None
     if os == 1: # "linux"
         publickey = credentials['machineCredentials']['publicKey']
@@ -229,10 +230,11 @@ def create_credential(step, os, inv_name, credentials_name):
     setattr(world, 'at_inventory_id', inventory_id)
     setattr(world, 'at_cred_primary_key_%s' % credentials_name, pk)
     at_group_id = getattr(world, 'at_group_id')
+    at_group_type = getattr(world, 'at_group_type')
+    group_name = getattr(world, 'at_group_name')
 
     bootstrap_configurations = IMPL.ansible_tower.add_bootstrap_configurations(
-        os, pk, credentials_name,at_server_id, publickey, inventory_id, at_group_id)
-
+        os, pk, credentials_name, at_server_id, publickey, inventory_id, at_group_id, at_group_type, group_name)
     if not bootstrap_configurations['success']:
         raise AssertionError('The credentials: %s have not been saved!' % credentials_name)
 
