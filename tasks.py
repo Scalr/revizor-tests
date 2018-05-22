@@ -1,14 +1,16 @@
 import os
 import shutil
-from invoke import task, run
+
 from contextlib import contextmanager
+
+from invoke import task, run
 
 PYENV_ROOT = '/usr/local/pyenv'
 PYENV_PROFILE = '/etc/profile.d/pyenv.sh'
-PIP_VERSION = '9.0.1'
+PIP_VERSION = '10.0.1'
 PIP_TOOLS_VERSION = '1.9.0'
 PY2_VERSION = '2.7.12'
-PY3_VERSION = '3.6.0'
+PY3_VERSION = '3.6.5'
 PY_VERSIONS = (PY2_VERSION, PY3_VERSION)
 
 
@@ -32,7 +34,6 @@ def pip_install(command):
 
 
 def apt_get_install(packages):
-    print('apt-get install {}'.format(packages))
     run('apt-get install -qq -y {}'.format(packages))
 
 

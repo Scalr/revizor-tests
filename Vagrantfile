@@ -7,8 +7,8 @@ options = File.exist?('vagrant.yml')? YAML.load_file('vagrant.yml'): Hash.new
 
 boxes = {
     "ubuntu" => {
-        "box" => "ubuntu/trusty64",
-        "url" => "https://app.vagrantup.com/ubuntu/boxes/trusty64"
+        "box" => "ubuntu/xenial64",
+        "url" => "https://app.vagrantup.com/ubuntu/boxes/xenial64"
     }
 }
 
@@ -34,7 +34,7 @@ Vagrant.configure("2") do |config|
             end
 
             machine.vm.synced_folder ".", "/vagrant", type: "rsync",
-                rsync__excludes: [".git/", "screen/.meteor/local/"]
+                rsync__excludes: [".git/"]
 
             machine.vm.provision "base", type: "shell" do |shell|
                 shell.path = "ubuntu.sh"
