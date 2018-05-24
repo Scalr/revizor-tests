@@ -317,11 +317,18 @@ class Defaults(object):
 
     @staticmethod
     def set_ansible_tower(params):
-        at_server_id = getattr(world, 'at_server_id')
-        at_group_id = '[%s]' % getattr(world, 'at_group_id')
+        # at_server_id = getattr(world, 'at_server_id')
+        # at_group_id = '[%s]' % getattr(world, 'at_group_id')
+        # params.bootstrap_with_at.enabled = True
+        # params.bootstrap_with_at.server = at_server_id
+        # params.bootstrap_with_at.inventory = getattr(world, 'at_inventory_id')
+        # params.bootstrap_with_at.name = 'publicIp'
+        # params.bootstrap_with_at.groups = at_group_id
+        # params.bootstrap_with_at.variables = ''
+
+
         params.bootstrap_with_at.enabled = True
-        params.bootstrap_with_at.server = at_server_id
-        params.bootstrap_with_at.inventory = getattr(world, 'at_inventory_id')
         params.bootstrap_with_at.name = 'publicIp'
-        params.bootstrap_with_at.groups = at_group_id
-        params.bootstrap_with_at.variables = ''
+        params.bootstrap_with_at.configurations = [
+            farmrole.AnsibleTowerConfiguration(id='', name='', variables='')
+        ]
