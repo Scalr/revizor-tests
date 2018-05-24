@@ -329,18 +329,12 @@ class Defaults(object):
 
     @staticmethod
     def set_ansible_tower(params):
-        # at_server_id = getattr(world, 'at_server_id')
-        # at_group_id = '[%s]' % getattr(world, 'at_group_id')
-        # params.bootstrap_with_at.enabled = True
-        # params.bootstrap_with_at.server = at_server_id
-        # params.bootstrap_with_at.inventory = getattr(world, 'at_inventory_id')
-        # params.bootstrap_with_at.name = 'publicIp'
-        # params.bootstrap_with_at.groups = at_group_id
-        # params.bootstrap_with_at.variables = ''
-
-
+        credentials_name = 'Revizor-windows-cred' if CONF.feature.dist.is_windows else 'Revizor-linux-cred'
+        pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
+        at_conf_name = credentials_name + str(pk)
+        configuration_id = getattr(world, 'configuration_id')
         params.bootstrap_with_at.enabled = True
-        params.bootstrap_with_at.name = 'publicIp'
+        params.bootstrap_with_at.host_name = 'publicIp'
         params.bootstrap_with_at.configurations = [
-            farmrole.AnsibleTowerConfiguration(id='', name='', variables='')
+            farmrole.AnsibleTowerConfiguration(id=configuration_id, name=at_conf_name, variables='')
         ]

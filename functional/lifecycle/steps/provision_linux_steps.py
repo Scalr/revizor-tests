@@ -237,7 +237,8 @@ def create_credential(step, os, inv_name, credentials_name):
         os, pk, credentials_name, at_server_id, publickey, inventory_id, at_group_id, at_group_type, group_name)
     if not bootstrap_configurations['success']:
         raise AssertionError('The credentials: %s have not been saved!' % credentials_name)
-
+    configuration_id = bootstrap_configurations['bootstrapconfig']['machineCredentials'][0]['configurationId']
+    setattr(world, 'configuration_id', configuration_id)
 
 @step("credential '([\w-]+)' exists in ansible-tower credentials list")
 def check_credential_exists_on_at_server(step, credentials_name):
