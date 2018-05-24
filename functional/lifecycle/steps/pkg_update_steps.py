@@ -15,13 +15,13 @@ try:
 except ImportError:
     raise ImportError("Please install WinRM")
 
-from revizor2.api import IMPL
-from revizor2.conf import CONF
-from revizor2.helpers import farmrole
 from lettuce import step, world, after
 from urllib2 import URLError
-
 from distutils.version import LooseVersion
+
+from revizor2.backend import IMPL
+from revizor2.conf import CONF
+from revizor2.helpers import farmrole
 from revizor2.fixtures import tables, resources
 
 LOG = logging.getLogger(__name__)

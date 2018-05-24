@@ -20,7 +20,8 @@ APACHE_MESSAGES = (
     'Apache HTTP Server',
     'Welcome to your Scalr application',
     'Scalr farm configured succesfully',
-    'Amazon Linux AMI Test Page'
+    'Amazon Linux AMI Test Page',
+    'Ok'
 )
 
 

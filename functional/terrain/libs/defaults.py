@@ -47,7 +47,7 @@ class Defaults(object):
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)
             ]
-        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
+        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-7-x', 'centos-6-x', 'ubuntu-14-04']:
             params.storage.volumes.append(
                 params.storage,
                 farmrole.Volume(engine='raid', size=1, level=1, volumes=2, mount='/media/raidmount')
@@ -147,6 +147,18 @@ class Defaults(object):
                 url='https://api.opscode.com/organizations/webta')
             params.bootstrap_with_chef.runlist = '["role[always_fail]"]'
             params.bootstrap_with_chef.daemonize = True
+
+    @staticmethod
+    def set_chef_hostname(params):
+        if CONF.feature.dist.id != Dist('coreos').id:
+            chef_host_name = getattr(world, 'chef_hostname_for_cookbook')
+            params.bootstrap_with_chef.enabled = True
+            params.bootstrap_with_chef.server = farmrole.ChefServer(
+                url='https://api.opscode.com/organizations/webta')
+            params.bootstrap_with_chef.runlist = '["recipe[set_hostname_attr::default]"]'
+            params.bootstrap_with_chef.daemonize = True
+            params.bootstrap_with_chef.attributes = '{"new_hostname": "%s"}' % chef_host_name
+            params.network.hostname_template = ''
 
     @staticmethod
     def set_winchef(params):

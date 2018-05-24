@@ -1,10 +1,8 @@
 __author__ = 'gigimon'
-import os
 import logging
 
 from lettuce import world, step
 
-from libs.defaults import Defaults
 from revizor2.api import Role
 from revizor2.conf import CONF
 from revizor2.helpers import farmrole
@@ -27,8 +25,10 @@ def change_branch_in_role_for_system(step, branch=None, role_type=None):
     else:
         branch = branch.strip()
     LOG.info('Change branch to system for %s role' % role_type)
+    role_options = {farmrole.DevelopmentGroup.scalarizr_branch.name: branch,
+                    farmrole.DevelopmentGroup.scalarizr_repo.name: CONF.feature.ci_repo}
     role = world.get_role(role_type)
-    role.edit(options={"user-data.scm_branch": branch})
+    role.edit(options=role_options)
 
 
 @step('I increase minimum servers to (.+) for (.+) role')
@@ -71,25 +71,18 @@ def assert_bundletask_completed(step, serv_as, timeout=1800):
 def add_new_role_to_farm(step, alias=None):
     # TODO: Add support for HVM (and VPC)
     LOG.info('Add rebundled role to farm with alias: %s' % alias)
-
     bundled_role = Role.get(world.bundled_role_id)
     alias = alias or bundled_role.name
 
-    options = farmrole.FarmRoleParams(CONF.feature.platform, alias=alias)
-    if alias in DATABASE_BEHAVIORS:
-        Defaults.set_db_storage(options)
+    role_params = world.setup_farmrole_params(
+        alias=alias,
+        behaviors=bundled_role.behaviors,
+        setup_bundled_role=True,
+    )
 
-    if 'redis' in bundled_role.behaviors:
-        options.database.redis_persistence_type = os.environ.get('RV_REDIS_SNAPSHOTTING', 'aof')
-        options.database.redis_use_password = True
-
-    if len('{}-{}'.format(world.farm.name, alias)) >= 63:
-        Defaults.set_hostname(options)
-
-    world.farm.add_role(world.bundled_role_id, options=options.to_json())
+    world.farm.add_role(world.bundled_role_id, options=role_params.to_json())
     world.farm.roles.reload()
     role = world.get_role(alias)
-    LOG.debug('Save Role object after insert rebundled role to farm as: %s/%s' % (role.id, alias))
+    LOG.debug('Save Role object after insert rebundled role to farm as: %s_role' % alias)
     setattr(world, '%s_role' % alias, role)
-
 

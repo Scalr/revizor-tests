@@ -33,12 +33,13 @@ def verify_request_status(step, request_as, status, scope='environment'):
                              'Expected = "%s", actual = "%s"' % (status, request['status']))
 
 
-@step('I (approve|deny|revoke|archive) access request ([\w\d]+)')
-def approve_request(step, action, request_as):
+@step('I (approve|deny|revoke|archive) access request ([\w\d]+)(?: with policy group ([\w\d]+))?')
+def approve_request(step, action, request_as, policy_group_as=None):
     id = getattr(world, '%s_request_id' % request_as)
+    policy_group_id = getattr(world, 'policy_group_%s' % policy_group_as) if policy_group_as else None
     if action == 'approve':
         cloud = getattr(world, '%s_request_cloud' % request_as)
-        result = IMPL.csg.approve_request(id, cloud)
+        result = IMPL.csg.approve_request(id, cloud, policy_group_id)
         if not result:
             raise AssertionError('Cloud service access request has not been approved')
         LOG.debug('Approved cloud service access request, id=%s' % id)
@@ -104,3 +105,15 @@ def check_proxy_logs(step_instance, service, platform, proxy_as):
             # record not found in logs
             LOG.debug('Received proxy logs:\n%s' % logs)
             raise AssertionError('Text "%s" not found in last proxy logs' % record)
+
+
+@step("([\w,]+) rule works for \"([\w\d\s]+)\" service on (AWS|Azure) using ([\w\d]+)")
+def verify_policy(step, rules, service, platform, request_as):
+    rules = rules.strip().split(',')
+    service = service.strip().lower()
+    platform = platform.strip().lower()
+    if platform == 'aws':
+        platform = 'ec2'
+    request_id = getattr(world, '%s_request_id' % request_as)
+    secret = getattr(world, '%s_request_secret' % request_as)
+    world.csg_verify_service_policy(platform, service, request_id, secret, **{rule: True for rule in rules})
