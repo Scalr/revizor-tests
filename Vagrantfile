@@ -24,25 +24,22 @@ Vagrant.configure("2") do |config|
         v.cpus = options["cpus"] ||= 1
     end
 
-    boxes.each do |name, box|
-        config.vm.define name do |machine|
-            machine.vm.box = box["box"]
-            machine.vm.box_url = box["url"]
+    # boxes.each do |name, box|
+        # config.vm.define name do |machine|
+    config.vm.box = "ubuntu/xenial64"
+    config.vm.box_url = "https://app.vagrantup.com/ubuntu/boxes/xenial64"
 
-            machine.vm.provider :virtualbox do |vbox|
-                vbox.customize ["setextradata", :id, "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled", options["get_host_time_disabled"] ||= "0"]
-            end
+    config.vm.provider :virtualbox do |vbox|
+        vbox.customize ["setextradata", :id, "VBoxInternal/Devices/VMMDev/0/Config/GetHostTimeDisabled", options["get_host_time_disabled"] ||= "0"]
+    end
 
-            machine.vm.synced_folder ".", "/vagrant", type: "rsync",
-                rsync__excludes: [".git/"]
+    config.vm.synced_folder ".", "/vagrant"
 
-            machine.vm.provision "base", type: "shell" do |shell|
-                shell.path = "ubuntu.sh"
-            end
+    config.vm.provision "base", type: "shell" do |shell|
+        shell.path = "ubuntu.sh"
+    end
 
-            machine.vm.provision "rsync-shared-folders", type: "shell" do |shell|
-                shell.inline = "echo 'done.'"
-            end
-        end
+    config.vm.provision "rsync-shared-folders", type: "shell" do |shell|
+        shell.inline = "echo 'done.'"
     end
 end
