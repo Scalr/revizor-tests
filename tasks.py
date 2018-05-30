@@ -21,9 +21,9 @@ def grid(ctx, docs=False, port='4444'):
         if 'grid' not in docker_networks.stdout:
             ctx.run('docker network create grid')
         grid_cmd = """
-            docker run -d -p {port}:{port} --name selenium-hub selenium/hub:3.12.0-americium &&
-            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome:3.12.0-americium &&
-            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox:3.12.0-americium""".format(port=port)
+            docker run -d -p {port}:{port} --name selenium-hub selenium/hub &&
+            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome &&
+            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox""".format(port=port)
         ctx.run(grid_cmd)
 
 
