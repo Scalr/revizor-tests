@@ -36,4 +36,14 @@ class TestCase():
 
     def test_create_new_user(self):
         acc_dashboard = self.env_dashboard.go_to_account()
-        pass
+        users_page = acc_dashboard.go_to_users()
+        users_page.new_user()
+        users_page.new_user_email_field.send_keys('selenium@scalr.com')
+        users_page.save_new_user()
+        message_popup = self.wait.until(
+            lambda d: d.find_elements(*('xpath', '//* [contains(text(), "User successfully added and invite sent")]')))
+        assert message_popup, "No message present about successfull saving of the new user!"
+        table_entry_locator = ('xpath', '//table [starts-with(@id, "tableview")]//child::div [contains(text(), "selenium@scalr.com")]')
+        table_entry = self.wait.until(
+            lambda d: d.find_elements(*table_entry_locator))
+        assert table_entry, "User with email selenium@scalr.com was not found in users table!"

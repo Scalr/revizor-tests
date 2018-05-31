@@ -121,16 +121,12 @@ class AccountDashboard(ScalrUpperMenu):
     @return_loaded_page
     def go_to_acl(self):
         self.driver.find_element(*self._acl_link_locator).click()
-        # acl = [e for e in self.find_elements(*self._acl_link_locator) if e.is_displayed()]
-        # if acl:
-        #     acl[0].click()
-        # else:
-        #     raise Exception(self.find_elements(*self._acl_link_locator))
         return ACL(self.driver, self.base_url)
 
-    @property
-    def got_to_users(self):
-        pass
+    @return_loaded_page
+    def go_to_users(self):
+        self.driver.find_element(*self._users_link_locator).click()
+        return Users(self.driver, self.base_url)
 
 
 class ACL(Page):
@@ -187,7 +183,30 @@ class ACL(Page):
         return 'x-cb-checked' in self.find_element(*locator).get_attribute('class')
 
     def save_acl(self):
-        return self.find_element(*self._save_button_locator).click()
+        save_buttons = self.find_elements(*self._save_button_locator)
+        return [button for button in save_buttons if button.is_displayed()][0].click()
+
+
+class Users(Page):
+    URL_TEMPLATE = '/#/account/users'
+    _new_user_link_locator = (By.XPATH, '//span [contains(text(), "New user")]//ancestor::a')
+    _new_user_email_field_locator = (By.XPATH, '//input [@name="email"]')
+    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
+
+    @property
+    def loaded(self):
+        return self.is_element_displayed(*self._new_user_link_locator)
+
+    def new_user(self):
+        return self.driver.find_element(*self._new_user_link_locator).click()
+
+    @property
+    def new_user_email_field(self):
+        return self.driver.find_element(*self._new_user_email_field_locator)
+
+    def save_new_user(self):
+        save_buttons = self.find_elements(*self._save_button_locator)
+        return [button for button in save_buttons if button.is_displayed()][0].click()
 
 
 class Farms(ScalrUpperMenu):
@@ -207,3 +226,4 @@ class Farms(ScalrUpperMenu):
 
 class Servers(ScalrUpperMenu):
     URL_TEMPLATE = '/#/farms'
+    pass
