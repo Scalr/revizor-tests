@@ -112,6 +112,7 @@ class AccountDashboard(ScalrUpperMenu):
     _env_info_locator = (By.XPATH, '//div [contains(text(), "Environments in this account")]')
     _dashboard_link_locator = (By.LINK_TEXT, 'Account Dashboard')
     _acl_link_locator = (By.XPATH, '//a [@href="#/account/acl"]')
+    _users_link_locator = (By.XPATH, '//a [@href="#/account/users"]')
 
     @property
     def loaded(self):
@@ -119,12 +120,17 @@ class AccountDashboard(ScalrUpperMenu):
 
     @return_loaded_page
     def go_to_acl(self):
-        acl = [e for e in self.find_elements(*self._acl_link_locator) if e.is_displayed()]
-        if acl:
-            acl[0].click()
-        else:
-            raise Exception(self.find_elements(*self._acl_link_locator))
+        self.driver.find_element(*self._acl_link_locator).click()
+        # acl = [e for e in self.find_elements(*self._acl_link_locator) if e.is_displayed()]
+        # if acl:
+        #     acl[0].click()
+        # else:
+        #     raise Exception(self.find_elements(*self._acl_link_locator))
         return ACL(self.driver, self.base_url)
+
+    @property
+    def got_to_users(self):
+        pass
 
 
 class ACL(Page):
@@ -136,7 +142,7 @@ class ACL(Page):
     _permissions_access_options_locator = (By.XPATH, '//div [starts-with(@id, "menuitem")]')
     # _option_checkbox_base_locator = '//* [contains(text(), "{}")]//preceding::div [starts-with(@id, "ext-element")]'
     _option_checkbox_base_locator = '//* [@data-value="{}"]'
-    _save_button_locator = (By.XPATH, "//a [@class='x-btn x-unselectable x-box-item x-btn-default-small undefined x-btn-button-icon x-focus x-btn-focus x-btn-default-small-focus']")
+    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
 
     @property
     def loaded(self):
@@ -156,7 +162,7 @@ class ACL(Page):
     def set_access(self, access_for, set_option):
         dropdown_locator = (By.XPATH, self._permissions_access_dropdown_locator.format(access_for))
         self.find_element(*dropdown_locator).click()
-        for _ in range(3):
+        for _ in range(5):
             try:
                 if self.find_element(*dropdown_locator).get_attribute('id'):
                     break
@@ -171,13 +177,16 @@ class ACL(Page):
 
     def click_checkbox_option(self, data_value, action='check'):
         locator = (By.XPATH, self._option_checkbox_base_locator.format(data_value.lower()))
+        self.wait.until(
+            lambda d: d.find_elements(*locator),
+            message="Unable to find element %s in time!" % locator[1])
         checkbox = self.find_element(*locator)
         checked = 'x-cb-checked' in checkbox.get_attribute('class')
         if (not checked and action == 'check') or (checked and action == 'uncheck'):
             checkbox.click()
         return 'x-cb-checked' in self.find_element(*locator).get_attribute('class')
 
-    def click_save(self):
+    def save_acl(self):
         return self.find_element(*self._save_button_locator).click()
 
 
