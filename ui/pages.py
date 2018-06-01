@@ -114,6 +114,7 @@ class AccountDashboard(ScalrUpperMenu):
     _acl_link_locator = (By.XPATH, '//a [@href="#/account/acl"]')
     _users_link_locator = (By.XPATH, '//a [@href="#/account/users"]')
     _teams_link_locator = (By.XPATH, '//a [@href="#/account/teams"]')
+    _environments_link_locator = (By.XPATH, '//a [@href="#/account/environments')
 
     @property
     def loaded(self):
@@ -133,6 +134,11 @@ class AccountDashboard(ScalrUpperMenu):
     def go_to_teams(self):
         self.driver.find_element(*self._teams_link_locator).click()
         return Teams(self.driver, self.base_url)
+
+    @return_loaded_page
+    def go_to_environments(self):
+        self.driver.find_element(*self._environments_link_locator).click()
+        return Environments(self.driver, self.base_url)
 
 
 class ACL(Page):
@@ -249,6 +255,15 @@ class Teams(Page):
     def save_team(self):
         save_buttons = self.find_elements(*self._save_button_locator)
         return [button for button in save_buttons if button.is_displayed()][0].click()
+
+
+class Environments(Page):
+    URL_TEMPLATE = '/#/account/environments'
+    _new_environment_link_locator = (By.XPATH, '//span [contains(text(), "New environment")]//ancestor::a')
+
+    @property
+    def loaded(self):
+        pass
 
 
 class Farms(ScalrUpperMenu):

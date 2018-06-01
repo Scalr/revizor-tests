@@ -61,3 +61,5 @@ class TestSelenium():
         table_entry = self.wait.until(
             lambda d: d.find_elements(*table_entry_locator))
         assert table_entry, "Selenium Team was not found!"
+
+    def 
