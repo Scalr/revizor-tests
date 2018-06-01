@@ -113,6 +113,7 @@ class AccountDashboard(ScalrUpperMenu):
     _dashboard_link_locator = (By.LINK_TEXT, 'Account Dashboard')
     _acl_link_locator = (By.XPATH, '//a [@href="#/account/acl"]')
     _users_link_locator = (By.XPATH, '//a [@href="#/account/users"]')
+    _teams_link_locator = (By.XPATH, '//a [@href="#/account/teams"]')
 
     @property
     def loaded(self):
@@ -127,6 +128,11 @@ class AccountDashboard(ScalrUpperMenu):
     def go_to_users(self):
         self.driver.find_element(*self._users_link_locator).click()
         return Users(self.driver, self.base_url)
+
+    @return_loaded_page
+    def go_to_teams(self):
+        self.driver.find_element(*self._teams_link_locator).click()
+        return Teams(self.driver, self.base_url)
 
 
 class ACL(Page):
@@ -202,9 +208,45 @@ class Users(Page):
 
     @property
     def new_user_email_field(self):
-        return self.driver.find_element(*self._new_user_email_field_locator)
+        email_fields = self.driver.find_elements(*self._new_user_email_field_locator)
+        return [field for field in email_fields if field.is_displayed()][0]
 
     def save_new_user(self):
+        save_buttons = self.find_elements(*self._save_button_locator)
+        return [button for button in save_buttons if button.is_displayed()][0].click()
+
+
+class Teams(Page):
+    URL_TEMPLATE = '/#/account/teams'
+    _new_team_link_locator = (By.XPATH, '//span [contains(text(), "New team")]//ancestor::a')
+    _new_time_name_field_locator = (By.XPATH, '//input [@name="name"]')
+    _default_acl_combobox_locator = (By.XPATH, '//span[contains(text(), "Default ACL")]//ancestor::div[starts-with(@id, "combobox")]')
+    _default_acl_options_locator = '//span[contains(text(), "{}")]//parent::li'
+    _members_option_locator = '//*[contains(text(), "{}")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Add to team"]'
+    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
+
+    @property
+    def loaded(self):
+        return self.is_element_displayed(*self._new_team_link_locator)
+
+    def new_team(self):
+        return self.driver.find_element(*self._new_team_link_locator).click()
+
+    @property
+    def new_team_name_field(self):
+        name_fields = self.driver.find_elements(*self._new_time_name_field_locator)
+        return [field for field in name_fields if field.is_displayed()][0]
+
+    def select_default_acl(self, acl_name):
+        self.driver.find_element(*self._default_acl_combobox_locator).click()
+        option_locator = (By.XPATH, self._default_acl_options_locator.format(acl_name))
+        return self.driver.find_element(*option_locator).click()
+
+    def add_user_to_team(self, email):
+        member_locator = (By.XPATH, self._members_option_locator.format(email))
+        return self.driver.find_element(*member_locator).click()
+
+    def save_team(self):
         save_buttons = self.find_elements(*self._save_button_locator)
         return [button for button in save_buttons if button.is_displayed()][0].click()
 

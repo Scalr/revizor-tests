@@ -6,24 +6,22 @@ from selenium.webdriver.support.ui import WebDriverWait
 import pages
 
 
-class TestCase():
+class TestSelenium():
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium):
         self.driver = selenium
         self.wait = WebDriverWait(self.driver, 30)
-        self.test_id = uuid.uuid1()
-        self.login_page = pages.LoginPage(self.driver, 'http://c4dba9c8bdbf.test-env.scalr.com').open()
+        self.login_page = pages.LoginPage(self.driver, 'http://c9b03eda2ed0.test-env.scalr.com').open()
         self.env_dashboard = self.login_page.login('test@scalr.com', '^Qb?${q8DB')
         yield
-        self.driver.save_screenshot("/vagrant/ui/acl_%s.png" % self.test_id)
-        self.env_dashboard = pages.EnvironmentDashboard(self.driver, 'http://c4dba9c8bdbf.test-env.scalr.com').open()
+        self.driver.save_screenshot("/vagrant/ui/acl_%s.png" % uuid.uuid1())
 
     def test_create_new_acl(self):
         acc_dashboard = self.env_dashboard.go_to_account()
         acl_page = acc_dashboard.go_to_acl()
         acl_page.new_acl()
-        acl_page.new_acl_name_field.send_keys('test-%s' % self.test_id)
+        acl_page.new_acl_name_field.send_keys('Selenium')
         acl_page.new_acl_permissions_filter.send_keys('All Farms')
         acl_page.set_access('All Farms', 'No access')
         acl_page.new_acl_permissions_filter.clear()
@@ -47,3 +45,19 @@ class TestCase():
         table_entry = self.wait.until(
             lambda d: d.find_elements(*table_entry_locator))
         assert table_entry, "User with email selenium@scalr.com was not found in users table!"
+
+    def test_create_new_team(self):
+        acc_dashboard = self.env_dashboard.go_to_account()
+        teams_page = acc_dashboard.go_to_teams()
+        teams_page.new_team()
+        teams_page.new_team_name_field.send_keys("Selenium Team")
+        teams_page.select_default_acl('Selenium')
+        teams_page.add_user_to_team('selenium@scalr.com')
+        teams_page.save_team()
+        message_popup = self.wait.until(
+            lambda d: d.find_elements(*('xpath', '//* [contains(text(), "Team successfully saved")]')))
+        assert message_popup, "No message present about successfull saving of the new Team"
+        table_entry_locator = ('xpath', '//div[contains(text(), "Selenium Team")]//ancestor::table')
+        table_entry = self.wait.until(
+            lambda d: d.find_elements(*table_entry_locator))
+        assert table_entry, "Selenium Team was not found!"
