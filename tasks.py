@@ -1,14 +1,16 @@
 import os
 import shutil
-from invoke import task, run
+
 from contextlib import contextmanager
+
+from invoke import task, run
 
 PYENV_ROOT = '/usr/local/pyenv'
 PYENV_PROFILE = '/etc/profile.d/pyenv.sh'
-PIP_VERSION = '9.0.1'
+PIP_VERSION = '10.0.1'
 PIP_TOOLS_VERSION = '1.9.0'
 PY2_VERSION = '2.7.12'
-PY3_VERSION = '3.6.0'
+PY3_VERSION = '3.6.5'
 PY_VERSIONS = (PY2_VERSION, PY3_VERSION)
 
 
@@ -19,9 +21,9 @@ def grid(ctx, docs=False, port='4444'):
         if 'grid' not in docker_networks.stdout:
             ctx.run('docker network create grid')
         grid_cmd = """
-            docker run -d -p {port}:{port} --name selenium-hub selenium/hub:3.12.0-americium &&
-            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome:3.12.0-americium &&
-            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox:3.12.0-americium""".format(port=port)
+            docker run -d -p {port}:{port} --name selenium-hub selenium/hub &&
+            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome &&
+            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox""".format(port=port)
         ctx.run(grid_cmd)
 
 
@@ -32,7 +34,6 @@ def pip_install(command):
 
 
 def apt_get_install(packages):
-    print('apt-get install {}'.format(packages))
     run('apt-get install -qq -y {}'.format(packages))
 
 
