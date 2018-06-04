@@ -62,4 +62,17 @@ class TestSelenium():
             lambda d: d.find_elements(*table_entry_locator))
         assert table_entry, "Selenium Team was not found!"
 
-    def 
+    def test_new_environment(self):
+        acc_dashboard = self.env_dashboard.go_to_account()
+        env_page = acc_dashboard.go_to_environments()
+        env_page.new_environment()
+        env_page.new_environment_name_field.send_keys("Selenium Env")
+        env_page.select_cost_center("Default cost centre")
+        env_page.link_cloud_to_environment("Google Compute Engine", "global-gce-scalr-labs (PAID)")
+        env_page.grant_access("Selenium Team")
+        env_page.save_environment()
+        message_popup = self.wait.until(
+            lambda d: d.find_elements(*('xpath', '//* [contains(text(), "Environment successfully created")]')))
+        assert message_popup, "No message present about successfull saving of the new Environment"
+        envs = env_page.list_environments()
+        assert any("Selenium Env" in env for env in envs), "Selenium Env was not found in list!"
