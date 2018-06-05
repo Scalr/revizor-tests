@@ -3,16 +3,24 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.common.exceptions import StaleElementReferenceException
+from selenium.webdriver.common.action_chains import ActionChains
 from pypom import Page
+
+
+ENV_LIST = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
 
 
 def return_loaded_page(func, *args, **kwargs):
     def wrapper(*args, **kwargs):
         page = func(*args, **kwargs)
         wait = WebDriverWait(page.driver, 30)
+        mask_locator = (By.CLASS_NAME, "x-mask")  # Elements that obscure usage of other elements
         wait.until(
             lambda d: page.loaded,
             message="Page did not load in 30 seconds!")
+        wait.until(
+            lambda d: all(not mask.is_displayed() for mask in d.find_elements(*mask_locator)),
+            message="Mask objects enabled for too long")
         return page
     return wrapper
 
@@ -48,42 +56,35 @@ class LoginPage(Page):
 
 
 class ScalrUpperMenu(Page):
-    _environments_link_locator = (By.XPATH, '//a [@class="x-btn x-btn-environment x-unselectable x-box-item x-toolbar-item x-btn-default-toolbar-small"]')
-    _inactive_enrivonments_locator = (By.XPATH, '//div [@class="x-menu-item x-menu-item-default x-box-item x-menu-item-unchecked"]')
-    _active_environment_locator = (By.XPATH, '//div [@class="x-menu-item x-menu-item-default x-box-item x-menu-item-checked x-menu-item-active"]')
+    _env_dropdown_locator = '//span [contains(text(), "{}")]//ancestor::a'
+    _env_link_locator = '//span [contains(text(), "{}")]//ancestor::a [contains(@id, "menucheckitem")]'
     _account_link_locator = (By.PARTIAL_LINK_TEXT, 'Main account')
-    _mask_locator = (By.CLASS_NAME, "x-mask")  # Elements that obscure usage of other elements
-
-    @property
-    def environments(self):
-        if self.is_element_displayed(*self._environments_link_locator):
-            self.find_element(*self._environments_link_locator).click()
-            self._environments_link_locator = (By.XPATH, '//a [@class="x-btn x-btn-environment x-unselectable x-box-item x-toolbar-item x-btn-default-toolbar-small x-focus x-btn-focus x-btn-default-toolbar-small-focus"]')
-        environments = self.find_elements(*self._inactive_enrivonments_locator)
-        environments.append(self.find_element(*self._active_environment_locator))
-        return environments
 
     @return_loaded_page
     def go_to_account(self):
-        self.wait.until(
-            lambda d: all(not mask.is_displayed() for mask in d.find_elements(*self._mask_locator)),
-            message="Mask objects enabled for too long")
-
-        if self.is_element_displayed(*self._environments_link_locator):
-            self.find_element(*self._environments_link_locator).click()
-            self._environments_link_locator = (By.XPATH, '//a [@class="x-btn x-btn-environment x-unselectable x-box-item x-toolbar-item x-btn-default-toolbar-small x-focus x-btn-focus x-btn-default-toolbar-small-focus"]')
+        self.active_environment.click()
         self.find_element(*self._account_link_locator).click()
         return AccountDashboard(self.driver, self.base_url)
+
+    @property
+    def active_environment(self):
+        for name in ENV_LIST:
+            env = self.find_elements(*(By.XPATH, self._env_dropdown_locator.format(name)))
+            if env and env[0].is_displayed():
+                return env[0]
+
+    @return_loaded_page
+    def go_to_environment(self, env_name="acc1env1"):
+        self.active_environment.click()
+        if env_name not in self.active_environment.text:
+            self.find_element(*(By.XPATH, self._env_link_locator.format(env_name))).click()
+        return EnvironmentDashboard(self.driver, self.base_url)
 
 
 class EnvironmentDashboard(ScalrUpperMenu):
     URL_TEMPLATE = '/#/dashboard'
     _errors_info_locator = (By.XPATH, '//div [contains(text(), "Last errors")]')
     _dashboard_link_locator = (By.LINK_TEXT, 'Dashboard')
-    # _environments_link_locator = (By.XPATH, '//a [@class="x-btn x-btn-environment x-unselectable x-box-item x-toolbar-item x-btn-default-toolbar-small"]')
-    # _inactive_enrivonments_locator = (By.XPATH, '//div [@class="x-menu-item x-menu-item-default x-box-item x-menu-item-unchecked"]')
-    # _active_environment_locator = (By.XPATH, '//div [@class="x-menu-item x-menu-item-default x-box-item x-menu-item-checked x-menu-item-active"]')
-    # _account_link_locator = (By.PARTIAL_LINK_TEXT, 'Main account')
     _farms_link_locator = (By.LINK_TEXT, 'Farms')
     _servers_link_locator = (By.LINK_TEXT, 'Servers')
 
@@ -318,16 +319,85 @@ class Environments(Page):
 class Farms(ScalrUpperMenu):
     URL_TEMPLATE = '/#/farms'
     _new_farm_link_locator = (By.LINK_TEXT, "New Farm")
+    _farms_item_locator = (By.XPATH, '//div [@class="x-grid-item-container"]/child::table')
 
     @property
     def loaded(self):
         return self.is_element_displayed(*self._new_farm_link_locator)
+
+    @return_loaded_page
+    def new_farm(self):
+        self.find_element(*self._new_farm_link_locator).click()
+        return FarmDesigner(self.driver, self.base_url)
+
+    def list_farms(self):
+        farm_elements = [el for el in self.find_elements(*self._farms_item_locator) if el.is_displayed()]
+        farms_info = []
+        for el in farm_elements:
+            info = el.text.split('\n')
+            farm = {
+                "farm_id": info[0],
+                "name": info[1],
+                "date_of_creation": info[2] + info[3] + info[4] + ',' + info[5],
+                "owner": info[6],
+                "state": info[-1],
+                "element": el
+            }
+            farms_info.append(farm)
+        return farms_info
+
 
     def search_farms(self, search_condition):
         [el for el in self.find_elements(*(By.TAG_NAME, 'div')) if 'searchfield' in el.get_attribute('id')][0].click() # Activate input
         input_field = [el for el in self.find_elements(*(By.TAG_NAME, 'input')) if 'searchfield' in el.get_attribute('id')][0]
         input_field.clear()
         return input_field.send_keys(search_condition)
+
+
+class FarmDesigner(ScalrUpperMenu):
+    URL_TEMPLATE = '#/farms/designer'
+    _farm_settings_label_locator = (By.XPATH, '//div [contains(text(), "Farm settings")]')
+    _farm_name_field_locator = (By.XPATH, '//input [@name="name"]')
+    _projects_dropdown_locator = (By.XPATH, '//span [contains(text(), "Project")]//ancestor::div [contains(@id, "costanalyticsproject")]')
+    _project_option_locator = '//span [contains(text(), "{}")]//parent::div//parent::div[starts-with(@class, "x-boundlist-item")]'
+    _save_launch_farm_splitbutton_locator = (By.XPATH, '//span [contains(text(), "Save & launch")]//ancestor::a [starts-with(@id, "splitbutton")]')
+    _save_farm_splitbutton_locator = (By.XPATH, '//span [contains(text(), "Save farm")]//ancestor::a [starts-with(@id, "splitbutton")]')
+    _save_launch_farm_option_locator = (By.XPATH, '//span [contains(text(), "Save & launch")]//ancestor::a [starts-with(@id, "menuitem")]')
+    _save_farm_option_locator = (By.XPATH, '//span [contains(text(), "Save farm")]//ancestor::a [starts-with(@id, "menuitem")]')
+
+    @property
+    def loaded(self):
+        return self.is_element_displayed(*self._farm_settings_label_locator)
+
+    @property
+    def farm_name_field(self):
+        name_fields = self.find_elements(*self._farm_name_field_locator)
+        return [field for field in name_fields if field.is_displayed()][0]
+
+    def select_project(self, project_name):
+        dropdown = [e for e in self.find_elements(*self._projects_dropdown_locator)
+            if e.is_displayed()][0]
+        dropdown.click()
+        option_locator = (By.XPATH, self._project_option_locator.format(project_name))
+        self.find_element(*option_locator).click()
+
+    @return_loaded_page
+    def save_farm(self, launch=False):
+        if self.is_element_displayed(*self._save_farm_splitbutton_locator) and not launch:
+            self.find_element(*self._save_farm_splitbutton_locator).click()
+        elif self.is_element_displayed(*self._save_launch_farm_splitbutton_locator) and launch:
+            self.find_element(*self._save_launch_farm_splitbutton_locator).click()
+        else:
+            current_button_locator = self._save_farm_splitbutton_locator if launch else self._save_launch_farm_splitbutton_locator
+            current_button = self.find_element(*current_button_locator)
+            chain = ActionChains(self.driver)
+            chain.move_to_element(current_button)
+            chain.move_by_offset(50, 0)
+            chain.click()
+            chain.perform()
+            locator = self._save_launch_farm_option_locator if launch else self._save_farm_option_locator
+            self.find_element(*locator).click()
+        return Farms(self.driver, self.base_url)
 
 
 class Servers(ScalrUpperMenu):

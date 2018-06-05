@@ -76,3 +76,13 @@ class TestSelenium():
         assert message_popup, "No message present about successfull saving of the new Environment"
         envs = env_page.list_environments()
         assert any("Selenium Env" in env for env in envs), "Selenium Env was not found in list!"
+
+    def test_create_new_farm_from_new_env(self):
+        env_dashboard = self.env_dashboard.go_to_environment(env_name="Selenium Env")
+        farms_page = env_dashboard.go_to_farms()
+        new_farm_page = farms_page.new_farm()
+        new_farm_page.farm_name_field.send_keys('Selenium Farm')
+        new_farm_page.select_project("Default project / Default cost centre")
+        farms_page = new_farm_page.save_farm()
+        farms = [farm["name"] for farm in farms_page.list_farms()]
+        assert "Selenium Farm" in farms, "Selenium Farm not found!"
