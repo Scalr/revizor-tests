@@ -77,7 +77,7 @@ class TestSelenium():
         envs = env_page.list_environments()
         assert any("Selenium Env" in env for env in envs), "Selenium Env was not found in list!"
 
-    def test_create_new_farm_from_new_env(self):
+    def test_create_farm_from_new_env(self):
         env_dashboard = self.env_dashboard.go_to_environment(env_name="Selenium Env")
         farms_page = env_dashboard.go_to_farms()
         new_farm_page = farms_page.new_farm()
@@ -86,3 +86,18 @@ class TestSelenium():
         farms_page = new_farm_page.save_farm()
         farms = [farm["name"] for farm in farms_page.list_farms()]
         assert "Selenium Farm" in farms, "Selenium Farm not found!"
+
+    def test_create_farm_for_team(self):
+        env_dashboard = self.env_dashboard.go_to_environment(env_name="Selenium Env")
+        farms_page = env_dashboard.go_to_farms()
+        new_farm_page = farms_page.new_farm()
+        new_farm_page.farm_name_field.send_keys('Selenium Farm2')
+        new_farm_page.select_project("Default project / Default cost centre")
+        new_farm_page.select_teams(["Selenium Team"])
+        farms_page = new_farm_page.save_farm()
+        farms = [farm["name"] for farm in farms_page.list_farms()]
+        assert "Selenium Farm2" in farms, "Selenium Farm2 not found!"
+        team_locator = (
+            'xpath',
+            '//div [@data-qtip="<span>Selenium Team</span><br/>"]//ancestor::tr/child::td/child::div [contains(text(), "Selenium Farm2")]')
+        assert farms_page.find_elements(*team_locator), "Selenium Farm2 with Selenium Team was not found!"

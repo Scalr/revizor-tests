@@ -360,6 +360,8 @@ class FarmDesigner(ScalrUpperMenu):
     _farm_name_field_locator = (By.XPATH, '//input [@name="name"]')
     _projects_dropdown_locator = (By.XPATH, '//span [contains(text(), "Project")]//ancestor::div [contains(@id, "costanalyticsproject")]')
     _project_option_locator = '//span [contains(text(), "{}")]//parent::div//parent::div[starts-with(@class, "x-boundlist-item")]'
+    _teams_dropdown_locator = (By.XPATH, '//span [contains(text(), "Team")]//ancestor::div [starts-with(@id, "teamfield")]')
+    _team_option_locator = '//b [contains(text(), "{}")]//parent::div'
     _save_launch_farm_splitbutton_locator = (By.XPATH, '//span [contains(text(), "Save & launch")]//ancestor::a [starts-with(@id, "splitbutton")]')
     _save_farm_splitbutton_locator = (By.XPATH, '//span [contains(text(), "Save farm")]//ancestor::a [starts-with(@id, "splitbutton")]')
     _save_launch_farm_option_locator = (By.XPATH, '//span [contains(text(), "Save & launch")]//ancestor::a [starts-with(@id, "menuitem")]')
@@ -380,6 +382,14 @@ class FarmDesigner(ScalrUpperMenu):
         dropdown.click()
         option_locator = (By.XPATH, self._project_option_locator.format(project_name))
         self.find_element(*option_locator).click()
+
+    def select_teams(self, team_names):
+        dropdown = [e for e in self.find_elements(*self._teams_dropdown_locator)
+            if e.is_displayed()][0]
+        dropdown.click()
+        for name in team_names:
+            option_locator = (By.XPATH, self._team_option_locator.format(name))
+            self.find_element(*option_locator).click()
 
     @return_loaded_page
     def save_farm(self, launch=False):
