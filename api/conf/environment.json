@@ -1,0 +1,8 @@
+{
+  "host": "7540b07cd110.test-env.scalr.com",
+  "schema": "http",
+  "secret_key": "yr0vbbu0fEly5ri/vIamdYW2qXYUxCsQE50TzLXy",
+  "secret_key_id": "APIKEKVUERR0MBZ9VYIW",
+  "api_debug_ver": "1",
+  "signature_ver": "V1-HMAC-SHA256"
+}

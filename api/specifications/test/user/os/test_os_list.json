@@ -1,0 +1,15 @@
+{
+  "description": "List all the Operating Systems definitions available in this Environment.",
+  "endpoint": {
+    "path": "/api/v1beta0/user/{envId}/os",
+    "params": {
+      "envId": "5"
+    }
+  },
+  "method": "GET",
+  "body": {},
+  "params": {
+    "family": "ubuntu",
+    "generation": "14.04"
+  }
+}

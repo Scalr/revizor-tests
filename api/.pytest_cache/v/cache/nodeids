@@ -1,0 +1,4 @@
+[
+  "tests/user/test_os.py::TestUserApiOs::()::test_user_os_list",
+  "tests/user/test_os.py::TestUserApiOs::()::test_user_os_get"
+]
