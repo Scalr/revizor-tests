@@ -9,5 +9,8 @@
   },
   "method": "GET",
   "body": {},
-  "params": {}
+  "params": {},
+  "response": {
+    "swagger_schema": "user"
+  }
 }

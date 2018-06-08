@@ -3,15 +3,16 @@
 Created on 05.06.18
 @author: Eugeny Kurkovich
 """
-
 import pytest
+
+
+swagger_schemas = ("user",)
 
 
 class TestUserApiOs(object):
 
-    def test_user_os_list(self, request, fileutil):
-        spec = fileutil.get_spesification_by_test_name(request.node.name)
-        print(spec)
+    def test_os_list(self, request, fileutil, api_session, validationutil):
+        schema = fileutil.get_request_schema(request.node.name)
 
-    def test_user_os_get(self, api_session):
+    def test_os_get(self, api_session):
         pass

@@ -11,5 +11,8 @@
   "params": {
     "family": "ubuntu",
     "generation": "14.04"
+  },
+  "response": {
+    "swagger_schema": "user"
   }
 }
