@@ -20,14 +20,13 @@ class TestSelenium():
     def test_create_new_acl(self):
         acc_dashboard = self.env_dashboard.go_to_account()
         acl_page = acc_dashboard.go_to_acl()
-        acl_page.new_acl()
-        acl_page.new_acl_name_field.send_keys('Selenium')
-        acl_page.new_acl_permissions_filter.send_keys('All Farms')
-        acl_page.set_access('All Farms', 'No access')
-        acl_page.new_acl_permissions_filter.clear()
-        acl_page.new_acl_permissions_filter.send_keys('Farms Your Teams Own')
-        acl_page.click_checkbox_option("Update", action="uncheck")
-        acl_page.save_acl()
+        acl_page.new_acl.click()
+        acl_page.name_field.write('Selenium')
+        acl_page.permissions_filter.write('All Farms')
+        acl_page.access_dropdown.select('No access')
+        acl_page.permissions_filter.write('Farms Your Teams Own')
+        acl_page.get_permission("Update").uncheck()
+        acl_page.save_button.click()
         message_popup = self.wait.until(
             lambda d: d.find_elements(*('xpath', '//* [contains(text(), "ACL successfully saved")]')))
         assert message_popup, "No message present about successfull saving of the new ACL"

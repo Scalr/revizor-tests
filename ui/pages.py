@@ -2,12 +2,9 @@ import time
 
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
-from selenium.common.exceptions import StaleElementReferenceException
+from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 from pypom import Page
-
-
-ENV_LIST = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
 
 
 def return_loaded_page(func, *args, **kwargs):
@@ -25,179 +22,226 @@ def return_loaded_page(func, *args, **kwargs):
     return wrapper
 
 
+class BaseElement():
+
+    def __init__(self, driver):
+        self.driver = driver
+        self.locator = None
+
+    def get_element(self, locator):
+        for i in range(5):
+            try:
+                elements = [el for el in self.driver.find_elements(*locator) if el.is_displayed()]
+                if elements:
+                    return elements[0]
+            except StaleElementReferenceException:
+                time.sleep(3)
+        raise NoSuchElementException(locator[1])
+
+    @property
+    def displayed(self):
+        elements = self.driver.find_elements(*self.locator)
+        if elements and elements[0].is_displayed():
+            return True
+        return False
+
+
+class Button(BaseElement):
+
+    def __init__(self, driver, name=None, text=None, href=None, icon=None, xpath=None):
+        super().__init__(driver)
+        if name:
+            self.locator = (By.NAME, name)
+        elif text:
+            self.locator = (By.XPATH, '//* [contains(text(), "%s")]//ancestor::a' % text)
+        elif href:
+            self.locator = (By.XPATH, '//a [@href="%s"]' % href)
+        elif icon:
+            self.locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-%s")]//ancestor::a' % icon)
+        else:
+            self.locator = (By.XPATH, xpath)
+
+    def click(self):
+        self.get_element(self.locator).click()
+
+
+class Checkbox(BaseElement):
+
+    def __init__(self, driver, value=None, xpath=None):
+        super().__init__(driver)
+        if value:
+            self.locator = (By.XPATH, '//* [@data-value="%s"]' % value.lower())
+        else:
+            self.locator = (By.XPATH, xpath)
+
+    def check(self):
+        element = self.get_element(self.locator)
+        if 'x-cb-checked' not in element.get_attribute("class"):
+            element.click()
+
+    def uncheck(self):
+        element = self.get_element(self.locator)
+        if 'x-cb-checked' in element.get_attribute("class"):
+            element.click()
+
+
+class Dropdown(BaseElement):
+
+    def __init__(self, driver, label=None, xpath=None):
+        super().__init__(driver)
+        if label:
+            self.locator = (By.XPATH, '//* [contains(text(), "%s")]')
+        else:
+            self.locator = (By.XPATH, xpath)
+
+    def select(self, option):
+        self.get_element(self.locator).click()
+        option_locator = (By.XPATH, '//* [contains(text(), "%s")]//ancestor::a[starts-with(@id, "menuitem")]' % option)
+        self.get_element(option_locator).click()
+
+
+class Input(BaseElement):
+
+    def __init__(self, driver, name=None, label=None, xpath=None):
+        super().__init__(driver)
+        if name:
+            self.locator = (By.NAME, name)
+        elif label:
+            self.locator = (By.XPATH, '//* [contains(text(),"%s")]//following::input' % label)
+        else:
+            self.locator = (By.XPATH, xpath)
+
+    def write(self, text):
+        element = self.get_element(self.locator)
+        element.clear()
+        element.send_keys(text)
+
+
+class Label(BaseElement):
+
+    def __init__(self, driver, text):
+        super().__init__(driver)
+        self.locator = (By.XPATH, '//* [contains(text(), "%s")]' % text)
+
+
 class LoginPage(Page):
-    _login_field_locator = (By.NAME, 'scalrLogin')
-    _password_field_locator = (By.NAME, 'scalrPass')
-    _login_button_locator = (By.LINK_TEXT, 'Login')
-    _loading_blocker_locator = (By.ID, 'loading')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.loading_blocker_locator = (By.ID, 'loading')
+        self.login_field = Input(self, name='scalrLogin')
+        self.password_field = Input(self, name='scalrPass')
+        self.login_button = Button(self, text='Login')
 
     @property
     def loaded(self):
-        return not self.is_element_present(*self._loading_blocker_locator)
-
-    @property
-    def login_field(self):
-        return self.find_element(*self._login_field_locator)
-
-    @property
-    def password_field(self):
-        return self.find_element(*self._password_field_locator)
-
-    @property
-    def login_button(self):
-        return self.find_elements(*self._login_button_locator)[1]
+        return not self.is_element_present(*self.loading_blocker_locator)
 
     @return_loaded_page
     def login(self, user, password):
-        self.login_field.send_keys(user)
-        self.password_field.send_keys(password)
+        self.login_field.write(user)
+        self.password_field.write(password)
         self.login_button.click()
         return EnvironmentDashboard(self.driver, self.base_url)
 
 
 class ScalrUpperMenu(Page):
-    _env_dropdown_locator = '//span [contains(text(), "{}")]//ancestor::a'
-    _env_link_locator = '//span [contains(text(), "{}")]//ancestor::a [contains(@id, "menucheckitem")]'
-    _account_link_locator = (By.PARTIAL_LINK_TEXT, 'Main account')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.env_list = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
+        self.account_link = Button(self, text='Main account')
+
+    @property
+    def active_environment(self):
+        for name in self.env_list:
+            env = Button(self, text=name)
+            if env.displayed:
+                return env
+        raise NoSuchElementException("Can't find active Environment!")
 
     @return_loaded_page
     def go_to_account(self):
         self.active_environment.click()
-        self.find_element(*self._account_link_locator).click()
+        self.account_link.click()
         return AccountDashboard(self.driver, self.base_url)
-
-    @property
-    def active_environment(self):
-        for name in ENV_LIST:
-            env = self.find_elements(*(By.XPATH, self._env_dropdown_locator.format(name)))
-            if env and env[0].is_displayed():
-                return env[0]
 
     @return_loaded_page
     def go_to_environment(self, env_name="acc1env1"):
         self.active_environment.click()
         if env_name not in self.active_environment.text:
-            self.find_element(*(By.XPATH, self._env_link_locator.format(env_name))).click()
+            Button(self, text=env_name).click()
         return EnvironmentDashboard(self.driver, self.base_url)
 
 
 class EnvironmentDashboard(ScalrUpperMenu):
     URL_TEMPLATE = '/#/dashboard'
-    _errors_info_locator = (By.XPATH, '//div [contains(text(), "Last errors")]')
-    _dashboard_link_locator = (By.LINK_TEXT, 'Dashboard')
-    _farms_link_locator = (By.LINK_TEXT, 'Farms')
-    _servers_link_locator = (By.LINK_TEXT, 'Servers')
 
     @property
     def loaded(self):
-        return self.is_element_displayed(*self._errors_info_locator)
+        return Label(self, "Last errors").displayed
 
     @return_loaded_page
     def go_to_dashboard(self):
-        self.find_element(*self._dashboard_link_locator).click()
+        Button(self, text="Dashboard").click()
         return self
 
     @return_loaded_page
     def go_to_farms(self):
-        self.find_element(*self._farms_link_locator).click()
+        Button(self, text="Farms").click()
         return Farms(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_servers(self):
-        self.find_element(*self._servers_link_locator).click()
+        Button(self, text="Servers").click()
         return Servers(self.driver, self.base_url)
 
 
 class AccountDashboard(ScalrUpperMenu):
     URL_TEMPLATE = '/#/account/dashboard'
-    _env_info_locator = (By.XPATH, '//div [contains(text(), "Environments in this account")]')
-    _dashboard_link_locator = (By.LINK_TEXT, 'Account Dashboard')
-    _acl_link_locator = (By.XPATH, '//a [@href="#/account/acl"]')
-    _users_link_locator = (By.XPATH, '//a [@href="#/account/users"]')
-    _teams_link_locator = (By.XPATH, '//a [@href="#/account/teams"]')
-    _environments_link_locator = (By.XPATH, '//a [@href="#/account/environments"]')
 
     @property
     def loaded(self):
-        return self.is_element_displayed(*self._env_info_locator)
+        return Label(self, "Environments in this account").displayed
 
     @return_loaded_page
     def go_to_acl(self):
-        self.find_element(*self._acl_link_locator).click()
+        Button(self, href="#/account/acl").click()
         return ACL(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_users(self):
-        self.find_element(*self._users_link_locator).click()
+        Button(self, href="#/account/users").click()
         return Users(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_teams(self):
-        self.find_element(*self._teams_link_locator).click()
+        Button(self, href="#/account/teams").click()
         return Teams(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_environments(self):
-        self.find_element(*self._environments_link_locator).click()
+        Button(self, href="#/account/environments").click()
         return Environments(self.driver, self.base_url)
 
 
 class ACL(Page):
     URL_TEMPLATE = '/#/account/acl'
-    _new_acl_locator = (By.LINK_TEXT, 'New ACL')
-    _new_acl_name_field_locator = (By.XPATH, '//span [contains(text(), "ACL name")]//following::input')
-    _permissions_filter_locator = (By.XPATH, '//fieldset [@class="x-fieldset x-fieldset-separator-none x-fieldset-with-title x-fieldset-with-legend x-box-item x-fieldset-default"]//child::input')
-    _permissions_access_dropdown_locator = '//* [@class="x-resource-name"] [contains(text(), "{}")]/..//a' # Find "All Farms" label and get it's parent by /.. or specific parent type (//a)
-    _permissions_access_options_locator = (By.XPATH, '//div [starts-with(@id, "menuitem")]')
-    # _option_checkbox_base_locator = '//* [contains(text(), "{}")]//preceding::div [starts-with(@id, "ext-element")]'
-    _option_checkbox_base_locator = '//* [@data-value="{}"]'
-    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.new_acl = Button(self, text="New ACL")
+        self.name_field = Input(self, label="ACL name")
+        self.permissions_filter = Input(self, label="Permissions")
+        self.access_dropdown = Dropdown(self, xpath='//div [@class="x-resource-name"]//preceding-sibling::a')
+        self.save_button = Button(self, icon="save")
 
     @property
     def loaded(self):
-        return self.is_element_displayed(*self._new_acl_locator)
+        return Button(self, text="New ACL").displayed
 
-    def new_acl(self):
-        return self.find_element(*self._new_acl_locator).click()
-
-    @property
-    def new_acl_name_field(self):
-        return self.find_element(*self._new_acl_name_field_locator)
-
-    @property
-    def new_acl_permissions_filter(self):
-        return self.find_element(*self._permissions_filter_locator)
-
-    def set_access(self, access_for, set_option):
-        dropdown_locator = (By.XPATH, self._permissions_access_dropdown_locator.format(access_for))
-        self.find_element(*dropdown_locator).click()
-        for _ in range(5):
-            try:
-                if self.find_element(*dropdown_locator).get_attribute('id'):
-                    break
-            except StaleElementReferenceException:
-                time.sleep(3)
-                continue
-        self.find_element(*dropdown_locator).click()
-        for option in self.find_elements(*self._permissions_access_options_locator):
-            if option.text.lower() == set_option.lower():
-                return option.click()
-        raise AssertionError("Option %s was not found!" % set_option)
-
-    def click_checkbox_option(self, data_value, action='check'):
-        locator = (By.XPATH, self._option_checkbox_base_locator.format(data_value.lower()))
-        self.wait.until(
-            lambda d: d.find_elements(*locator),
-            message="Unable to find element %s in time!" % locator[1])
-        checkbox = self.find_element(*locator)
-        checked = 'x-cb-checked' in checkbox.get_attribute('class')
-        if (not checked and action == 'check') or (checked and action == 'uncheck'):
-            checkbox.click()
-        return 'x-cb-checked' in self.find_element(*locator).get_attribute('class')
-
-    def save_acl(self):
-        save_buttons = self.find_elements(*self._save_button_locator)
-        return [button for button in save_buttons if button.is_displayed()][0].click()
+    def get_permission(self, name):
+        return Checkbox(self, value=name)
 
 
 class Users(Page):
