@@ -5,10 +5,13 @@ Created on 05.06.18
 """
 
 import json
+
 import pytest
+import requests
+
 
 from pathlib import Path
-from flex.core import loadi, validate_api_call, validate
+from flex.core import load, validate_api_call, validate
 from flex.exceptions import ValidationError
 
 
@@ -74,10 +77,18 @@ class ValidationUtil(FileFixture):
 
     def _load(self, schemas):
         for schema in schemas:
-            self.swagger_schemas.update(dict(
-                schema=self.get_validation_schema(schema)))
+            self.swagger_schemas.update({schema: self.get_validation_schema(schema)})
 
     def validate_api(self, schema, response):
+        """
+        :type  schema: str
+        :param schema:  schema name
+
+        :type: requests.Response
+        :param response: raw requests.response
+
+        :return: None or validation error
+        """
         try:
             validation_res = validate_api_call(
                 self.swagger_schemas[schema],
@@ -87,6 +98,17 @@ class ValidationUtil(FileFixture):
             validation_res = e
         return validation_res
 
+    def validate_json(self, schema, data):
+        if isinstance(data, requests.models.Response):
+            data = data.json()
+        try:
+            validation_res = validate(
+                self.swagger_schemas[schema],
+                data
+            )
+        except (ValidationError, ValueError) as e:
+            validation_res = e
+        return validation_res
 
 
 @pytest.fixture(scope="session")
