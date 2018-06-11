@@ -28,21 +28,28 @@ class BaseElement():
         self.driver = driver
         self.locator = None
 
-    def get_element(self, locator):
-        for i in range(5):
+    def get_element(self, custom_locator=None):
+        return self.list_elements()[0]
+
+    def list_elements(self, custom_locator=None):
+        locator = custom_locator or self.locator
+        for _ in range(5):
             try:
                 elements = [el for el in self.driver.find_elements(*locator) if el.is_displayed()]
                 if elements:
-                    return elements[0]
+                    return elements
             except StaleElementReferenceException:
-                time.sleep(3)
+                continue
+            time.sleep(6)
         raise NoSuchElementException(locator[1])
 
-    @property
-    def displayed(self):
-        elements = self.driver.find_elements(*self.locator)
-        if elements and elements[0].is_displayed():
-            return True
+    def displayed(self, timeout=3):
+        start = time.time()
+        while (time.time() - start) < timeout:
+            elements = self.driver.find_elements(*self.locator)
+            if elements and elements[0].is_displayed():
+                return True
+            time.sleep(3)
         return False
 
 
@@ -62,7 +69,7 @@ class Button(BaseElement):
             self.locator = (By.XPATH, xpath)
 
     def click(self):
-        self.get_element(self.locator).click()
+        self.get_element().click()
 
 
 class Checkbox(BaseElement):
@@ -75,14 +82,35 @@ class Checkbox(BaseElement):
             self.locator = (By.XPATH, xpath)
 
     def check(self):
-        element = self.get_element(self.locator)
+        element = self.get_element()
         if 'x-cb-checked' not in element.get_attribute("class"):
             element.click()
 
     def uncheck(self):
-        element = self.get_element(self.locator)
+        element = self.get_element()
         if 'x-cb-checked' in element.get_attribute("class"):
             element.click()
+
+
+class Combobox(BaseElement):
+
+    def __init__(self, driver, text=None, xpath=None, span=True):
+        super().__init__(driver)
+        self.span = span
+        if text:
+            self.locator = (
+                By.XPATH,
+                '//span[contains(text(), "%s")]//ancestor::div[starts-with(@id, "combobox")]' % text)
+        else:
+            self.locator = (By.XPATH, xpath)
+
+    def select(self, option):
+        self.get_element().click()
+        if self.span:
+            option_locator = (By.XPATH, '//span[contains(text(), "%s")]//parent::li' % option)
+        else:
+            option_locator = (By.XPATH, '//li[contains(text(), "%s")]' % option)
+        self.get_element(custom_locator=option_locator).click()
 
 
 class Dropdown(BaseElement):
@@ -95,9 +123,9 @@ class Dropdown(BaseElement):
             self.locator = (By.XPATH, xpath)
 
     def select(self, option):
-        self.get_element(self.locator).click()
+        self.get_element().click()
         option_locator = (By.XPATH, '//* [contains(text(), "%s")]//ancestor::a[starts-with(@id, "menuitem")]' % option)
-        self.get_element(option_locator).click()
+        self.get_element(custom_locator=option_locator).click()
 
 
 class Input(BaseElement):
@@ -112,16 +140,19 @@ class Input(BaseElement):
             self.locator = (By.XPATH, xpath)
 
     def write(self, text):
-        element = self.get_element(self.locator)
+        element = self.get_element()
         element.clear()
         element.send_keys(text)
 
 
 class Label(BaseElement):
 
-    def __init__(self, driver, text):
+    def __init__(self, driver, text=None, xpath=None):
         super().__init__(driver)
-        self.locator = (By.XPATH, '//* [contains(text(), "%s")]' % text)
+        if text:
+            self.locator = (By.XPATH, '//* [contains(text(), "%s")]' % text)
+        else:
+            self.locator = (By.XPATH, xpath)
 
 
 class LoginPage(Page):
@@ -179,7 +210,7 @@ class EnvironmentDashboard(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return Label(self, "Last errors").displayed
+        return Label(self, "Last errors").displayed()
 
     @return_loaded_page
     def go_to_dashboard(self):
@@ -202,7 +233,7 @@ class AccountDashboard(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return Label(self, "Environments in this account").displayed
+        return Label(self, "Environments in this account").displayed()
 
     @return_loaded_page
     def go_to_acl(self):
@@ -230,7 +261,7 @@ class ACL(Page):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.new_acl = Button(self, text="New ACL")
+        self.new_acl_button = Button(self, text="New ACL")
         self.name_field = Input(self, label="ACL name")
         self.permissions_filter = Input(self, label="Permissions")
         self.access_dropdown = Dropdown(self, xpath='//div [@class="x-resource-name"]//preceding-sibling::a')
@@ -238,7 +269,7 @@ class ACL(Page):
 
     @property
     def loaded(self):
-        return Button(self, text="New ACL").displayed
+        return self.new_acl_button.displayed()
 
     def get_permission(self, name):
         return Checkbox(self, value=name)
@@ -246,118 +277,81 @@ class ACL(Page):
 
 class Users(Page):
     URL_TEMPLATE = '/#/account/users'
-    _new_user_link_locator = (By.XPATH, '//span [contains(text(), "New user")]//ancestor::a')
-    _new_user_email_field_locator = (By.XPATH, '//input [@name="email"]')
-    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.new_user_button = Button(self, text="New user")
+        self.email_field = Input(self, name="email")
+        self.save_button = Button(self, icon="save")
 
     @property
     def loaded(self):
-        return self.is_element_displayed(*self._new_user_link_locator)
-
-    def new_user(self):
-        return self.find_element(*self._new_user_link_locator).click()
-
-    @property
-    def new_user_email_field(self):
-        email_fields = self.find_elements(*self._new_user_email_field_locator)
-        return [field for field in email_fields if field.is_displayed()][0]
-
-    def save_new_user(self):
-        save_buttons = self.find_elements(*self._save_button_locator)
-        return [button for button in save_buttons if button.is_displayed()][0].click()
+        return self.new_user_button.displayed()
 
 
 class Teams(Page):
     URL_TEMPLATE = '/#/account/teams'
-    _new_team_link_locator = (By.XPATH, '//span [contains(text(), "New team")]//ancestor::a')
-    _new_team_name_field_locator = (By.XPATH, '//input [@name="name"]')
-    _default_acl_combobox_locator = (By.XPATH, '//span[contains(text(), "Default ACL")]//ancestor::div[starts-with(@id, "combobox")]')
-    _default_acl_options_locator = '//span[contains(text(), "{}")]//parent::li'
-    _members_option_locator = '//*[contains(text(), "{}")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Add to team"]'
-    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.new_team_button = Button(self, text="New team")
+        self.team_name_field = Input(self, name="name")
+        self.acl_combobox = Combobox(self, text="Default ACL")
+        self.save_button = Button(self, icon="save")
 
     @property
     def loaded(self):
-        return self.is_element_displayed(*self._new_team_link_locator)
-
-    def new_team(self):
-        return self.find_element(*self._new_team_link_locator).click()
-
-    @property
-    def new_team_name_field(self):
-        name_fields = self.find_elements(*self._new_team_name_field_locator)
-        return [field for field in name_fields if field.is_displayed()][0]
-
-    def select_default_acl(self, acl_name):
-        self.find_element(*self._default_acl_combobox_locator).click()
-        option_locator = (By.XPATH, self._default_acl_options_locator.format(acl_name))
-        return self.find_element(*option_locator).click()
+        return self.new_team_button.displayed()
 
     def add_user_to_team(self, email):
-        member_locator = (By.XPATH, self._members_option_locator.format(email))
-        return self.find_element(*member_locator).click()
+        xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Add to team"]' % email
+        return Button(self, xpath=xpath).click()
 
-    def save_team(self):
-        save_buttons = self.find_elements(*self._save_button_locator)
-        return [button for button in save_buttons if button.is_displayed()][0].click()
+    def remove_user_form_team(self, email):
+        xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Remove from team"]' % email
+        return Button(self, xpath=xpath).click()
 
 
 class Environments(Page):
     URL_TEMPLATE = '/#/account/environments'
-    _new_env_link_locator = (By.XPATH, '//span [contains(text(), "New environment")]//ancestor::a')
-    _new_env_name_field_locator = (By.XPATH, '//input [@name="name"]')
-    _cost_center_combobox_locator = (By.XPATH, '//span[contains(text(), "Cost center")]//ancestor::div[starts-with(@id, "combobox")]')
-    _cost_center_options_locator = '//li[contains(text(), "{}")]'
-    _cloud_options_locator = '//div [contains(text(), "{}")]//ancestor::table//child::a'
-    _cloud_credentials_options_locator = '//div [contains(text(), "{}")]//ancestor::table'
-    _link_button_locator = (By.XPATH, '//span [contains(text(), "Link to Environment")]//ancestor::a')
-    _access_tab_link_locator = (By.XPATH, '//span [contains(text(), "Access")]//ancestor::a')
-    _grant_access_menu_button_locator = (By.XPATH, '//span [contains(text(), "Grant access")]//ancestor::a[contains(@class, "x-btn-green")]')
-    _grant_access_team_checkbox_locator = '//div [contains(text(), "Users")]//parent::td//parent::tr//child::td//child::div[@class="x-grid-row-checker"]'
-    _grant_access_to_teams_button_locator = (By.XPATH, '//span [contains(text(), "Grant access")]//ancestor::a[@class="x-btn x-unselectable x-box-item x-btn-default-small"]')
-    _save_button_locator = (By.XPATH, '//* [contains(@class, "x-btn-icon-save")]//ancestor::a')
-    _active_envs_locator = (By.XPATH, '//div[starts-with(@class, "x-dataview-tab")]')
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.new_env_button = Button(self, text="New environment")
+        self.env_name_field = Input(self, name="name")
+        self.cost_center_combobox = Combobox(
+            self,
+            xpath='//span[contains(text(), "Cost center")]//ancestor::label//following-sibling::div[starts-with(@id, "combobox")]',
+            span=False)
+        self.access_tab = Button(self, text="Access")
+        self.grant_access_menu = Button(self,text="Grant access")
+        self.grant_access_button = Button(self, xpath='//span [contains(text(), "Grant access")]//ancestor::a[@class="x-btn x-unselectable x-box-item x-btn-default-small"]')
+        self.save_button = Button(self, icon="save")
+        self.active_envs = Label(self, xpath='//div[starts-with(@class, "x-dataview-tab")]')
 
     @property
     def loaded(self):
-        return self.is_element_displayed(*self._new_env_link_locator)
-
-    def new_environment(self):
-        return self.find_element(*self._new_env_link_locator).click()
-
-    @property
-    def new_environment_name_field(self):
-        name_fields = self.find_elements(*self._new_env_name_field_locator)
-        return [field for field in name_fields if field.is_displayed()][0]
-
-    def select_cost_center(self, name):
-        self.find_element(*self._cost_center_combobox_locator).click()
-        option_locator = (By.XPATH, self._cost_center_options_locator.format(name))
-        return self.find_element(*option_locator).click()
+        return self.new_env_button.displayed()
 
     def link_cloud_to_environment(self, cloud_name, credentials_name):
-        cloud_locator = (By.XPATH, self._cloud_options_locator.format(cloud_name))
-        credentials_locator = (By.XPATH, self._cloud_credentials_options_locator.format(credentials_name))
-        self.find_element(*cloud_locator).click()
-        self.wait.until(
-            lambda d: self.is_element_displayed(*credentials_locator),
-            message="Can't find cloud credentials!")
-        self.find_element(*credentials_locator).click()
-        return self.find_element(*self._link_button_locator).click()
+        cloud_button = Button(self, xpath='//div [contains(text(), "%s")]//ancestor::table//child::a' % cloud_name)
+        credentials = Button(self, xpath='//div [contains(text(), "%s")]//ancestor::table' % credentials_name)
+        link_button = Button(self, text="Link to Environment")
+        cloud_button.click()
+        credentials.click()
+        link_button.click()
 
     def grant_access(self, team):
-        self.find_element(*self._access_tab_link_locator).click()
-        self.find_element(*self._grant_access_menu_button_locator).click()
-        team_checkbox_locator = (By.XPATH, self._grant_access_team_checkbox_locator.format(team))
-        self.find_element(*team_checkbox_locator).click()
-        self.find_element(*self._grant_access_to_teams_button_locator).click()
+        self.access_tab.click()
+        self.grant_access_menu.click()
+        team_checkbox = Checkbox(
+            self,
+            xpath='//div [contains(text(), "%s")]//parent::td//parent::tr//child::td//child::div[@class="x-grid-row-checker"]' % team)
+        team_checkbox.check()
+        self.grant_access_button.click()
 
     def list_environments(self):
-        envs = [env.text for env in self.find_elements(*self._active_envs_locator) if env.is_displayed()]
-        return envs
-
-    def save_environment(self):
-        return self.find_element(*self._save_button_locator).click()
+        return self.active_envs.list_elements()
 
 
 class Farms(ScalrUpperMenu):
