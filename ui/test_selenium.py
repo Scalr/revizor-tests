@@ -23,8 +23,10 @@ class TestSelenium():
         acl_page.new_acl_button.click()
         acl_page.name_field.write('Selenium')
         acl_page.permissions_filter.write('All Farms')
-        acl_page.access_dropdown.select('No access')
+        time.sleep(3)
+        acl_page.set_access('All Farms', 'No access')
         acl_page.permissions_filter.write('Farms Your Teams Own')
+        time.sleep(3)
         acl_page.get_permission("Update").uncheck()
         acl_page.save_button.click()
         message_popup = pages.Label(acl_page.driver, text="ACL successfully saved")
@@ -74,8 +76,8 @@ class TestSelenium():
         env_dashboard = self.env_dashboard.go_to_environment(env_name="Selenium Env")
         farms_page = env_dashboard.go_to_farms()
         new_farm_page = farms_page.new_farm()
-        new_farm_page.farm_name_field.send_keys('Selenium Farm')
-        new_farm_page.select_project("Default project / Default cost centre")
+        new_farm_page.farm_name_field.write('Selenium Farm')
+        new_farm_page.projects_dropdown.select("Default project / Default cost centre")
         farms_page = new_farm_page.save_farm()
         farms = [farm["name"] for farm in farms_page.list_farms()]
         assert "Selenium Farm" in farms, "Selenium Farm not found!"
@@ -84,13 +86,13 @@ class TestSelenium():
         env_dashboard = self.env_dashboard.go_to_environment(env_name="Selenium Env")
         farms_page = env_dashboard.go_to_farms()
         new_farm_page = farms_page.new_farm()
-        new_farm_page.farm_name_field.send_keys('Selenium Farm2')
-        new_farm_page.select_project("Default project / Default cost centre")
-        new_farm_page.select_teams(["Selenium Team"])
+        new_farm_page.farm_name_field.write('Selenium Farm2')
+        new_farm_page.projects_dropdown.select("Default project / Default cost centre")
+        new_farm_page.teams_dropdown.select("Selenium Team")
         farms_page = new_farm_page.save_farm()
         farms = [farm["name"] for farm in farms_page.list_farms()]
         assert "Selenium Farm2" in farms, "Selenium Farm2 not found!"
-        team_locator = (
-            'xpath',
-            '//div [@data-qtip="<span>Selenium Team</span><br/>"]//ancestor::tr/child::td/child::div [contains(text(), "Selenium Farm2")]')
-        assert farms_page.find_elements(*team_locator), "Selenium Farm2 with Selenium Team was not found!"
+        farm = pages.Label(
+            farms_page.driver,
+            xpath='//div [@data-qtip="<span>Selenium Team</span><br/>"]//ancestor::tr/child::td/child::div [contains(text(), "Selenium Farm2")]')
+        assert farm.displayed(), "Selenium Farm2 with Selenium Team was not found!"
