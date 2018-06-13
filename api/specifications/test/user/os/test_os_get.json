@@ -13,6 +13,7 @@
     "params": {}
   },
   "response": {
-    "swagger_schema": "user"
+    "swagger_schema": "user",
+    "data": {"id": "ubuntu-14-04"}
   }
 }

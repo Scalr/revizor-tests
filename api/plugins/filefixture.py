@@ -84,7 +84,7 @@ class ValidationUtil(FileFixture):
         :type  schema: str
         :param schema:  schema name
 
-        :type: requests.Response
+        :type: response: requests.Response
         :param response: raw requests.response
 
         :return: None or validation error
@@ -99,6 +99,15 @@ class ValidationUtil(FileFixture):
         return validation_res
 
     def validate_json(self, schema, data):
+        """
+        :type  schema: str
+        :param schema:  schema name
+
+        :type: data: requests.Response or dict
+        :param data: raw requests.response or dict
+
+        :return: None or validation error
+        """
         if isinstance(data, requests.models.Response):
             data = data.json()
         try:
