@@ -267,6 +267,18 @@ class Defaults(object):
         ]
 
     @staticmethod
+    def set_ansible_orchestration(params):
+        configuration_id = getattr(world, 'configuration_id')
+        params.orchestration.rules = [
+            farmrole.OrchestrationRule(event='HostUp', configuration=configuration_id,
+                                       jobtemplate=49, variables=''),
+            farmrole.OrchestrationRule(event='RebootComplete', configuration=configuration_id,
+                                       jobtemplate=49, variables=''),
+            farmrole.OrchestrationRule(event='ResumeComplete', configuration=configuration_id,
+                                       jobtemplate=49, variables='')
+        ]
+
+    @staticmethod
     def set_small_linux_orchestration(params):
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostInit', script='Revizor last reboot'),

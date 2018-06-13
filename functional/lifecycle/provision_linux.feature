@@ -96,7 +96,7 @@ Feature: Linux server provision with chef and ansible tower
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
-        When I add role to this farm with ansible-tower
+        When I add role to this farm with ansible-tower,ansible_orchestration
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -107,3 +107,20 @@ Feature: Linux server provision with chef and ansible tower
         When I launch job 'Revizor linux Job Template' with credential 'Revizor-linux-cred' and expected result 'successful' in M1
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
 
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd @stopresume
+    Scenario: Reboot/Suspend/Resume server
+        When I reboot server M1
+        And Scalr receives RebootFinish from M1
+        And scalarizr is running on M1
+        And not ERROR in M1 scalarizr log
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario Outline: Verify job execution on event
+
+        Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
+
+        Examples:
+            | event              | name                        | exitcode | stdout     |
+            | HostUp             | Revizor linux Job Template  | 0        |   dir1     |
+            | RebootComplete     | Revizor linux Job Template  | 0        |   dir1     |
+#            | ResumeComplete     | Revizor linux Job Template  | 0        |   dir1     |
