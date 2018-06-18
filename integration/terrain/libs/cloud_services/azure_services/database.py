@@ -23,7 +23,7 @@ class Database(object):
         servers_count = len(servers)
         availability = client.servers.check_name_availability(server_name)
         assert availability.available
-        parameters = az_models.Server('East US', administrator_login='revizor',
+        parameters = az_models.Server(location='East US', administrator_login='revizor',
                                       administrator_login_password='qwert123!@#')
         client.servers.create_or_update(resource_group_name=self.platform.resource_group_name, server_name=server_name,
                                         parameters=parameters)
@@ -45,7 +45,7 @@ class Database(object):
         dbs = list(client.databases.list_by_server(resource_group_name=self.platform.resource_group_name,
                                                    server_name=server_name))
         dbs_count = len(dbs)
-        parameters = az_models.Database('East US')
+        parameters = az_models.Database(location='East US')
         client.databases.create_or_update(resource_group_name=self.platform.resource_group_name,
                                           server_name=server_name,
                                           database_name=database_name, parameters=parameters)
