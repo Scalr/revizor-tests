@@ -1,4 +1,4 @@
-from future.builtins import str
+from future.builtins import str as text
 
 import os
 import re
@@ -142,14 +142,14 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                             'type': msg.type,
                             'id': msg.id}})
                     # Save server messages
-                    (path / '{}_messages.json'.format(server.id)).write_text(str(json.dumps(server_messages, indent=2)))
+                    (path / '{}_messages.json'.format(server.id)).write_text(text(json.dumps(server_messages, indent=2)))
             except:
                 pass
         # Save farm settings
-        (path / 'farm_settings.json').write_text(str(json.dumps(farm_settings, indent=2)))
+        (path / 'farm_settings.json').write_text(text(json.dumps(farm_settings, indent=2)))
         # Save domains list
         if domains:
-            (path / 'domains.json').write_text(str(json.dumps(domains, indent=2)))
+            (path / 'domains.json').write_text(text(json.dumps(domains, indent=2)))
 
 
 def get_scalaraizr_latest_version(branch):
