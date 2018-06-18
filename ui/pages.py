@@ -11,7 +11,7 @@ def return_loaded_page(func, *args, **kwargs):
     def wrapper(*args, **kwargs):
         page = func(*args, **kwargs)
         wait = WebDriverWait(page.driver, 30)
-        mask_locator = (By.CLASS_NAME, "x-mask")  # Elements that obscure usage of other elements
+        mask_locator = elements.ClassLocator("x-mask")  # Elements that obscure usage of other elements
         wait.until(
             lambda d: page.loaded,
             message="Page did not load in 30 seconds!")
