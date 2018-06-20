@@ -329,10 +329,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     if service == 'scalarizr' and CONF.feature.dist.is_windows:
         status = None
         for _ in range(5):
-            try:
-                status = server.upd_api.status()['service_status']
-            except ServiceError:
-                status = server.upd_api_old.status()['service_status']
+            status = server.upd_api.status()['service_status']
             if status == 'running':
                 return
             time.sleep(5)
@@ -395,10 +392,7 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
     LOG.info('Scalarizr versions in repository %s: %s' % (branch, versions))
-    try:
-        server_info = server.upd_api.status(cached=False)
-    except Exception:
-        server_info = server.upd_api_old.status()
+    server_info = server.upd_api.status(cached=False)
     LOG.debug('Server %s status: %s' % (server.id, server_info))
     # if not repo == server_info['repository']:
     #     raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'

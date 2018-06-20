@@ -29,7 +29,7 @@ Feature: New scalarizr update policy test for broke the system with postinstall/
         When new package is builded
         Then I change branch to system for role
         And change branch in server M1 in sources to system
-        And I update scalarizr via old api on M1
+        And I update scalarizr via api on M1
         When update process is finished on M1 with status completed
         Then Scalr receives HostUpdate from M1
         Then I push an empty commit to scalarizr repo
