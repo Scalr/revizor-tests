@@ -7,7 +7,6 @@ import os
 import hmac
 import json
 import pytz
-import pytest
 import hashlib
 import binascii
 import datetime
@@ -16,15 +15,17 @@ import requests
 from urllib.parse import urlencode, urlparse, urlunparse
 
 
+SIGNATURE_VER = "V1-HMAC-SHA256"
+API_DEBUG_VER = "1"
+
+
 class ScalrApiSession(requests.Session):
 
-    def __init__(self, host, secret_key_id, secret_key, schema=None, signature_ver=None, api_debug_ver=None):
+    def __init__(self, host, secret_key_id, secret_key, schema=None):
         self.base_path = host
         self.secret_key_id = secret_key_id
         self.secret_key = secret_key
         self.schema = schema or "http"
-        self.sig_version = signature_ver or "V1-HMAC-SHA256"
-        self.api_debug_version = api_debug_ver or "1"
         super().__init__()
 
     def prepare_request(self, request):
@@ -57,8 +58,8 @@ class ScalrApiSession(requests.Session):
         headers['Content-Type'] = 'application/json; charset=utf-8'
         headers['X-Scalr-Key-Id'] = self.secret_key_id
         headers['X-Scalr-Date'] = sig_date
-        headers['X-Scalr-Signature'] = '%s %s' % (self.sig_version, signature)
-        headers['X-Scalr-Debug'] = self.api_debug_version
+        headers['X-Scalr-Signature'] = '%s %s' % (SIGNATURE_VER, signature)
+        headers['X-Scalr-Debug'] = API_DEBUG_VER
         request.headers.update(headers)
 
         # Prepare request
@@ -73,12 +74,8 @@ class ScalrApiSession(requests.Session):
         # Set url
         url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
+
         resp.raise_for_status()
         return resp
 
-
-@pytest.fixture
-def api_session():
-    api_credentials = json.loads(os.environ.get('API_CREDENTIALS'))
-    return ScalrApiSession(**api_credentials)
 

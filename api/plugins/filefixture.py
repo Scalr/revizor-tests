@@ -4,13 +4,17 @@ Created on 05.06.18
 @author: Eugeny Kurkovich
 """
 
+import six
 import json
+import inspect
 
 import pytest
 import requests
 
 
 from pathlib import Path
+
+from box import Box
 from flex.core import load, validate_api_call, validate
 from flex.exceptions import ValidationError
 
@@ -27,27 +31,22 @@ class FileFixture(object):
 
     schemas_base_dir = "specifications"
 
-    def __init__(self, request, *args, **kwargs):
+    def __init__(self, request):
         self._request = request
         path = request.config.rootdir
         self.root_dir = Path(path.strpath)
 
     def get_request_schema(self, pattern):
-        delimiter = "_"
-        path_suffix = "test"
-        if pattern.startswith(path_suffix):
-            pattern = delimiter.join(pattern.split(delimiter)[1:])
         search_criteria = dict(
             mask="*{}*.json".format(pattern),
-            path="{}/{}".format(self.schemas_base_dir, path_suffix))
+            path="{}/requests".format(self.schemas_base_dir))
         with self._find(**search_criteria).open() as schema:
-            return json.load(schema)
+            return Box(json.load(schema))
 
     def get_validation_schema(self, pattern):
-        path_suffix = "swagger"
         search_criteria = dict(
             mask="{}.yaml".format(pattern),
-            path="{}/{}".format(self.schemas_base_dir, path_suffix))
+            path="{}/swagger".format(self.schemas_base_dir))
         validation_schema = self._find(**search_criteria)
         return load(validation_schema.as_posix())
 
@@ -70,12 +69,23 @@ class ValidationUtil(FileFixture):
         "global": None
     }
 
-    def __init__(self, request, schemas, *args, **kwargs):
-        shemas = schemas or list(self.swagger_schemas.keys())
+    def __init__(self, request, schemas=None, *args, **kwargs):
         super().__init__(request, *args, **kwargs)
-        self._load(shemas)
+        schemas = schemas or ValidationUtil.swagger_schemas.keys()
+        self._load(schemas)
+
+    def __call__(self, schema, response, *args, **kwargs):
+        result = list()
+        for attr in self.__dir__():
+            if attr.startswith("validate") and inspect.ismethod(attr):
+                validation_error = getattr(self, attr)(schema, response)
+                if validation_error:
+                    result.append(validation_error)
+        return result
 
     def _load(self, schemas):
+        if isinstance(schemas, six.string_types):
+            schemas = (schemas,)
         for schema in schemas:
             self.swagger_schemas.update({schema: self.get_validation_schema(schema)})
 
@@ -89,9 +99,11 @@ class ValidationUtil(FileFixture):
 
         :return: None or validation error
         """
+        schema = self.swagger_schemas.get(schema)
+        if not schema: return
         try:
             validation_res = validate_api_call(
-                self.swagger_schemas[schema],
+                schema,
                 raw_request=response.request,
                 raw_response=response)
         except (ValidationError, ValueError) as e:
@@ -110,6 +122,8 @@ class ValidationUtil(FileFixture):
         """
         if isinstance(data, requests.models.Response):
             data = data.json()
+        schema = self.swagger_schemas.get(schema)
+        if not schema: return
         try:
             validation_res = validate(
                 self.swagger_schemas[schema],
@@ -123,7 +137,6 @@ class ValidationUtil(FileFixture):
 @pytest.fixture(scope="session")
 def fileutil(request):
     return FileFixture(request)
-
 
 @pytest.fixture(scope="module", autouse=True)
 def validationutil(request):
