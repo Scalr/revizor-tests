@@ -71,7 +71,6 @@ class ValidationUtil(FileFixture):
 
     def __init__(self, request, schemas=None, *args, **kwargs):
         super().__init__(request, *args, **kwargs)
-        schemas = schemas or ValidationUtil.swagger_schemas.keys()
         self._load(schemas)
 
     def __call__(self, schema, response, *args, **kwargs):
@@ -89,6 +88,13 @@ class ValidationUtil(FileFixture):
         for schema in schemas:
             self.swagger_schemas.update({schema: self.get_validation_schema(schema)})
 
+    def _get_raw_schema(self, schema):
+        raw_schema = self.swagger_schemas.get(schema, None)
+        if not raw_schema:
+            self._load(schema)
+            raw_schema = self.swagger_schemas[schema]
+        return raw_schema
+
     def validate_api(self, schema, response):
         """
         :type  schema: str
@@ -99,7 +105,7 @@ class ValidationUtil(FileFixture):
 
         :return: None or validation error
         """
-        schema = self.swagger_schemas.get(schema)
+        schema = self._get_raw_schema(schema)
         if not schema: return
         try:
             validation_res = validate_api_call(
@@ -122,7 +128,7 @@ class ValidationUtil(FileFixture):
         """
         if isinstance(data, requests.models.Response):
             data = data.json()
-        schema = self.swagger_schemas.get(schema)
+        schema = self._get_raw_schema(schema)
         if not schema: return
         try:
             validation_res = validate(
