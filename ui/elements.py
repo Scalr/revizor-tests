@@ -1,44 +1,15 @@
 import time
 
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
 
-
-class XpathLocator(tuple):
-
-    def __new__(self, value):
-        return tuple.__new__(XpathLocator, (By.XPATH, value))
-
-
-class IdLocator(tuple):
-
-    def __new__(self, value):
-        return tuple.__new__(IdLocator, (By.ID, value))
-
-
-class NameLocator(tuple):
-
-    def __new__(self, value):
-        return tuple.__new__(NameLocator, (By.NAME, value))
-
-
-class ClassLocator(tuple):
-
-    def __new__(self, value):
-        return tuple.__new__(ClassLocator, (By.CLASS_NAME, value))
-
-
-class CSSLocator(tuple):
-
-    def __new__(self, value):
-        return tuple.__new__(CSSLocator, (By.CSS_SELECTOR, value))
+import locators
 
 
 class BaseElement:
 
-    def __init__(self, driver, *args, **kwargs):
-        self.driver = driver
+    def __init__(self, *args, **kwargs):
+        self.driver = kwargs.pop('driver') if 'driver' in kwargs else None
         self._make_locator(*args, **kwargs)
 
     @property
@@ -73,15 +44,15 @@ class Button(BaseElement):
 
     def _make_locator(self, name=None, text=None, href=None, icon=None, xpath=None):
         if name:
-            self.locator = NameLocator(name)
+            self.locator = locators.NameLocator(name)
         elif text:
-            self.locator = XpathLocator('//* [contains(text(), "%s")]//ancestor::a' % text)
+            self.locator = locators.XpathLocator('//* [contains(text(), "%s")]//ancestor::a' % text)
         elif href:
-            self.locator = XpathLocator('//a [@href="%s"]' % href)
+            self.locator = locators.XpathLocator('//a [@href="%s"]' % href)
         elif icon:
-            self.locator = XpathLocator('//* [contains(@class, "x-btn-icon-%s")]//ancestor::a' % icon)
+            self.locator = locators.XpathLocator('//* [contains(@class, "x-btn-icon-%s")]//ancestor::a' % icon)
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
@@ -93,27 +64,27 @@ class SplitButton(BaseElement):
 
     def _make_locator(self, xpath=None):
         if xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
-            self.locator = XpathLocator('//a [starts-with(@id, "splitbutton")]')
+            self.locator = locators.XpathLocator('//a [starts-with(@id, "splitbutton")]')
 
     def click(self, option):
         main_button = self.get_element()
-        chain = ActionChains(self.driver.driver)
+        chain = ActionChains(self.driver)
         chain.move_to_element(main_button)
         chain.move_by_offset(50, 0)
         chain.click()
         chain.perform()
-        Button(self.driver, text=option).click()
+        Button(text=option, driver=self.driver).click()
 
 
 class Checkbox(BaseElement):
 
     def _make_locator(self, value=None, xpath=None):
         if value:
-            self.locator = XpathLocator('//* [@data-value="%s"]' % value.lower())
+            self.locator = locators.XpathLocator('//* [@data-value="%s"]' % value.lower())
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
@@ -133,62 +104,62 @@ class Combobox(BaseElement):
     def _make_locator(self, text=None, xpath=None, span=True):
         self.span = span
         if text:
-            self.locator = XpathLocator(
+            self.locator = locators.XpathLocator(
                 '//span[contains(text(), "%s")]//ancestor::div[starts-with(@id, "combobox")]' % text)
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
         self.get_element().click()
         if self.span:
-            Button(self.driver, xpath='//span[contains(text(), "%s")]//parent::li' % option).click()
+            Button(xpath='//span[contains(text(), "%s")]//parent::li' % option, driver=self.driver).click()
         else:
-            Button(self.driver, xpath='//li[contains(text(), "%s")]' % option).click()
+            Button(xpath='//li[contains(text(), "%s")]' % option, driver=self.driver).click()
 
 
 class Menu(BaseElement):
 
     def _make_locator(self, label=None, xpath=None):
         if label:
-            self.locator = XpathLocator('//* [contains(text(), "%s")]//preceding-sibling::a' % label)
+            self.locator = locators.XpathLocator('//* [contains(text(), "%s")]//preceding-sibling::a' % label)
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
         self.get_element().click()
         Button(
-            self.driver,
-            xpath='//* [contains(text(), "%s")]//ancestor::a[starts-with(@id, "menuitem")]' % option).click()
+            xpath='//* [contains(text(), "%s")]//ancestor::a[starts-with(@id, "menuitem")]' % option,
+            driver=self.driver).click()
 
 
 class Dropdown(BaseElement):
 
     def _make_locator(self, input_name=None, xpath=None):
         if input_name:
-            self.locator = XpathLocator('//input [@name="%s"]' % input_name)
+            self.locator = locators.XpathLocator('//input [@name="%s"]' % input_name)
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
         self.get_element().click()
-        Button(self.driver, xpath='//* [contains(text(), "%s")]//parent::div' % option).click()
+        Button(xpath='//* [contains(text(), "%s")]//parent::div' % option, driver=self.driver).click()
 
 
 class Input(BaseElement):
 
     def _make_locator(self, name=None, label=None, xpath=None):
         if name:
-            self.locator = XpathLocator('//input [contains(@name, "%s")]' % name)
+            self.locator = locators.XpathLocator('//input [contains(@name, "%s")]' % name)
         elif label:
-            self.locator = XpathLocator('//* [contains(text(),"%s")]//following::input' % label)
+            self.locator = locators.XpathLocator('//* [contains(text(),"%s")]//following::input' % label)
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
@@ -202,8 +173,8 @@ class Label(BaseElement):
 
     def _make_locator(self, text=None, xpath=None):
         if text:
-            self.locator = XpathLocator('//* [contains(text(), "%s")]' % text)
+            self.locator = locators.XpathLocator('//* [contains(text(), "%s")]' % text)
         elif xpath:
-            self.locator = XpathLocator(xpath)
+            self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')

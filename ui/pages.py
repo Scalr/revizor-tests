@@ -5,12 +5,13 @@ from selenium.common.exceptions import NoSuchElementException
 from pypom import Page
 
 import elements
+import locators
 
 
 def return_loaded_page(func, *args, **kwargs):
     def wrapper(*args, **kwargs):
         page = func(*args, **kwargs)
-        mask = elements.ClassLocator("x-mask")
+        mask = locators.ClassLocator("x-mask")
         for _ in range(10):
             if page.loaded and all(not el.is_displayed() for el in page.driver.find_elements(*mask)):
                 return page
@@ -47,7 +48,6 @@ class LoginPage(BasePage):
 
 
 class ScalrUpperMenu(BasePage):
-    # account_link = elements.Button(text='Main account')
     env_list = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
 
     @property
