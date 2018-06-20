@@ -5,7 +5,6 @@ Created on 05.06.18
 """
 
 import six
-import json
 import inspect
 
 import pytest
@@ -41,7 +40,7 @@ class FileFixture(object):
             mask="*{}*.json".format(pattern),
             path="{}/requests".format(self.schemas_base_dir))
         with self._find(**search_criteria).open() as schema:
-            return Box(json.load(schema))
+            return Box.from_json(schema.read())
 
     def get_validation_schema(self, pattern):
         search_criteria = dict(
@@ -76,13 +75,14 @@ class ValidationUtil(FileFixture):
     def __call__(self, schema, response, *args, **kwargs):
         result = list()
         for attr in self.__dir__():
-            if attr.startswith("validate") and inspect.ismethod(attr):
+            if attr.startswith("validate"):
                 validation_error = getattr(self, attr)(schema, response)
                 if validation_error:
                     result.append(validation_error)
         return result
 
     def _load(self, schemas):
+        if not schemas: return
         if isinstance(schemas, six.string_types):
             schemas = (schemas,)
         for schema in schemas:
@@ -106,7 +106,6 @@ class ValidationUtil(FileFixture):
         :return: None or validation error
         """
         schema = self._get_raw_schema(schema)
-        if not schema: return
         try:
             validation_res = validate_api_call(
                 schema,
@@ -129,10 +128,9 @@ class ValidationUtil(FileFixture):
         if isinstance(data, requests.models.Response):
             data = data.json()
         schema = self._get_raw_schema(schema)
-        if not schema: return
         try:
             validation_res = validate(
-                self.swagger_schemas[schema],
+                schema,
                 data
             )
         except (ValidationError, ValueError) as e:
