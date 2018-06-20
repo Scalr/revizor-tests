@@ -1,7 +1,7 @@
 import time
 
 from selenium.webdriver.common.by import By
-from selenium.webdriver.support.ui import WebDriverWait
+from selenium.common.exceptions import NoSuchElementException
 from pypom import Page
 
 import elements
@@ -10,26 +10,29 @@ import elements
 def return_loaded_page(func, *args, **kwargs):
     def wrapper(*args, **kwargs):
         page = func(*args, **kwargs)
-        wait = WebDriverWait(page.driver, 30)
-        mask_locator = elements.ClassLocator("x-mask")  # Elements that obscure usage of other elements
-        wait.until(
-            lambda d: page.loaded,
-            message="Page did not load in 30 seconds!")
-        wait.until(
-            lambda d: all(not mask.is_displayed() for mask in d.find_elements(*mask_locator)),
-            message="Mask objects enabled for too long")
-        return page
+        mask = elements.ClassLocator("x-mask")
+        for _ in range(10):
+            if page.loaded and all(not el.is_displayed() for el in page.driver.find_elements(*mask)):
+                return page
+            time.sleep(3)
+        raise Exception("Page did not load in 30 seconds.")
     return wrapper
 
 
-class LoginPage(Page):
+class BasePage(Page):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.loading_blocker_locator = (By.ID, 'loading')
-        self.login_field = elements.Input(self, name='scalrLogin')
-        self.password_field = elements.Input(self, name='scalrPass')
-        self.login_button = elements.Button(self, text='Login')
+        for el in self.__class__.__dict__.values():
+            if isinstance(el, elements.BaseElement):
+                el.driver = self.driver
+
+
+class LoginPage(BasePage):
+    loading_blocker_locator = (By.ID, 'loading')
+    login_field = elements.Input(name='scalrLogin')
+    password_field = elements.Input(name='scalrPass')
+    login_button = elements.Button(text='Login')
 
     @property
     def loaded(self):
@@ -43,17 +46,14 @@ class LoginPage(Page):
         return EnvironmentDashboard(self.driver, self.base_url)
 
 
-class ScalrUpperMenu(Page):
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.env_list = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
-        self.account_link = elements.Button(self, text='Main account')
+class ScalrUpperMenu(BasePage):
+    # account_link = elements.Button(text='Main account')
+    env_list = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
 
     @property
     def active_environment(self):
         for name in self.env_list:
-            env = elements.Button(self, text=name)
+            env = elements.Button(text=name, driver=self.driver)
             if env.displayed:
                 return env
         raise NoSuchElementException("Can't find active Environment!")
@@ -61,14 +61,14 @@ class ScalrUpperMenu(Page):
     @return_loaded_page
     def go_to_account(self):
         self.active_environment.click()
-        self.account_link.click()
+        elements.Button(text='Main account', driver=self.driver).click()
         return AccountDashboard(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_environment(self, env_name="acc1env1"):
         self.active_environment.click()
         if env_name not in self.active_environment.text:
-            elements.Button(self, text=env_name).click()
+            elements.Button(text=env_name, driver=self.driver).click()
         return EnvironmentDashboard(self.driver, self.base_url)
 
 
@@ -77,21 +77,21 @@ class EnvironmentDashboard(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return elements.Label(self, "Last errors").displayed()
+        return elements.Label("Last errors", driver=self.driver).displayed()
 
     @return_loaded_page
     def go_to_dashboard(self):
-        elements.Button(self, text="Dashboard").click()
+        elements.Button(text="Dashboard", driver=self.driver).click()
         return self
 
     @return_loaded_page
     def go_to_farms(self):
-        elements.Button(self, text="Farms").click()
+        elements.Button(text="Farms", driver=self.driver).click()
         return Farms(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_servers(self):
-        elements.Button(self, text="Servers").click()
+        elements.Button(text="Servers", driver=self.driver).click()
         return Servers(self.driver, self.base_url)
 
 
@@ -100,74 +100,65 @@ class AccountDashboard(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return elements.Label(self, "Environments in this account").displayed()
+        return elements.Label("Environments in this account", driver=self.driver).displayed()
 
     @return_loaded_page
     def go_to_acl(self):
-        elements.Button(self, href="#/account/acl").click()
+        elements.Button(href="#/account/acl", driver=self.driver).click()
         return ACL(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_users(self):
-        elements.Button(self, href="#/account/users").click()
+        elements.Button(href="#/account/users", driver=self.driver).click()
         return Users(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_teams(self):
-        elements.Button(self, href="#/account/teams").click()
+        elements.Button(href="#/account/teams", driver=self.driver).click()
         return Teams(self.driver, self.base_url)
 
     @return_loaded_page
     def go_to_environments(self):
-        elements.Button(self, href="#/account/environments").click()
+        elements.Button(href="#/account/environments", driver=self.driver).click()
         return Environments(self.driver, self.base_url)
 
 
-class ACL(Page):
+class ACL(BasePage):
     URL_TEMPLATE = '/#/account/acl'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.new_acl_button = elements.Button(self, text="New ACL")
-        self.name_field = elements.Input(self, label="ACL name")
-        self.permissions_filter = elements.Input(self, label="Permissions")
-        self.save_button = elements.Button(self, icon="save")
+    new_acl_button = elements.Button(text="New ACL")
+    name_field = elements.Input(label="ACL name")
+    permissions_filter = elements.Input(label="Permissions")
+    save_button = elements.Button(icon="save")
 
     @property
     def loaded(self):
         return self.new_acl_button.displayed()
 
     def set_access(self, access_for, access_type):
-        menu = elements.Menu(self, label=access_for)
+        menu = elements.Menu(label=access_for, driver=self.driver)
         menu.select(access_type)
 
     def get_permission(self, name):
-        return elements.Checkbox(self, value=name)
+        return elements.Checkbox(value=name, driver=self.driver)
 
 
-class Users(Page):
+class Users(BasePage):
     URL_TEMPLATE = '/#/account/users'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.new_user_button = elements.Button(self, text="New user")
-        self.email_field = elements.Input(self, name="email")
-        self.save_button = elements.Button(self, icon="save")
+    new_user_button = elements.Button(text="New user")
+    email_field = elements.Input(name="email")
+    save_button = elements.Button(icon="save")
 
     @property
     def loaded(self):
         return self.new_user_button.displayed()
 
 
-class Teams(Page):
+class Teams(BasePage):
     URL_TEMPLATE = '/#/account/teams'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.new_team_button = elements.Button(self, text="New team")
-        self.team_name_field = elements.Input(self, name="name")
-        self.acl_combobox = elements.Combobox(self, text="Default ACL")
-        self.save_button = elements.Button(self, icon="save")
+    new_team_button = elements.Button(text="New team")
+    team_name_field = elements.Input(name="name")
+    acl_combobox = elements.Combobox(text="Default ACL")
+    save_button = elements.Button(icon="save")
 
     @property
     def loaded(self):
@@ -175,38 +166,38 @@ class Teams(Page):
 
     def add_user_to_team(self, email):
         xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Add to team"]' % email
-        return elements.Button(self, xpath=xpath).click()
+        return elements.Button(xpath=xpath, driver=self.driver).click()
 
     def remove_user_form_team(self, email):
         xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Remove from team"]' % email
-        return elements.Button(self, xpath=xpath).click()
+        return elements.Button(xpath=xpath, driver=self.driver).click()
 
 
-class Environments(Page):
+class Environments(BasePage):
     URL_TEMPLATE = '/#/account/environments'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.new_env_button = elements.Button(self, text="New environment")
-        self.env_name_field = elements.Input(self, name="name")
-        self.cost_center_combobox = elements.Combobox(
-            self,
-            xpath='//span[contains(text(), "Cost center")]//ancestor::label//following-sibling::div[starts-with(@id, "combobox")]',
-            span=False)
-        self.access_tab = elements.Button(self, text="Access")
-        self.grant_access_menu = elements.Button(self,text="Grant access")
-        self.grant_access_button = elements.Button(self, xpath='//span [contains(text(), "Grant access")]//ancestor::a[@class="x-btn x-unselectable x-box-item x-btn-default-small"]')
-        self.save_button = elements.Button(self, icon="save")
-        self.active_envs = elements.Label(self, xpath='//div[starts-with(@class, "x-dataview-tab")]')
+    new_env_button = elements.Button(text="New environment")
+    env_name_field = elements.Input(name="name")
+    cost_center_combobox = elements.Combobox(
+        xpath='//span[contains(text(), "Cost center")]//ancestor::label//following-sibling::div[starts-with(@id, "combobox")]',
+        span=False)
+    access_tab = elements.Button(text="Access")
+    grant_access_menu = elements.Button(text="Grant access")
+    grant_access_button = elements.Button(xpath='//span [contains(text(), "Grant access")]//ancestor::a[@class="x-btn x-unselectable x-box-item x-btn-default-small"]')
+    save_button = elements.Button(icon="save")
+    active_envs = elements.Label(xpath='//div[starts-with(@class, "x-dataview-tab")]')
 
     @property
     def loaded(self):
         return self.new_env_button.displayed()
 
     def link_cloud_to_environment(self, cloud_name, credentials_name):
-        cloud_button = elements.Button(self, xpath='//div [contains(text(), "%s")]//ancestor::table//child::a' % cloud_name)
-        credentials = elements.Button(self, xpath='//div [contains(text(), "%s")]//ancestor::table' % credentials_name)
-        link_button = elements.Button(self, text="Link to Environment")
+        cloud_button = elements.Button(
+            xpath='//div [contains(text(), "%s")]//ancestor::table//child::a' % cloud_name,
+            driver=self.driver)
+        credentials = elements.Button(
+            xpath='//div [contains(text(), "%s")]//ancestor::table' % credentials_name,
+            driver=self.driver)
+        link_button = elements.Button(text="Link to Environment", driver=self.driver)
         cloud_button.click()
         credentials.click()
         link_button.click()
@@ -215,8 +206,8 @@ class Environments(Page):
         self.access_tab.click()
         self.grant_access_menu.click()
         team_checkbox = elements.Checkbox(
-            self,
-            xpath='//div [contains(text(), "%s")]//parent::td//parent::tr//child::td//child::div[@class="x-grid-row-checker"]' % team)
+            xpath='//div [contains(text(), "%s")]//parent::td//parent::tr//child::td//child::div[@class="x-grid-row-checker"]' % team,
+            driver=self.driver)
         team_checkbox.check()
         self.grant_access_button.click()
 
@@ -226,12 +217,9 @@ class Environments(Page):
 
 class Farms(ScalrUpperMenu):
     URL_TEMPLATE = '/#/farms'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.new_farm_button = elements.Button(self, text="New Farm")
-        self.farms_info = elements.Label(self, xpath='//div [@class="x-grid-item-container"]/child::table')
-        self.search_farm_field = elements.Input(self, name="searchfield")
+    new_farm_button = elements.Button(text="New Farm")
+    farms_info = elements.Label(xpath='//div [@class="x-grid-item-container"]/child::table')
+    search_farm_field = elements.Input(name="searchfield")
 
     @property
     def loaded(self):
@@ -261,14 +249,11 @@ class Farms(ScalrUpperMenu):
 
 class FarmDesigner(ScalrUpperMenu):
     URL_TEMPLATE = '#/farms/designer'
-
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.farm_settings_label = elements.Label(self, text="Farm settings")
-        self.farm_name_field = elements.Input(self, name="name")
-        self.projects_dropdown = elements.Dropdown(self, input_name='projectId')
-        self.teams_dropdown = elements.Dropdown(self, xpath='//ul [@data-ref="itemList"]')
-        self.save_splitbutton = elements.SplitButton(self)
+    farm_settings_label = elements.Label(text="Farm settings")
+    farm_name_field = elements.Input(name="name")
+    projects_dropdown = elements.Dropdown(input_name='projectId')
+    teams_dropdown = elements.Dropdown(xpath='//ul [@data-ref="itemList"]')
+    save_splitbutton = elements.SplitButton()
 
     @property
     def loaded(self):
