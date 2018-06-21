@@ -13,8 +13,7 @@ swagger_schemas = "user"
 class TestUserApiOs(SessionMixin):
 
     def test_os_list(self, fileutil):
-        request_schema = fileutil.get_request_schema("os_list")
-        self.get(request_schema, validate='both')
+        self.get(fileutil.get_request_schema("os_list"), validate='both')
 
     def test_os_get(self, fileutil):
         request_schema = fileutil.get_request_schema("os_get")
