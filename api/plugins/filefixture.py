@@ -5,11 +5,9 @@ Created on 05.06.18
 """
 
 import six
-import inspect
 
 import pytest
 import requests
-
 
 from pathlib import Path
 
