@@ -39,6 +39,15 @@ class BaseElement:
             time.sleep(3)
         return False
 
+    def hidden(self, timeout=3):
+        start = time.time()
+        while (time.time() - start) < timeout:
+            elements = self.driver.find_elements(*self.locator)
+            if not elements or any(el.is_displayed() for el in elements):
+                return True
+            time.sleep(3)
+        return False
+
 
 class Button(BaseElement):
 
@@ -166,7 +175,9 @@ class Input(BaseElement):
     def write(self, text):
         element = self.get_element()
         element.clear()
+        Button(xpath='//div [contains(@id, "trigger-cancelButton")]', driver=self.driver).hidden()
         element.send_keys(text)
+        Button(xpath='//div [contains(@id, "trigger-cancelButton")]', driver=self.driver).displayed()
 
 
 class Label(BaseElement):

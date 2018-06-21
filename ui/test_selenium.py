@@ -13,8 +13,6 @@ class TestSelenium():
         self.driver = selenium
         self.login_page = pages.LoginPage(self.driver, 'http://c9b03eda2ed0.test-env.scalr.com').open()
         self.env_dashboard = self.login_page.login('test@scalr.com', '^Qb?${q8DB')
-        yield
-        self.driver.save_screenshot("/vagrant/ui/acl_%s.png" % uuid.uuid1())
 
     def test_create_new_acl(self):
         acc_dashboard = self.env_dashboard.go_to_account()
