@@ -105,10 +105,9 @@ class ValidationUtil(FileFixture):
 
         :return: None or validation error
         """
-        schema = self._get_raw_schema(schema)
         try:
             validation_res = validate_api_call(
-                schema,
+                self._get_raw_schema(schema),
                 raw_request=response.request,
                 raw_response=response)
         except (ValidationError, ValueError) as e:
@@ -127,10 +126,9 @@ class ValidationUtil(FileFixture):
         """
         if isinstance(data, requests.models.Response):
             data = data.json()
-        schema = self._get_raw_schema(schema)
         try:
             validation_res = validate(
-                schema,
+                self._get_raw_schema(schema),
                 data
             )
         except (ValidationError, ValueError) as e:
