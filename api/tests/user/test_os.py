@@ -3,6 +3,7 @@
 Created on 05.06.18
 @author: Eugeny Kurkovich
 """
+import pytest
 
 from api.utils.mixinutils import SessionMixin
 
@@ -17,7 +18,6 @@ class TestUserApiOs(SessionMixin):
 
     def test_os_get(self, fileutil):
         request_schema = fileutil.get_request_schema("os_get")
-        json_data, _ = self.get(request_schema, validate='json')
-        # example: validate response with request schema data
-        request_schema.response.data.id = "oracle-5-x"
-        assert set(request_schema.response.data.items()).issubset(json_data.data.items())
+        _, json_data = self.get(request_schema, validate='json')
+        with pytest.raises(AssertionError):
+            assert set(request_schema.response.data.items()).issubset(json_data.data.items())

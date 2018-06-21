@@ -43,12 +43,18 @@ class SessionMixin(object):
 
         :return: Box object from requests.Response.json(), raw response
         """
-        response = self.session.request(**request_schema.request.to_dict())
+        try:
+            response = self.session.request(**request_schema.request.to_dict())
+            json_data = Box(response.json())
+        except json.JSONDecodeError:
+            json_data = None
         if validate:
-            validation_res = getattr(self.validationutil, validate, self.validationutil)(
+            validation_res = getattr(
+                self.validationutil,
+                validate,
+                self.validationutil)(
                 request_schema.response.swagger_schema,
-                response
-            )
+                response)
             assert not validation_res
-        return Box(response.json()), response
+        return response, json_data
 
