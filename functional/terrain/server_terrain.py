@@ -197,7 +197,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
         path = script_name
         script_id = None
     else:
-        script_id = Script.get_id(script_name)['id']
+        script_id = Script.get_id(script_name)
     LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
