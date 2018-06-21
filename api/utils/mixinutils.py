@@ -6,11 +6,10 @@ Created on 18.06.18
 import json
 
 import pytest
-
 from box import Box
 
 from api.plugins.filefixture import FileNotFoundError
-from api.plugins.session import ScalrApiSession
+from api.utils.session import ScalrApiSession
 
 
 RELATIVE_CONF_PATH = 'conf/environment.json'
