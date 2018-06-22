@@ -1,20 +1,8 @@
 {
   "description": "List all the Operating Systems definitions available in this Environment.",
-  "request": {
-    "endpoint": {
-      "path": "/api/v1beta0/user/{envId}/os",
-      "params": {
-        "envId": "5"
-      }
-    },
-    "method": "GET",
-    "body": {},
-    "params": {
-      "family": "ubuntu",
-      "generation": "14.04"
-    }
+  "endpoint": {
+    "path": "/api/v1beta0/user/{envId}/os"
   },
-  "response": {
-    "swagger_schema": "user"
-  }
+  "method": "GET",
+  "swagger_schema": "user"
 }

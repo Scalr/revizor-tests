@@ -6,10 +6,10 @@ Created on 18.06.18
 import json
 
 import pytest
-from box import Box
 
 from api.plugins.filefixture import FileNotFoundError
 from api.utils.session import ScalrApiSession
+from api.utils.helpers import RequestSchemaFormatter
 
 
 RELATIVE_CONF_PATH = 'conf/environment.json'
@@ -33,10 +33,10 @@ class SessionMixin(object):
             self.validationutil = validationutil
         request.addfinalizer(self.session.close)
 
-    def get(self, request_schema, validate=None):
+    def execute_request(self, schema, validate='api'):
         """
-        :type request_schema: Box object
-        :param request_schema: Python dictionaries with advanced dot notation access
+        :type schema: Box object
+        :param schema: Python dictionaries with advanced dot notation access
 
         :type: valdate: str
         :param validate: api, json, both
@@ -44,17 +44,22 @@ class SessionMixin(object):
         :return: Box object from requests.Response.json(), raw response
         """
         try:
-            response = self.session.request(**request_schema.request.to_dict())
-            json_data = Box(response.json())
+            request_params = dict(
+                method=schema.method,
+                endpoint=schema.endpoint,
+                body=schema.body,
+                params=schema.params
+            )
+            response = self.session.request(**request_params)
+            json_data = RequestSchemaFormatter(response.json())
         except json.JSONDecodeError:
             json_data = None
-        if validate:
-            validation_res = getattr(
-                self.validationutil,
-                validate,
-                self.validationutil)(
-                request_schema.response.swagger_schema,
-                response)
-            assert not validation_res
+        validation_res = getattr(
+            self.validationutil,
+            validate,
+            self.validationutil)(
+            schema.swagger_schema,
+            response)
+        assert not validation_res
         return response, json_data
 

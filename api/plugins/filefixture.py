@@ -11,9 +11,11 @@ import requests
 
 from pathlib import Path
 
-from box import Box
 from flex.core import load, validate_api_call, validate
 from flex.exceptions import ValidationError
+
+from api.utils.helpers import RequestSchemaFormatter
+
 
 
 class FileNotFoundError(Exception):
@@ -38,7 +40,7 @@ class FileFixture(object):
             mask="*{}*.json".format(pattern),
             path="{}/requests".format(self.schemas_base_dir))
         with self._find(**search_criteria).open() as schema:
-            return Box.from_json(schema.read())
+            return RequestSchemaFormatter.schema_from_json(schema.read())
 
     def get_validation_schema(self, pattern):
         search_criteria = dict(
