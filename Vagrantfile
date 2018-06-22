@@ -13,7 +13,7 @@ boxes = {
 }
 
 Vagrant.configure("2") do |config|
-    config.vm.network "forwarded_port", guest: 4444, host: 4444, auto_correct: true 
+    config.vm.network "forwarded_port", guest: 4444, host: 4444, auto_correct: true
 
     if Vagrant.has_plugin?("vagrant-cachier")
         config.cache.scope = :box
@@ -24,8 +24,6 @@ Vagrant.configure("2") do |config|
         v.cpus = options["cpus"] ||= 1
     end
 
-    # boxes.each do |name, box|
-        # config.vm.define name do |machine|
     config.vm.box = "ubuntu/xenial64"
     config.vm.box_url = "https://app.vagrantup.com/ubuntu/boxes/xenial64"
 
@@ -34,9 +32,10 @@ Vagrant.configure("2") do |config|
     end
 
     config.vm.synced_folder ".", "/vagrant"
+    config.vm.synced_folder "../revizor", "/vagrant/revizor"
 
     config.vm.provision "base", type: "shell" do |shell|
-        shell.path = "ubuntu.sh"
+        shell.path = "ui/ci/ubuntu.sh"
     end
 
     config.vm.provision "rsync-shared-folders", type: "shell" do |shell|
