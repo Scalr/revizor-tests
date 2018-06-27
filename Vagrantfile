@@ -33,6 +33,7 @@ Vagrant.configure("2") do |config|
 
     config.vm.synced_folder ".", "/vagrant"
     config.vm.synced_folder "../revizor", "/vagrant/revizor"
+    config.vm.synced_folder "~/.revizor", "/home/vagrant/.revizor"
 
     config.vm.provision "base", type: "shell" do |shell|
         shell.path = "ui/ci/ubuntu.sh"

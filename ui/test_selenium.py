@@ -4,14 +4,18 @@ import time
 
 import pages
 import elements
+from fixtures import testenv
 
 
 class TestSelenium():
 
     @pytest.fixture(autouse=True)
-    def prepare_env(self, selenium):
+    def prepare_env(self, selenium, testenv):
         self.driver = selenium
-        self.login_page = pages.LoginPage(self.driver, 'http://c9b03eda2ed0.test-env.scalr.com').open()
+        self.container = testenv
+        self.login_page = pages.LoginPage(
+            self.driver,
+            'http://%s.test-env.scalr.com' % self.container.te_id).open()
         self.env_dashboard = self.login_page.login('test@scalr.com', '^Qb?${q8DB')
 
     def test_create_new_acl(self):
