@@ -21,9 +21,10 @@ def grid(ctx, docs=False, port='4444'):
 
 
 @task(grid)
-def webtests(ctx, test_cases='', browsers='all', processes='auto'):
+def webtests(ctx, test_cases='', browsers='all', processes=''):
     browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
+    processes = ' -n %s' % processes if processes else ''
     for browser in browsers:
-        command = 'python -m pytest -n %s --driver Remote --host 0.0.0.0 --port 4444 --capability browserName %s %s' % (processes, browser, test_cases)
+        command = 'python -m pytest%s --driver Remote --host 0.0.0.0 --port 4444 --capability browserName %s %s' % (processes, browser, test_cases)
         print(command)
         ctx.run(command)
