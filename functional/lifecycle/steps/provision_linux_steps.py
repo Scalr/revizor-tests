@@ -102,13 +102,13 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
 
 
-# @before.each_feature
-# def exclude_scenario_without_systemd(feature):
-#     if not CONF.feature.dist.is_systemd and feature.name == 'Linux server provision with chef and ansible tower':
-#         scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
-#         feature.scenarios.remove(scenario)
-#         LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
-#             scenario.name, feature.name))
+@before.each_feature
+def exclude_scenario_without_systemd(feature):
+    if not CONF.feature.dist.is_systemd and feature.name == 'Linux server provision with chef and ansible tower':
+        scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
+        feature.scenarios.remove(scenario)
+        LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
+            scenario.name, feature.name))
 
 
 @step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
