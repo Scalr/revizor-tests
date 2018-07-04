@@ -269,13 +269,14 @@ class Defaults(object):
     @staticmethod
     def set_ansible_orchestration(params):
         configuration_id = getattr(world, 'configuration_id')
+        job_template_id = getattr(world, 'job_template_id')
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostUp', configuration=configuration_id,
-                                       jobtemplate=49, variables=''),
+                                       jobtemplate=job_template_id, variables=''),
             farmrole.OrchestrationRule(event='RebootComplete', configuration=configuration_id,
-                                       jobtemplate=49, variables=''),
+                                       jobtemplate=job_template_id, variables=''),
             farmrole.OrchestrationRule(event='ResumeComplete', configuration=configuration_id,
-                                       jobtemplate=49, variables='')
+                                       jobtemplate=job_template_id, variables='')
         ]
 
     @staticmethod

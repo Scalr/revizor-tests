@@ -68,6 +68,7 @@ Feature: Windows server provision with chef and ansible tower
         And AT group 'G1' exists in inventory 'Revizor_windows_33' in AT server
         And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor-windows-cred'
         And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
+        And I get and save AT job template id for 'Revizor_windows_Job_Template'
 
    @ec2 @gce @openstack @azure
     Scenario: Bootstrapping role with Ansible Tower
@@ -79,6 +80,28 @@ Feature: Windows server provision with chef and ansible tower
         And server M1 exists in ansible-tower hosts list
 
     @ec2 @gce @openstack @azure
-    Scenario: Lounch Ansible Tower Job
-        When I launch job 'Revizor windows Job Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
+    Scenario: Lounch Ansible Tower Job from AT server
+        When I launch job 'Revizor_windows_Job_Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd @stopresume
+    Scenario: Suspend/Resume/Reboot server
+        When I suspend server M1
+        Then I wait server M1 in suspended state
+        When I resume server M1
+        Then I wait server M1 in resuming state
+        Then I wait server M1 in running state
+        Given I wait 2 minutes
+        When I reboot server M1
+        And Scalr receives RebootFinish from M1
+        And not ERROR in M1 scalarizr log
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario Outline: Verify AT job execution on event
+        Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
+
+        Examples:
+            | event              | name                          | exitcode | stdout     |
+            | HostUp             | Revizor_windows_Job_Template  | 0        |   dir1     |
+            | RebootComplete     | Revizor_windows_Job_Template  | 0        |   dir1     |
+            | ResumeComplete     | Revizor_windows_Job_Template  | 0        |   dir1     |

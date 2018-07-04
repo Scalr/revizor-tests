@@ -102,13 +102,13 @@ def check_node_exists_on_chef_server(step, serv_as, negation):
     assert not node_exists if negation else node_exists, 'Node %s not in valid state on Chef server' % host_name
 
 
-@before.each_feature
-def exclude_scenario_without_systemd(feature):
-    if not CONF.feature.dist.is_systemd and feature.name == 'Linux server provision with chef and ansible tower':
-        scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
-        feature.scenarios.remove(scenario)
-        LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
-            scenario.name, feature.name))
+# @before.each_feature
+# def exclude_scenario_without_systemd(feature):
+#     if not CONF.feature.dist.is_systemd and feature.name == 'Linux server provision with chef and ansible tower':
+#         scenario = [s for s in feature.scenarios if s.name == "Checking changes INTERVAL config"][0]
+#         feature.scenarios.remove(scenario)
+#         LOG.info('Remove "%s" scenario from test suite "%s" if feature.dist is not systemd' % (
+#             scenario.name, feature.name))
 
 
 @step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
@@ -254,6 +254,18 @@ def check_credential_exists_on_at_server(step, credentials_name):
                 'Credential: %s with id: %s not found in Ansible Tower server.' % credentials_name, pk)
 
 
+@step("I get and save AT job template id for '([\w-]+)'")
+def check_at_group_exists_in_inventory(step, job_template_name):
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('job_template')
+        job_template_info = res.get(name=job_template_name)
+        if not job_template_name in job_template_info['name']:
+            raise AssertionError(
+                'Job template with name: %s not found in Ansible Tower. Response from server: %s.' % (
+                    job_template_name, job_template_info))
+        setattr(world, 'job_template_id', job_template_info['id'])
+
+
 @step("server ([\w\d]+) exists in ansible-tower hosts list")
 def check_hostname_exists_on_at_server(step, serv_as):
     """
@@ -282,7 +294,7 @@ def check_hostname_exists_on_at_server(step, serv_as):
 @step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
 def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_as):
     if CONF.feature.dist.id == 'ubuntu-16-04':
-        job_name = 'Revizor ubuntu-16-04 Template'
+        job_name = 'Revizor_ubuntu_16_04_Template'
     pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job')
