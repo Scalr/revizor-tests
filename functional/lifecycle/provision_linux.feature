@@ -92,7 +92,7 @@ Feature: Linux server provision with chef and ansible tower
         And AT group 'G1' exists in inventory 'Revizor_linux_32' in AT server
         And I add a new link with os 'linux' and Inventory 'Revizor_linux_32' and create credentials 'Revizor-linux-cred'
         And credential 'Revizor-linux-cred' exists in ansible-tower credentials list
-        And I get and save AT job template id for 'Revizor_linux_Job_Template'
+        And I get and save AT job template id for 'Revizor_linux_Job_Template_with_Extra_Var'
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Bootstrapping role with Ansible Tower
@@ -126,7 +126,7 @@ Feature: Linux server provision with chef and ansible tower
         Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
 
         Examples:
-            | event              | name                        | exitcode | stdout     |
-            | HostUp             | Revizor_linux_Job_Template  | 0        |   dir1     |
-            | RebootComplete     | Revizor_linux_Job_Template  | 0        |   dir1     |
-            | ResumeComplete     | Revizor_linux_Job_Template  | 0        |   dir1     |
+            | event           | name                                       | exitcode | stdout                   |
+            | HostUp          | Revizor_linux_Job_Template_with_Extra_Var  | 0        | Extra_Var_HostUp         |
+            | RebootComplete  | Revizor_linux_Job_Template_with_Extra_Var  | 0        | Extra_Var_RebootComplete |
+            | ResumeComplete  | Revizor_linux_Job_Template_with_Extra_Var  | 0        | Extra_Var_ResumeComplete |

@@ -239,6 +239,7 @@ def create_credential(step, os, inv_name, credentials_name):
         raise AssertionError('The credentials: %s have not been saved!' % credentials_name)
     configuration_id = bootstrap_configurations['bootstrapconfig']['machineCredentials'][0]['configurationId']
     setattr(world, 'configuration_id', configuration_id)
+    setattr(world, 'credentials_name', credentials_name)
 
 @step("credential '([\w-]+)' exists in ansible-tower credentials list")
 def check_credential_exists_on_at_server(step, credentials_name):
@@ -293,8 +294,6 @@ def check_hostname_exists_on_at_server(step, serv_as):
 
 @step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
 def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_as):
-    if CONF.feature.dist.id == 'ubuntu-16-04':
-        job_name = 'Revizor_ubuntu_16_04_Template'
     pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job')

@@ -272,11 +272,11 @@ class Defaults(object):
         job_template_id = getattr(world, 'job_template_id')
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostUp', configuration=configuration_id,
-                                       jobtemplate=job_template_id, variables=''),
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_HostUp'),
             farmrole.OrchestrationRule(event='RebootComplete', configuration=configuration_id,
-                                       jobtemplate=job_template_id, variables=''),
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_RebootComplete'),
             farmrole.OrchestrationRule(event='ResumeComplete', configuration=configuration_id,
-                                       jobtemplate=job_template_id, variables='')
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_ResumeComplete')
         ]
 
     @staticmethod
@@ -342,12 +342,12 @@ class Defaults(object):
 
     @staticmethod
     def set_ansible_tower(params):
-        credentials_name = 'Revizor-windows-cred' if CONF.feature.dist.is_windows else 'Revizor-linux-cred'
+        credentials_name = getattr(world, 'credentials_name')
         pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
-        at_conf_name = credentials_name + str(pk)
+        boot_config_name = credentials_name + str(pk)
         configuration_id = getattr(world, 'configuration_id')
         params.bootstrap_with_at.enabled = True
         params.bootstrap_with_at.host_name = 'publicIp'
         params.bootstrap_with_at.configurations = [
-            farmrole.AnsibleTowerConfiguration(id=configuration_id, name=at_conf_name, variables='')
+            farmrole.AnsibleTowerConfiguration(id=configuration_id, name=boot_config_name, variables='')
         ]

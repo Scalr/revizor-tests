@@ -68,12 +68,12 @@ Feature: Windows server provision with chef and ansible tower
         And AT group 'G1' exists in inventory 'Revizor_windows_33' in AT server
         And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor-windows-cred'
         And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
-        And I get and save AT job template id for 'Revizor_windows_Job_Template'
+        And I get and save AT job template id for 'Windows_Show_Env'
 
    @ec2 @gce @openstack @azure
     Scenario: Bootstrapping role with Ansible Tower
         Given I have a clean and stopped farm
-        When I add role to this farm with ansible-tower
+        When I add role to this farm with ansible-tower,ansible_orchestration
         When I start farm
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
@@ -101,7 +101,7 @@ Feature: Windows server provision with chef and ansible tower
         Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
 
         Examples:
-            | event              | name                          | exitcode | stdout     |
-            | HostUp             | Revizor_windows_Job_Template  | 0        |   dir1     |
-            | RebootComplete     | Revizor_windows_Job_Template  | 0        |   dir1     |
-            | ResumeComplete     | Revizor_windows_Job_Template  | 0        |   dir1     |
+            | event          | name              | exitcode | stdout                                 |
+            | HostUp         | Windows_Show_Env  | 0        | USERPROFILE C:\\Users\\scalr-ansible   |
+            | RebootComplete | Windows_Show_Env  | 0        | USERPROFILE C:\\Users\\scalr-ansible   |
+            | ResumeComplete | Windows_Show_Env  | 0        | USERPROFILE C:\\Users\\scalr-ansible   |
