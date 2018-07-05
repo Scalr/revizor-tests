@@ -101,7 +101,7 @@ Feature: Windows server provision with chef and ansible tower
         Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
 
         Examples:
-            | event          | name              | exitcode | stdout                                 |
-            | HostUp         | Windows_Show_Env  | 0        | USERPROFILE C:\\Users\\scalr-ansible   |
-            | RebootComplete | Windows_Show_Env  | 0        | USERPROFILE C:\\Users\\scalr-ansible   |
-            | ResumeComplete | Windows_Show_Env  | 0        | USERPROFILE C:\\Users\\scalr-ansible   |
+            | event           | name              | exitcode | stdout                   |
+            | HostUp          | Windows_Show_Env  | 0        | C:\\Users\\scalr-ansible |
+            | RebootComplete  | Windows_Show_Env  | 0        | C:\\Users\\scalr-ansible |
+            | ResumeComplete  | Windows_Show_Env  | 0        | C:\\Users\\scalr-ansible |
