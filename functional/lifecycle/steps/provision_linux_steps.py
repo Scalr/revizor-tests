@@ -22,7 +22,7 @@ def check_process_options(step, process, options, serv_as):
     LOG.debug('Want check process %s and options %s' % (process, options))
     node = world.cloud.get_node(server)
     with node.remote_connection() as conn:
-        for attempt in range(3):
+        for _ in range(3):
             out = conn.run('ps aux | grep %s' % process)
             LOG.debug('Grep for ps aux: %s' % out.std_out)
             for line in out.std_out.splitlines():
@@ -256,7 +256,7 @@ def check_credential_exists_on_at_server(step, credentials_name):
 
 
 @step("I get and save AT job template id for '([\w-]+)'")
-def check_at_group_exists_in_inventory(step, job_template_name):
+def get_at_job_template_id(step, job_template_name):
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job_template')
         job_template_info = res.get(name=job_template_name)

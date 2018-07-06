@@ -84,7 +84,7 @@ Feature: Windows server provision with chef and ansible tower
         When I launch job 'Revizor_windows_Job_Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
 
-    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd @stopresume
+    @ec2 @gce @openstack @azure @stopresume
     Scenario: Suspend/Resume/Reboot server
         When I suspend server M1
         Then I wait server M1 in suspended state
@@ -95,13 +95,14 @@ Feature: Windows server provision with chef and ansible tower
         When I reboot server M1
         And Scalr receives RebootFinish from M1
         And not ERROR in M1 scalarizr log
+        Given I wait 1 minutes
 
-    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    @ec2 @gce @openstack @azure
     Scenario Outline: Verify AT job execution on event
         Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
 
         Examples:
-            | event           | name              | exitcode | stdout                   |
-            | HostUp          | Windows_Show_Env  | 0        | C:\\Users\\scalr-ansible |
-            | RebootComplete  | Windows_Show_Env  | 0        | C:\\Users\\scalr-ansible |
-            | ResumeComplete  | Windows_Show_Env  | 0        | C:\\Users\\scalr-ansible |
+            | event          | name              | exitcode | stdout        |
+            | HostUp         | Windows_Show_Env  | 0        | scalr-ansible |
+            | RebootComplete | Windows_Show_Env  | 0        | scalr-ansible |
+            | ResumeComplete | Windows_Show_Env  | 0        | scalr-ansible |

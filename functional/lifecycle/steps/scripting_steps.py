@@ -11,7 +11,7 @@ from revizor2.conf import CONF
 LOG = logging.getLogger(__name__)
 
 
-@step("script ([\w\d -/\:/\.]+) executed(?: in ([\w\d]+)?)?(?: by user (\w+)?)? with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"\'/]+)?)? for ([\w\d]+)")
+@step("script ([\w\d -/\:/\.]+) executed(?: in ([\w\d]+)?)?(?: by user (\w+)?)? with exitcode (\d+)(?: and contain ([\w\d \.!:;=>\"\'/-]+)?)? for ([\w\d]+)")
 def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_as):
     std_err = False
     if contain and contain.startswith('STDERR:'):
