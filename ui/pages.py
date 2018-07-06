@@ -54,7 +54,7 @@ class ScalrUpperMenu(BasePage):
     def active_environment(self):
         for name in self.env_list:
             env = elements.Button(text=name, driver=self.driver)
-            if env.displayed:
+            if env.visible():
                 return env
         raise NoSuchElementException("Can't find active Environment!")
 
@@ -77,7 +77,7 @@ class EnvironmentDashboard(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return elements.Label("Last errors", driver=self.driver).displayed()
+        return elements.Label("Last errors", driver=self.driver).visible()
 
     @return_loaded_page
     def go_to_dashboard(self):
@@ -100,7 +100,7 @@ class AccountDashboard(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return elements.Label("Environments in this account", driver=self.driver).displayed()
+        return elements.Label("Environments in this account", driver=self.driver).visible()
 
     @return_loaded_page
     def go_to_acl(self):
@@ -132,7 +132,7 @@ class ACL(BasePage):
 
     @property
     def loaded(self):
-        return self.new_acl_button.displayed()
+        return self.new_acl_button.visible()
 
     def set_access(self, access_for, access_type):
         menu = elements.Menu(label=access_for, driver=self.driver)
@@ -150,7 +150,7 @@ class Users(BasePage):
 
     @property
     def loaded(self):
-        return self.new_user_button.displayed()
+        return self.new_user_button.visible()
 
 
 class Teams(BasePage):
@@ -162,7 +162,7 @@ class Teams(BasePage):
 
     @property
     def loaded(self):
-        return self.new_team_button.displayed()
+        return self.new_team_button.visible()
 
     def add_user_to_team(self, email):
         xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Add to team"]' % email
@@ -188,7 +188,7 @@ class Environments(BasePage):
 
     @property
     def loaded(self):
-        return self.new_env_button.displayed()
+        return self.new_env_button.visible()
 
     def link_cloud_to_environment(self, cloud_name, credentials_name):
         cloud_button = elements.Button(
@@ -223,7 +223,7 @@ class Farms(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return self.new_farm_button.displayed()
+        return self.new_farm_button.visible()
 
     @return_loaded_page
     def new_farm(self):
@@ -257,7 +257,7 @@ class FarmDesigner(ScalrUpperMenu):
 
     @property
     def loaded(self):
-        return self.farm_settings_label.displayed()
+        return self.farm_settings_label.visible()
 
     @return_loaded_page
     def save_farm(self, launch=False):

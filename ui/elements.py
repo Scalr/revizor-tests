@@ -7,10 +7,14 @@ import locators
 
 
 class BaseElement:
+    locator = None
 
     def __init__(self, *args, **kwargs):
         self.driver = kwargs.pop('driver') if 'driver' in kwargs else None
         self._make_locator(*args, **kwargs)
+
+    def _make_locator(self, *args, **kwargs):
+        raise NotImplemented("BaseElement should not be used directly.")
 
     @property
     def text(self):
@@ -30,7 +34,7 @@ class BaseElement:
             time.sleep(6)
         raise NoSuchElementException(self.locator[1])
 
-    def displayed(self, timeout=3):
+    def visible(self, timeout=3):
         start = time.time()
         while (time.time() - start) < timeout:
             elements = self.driver.find_elements(*self.locator)
@@ -40,13 +44,7 @@ class BaseElement:
         return False
 
     def hidden(self, timeout=3):
-        start = time.time()
-        while (time.time() - start) < timeout:
-            elements = self.driver.find_elements(*self.locator)
-            if not elements or any(el.is_displayed() for el in elements):
-                return True
-            time.sleep(3)
-        return False
+        return not self.visible(timeout=timeout)
 
 
 class Button(BaseElement):
@@ -177,7 +175,7 @@ class Input(BaseElement):
         element.clear()
         Button(xpath='//div [contains(@id, "trigger-cancelButton")]', driver=self.driver).hidden()
         element.send_keys(text)
-        Button(xpath='//div [contains(@id, "trigger-cancelButton")]', driver=self.driver).displayed()
+        Button(xpath='//div [contains(@id, "trigger-cancelButton")]', driver=self.driver).visible()
 
 
 class Label(BaseElement):
