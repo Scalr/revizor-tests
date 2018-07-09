@@ -80,7 +80,7 @@ Feature: Windows server provision with chef and ansible tower
         And server M1 exists in ansible-tower hosts list
 
     @ec2 @gce @openstack @azure
-    Scenario: Lounch Ansible Tower Job from AT server
+    Scenario: Launch Ansible Tower Job from AT server
         When I launch job 'Revizor_windows_Job_Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
 

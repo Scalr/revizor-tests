@@ -150,17 +150,6 @@ def chef_runs_time(step, interval, serv_as):
     assert int(runtime) > intervalx3
 
 
-@step('Initialization was failed on "([a-zA-Z]+)" phase with "([\w\W]+)" message on (\w+)')
-def check_failed_status_message(step, phase, msg, serv_as):
-    server = getattr(world, serv_as)
-    patterns = (phase, msg)
-    failed_status_msg = server.get_failed_status_message()
-    msg_head = failed_status_msg.split("\n")[0].replace("&quot;", "")
-    LOG.debug('Initialization status message: %s' % msg_head)
-    assert all(pattern in msg_head for pattern in patterns), \
-        "Initialization was not failed on %s with message %s" % patterns
-
-
 @step("I set hostname '(.+)' that will be configured via the cookbook")
 def save_chef_cookbook_hostname(step, chef_host_name):
     setattr(world, 'chef_hostname_for_cookbook', chef_host_name)
@@ -195,8 +184,6 @@ def create_at_group(step, group_type, group_name, inv_name):
     group_name = group_name + time.strftime("-%a-%d-%b-%Y-%H:%M:%S:%MS")
     at_group = IMPL.ansible_tower.create_inventory_groups(
         group_name, group_type, at_server_id, inventory_id)
-    if not at_group['success']:
-        raise AssertionError('The AT inventory group: %s have not been saved!' % group_name)
     at_group_id = at_group['group']['id']
     setattr(world, 'at_group_name', group_name)
     setattr(world, 'at_group_id', at_group_id)
@@ -308,10 +295,10 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_
                             no_input=True,
                             **job_settings)
         for _ in range(10):
-            time.sleep(5)
             job_info = res.get(pk=my_job['id'])
             if job_info['status'] not in ['waiting', 'running', 'pending']:
                 break
+            time.sleep(5)
         else:
             raise AssertionError('Job #%s has not finished in 50s' % my_job['id'])
         assert job_info['status'] == job_result, (my_job['id'], job_info['status'])

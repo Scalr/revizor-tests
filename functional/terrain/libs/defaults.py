@@ -347,7 +347,7 @@ class Defaults(object):
         boot_config_name = credentials_name + str(pk)
         configuration_id = getattr(world, 'configuration_id')
         params.bootstrap_with_at.enabled = True
-        params.bootstrap_with_at.host_name = 'publicIp'
+        params.bootstrap_with_at.hostname = 'publicIp'
         params.bootstrap_with_at.configurations = [
             farmrole.AnsibleTowerConfiguration(id=configuration_id, name=boot_config_name, variables='')
         ]
