@@ -29,8 +29,9 @@ class Insights(object):
                                         action_group_name=action_group_name).group_short_name == action_group_name[:12]
         client.action_groups.delete(resource_group_name=self.platform.resource_group_name,
                                     action_group_name=action_group_name)
-        assert client.action_groups.get(resource_group_name=self.platform.resource_group_name,
-                                        action_group_name=action_group_name) is None
+        with world.assert_raises(az_models.ErrorResponseException, 'Not Found'):
+            client.action_groups.get(resource_group_name=self.platform.resource_group_name,
+                                     action_group_name=action_group_name)
 
     def verify_denied(self, error_text):
         with world.assert_raises(az_exceptions.ClientException, error_text):

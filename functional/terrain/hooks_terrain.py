@@ -1,3 +1,5 @@
+from future.builtins import str as text
+
 import os
 import re
 import sys
@@ -68,24 +70,25 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
     LOG.debug('Test name: %s' % test_name)
     # Get path
     start_time = world.test_start_time
-    path = os.path.realpath(os.path.join(CONF.main.log_path, 'scalarizr',
-                                         test_name,
-                                         start_time.strftime('%m%d-%H:%M'),
-                                         scenario.name.replace('/', '-'),
-                                         outline))
+    path = (CONF.main.log_path
+            / 'scalarizr'
+            / test_name
+            / start_time.strftime('%m%d-%H:%M')
+            / scenario.name.replace('/', '-')
+            / outline).resolve()
     LOG.debug('Path to save log: %s' % path)
-    if not os.path.exists(path):
-        os.makedirs(path, 0o755)
+    if not path.exists():
+        path.mkdir(mode=0o755, parents=True)
     # Get logs && configs
     for server in servers:
         if not server.is_scalarized: continue
         logs = [
             # debug log
-            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_debug.log'))),
+            {'file': str(path / '{}_scalarizr_debug.log'.format(server.id)),
              'log_type': 'debug',
              'compress': True},
             # update log
-            {'file': os.path.join(path, '_'.join((server.id, 'scalarizr_update.log'))),
+            {'file': str(path / '{}_scalarizr_update.log'.format(server.id)),
              'log_type': 'update',
              'compress': True}]
         if server.status in [ServerStatus.PENDING, ServerStatus.INIT, ServerStatus.RUNNING]:
@@ -93,11 +96,11 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                 #Get log from remote host
                 for log in logs:
                     server.get_log_by_api(**log)
-                    LOG.info('Save {log_type} log from server {} to {file}'.format(server.id, **log))
+                    LOG.info('Save {log_type} log from server {server} to {file}'.format(server=server.id, **log))
                     #Get configs and role behavior from remote host only for linux family
                     if not Dist(server.role.dist).is_windows:
-                        file = os.path.join(path, '_'.join((server.id, 'scalr_configs.tar.gz')))
-                        server.get_configs(file, compress=True)
+                        file = path / '{}_scalr_configs.tar.gz'.format(server.id)
+                        server.get_configs(str(file), compress=True)
                         LOG.info('Download archive with scalr directory and behavior to: {}'.format(file))
             except BaseException as e:
                 LOG.error('Error in downloading configs: %s' % e)
@@ -139,17 +142,14 @@ def get_all_logs_and_info(scenario, outline='', outline_failed=None):
                             'type': msg.type,
                             'id': msg.id}})
                     # Save server messages
-                    with open(os.path.join(path, '%s_messages.json' % server.id), "w+") as f:
-                        f.write(json.dumps(server_messages, indent=2))
+                    (path / '{}_messages.json'.format(server.id)).write_text(text(json.dumps(server_messages, indent=2)))
             except:
                 pass
         # Save farm settings
-        with open(os.path.join(path, 'farm_settings.json'), "w+") as f:
-            f.write(json.dumps(farm_settings, indent=2))
+        (path / 'farm_settings.json').write_text(text(json.dumps(farm_settings, indent=2)))
         # Save domains list
         if domains:
-            with open(os.path.join(path, 'domains.json'), "w+") as f:
-                f.write(json.dumps(domains, indent=2))
+            (path / 'domains.json').write_text(text(json.dumps(domains, indent=2)))
 
 
 def get_scalaraizr_latest_version(branch):
@@ -186,10 +186,10 @@ def verify_testenv():
 def upload_scripts():
     if CONF.scalr.te_id:
         LOG.info("Upload scripts")
-        path_to_scripts = os.path.join(CONF.main.home, 'fixtures', 'testusing', 'scripts')
+        path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
         upload_counter = 0
-        for _, script_path in enumerate(os.listdir(path_to_scripts)):
-            with open(os.path.join(path_to_scripts, script_path), 'r') as f:
+        for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
+            with (path_to_scripts / script_path).open(mode='r') as f:
                 script = json.load(f)
             exist_scripts = Script.get_id(name=script['name'])
             if exist_scripts:

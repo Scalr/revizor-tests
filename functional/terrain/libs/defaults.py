@@ -182,7 +182,7 @@ class Defaults(object):
         if chef_opts[2] == 'private':
             url = 'git@github.com:Scalr/int-cookbooks.git'
             params.bootstrap_with_chef.path = 'cookbooks'
-            params.bootstrap_with_chef.private_key = open(CONF.ssh.private_key, 'r').read()
+            params.bootstrap_with_chef.private_key = CONF.ssh.private_key.read_text()
         else:
             url = 'https://github.com/Scalr/sample-chef-repo.git'
         if chef_opts[-1] == 'branch':
