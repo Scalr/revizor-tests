@@ -66,11 +66,11 @@ class ScalrApiSession(requests.Session):
         request = super().prepare_request(request)
         return request
 
-    def request(self, method, endpoint, body, params, *args, **kwargs):
+    def request(self, method, endpoint, params, body=None, filters=None, *args, **kwargs):
         # Set uri
-        uri = endpoint['path'].format(**endpoint['params'])
+        uri = endpoint.format(**params)
         # Set string to sign
-        query_string = urlencode(sorted(params.items())) if params else ""
+        query_string = urlencode(sorted(filters.items())) if filters else ""
         # Set url
         url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)

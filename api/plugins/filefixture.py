@@ -4,8 +4,6 @@ Created on 05.06.18
 @author: Eugeny Kurkovich
 """
 
-import six
-
 import pytest
 import requests
 
@@ -14,17 +12,8 @@ from pathlib import Path
 from flex.core import load, validate_api_call, validate
 from flex.exceptions import ValidationError
 
-from api.utils.helpers import RequestSchemaFormatter
-
-
-
-class FileNotFoundError(Exception):
-    pass
-
-
-class PathNotFoundError(Exception):
-    pass
-
+from api.utils.exceptions import FileNotFoundError
+from api.utils.helpers import Defaults
 
 class FileFixture(object):
 
@@ -35,19 +24,18 @@ class FileFixture(object):
         path = request.config.rootdir
         self.root_dir = Path(path.strpath)
 
-    def get_request_schema(self, pattern):
-        search_criteria = dict(
-            mask="*{}*.json".format(pattern),
-            path="{}/requests".format(self.schemas_base_dir))
-        with self._find(**search_criteria).open() as schema:
-            return RequestSchemaFormatter.schema_from_json(schema.read())
-
-    def get_validation_schema(self, pattern):
+    def load_validation_schema(self, pattern):
         search_criteria = dict(
             mask="{}.yaml".format(pattern),
             path="{}/swagger".format(self.schemas_base_dir))
         validation_schema = self._find(**search_criteria)
         return load(validation_schema.as_posix())
+
+    def get_validation_schema(self, pattern):
+        search_criteria = dict(
+            mask="{}.yaml".format(pattern),
+            path="{}/swagger".format(self.schemas_base_dir))
+        return self._find(**search_criteria).as_posix()
 
     def _find(self, path, mask):
         path = self.root_dir.joinpath(path)
@@ -62,15 +50,10 @@ class FileFixture(object):
 
 class ValidationUtil(FileFixture):
 
-    swagger_schemas = {
-        "user": None,
-        "account": None,
-        "global": None
-    }
+    swagger_schema = None
 
-    def __init__(self, request, schemas=None, *args, **kwargs):
+    def __init__(self, request, *args, **kwargs):
         super().__init__(request, *args, **kwargs)
-        self._load(schemas)
 
     def __call__(self, schema, response, *args, **kwargs):
         result = list()
@@ -81,24 +64,18 @@ class ValidationUtil(FileFixture):
                     result.append(validation_error)
         return result
 
-    def _load(self, schemas):
-        if not schemas: return
-        if isinstance(schemas, six.string_types):
-            schemas = (schemas,)
-        for schema in schemas:
-            self.swagger_schemas.update({schema: self.get_validation_schema(schema)})
+    def _load(self, api_level):
+        self.swagger_schema = self.load_validation_schema(api_level)
 
-    def _get_raw_schema(self, schema):
-        raw_schema = self.swagger_schemas.get(schema, None)
-        if not raw_schema:
-            self._load(schema)
-            raw_schema = self.swagger_schemas[schema]
-        return raw_schema
+    def _get_raw_schema(self, api_level):
+        if not self.swagger_schema:
+            self._load(api_level)
+        return self.swagger_schema
 
-    def validate_api(self, schema, response):
+    def validate_api(self, api_level, response):
         """
-        :type  schema: str
-        :param schema:  schema name
+        :type  api_level: str
+        :param api_level:  schema name
 
         :type: response: requests.Response
         :param response: raw requests.response
@@ -107,17 +84,17 @@ class ValidationUtil(FileFixture):
         """
         try:
             validation_res = validate_api_call(
-                self._get_raw_schema(schema),
+                self._get_raw_schema(api_level),
                 raw_request=response.request,
                 raw_response=response)
         except (ValidationError, ValueError) as e:
             validation_res = e
         return validation_res
 
-    def validate_json(self, schema, data):
+    def validate_json(self, api_level, data):
         """
-        :type  schema: str
-        :param schema:  schema name
+        :type  api_level: str
+        :param api_level:  schema name
 
         :type: data: requests.Response or dict
         :param data: raw requests.response or dict
@@ -128,20 +105,41 @@ class ValidationUtil(FileFixture):
             data = data.json()
         try:
             validation_res = validate(
-                self._get_raw_schema(schema),
+                self._get_raw_schema(api_level),
                 data
             )
         except (ValidationError, ValueError) as e:
             validation_res = e
         return validation_res
 
+    def validate_request(self, schema, req_params):
+        method = req_params.get('method')
+        params = req_params.get('params')
+
+        # Validate request type
+        available_methods = {rt: m for rt, m in Defaults.request_types.items() if m in schema.keys()}
+        http_meth = available_methods.get(method)
+        if not http_meth:
+            raise ValueError("Not supported endpoint request type, got {0}, expected {1}".format(
+                method,
+                available_methods.keys()))
+
+        # Validate request required params
+        if not isinstance(params, dict):
+            raise TypeError('Request params mismatch')
+        required_params = [p.name for p in schema[http_meth].parameters if p.required]
+        if not list(params.keys()).sort() == required_params.sort():
+            raise ValueError("Not enough required parameters got {0}, expected {1}".format(
+                params,
+                required_params))
+        return dict(
+            method=http_meth,
+            endpoint=req_params.get('endpoint'),
+            params=params,
+            body=req_params.get('body'),
+            filters=req_params.get('filters'))
+
 
 @pytest.fixture(scope="session")
 def fileutil(request):
     return FileFixture(request)
-
-@pytest.fixture(scope="module", autouse=True)
-def validationutil(request):
-    schemas = getattr(request.module, "swagger_schemas", None)
-    return ValidationUtil(request, schemas)
-

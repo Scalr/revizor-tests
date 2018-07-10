@@ -4,10 +4,7 @@ Created on 22.06.18
 @author: Eugeny Kurkovich
 """
 
-from string import Formatter
 from functools import reduce
-
-from box import Box
 
 
 def rgetattr(obj, attr, *args):
@@ -16,27 +13,24 @@ def rgetattr(obj, attr, *args):
     return reduce(_getattr, attr.split('.'), obj)
 
 
-class UnexpectedSchemasFormat(Exception):
-    pass
+def reverse_dict(d):
+    return dict(zip(d.values(), d.keys()))
 
 
-class RequestSchemaFormatter(Box):
+class Defaults(object):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    request_types = {
+        'create': 'post',
+        'delete': 'delete',
+        'edit': 'patch',
+        'list': 'get',
+        'get': 'get'
+    }
 
-    @classmethod
-    def schema_from_json(cls, json_data, **kwargs):
-        box_obj = super(RequestSchemaFormatter, cls).from_json(json_data, **kwargs)
-        if not rgetattr(box_obj, 'endpoint.path', None):
-            raise UnexpectedSchemasFormat('Not enough actual fields on request schema')
-        box_obj.endpoint.params = {
-            placeholder: None
-            for _, placeholder, _, _ in Formatter().parse(box_obj.endpoint.path)
-            if placeholder
-        }
-        box_obj.params = {}
-        box_obj.body = {}
-        return box_obj
-
-
+    response_data_types = {
+        'string': '',
+        'boolean': True,
+        'integer': 1,
+        'number': 1,
+        'array': []
+    }

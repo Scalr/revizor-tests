@@ -14319,7 +14319,7 @@ paths:
           description: The service is currently unavailable.
           schema:
             $ref: '#/definitions/ApiErrorResponse'
-  /{envId}/os:
+  /{envId}/os/:
     get:
       description: List all the Operating Systems definitions available in this Environment.
       responses:
@@ -14432,7 +14432,7 @@ paths:
       name: envId
       required: true
       type: integer
-  /{envId}/os/{osId}:
+  /{envId}/os/{osId}/:
     get:
       description: Retrieve detailed information about a given OS.
       responses:

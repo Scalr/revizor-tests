@@ -5,7 +5,8 @@ Created on 05.06.18
 """
 
 pytest_plugins = [
-    "api.plugins.filefixture"
+    "api.plugins.filefixture",
+    "api.utils.mixinutils"
 ]
 
 

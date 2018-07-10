@@ -1,8 +1,0 @@
-{
-  "description": "Retrieve detailed information about a given OS",
-  "endpoint": {
-    "path": "/api/v1beta0/user/{envId}/os/{osId}"
-  },
-  "method": "GET",
-  "swagger_schema": "user"
-}

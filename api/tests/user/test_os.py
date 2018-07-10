@@ -5,33 +5,32 @@ Created on 05.06.18
 """
 import pytest
 
-from api.utils.mixinutils import SessionMixin
+app_level = "user"
 
 
-swagger_schemas = "user"
-
-
-class TestUserApiOs(SessionMixin):
+class TestOs(object):
 
     env_id = "5"
     os_id = "ubuntu-14-04"
 
-    def test_os_list(self, fileutil):
-        os_family = "ubuntu"
-        # Get request schema
-        r_schema = fileutil.get_request_schema("os_list")
-        # Set up request params
-        r_schema.endpoint.params.envId = self.env_id
-        r_schema.params = dict(family=os_family)
-        # Execute request
-        _, json_data = self.execute_request(r_schema)
-        assert any(os.id == self.os_id for os in json_data.data)
+    @pytest.fixture(autouse=True)
+    def init_session(self, app_session, request):
+        self.app_session = app_session
+        request.addfinalizer(self.app_session.close)
 
-    def test_os_get(self, fileutil):
-        r_schema = fileutil.get_request_schema("os_get")
-        # Set up request params
-        r_schema.endpoint.params.envId = self.env_id
-        r_schema.endpoint.params.osId = self.os_id
+    def test_os_list(self):
         # Execute request
-        _, json_data = self.execute_request(r_schema)
-        assert json_data.data.id == self.os_id
+        resp = self.app_session.list(
+            "/api/v1beta0/user/envId/os/",
+            params=dict(envId=self.env_id),
+            filters=dict(id=self.os_id))
+        assert resp.json()['data'][0]['id'] == self.os_id
+
+    def test_os_get(self):
+        # Execute request
+        resp = self.app_session.get(
+            "/api/v1beta0/user/envId/os/osId/",
+            params=dict(
+                envId=self.env_id,
+                osId=self.os_id))
+        assert resp.json()['data']['id'] == self.os_id

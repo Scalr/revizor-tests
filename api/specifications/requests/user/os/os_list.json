@@ -1,8 +1,0 @@
-{
-  "description": "List all the Operating Systems definitions available in this Environment.",
-  "endpoint": {
-    "path": "/api/v1beta0/user/{envId}/os"
-  },
-  "method": "GET",
-  "swagger_schema": "user"
-}

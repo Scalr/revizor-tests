@@ -3,63 +3,112 @@
 Created on 18.06.18
 @author: Eugeny Kurkovich
 """
+import re
+import os
 import json
 
 import pytest
 
-from api.plugins.filefixture import FileNotFoundError
+from six import string_types
+
+from pyswagger import App
+from box import Box
+
+from api.plugins.filefixture import FileNotFoundError, ValidationUtil
 from api.utils.session import ScalrApiSession
-from api.utils.helpers import RequestSchemaFormatter
+
+RELATIVE_CONF_PATH = "conf/environment.json"
 
 
-RELATIVE_CONF_PATH = 'conf/environment.json'
+class AppMixin(object):
+
+    app = None
+
+    app_tree = None
+
+    app_root = "/api/v1beta0/{api_level}/"
+
+    _app_level = None
+
+    _app_session = None
+
+    _app_checker = None
+
+    def __init__(self, request, fileutil):
+        self._app_level = getattr(request.module, "app_level", None)
+        self._app_checker = ValidationUtil(request)
+        schema = fileutil.get_validation_schema(self._app_level)
+        self.app = App.create(schema)
+        self.app_root = self.__class__.app_root.format(api_level=self._app_level)
+        self.app_tree = Box(AppMixin._parse_root(self.app.root.paths.keys()))
+
+    @staticmethod
+    def _parse_root(root):
+        r = dict()
+        for path in root:
+            path_items = re.sub(r"[\{\}]", "", path).split("/")
+            key = os.path.join(*filter(None, path_items))
+            r[key] = path
+        return r
 
 
-class SessionMixin(object):
+class SessionMixin(AppMixin):
 
-    session = None
-    validationutil = None
+    def __init__(self, request, fileutil, credentials):
+        super(SessionMixin, self).__init__(request, fileutil)
+        self._app_session = ScalrApiSession(**credentials)
 
-    @pytest.fixture(autouse=True)
-    def create_session(self, request, fileutil, validationutil):
-        credentials_path = fileutil.root_dir.joinpath(RELATIVE_CONF_PATH)
-        if not credentials_path.exists():
-            raise FileNotFoundError(
-                "Credentials is unavailable, {} not found".format(
-                    credentials_path.as_poasix()))
-        with credentials_path.open() as f:
-            credentials = json.load(f)
-            self.session = ScalrApiSession(**credentials)
-            self.validationutil = validationutil
-        request.addfinalizer(self.session.close)
+    def __getattr__(self, name):
+        def _handler(*args, **kwargs):
+            if len(args) == 1:
+                if not isinstance(args[0], string_types):
+                    raise ValueError('Request args mismatch')
+            else:
+                raise TypeError('Request session expected at most 1 argument, got {0}'.format(len(args)))
+            kwargs['method'] = name
+            return self._execute_request(*args, **kwargs)
+        return _handler
 
-    def execute_request(self, schema, validate='api'):
-        """
-        :type schema: Box object
-        :param schema: Python dictionaries with advanced dot notation access
+    def close(self):
+        self._app_session.close()
 
-        :type: valdate: str
-        :param validate: api, json, both
+    def _prepare_path(self, path):
+        path_items = filter(None, path.split(self.app_root)[1].split('/'))
+        path = os.path.join(*path_items)
+        return getattr(self.app_tree, path)
 
-        :return: Box object from requests.Response.json(), raw response
-        """
+    def _execute_request(self, endpoint, method, params, filters=None, body=None):
         try:
-            request_params = dict(
-                method=schema.method,
-                endpoint=schema.endpoint,
-                body=schema.body,
-                params=schema.params
-            )
-            response = self.session.request(**request_params)
-            json_data = RequestSchemaFormatter(response.json())
-        except json.JSONDecodeError:
-            json_data = None
-        validation_res = getattr(
-            self.validationutil,
-            validate,
-            self.validationutil)(
-            schema.swagger_schema,
-            response)
-        assert not validation_res
-        return response, json_data
+            endpoint = self._prepare_path(endpoint)
+            spec = Box(self.app.s(endpoint).dump())
+        except Exception as e:
+            raise e.__class__("Endpoint {} doe's not exists".format(endpoint))
+        request_kwargs = dict(
+            method=method,
+            endpoint=os.path.join(self.app_root, *filter(None, endpoint.split('/'))),
+            params=params,
+            body=body,
+            filters=filters
+        )
+        resp = self._app_session.request(
+            **self._app_checker.validate_request(
+                spec,
+                request_kwargs))
+        return resp
+
+
+@pytest.fixture(scope='module', autouse=True)
+def app_session(request, fileutil, get_credentials):
+    session = SessionMixin(request, fileutil, get_credentials)
+    return session
+
+
+@pytest.fixture(scope='module')
+def get_credentials(fileutil):
+    path = fileutil.root_dir.joinpath(RELATIVE_CONF_PATH)
+    if not path.exists():
+        raise FileNotFoundError(
+            "Credentials is unavailable, {} not found".format(path.as_poasix()))
+    with path.open() as f:
+        return json.load(f)
 
