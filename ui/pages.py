@@ -8,7 +8,7 @@ import elements
 import locators
 
 
-def return_loaded_page(func, *args, **kwargs):
+def wait_for_page_to_load(func, *args, **kwargs):
     def wrapper(*args, **kwargs):
         page = func(*args, **kwargs)
         mask = locators.ClassLocator("x-mask")
@@ -39,7 +39,7 @@ class LoginPage(BasePage):
     def loaded(self):
         return not self.is_element_present(*self.loading_blocker_locator)
 
-    @return_loaded_page
+    @wait_for_page_to_load
     def login(self, user, password):
         self.login_field.write(user)
         self.password_field.write(password)
@@ -47,8 +47,12 @@ class LoginPage(BasePage):
         return EnvironmentDashboard(self.driver, self.base_url)
 
 
-class ScalrUpperMenu(BasePage):
+class Menu(BasePage):
     env_list = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
+
+    @property
+    def menu(self):
+        return self
 
     @property
     def active_environment(self):
@@ -58,72 +62,72 @@ class ScalrUpperMenu(BasePage):
                 return env
         raise NoSuchElementException("Can't find active Environment!")
 
-    @return_loaded_page
+    @wait_for_page_to_load
     def go_to_account(self):
         self.active_environment.click()
         elements.Button(text='Main account', driver=self.driver).click()
         return AccountDashboard(self.driver, self.base_url)
 
-    @return_loaded_page
+    @wait_for_page_to_load
     def go_to_environment(self, env_name="acc1env1"):
         self.active_environment.click()
         if env_name not in self.active_environment.text:
             elements.Button(text=env_name, driver=self.driver).click()
         return EnvironmentDashboard(self.driver, self.base_url)
 
+    @wait_for_page_to_load
+    def go_to_dashboard(self):
+        elements.Button(text="Dashboard", driver=self.driver).click()
+        return self
 
-class EnvironmentDashboard(ScalrUpperMenu):
+    @wait_for_page_to_load
+    def go_to_farms(self):
+        elements.Button(text="Farms", driver=self.driver).click()
+        return Farms(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_servers(self):
+        elements.Button(text="Servers", driver=self.driver).click()
+        return Servers(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_acl(self):
+        elements.Button(href="#/account/acl", driver=self.driver).click()
+        return ACL(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_users(self):
+        elements.Button(href="#/account/users", driver=self.driver).click()
+        return Users(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_teams(self):
+        elements.Button(href="#/account/teams", driver=self.driver).click()
+        return Teams(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_environments(self):
+        elements.Button(href="#/account/environments", driver=self.driver).click()
+        return Environments(self.driver, self.base_url)
+
+
+class EnvironmentDashboard(Menu):
     URL_TEMPLATE = '/#/dashboard'
 
     @property
     def loaded(self):
         return elements.Label("Last errors", driver=self.driver).visible()
 
-    @return_loaded_page
-    def go_to_dashboard(self):
-        elements.Button(text="Dashboard", driver=self.driver).click()
-        return self
 
-    @return_loaded_page
-    def go_to_farms(self):
-        elements.Button(text="Farms", driver=self.driver).click()
-        return Farms(self.driver, self.base_url)
-
-    @return_loaded_page
-    def go_to_servers(self):
-        elements.Button(text="Servers", driver=self.driver).click()
-        return Servers(self.driver, self.base_url)
-
-
-class AccountDashboard(ScalrUpperMenu):
+class AccountDashboard(Menu):
     URL_TEMPLATE = '/#/account/dashboard'
 
     @property
     def loaded(self):
         return elements.Label("Environments in this account", driver=self.driver).visible()
 
-    @return_loaded_page
-    def go_to_acl(self):
-        elements.Button(href="#/account/acl", driver=self.driver).click()
-        return ACL(self.driver, self.base_url)
 
-    @return_loaded_page
-    def go_to_users(self):
-        elements.Button(href="#/account/users", driver=self.driver).click()
-        return Users(self.driver, self.base_url)
-
-    @return_loaded_page
-    def go_to_teams(self):
-        elements.Button(href="#/account/teams", driver=self.driver).click()
-        return Teams(self.driver, self.base_url)
-
-    @return_loaded_page
-    def go_to_environments(self):
-        elements.Button(href="#/account/environments", driver=self.driver).click()
-        return Environments(self.driver, self.base_url)
-
-
-class ACL(BasePage):
+class ACL(Menu):
     URL_TEMPLATE = '/#/account/acl'
     new_acl_button = elements.Button(text="New ACL")
     name_field = elements.Input(label="ACL name")
@@ -142,7 +146,7 @@ class ACL(BasePage):
         return elements.Checkbox(value=name, driver=self.driver)
 
 
-class Users(BasePage):
+class Users(Menu):
     URL_TEMPLATE = '/#/account/users'
     new_user_button = elements.Button(text="New user")
     email_field = elements.Input(name="email")
@@ -153,7 +157,7 @@ class Users(BasePage):
         return self.new_user_button.visible()
 
 
-class Teams(BasePage):
+class Teams(Menu):
     URL_TEMPLATE = '/#/account/teams'
     new_team_button = elements.Button(text="New team")
     team_name_field = elements.Input(name="name")
@@ -173,7 +177,7 @@ class Teams(BasePage):
         return elements.Button(xpath=xpath, driver=self.driver).click()
 
 
-class Environments(BasePage):
+class Environments(Menu):
     URL_TEMPLATE = '/#/account/environments'
     new_env_button = elements.Button(text="New environment")
     env_name_field = elements.Input(name="name")
@@ -215,7 +219,7 @@ class Environments(BasePage):
         return self.active_envs.list_elements()
 
 
-class Farms(ScalrUpperMenu):
+class Farms(Menu):
     URL_TEMPLATE = '/#/farms'
     new_farm_button = elements.Button(text="New Farm")
     farms_info = elements.Label(xpath='//div [@class="x-grid-item-container"]/child::table')
@@ -225,7 +229,7 @@ class Farms(ScalrUpperMenu):
     def loaded(self):
         return self.new_farm_button.visible()
 
-    @return_loaded_page
+    @wait_for_page_to_load
     def new_farm(self):
         self.new_farm_button.click()
         return FarmDesigner(self.driver, self.base_url)
@@ -247,7 +251,7 @@ class Farms(ScalrUpperMenu):
         return farms_info
 
 
-class FarmDesigner(ScalrUpperMenu):
+class FarmDesigner(Menu):
     URL_TEMPLATE = '#/farms/designer'
     farm_settings_label = elements.Label(text="Farm settings")
     farm_name_field = elements.Input(name="name")
@@ -259,7 +263,7 @@ class FarmDesigner(ScalrUpperMenu):
     def loaded(self):
         return self.farm_settings_label.visible()
 
-    @return_loaded_page
+    @wait_for_page_to_load
     def save_farm(self, launch=False):
         if launch:
             self.save_splitbutton.click("Save & launch")
@@ -268,6 +272,6 @@ class FarmDesigner(ScalrUpperMenu):
         return Farms(self.driver, self.base_url)
 
 
-class Servers(ScalrUpperMenu):
+class Servers(Menu):
     URL_TEMPLATE = '/#/farms'
     pass
