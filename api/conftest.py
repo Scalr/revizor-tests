@@ -8,5 +8,3 @@ pytest_plugins = [
     "api.plugins.filefixture",
     "api.utils.mixinutils"
 ]
-
-
