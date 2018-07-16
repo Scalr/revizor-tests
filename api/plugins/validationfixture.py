@@ -8,58 +8,32 @@ import requests
 
 from api.utils.helpers import Defaults
 
-from flex.core import validate_api_call, validate
+from flex.core import load, validate
 from flex.exceptions import ValidationError
 
 
 class ValidationUtil(object):
 
-    swagger_schema = None
+    _swagger_schema = None
 
-    def __init__(self, fileutil):
-        self.fileutil = fileutil
+    def __init__(self, api_level, fileutil):
+        self._fileutil = fileutil
+        self._api_level = api_level
 
-    def __call__(self, schema, response, *args, **kwargs):
-        result = list()
-        for attr in self.__dir__():
-            if attr.startswith("validate"):
-                validation_error = getattr(self, attr)(schema, response)
-                if validation_error:
-                    result.append(validation_error)
-        return result
+    def __call__(self, data, *args, **kwargs):
+        return self.validate(data)
 
-    def _load(self, api_level):
-        self.swagger_schema = self.fileutil.load_validation_schema(api_level)
+    def _load(self):
+        path = self._fileutil.get_swagger_difinitions(self._api_level)
+        self._swagger_schema = load(path)
 
-    def _get_raw_schema(self, api_level):
-        if not self.swagger_schema:
-            self._load(api_level)
-        return self.swagger_schema
+    def _get_raw_schema(self):
+        if not self._swagger_schema:
+            self._load()
+        return self._swagger_schema
 
-    def validate_api(self, api_level, response):
+    def validate(self, data):
         """
-        :type  api_level: str
-        :param api_level:  schema name
-
-        :type: response: requests.Response
-        :param response: raw requests.response
-
-        :return: None or validation error
-        """
-        try:
-            validation_res = validate_api_call(
-                self._get_raw_schema(api_level),
-                raw_request=response.request,
-                raw_response=response)
-        except (ValidationError, ValueError) as e:
-            validation_res = e
-        return validation_res
-
-    def validate_json(self, api_level, data):
-        """
-        :type  api_level: str
-        :param api_level:  schema name
-
         :type: data: requests.Response or dict
         :param data: raw requests.response or dict
 
@@ -69,14 +43,15 @@ class ValidationUtil(object):
             data = data.json()
         try:
             validation_res = validate(
-                self._get_raw_schema(api_level),
+                self._get_raw_schema(),
                 data
             )
         except (ValidationError, ValueError) as e:
             validation_res = e
         return validation_res
 
-    def validate_request(self, schema, req_params):
+    @staticmethod
+    def check_request_params(schema, req_params):
         method = req_params.get('method')
         params = req_params.get('params')
 

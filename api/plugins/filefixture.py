@@ -13,8 +13,6 @@ import requests
 from pathlib import Path
 from urllib.parse import urlunparse
 
-from flex.core import load
-
 from api.utils.exceptions import FileNotFoundError, PathNotFoundError
 
 
@@ -25,6 +23,7 @@ def working_dir(request):
         work_dir.mkdir()
     request.config.option.working_dir = work_dir
     return work_dir
+
 
 @pytest.fixture(scope="session")
 def fileutil(request):
@@ -46,11 +45,14 @@ class FileFixture(object):
     @property
     def api_credentials(self):
         if not self._api_credentials:
-            path = self.root_dir.joinpath("conf/environment.json")
-            if not path.exists():
-                raise FileNotFoundError(
-                    "Credentials is unavailable, {} not found".format(path.as_poasix()))
-            with path.open() as f:
+            mask = "environment*"
+            try:
+                credentials = self._find(self.root_dir, mask)
+            except Exception as e:
+                raise e.__class__("Credentials by mask {} is unavailable on {}".format(
+                    mask,
+                    self.root_dir.as_posix()))
+            with credentials.open() as f:
                 self._api_credentials = json.load(f)
         return self._api_credentials
 

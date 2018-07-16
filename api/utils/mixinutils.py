@@ -36,11 +36,11 @@ class AppMixin(object):
             request.module,
             "app_level",
             self.__class__._app_level)
-        self._app_checker = ValidationUtil(fileutil)
         schema = fileutil.get_swagger_difinitions(self._app_level)
         self.app = App.create(schema)
         self.app_root = self.__class__.app_root.format(api_level=self._app_level)
         self._app_tree = Box(AppMixin._get_schema_tree(self.app.root.paths.keys()))
+        self._app_checker = ValidationUtil(self._app_level, fileutil)
 
     @staticmethod
     def _get_schema_tree(root):
@@ -51,20 +51,20 @@ class AppMixin(object):
             r[key] = path
         return r
 
-    def _path_form_endpoint(self, endpoint):
+    def _path_from_endpoint(self, endpoint):
         path_items = filter(None, endpoint.split(self.app_root)[1].split('/'))
         endpoint = os.path.join(*path_items)
         return getattr(self._app_tree, endpoint)
 
     def get_request_spec_by_endpoint(self, endpoint):
         try:
-            path = self._path_form_endpoint(endpoint)
+            path = self._path_from_endpoint(endpoint)
             return Box(self.app.s(path).dump())
         except Exception:
             raise ValueError("Endpoint {} doe's not exists".format(endpoint))
 
     def parse_endpoint(self, endpoint):
-        path = self._path_form_endpoint(endpoint)
+        path = self._path_from_endpoint(endpoint)
         return os.path.join(self.app_root, *filter(None, path.split('/')))
 
 
@@ -96,11 +96,12 @@ class SessionMixin(AppMixin):
             body=body,
             filters=filters
         )
-        resp = self._app_session.request(
-            **self._app_checker.validate_request(
+        response = self._app_session.request(
+            **self._app_checker.check_request_params(
                 self.get_request_spec_by_endpoint(endpoint),
                 request_kwargs))
-        return resp
+        validation_result = self._app_checker(response)
+        return response, validation_result
 
 
 @pytest.fixture(scope='module', autouse=True)
