@@ -49,7 +49,7 @@ class BaseElement:
 
 class Button(BaseElement):
 
-    def _make_locator(self, name=None, text=None, href=None, icon=None, xpath=None):
+    def _make_locator(self, name=None, text=None, href=None, icon=None, class_name=None, xpath=None):
         if name:
             self.locator = locators.NameLocator(name)
         elif text:
@@ -58,6 +58,8 @@ class Button(BaseElement):
             self.locator = locators.XpathLocator('//a [@href="%s"]' % href)
         elif icon:
             self.locator = locators.XpathLocator('//* [contains(@class, "x-btn-icon-%s")]//ancestor::a' % icon)
+        elif class_name:
+            self.locator = locators.ClassLocator(class_name)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
         else:

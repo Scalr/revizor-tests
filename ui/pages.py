@@ -34,6 +34,9 @@ class LoginPage(BasePage):
     login_field = elements.Input(name='scalrLogin')
     password_field = elements.Input(name='scalrPass')
     login_button = elements.Button(text='Login')
+    new_password_field = elements.Input(name='password')
+    confirm_password_field = elements.Input(label='Confirm')
+    update_password_button = elements.Button(xpath='//span [contains(text(), "Update my password")]')
 
     @property
     def loaded(self):
@@ -46,6 +49,19 @@ class LoginPage(BasePage):
         self.login_button.click()
         return EnvironmentDashboard(self.driver, self.base_url)
 
+    @wait_for_page_to_load
+    def update_password_and_login(self, user, temp_password, new_password):
+        self.login_field.write(user)
+        self.password_field.write(temp_password)
+        self.login_button.click()
+        self.new_password_field.write(new_password)
+        self.confirm_password_field.write(new_password)
+        for _ in range(5):
+            if elements.Button(class_name='x-mask', driver=self.driver).hidden():
+                break
+        self.update_password_button.click()
+        return self.login(user, new_password)
+
 
 class Menu(BasePage):
     env_list = ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']
@@ -53,6 +69,10 @@ class Menu(BasePage):
     @property
     def menu(self):
         return self
+
+    @property
+    def scalr_user_menu(self):
+        return elements.Menu(xpath='//a [contains(@class, "x-icon-avatar")]', driver=self.driver)
 
     @property
     def active_environment(self):
@@ -109,6 +129,11 @@ class Menu(BasePage):
     def go_to_environments(self):
         elements.Button(href="#/account/environments", driver=self.driver).click()
         return Environments(self.driver, self.base_url)
+
+    # @wait_for_page_to_load
+    def logout(self):
+        self.scalr_user_menu.select('Logout')
+        return LoginPage(self.driver, self.base_url)
 
 
 class EnvironmentDashboard(Menu):

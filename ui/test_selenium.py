@@ -1,6 +1,6 @@
 import pytest
-import uuid
-import time
+import re
+import base64
 
 import pages
 import elements
@@ -8,6 +8,7 @@ from fixtures import testenv
 
 
 class TestSelenium():
+    selenium_password = None
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, testenv):
@@ -16,7 +17,8 @@ class TestSelenium():
         self.login_page = pages.LoginPage(
             self.driver,
             'http://%s.test-env.scalr.com' % self.container.te_id).open()
-        self.env_dashboard = self.login_page.login('test@scalr.com', '^Qb?${q8DB')
+        password = self.selenium_password if self.selenium_password else '^Qb?${q8DB'
+        self.env_dashboard = self.login_page.login('test@scalr.com', password)
 
     def test_create_new_acl(self):
         acc_dashboard = self.env_dashboard.menu.go_to_account()
@@ -32,6 +34,13 @@ class TestSelenium():
         assert message_popup.visible(timeout=15), "No message present about successfull saving of the new ACL"
 
     def test_create_new_user(self):
+        ssh = self.container.get_ssh()
+        ssh.run("rm -f /opt/scalr-server/libexec/mail/ssmtp")
+        self.container.put_file(
+            '/vagrant/revizor/etc/fixtures/resources/scripts/ssmtp',
+            # '/Users/Theramas/Documents/Scalr/revizor/etc/fixtures/resources/scripts/ssmtp',
+            '/opt/scalr-server/libexec/mail/ssmtp')
+        ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
         acc_dashboard = self.env_dashboard.menu.go_to_account()
         users_page = acc_dashboard.menu.go_to_users()
         users_page.new_user_button.click()
@@ -95,3 +104,12 @@ class TestSelenium():
             xpath='//div [@data-qtip="<span>Selenium Team</span><br/>"]//ancestor::tr/child::td/child::div [contains(text(), "Selenium Farm2")]',
             driver=farms_page.driver)
         assert farm.visible(), "Selenium Farm2 with Selenium Team was not found!"
+
+    def test_new_user_login(self):
+        ssh = self.container.get_ssh()
+        out = ssh.run('cat /opt/scalr-server/var/log/unsent-mail/unsent*')[0]
+        res = re.findall('\\n(\w+)\\r', out)
+        message = base64.b64decode(''.join(res)).decode("utf-8")
+        self.selenium_password = re.search('\\nYour password is: (.+)\\n\\nResources', message).group(1)
+        login_page = self.env_dashboard.menu.logout()
+        login_page.update_password_and_login('selenium@scalr.com', self.selenium_password, 'Scalrtest123!')
