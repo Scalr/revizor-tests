@@ -6,9 +6,9 @@ Created on 12.07.18
 
 import requests
 
-from api.utils.helpers import Defaults
+from api.utils.helpers import Defaults, remove_empty_values
 
-from flex.core import load, validate
+from flex.core import load as load_schema_from_file, validate as validate_response
 from flex.exceptions import ValidationError
 
 
@@ -25,7 +25,7 @@ class ValidationUtil(object):
 
     def _load(self):
         path = self._fileutil.get_swagger_difinitions(self._api_level)
-        self._swagger_schema = load(path)
+        self._swagger_schema = load_schema_from_file(path)
 
     def _get_raw_schema(self):
         if not self._swagger_schema:
@@ -42,7 +42,7 @@ class ValidationUtil(object):
         if isinstance(data, requests.models.Response):
             data = data.json()
         try:
-            validation_res = validate(
+            validation_res = validate_response(
                 self._get_raw_schema(),
                 data
             )
@@ -54,6 +54,8 @@ class ValidationUtil(object):
     def check_request_params(schema, req_params):
         method = req_params.get('method')
         params = req_params.get('params')
+        filters = remove_empty_values(req_params.get('filters'))
+        body = remove_empty_values(req_params.get('body'))
 
         # Validate request type
         available_methods = {rt: m for rt, m in Defaults.request_types.items() if m in schema.keys()}
@@ -75,7 +77,7 @@ class ValidationUtil(object):
             method=http_meth,
             endpoint=req_params.get('endpoint'),
             params=params,
-            body=req_params.get('body'),
-            filters=req_params.get('filters'))
+            body=body,
+            filters=filters)
 
 

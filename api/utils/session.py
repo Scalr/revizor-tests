@@ -30,6 +30,7 @@ class ScalrApiSession(requests.Session):
 
     def prepare_request(self, request):
         """Implements Scalr authentication mechanism"""
+
         parsed_url = urlparse(request.url)
 
         now = datetime.datetime.now(tz=pytz.timezone(os.environ.get("TZ", "UTC")))
@@ -37,11 +38,9 @@ class ScalrApiSession(requests.Session):
 
         canonical_qs = parsed_url.query
         uri = parsed_url.path
-        # Set body
-        body = request.data
-        body = json.dumps(body, separators=(",", ":")) if body else ""
         method = request.method.upper()
 
+        body = request.data or ""
         string_to_sign = "\n".join((
             method,
             sig_date,
@@ -64,6 +63,7 @@ class ScalrApiSession(requests.Session):
 
         # Prepare request
         request = super().prepare_request(request)
+
         return request
 
     def request(self, method, endpoint, params, body=None, filters=None, *args, **kwargs):
@@ -73,9 +73,16 @@ class ScalrApiSession(requests.Session):
         query_string = urlencode(sorted(filters.items())) if filters else ""
         # Set url
         url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
+        body = json.dumps(body) if body else body
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
-
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except Exception as e:
+            errors = [
+                "{code}: {msg}".format(code=e['code'], msg=e['message'])
+                for e in resp.json().get('errors')
+            ]
+            raise e.__class__(", ".join(errors))
         return resp
 
 

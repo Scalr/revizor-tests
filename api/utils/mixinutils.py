@@ -15,6 +15,7 @@ from box import Box
 
 from api.plugins.validationfixture import ValidationUtil
 from api.utils.session import ScalrApiSession
+from api.utils.exceptions import ResponseValidationError
 
 
 class AppMixin(object):
@@ -100,8 +101,10 @@ class SessionMixin(AppMixin):
             **self._app_checker.check_request_params(
                 self.get_request_spec_by_endpoint(endpoint),
                 request_kwargs))
-        validation_result = self._app_checker(response)
-        return response, validation_result
+        validation_result = None    #self._app_checker(response)
+        if validation_result:
+            raise ResponseValidationError("Api response does not match specification: %s" % validation_result)
+        return response
 
 
 @pytest.fixture(scope='module', autouse=True)

@@ -5,13 +5,21 @@ Created on 09.07.18
 """
 
 
-class UnexpectedSchemasFormat(Exception):
+class BaseException(Exception):
     pass
 
 
-class FileNotFoundError(Exception):
+class UnexpectedSchemasFormat(BaseException):
     pass
 
 
-class PathNotFoundError(Exception):
+class ResponseValidationError(BaseException):
+    pass
+
+
+class FileNotFoundError(BaseException):
+    pass
+
+
+class PathNotFoundError(BaseException):
     pass
