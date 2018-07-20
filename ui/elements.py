@@ -14,7 +14,7 @@ class BaseElement:
         self._make_locator(*args, **kwargs)
 
     def _make_locator(self, *args, **kwargs):
-        raise NotImplemented("BaseElement should not be used directly.")
+        raise NotImplementedError("BaseElement should not be used directly.")
 
     @property
     def text(self):

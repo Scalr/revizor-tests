@@ -60,7 +60,9 @@ class LoginPage(BasePage):
             if elements.Button(class_name='x-mask', driver=self.driver).hidden():
                 break
         self.update_password_button.click()
-        return self.login(user, new_password)
+        self.password_field.write(new_password)
+        self.login_button.click()
+        return EnvironmentDashboard(self.driver, self.base_url)
 
 
 class Menu(BasePage):
@@ -259,6 +261,11 @@ class Farms(Menu):
         self.new_farm_button.click()
         return FarmDesigner(self.driver, self.base_url)
 
+    @wait_for_page_to_load
+    def configure_farm(self, farm_id):
+        elements.Button(href='#/farms/designer?farmId=%s' % farm_id, driver=self.driver).click()
+        return FarmDesigner(self.driver, self.base_url)
+
     def list_farms(self):
         farm_elements = self.farms_info.list_elements()
         farms_info = []
@@ -270,7 +277,10 @@ class Farms(Menu):
                 "date_of_creation": info[2] + info[3] + info[4] + ',' + info[5],
                 "owner": info[6],
                 "state": info[-1],
-                "element": el
+                "element": el,
+                "action_menu": elements.Menu(
+                    xpath='//* [@id="%s"]//child::a [@class="x-grid-action-button x-grid-action-button-showmore"]' % el.get_attribute('id'),
+                    driver=self.driver)
             }
             farms_info.append(farm)
         return farms_info
