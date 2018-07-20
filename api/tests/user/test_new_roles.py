@@ -38,7 +38,7 @@ class TestNewRoles(object):
         return resp.json().get('data')
 
     def test_new_role_one_existing_image(self):
-
+        # Create new role
         resp = self.api.create(
             "/api/v1beta0/user/envId/roles/",
             params=dict(envId=self.env_id),
@@ -49,7 +49,7 @@ class TestNewRoles(object):
                 os={"id": self.os_id}))
         assert resp.status_code == 201
         role = resp.json()['data']
-
+        # Find image
         images = list(filter(
             lambda i:
                 i['cloudFeatures']['virtualization'] == "hvm" and
@@ -60,6 +60,7 @@ class TestNewRoles(object):
                     os=self.os_id,
                     scope=self.scope)))
         assert images, "images with given search criteria not found"
+        # Add image to role
         resp = self.api.create(
             "/api/v1beta0/user/envId/roles/roleId/images/",
             params=dict(
