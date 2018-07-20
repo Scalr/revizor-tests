@@ -4,8 +4,11 @@ import time
 from revizor2.testenv import TestEnv
 
 
-@pytest.fixture(scope="module")
-def testenv():
+@pytest.fixture(scope="class")
+def testenv(request):
     container = TestEnv.create(branch='master')
     time.sleep(15)
-    return container
+    request.node.obj.container = container
+    yield
+    if request.node.session.testsfailed == 0:
+        container.destroy()
