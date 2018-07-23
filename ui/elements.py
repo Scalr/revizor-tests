@@ -181,7 +181,7 @@ class Dropdown(BaseElement):
 
 class Input(BaseElement):
     """Any writable field element, typically search and filter field
-    """ 
+    """
 
     def _make_locator(self, name=None, label=None, xpath=None):
         if name:
