@@ -16,6 +16,7 @@ class TestSelenium():
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, testenv):
         self.driver = selenium
+        self.container = testenv
         self.login_page = pages.LoginPage(
             self.driver,
             'http://%s.test-env.scalr.com' % self.container.te_id).open()

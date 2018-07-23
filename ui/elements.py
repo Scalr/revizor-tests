@@ -7,6 +7,8 @@ import locators
 
 
 class BaseElement:
+    """Base class for UI element types.
+    """
     locator = None
 
     def __init__(self, *args, **kwargs):
@@ -70,6 +72,9 @@ class Button(BaseElement):
 
 
 class SplitButton(BaseElement):
+    """Button with dropdown that has different options.
+       Example - Save Farm/Save & Launch in Farm Designer page.
+    """
 
     def _make_locator(self, xpath=None):
         if xpath:
@@ -78,6 +83,10 @@ class SplitButton(BaseElement):
             self.locator = locators.XpathLocator('//a [starts-with(@id, "splitbutton")]')
 
     def click(self, option):
+        """Clicks on desired option in split button.
+
+           :param str option: text in option element.
+        """
         main_button = self.get_element()
         chain = ActionChains(self.driver)
         chain.move_to_element(main_button)
@@ -109,8 +118,13 @@ class Checkbox(BaseElement):
 
 
 class Combobox(BaseElement):
+    """Dropdown with multiple selectable options.
+    """
 
     def _make_locator(self, text=None, xpath=None, span=True):
+        """
+           :param bool span: identifies whether text is in child //span element
+        """
         self.span = span
         if text:
             self.locator = locators.XpathLocator(
@@ -129,6 +143,8 @@ class Combobox(BaseElement):
 
 
 class Menu(BaseElement):
+    """Menu with clickable Button (typically 'menuitem' in element's id).
+    """
 
     def _make_locator(self, label=None, xpath=None):
         if label:
@@ -148,6 +164,9 @@ class Menu(BaseElement):
 class Dropdown(BaseElement):
 
     def _make_locator(self, input_name=None, xpath=None):
+        """
+           :param str input_name: @name of the //input field
+        """
         if input_name:
             self.locator = locators.XpathLocator('//input [@name="%s"]' % input_name)
         elif xpath:
@@ -161,6 +180,8 @@ class Dropdown(BaseElement):
 
 
 class Input(BaseElement):
+    """Any writable field element, typically search and filter field
+    """ 
 
     def _make_locator(self, name=None, label=None, xpath=None):
         if name:
@@ -181,6 +202,8 @@ class Input(BaseElement):
 
 
 class Label(BaseElement):
+    """Any non-clickable element with text
+    """
 
     def _make_locator(self, text=None, xpath=None):
         if text:
