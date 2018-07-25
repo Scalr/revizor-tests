@@ -8,8 +8,6 @@ import pytest
 
 from api.utils.helpers import uniq_uuid
 
-app_level = "user"
-
 
 class TestNewRoles(object):
 
@@ -34,7 +32,18 @@ class TestNewRoles(object):
                 scope=scope
             )
         )
-        assert resp.ok
+        return resp.json().get('data')
+
+    def list_role_images(self, role_id, image=None, role=None):
+        resp = self.api.list(
+            "/api/v1beta0/user/envId/roles/roleId/images/",
+            params=dict(
+                envId=self.env_id,
+                roleId=role_id),
+            filters=dict(
+                image=image,
+                role=role)
+        )
         return resp.json().get('data')
 
     def test_new_role_one_existing_image(self):
@@ -47,7 +56,6 @@ class TestNewRoles(object):
                 category={"id": self.dev_role_category},
                 name="tmp-api-%s" % uniq_uuid(),
                 os={"id": self.os_id}))
-        assert resp.status_code == 201
         role = resp.json()['data']
         # Find image
         images = list(filter(
@@ -60,15 +68,19 @@ class TestNewRoles(object):
                     os=self.os_id,
                     scope=self.scope)))
         assert images, "images with given search criteria not found"
+        image_id = images[0]['id']
         # Add image to role
-        resp = self.api.create(
+        self.api.create(
             "/api/v1beta0/user/envId/roles/roleId/images/",
             params=dict(
                 envId=self.env_id,
                 roleId=role['id']),
             body=dict(
-                image={'id': images[0]['id']},
+                image={'id': image_id},
                 role={'id': role['id']}
             ))
-        assert resp.status_code == 201
-
+        # Assert role images
+        assert list(filter(
+            lambda i:
+                image_id == i['image']['id'],
+            self.list_role_images(role['id'])))

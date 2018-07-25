@@ -5,8 +5,6 @@ Created on 05.06.18
 """
 import pytest
 
-app_level = "user"
-
 
 class TestOs(object):
 

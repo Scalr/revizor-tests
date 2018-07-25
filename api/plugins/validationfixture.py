@@ -7,6 +7,7 @@ Created on 12.07.18
 import requests
 
 from api.utils.helpers import Defaults, remove_empty_values
+from api.utils.exceptions import ResponseValidationError
 
 from flex.core import load as load_schema_from_file, validate as validate_response
 from flex.exceptions import ValidationError
@@ -15,6 +16,13 @@ from flex.exceptions import ValidationError
 class ValidationUtil(object):
 
     _swagger_schema = None
+
+    _successful_response_codes = dict(
+        GET=200,
+        PATCH=200,
+        POST=201,
+        DELETE=204
+    )
 
     def __init__(self, api_level, fileutil):
         self._fileutil = fileutil
@@ -32,22 +40,32 @@ class ValidationUtil(object):
             self._load()
         return self._swagger_schema
 
+    def request_ok(self, response):
+        response_successful_code = self._successful_response_codes.get(response.request.method)
+        if not response.status_code == response_successful_code:
+            raise ResponseValidationError('Response successful code not valid')
+
     def validate(self, data):
         """
-        :type: data: requests.Response or dict
-        :param data: raw requests.response or dict
+        :type: data: requests.Response
+        :param data: raw requests.response
 
         :return: None or validation error
         """
-        if isinstance(data, requests.models.Response):
-            data = data.json()
+        if not isinstance(data, requests.models.Response):
+            raise ValueError('Not valid data format')
+        self.request_ok(data)
+        validation_res = None
+        """
         try:
+            data = data.json()
             validation_res = validate_response(
                 self._get_raw_schema(),
                 data
             )
         except (ValidationError, ValueError) as e:
             validation_res = e
+        """
         return validation_res
 
     @staticmethod
