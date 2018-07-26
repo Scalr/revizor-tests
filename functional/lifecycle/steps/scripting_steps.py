@@ -23,7 +23,8 @@ def assert_check_script_in_log(step, name, event, user, exitcode, contain, serv_
                                 user=user,
                                 log_contains=contain,
                                 std_err=std_err,
-                                exitcode=exitcode)
+                                exitcode=exitcode,
+                                timeout=600)
 
 
 @step("script( stderr)? output contains '(.*)' in (.+)$")

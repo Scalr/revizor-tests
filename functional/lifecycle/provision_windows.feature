@@ -78,31 +78,30 @@ Feature: Windows server provision with chef and ansible tower
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
+        And user 'scalr-ansible' has been created in M1
 
     @ec2 @gce @openstack @azure
     Scenario: Launch Ansible Tower Job from AT server
         When I launch job 'Revizor_windows_Job_Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
 
-    @ec2 @gce @openstack @azure @stopresume
-    Scenario: Suspend/Resume/Reboot server
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd @stopresume
+    Scenario: Verify AT job execution on event: HostUp, RebootComplete, ResumeComplete
+        Then script Windows_Show_Env executed in HostUp with exitcode 0 and contain scalr-ansible for M1
+        When I reboot server M1
+        And Scalr receives RebootFinish from M1
+        And scalarizr is running on M1
+        Then script Windows_Show_Env executed in RebootComplete with exitcode 0 and contain scalr-ansible for M1
         When I suspend server M1
         Then I wait server M1 in suspended state
         When I resume server M1
         Then I wait server M1 in resuming state
         Then I wait server M1 in running state
-        Given I wait 2 minutes
-        When I reboot server M1
-        And Scalr receives RebootFinish from M1
+        Then script Windows_Show_Env executed in ResumeComplete with exitcode 0 and contain scalr-ansible for M1
         And not ERROR in M1 scalarizr log
-        Given I wait 1 minutes
 
-    @ec2 @gce @openstack @azure
-    Scenario Outline: Verify AT job execution on event
-        Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
-
-        Examples:
-            | event          | name              | exitcode | stdout        |
-            | HostUp         | Windows_Show_Env  | 0        | scalr-ansible |
-            | RebootComplete | Windows_Show_Env  | 0        | scalr-ansible |
-            | ResumeComplete | Windows_Show_Env  | 0        | scalr-ansible |
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario: Verify Scalr delete node from AT server
+        When I stop farm
+        And wait all servers are terminated
+        And server M1 not exists in ansible-tower hosts list

@@ -102,6 +102,7 @@ Feature: Linux server provision with chef and ansible tower
         Then I expect server bootstrapping as M1
         And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
+        And user 'scalr-ansible' has been created in M1
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Launch Ansible Tower Job from AT server
@@ -109,24 +110,22 @@ Feature: Linux server provision with chef and ansible tower
         Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd @stopresume
-    Scenario: Suspend/Resume/Reboot server
+    Scenario: Verify AT job execution on event: HostUp, RebootComplete, ResumeComplete
+        Then script Revizor_linux_Job_Template_with_Extra_Var executed in HostUp with exitcode 0 and contain Extra_Var_HostUp for M1
+        When I reboot server M1
+        And Scalr receives RebootFinish from M1
+        And scalarizr is running on M1
+        Then script Revizor_linux_Job_Template_with_Extra_Var executed in RebootComplete with exitcode 0 and contain Extra_Var_RebootComplete for M1
         When I suspend server M1
         Then I wait server M1 in suspended state
         When I resume server M1
         Then I wait server M1 in resuming state
         Then I wait server M1 in running state
-        Given I wait 2 minutes
-        When I reboot server M1
-        And Scalr receives RebootFinish from M1
-        And scalarizr is running on M1
+        Then script Revizor_linux_Job_Template_with_Extra_Var executed in ResumeComplete with exitcode 0 and contain Extra_Var_ResumeComplete for M1
         And not ERROR in M1 scalarizr log
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
-    Scenario Outline: Verify AT job execution on event
-        Then script <name> executed in <event> with exitcode <exitcode> and contain <stdout> for M1
-
-        Examples:
-            | event           | name                                       | exitcode | stdout                   |
-            | HostUp          | Revizor_linux_Job_Template_with_Extra_Var  | 0        | Extra_Var_HostUp         |
-            | RebootComplete  | Revizor_linux_Job_Template_with_Extra_Var  | 0        | Extra_Var_RebootComplete |
-            | ResumeComplete  | Revizor_linux_Job_Template_with_Extra_Var  | 0        | Extra_Var_ResumeComplete |
+    Scenario: Verify Scalr delete node from AT server
+        When I stop farm
+        And wait all servers are terminated
+        And server M1 not exists in ansible-tower hosts list

@@ -254,8 +254,8 @@ def get_at_job_template_id(step, job_template_name):
         setattr(world, 'job_template_id', job_template_info['id'])
 
 
-@step("server ([\w\d]+) exists in ansible-tower hosts list")
-def check_hostname_exists_on_at_server(step, serv_as):
+@step(r"server ([\w\d]+) ([\w]+\s)*exists in ansible-tower hosts list")
+def check_hostname_exists_on_at_server(step, serv_as, negation):
     """
     You can search server name by: Public IP or Private IP or Hostname.
     Check what value is in defaults!
@@ -267,7 +267,12 @@ def check_hostname_exists_on_at_server(step, serv_as):
         res = at_get_resource('host')
         hosts_list = res.list(group=None, host_filter=None)
         for m in hosts_list['results']:
-            if hostname in m['name']:
+            if negation:
+                if hostname not in m['name']:
+                    break
+                raise AssertionError(
+                    'Hostname: %s was not removed from Ansible Tower server.' % hostname)
+            elif hostname in m['name']:
                 break
         else:
             if len(hosts_list['results']) == 10:
@@ -277,6 +282,16 @@ def check_hostname_exists_on_at_server(step, serv_as):
             raise AssertionError(
                 'Hostname: %s not found in Ansible Tower server.' % hostname)
         # found
+
+
+@step("user '([\w-]+)' has been created in ([\w\d]+)")
+def check_at_user_on_server(step, expected_user, serv_as):
+    server = getattr(world, serv_as)
+    node = world.cloud.get_node(server)
+    cmd = 'net user' if CONF.feature.dist.is_windows else 'cut -d : -f 1 /etc/passwd'
+    user_list = node.run(cmd).std_out.split()
+    if not expected_user in user_list:
+        raise AssertionError('User %s was not found on the server! User list output: %s' % (expected_user, user_list))
 
 
 @step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
