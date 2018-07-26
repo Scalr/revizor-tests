@@ -104,6 +104,10 @@ class Menu(BasePage):
         return elements.Menu(xpath='//a [contains(@class, "x-icon-avatar")]', driver=self.driver)
 
     @property
+    def scalr_main_menu(self):
+        return elements.ScalrMainMenu(self.driver)
+
+    @property
     def active_environment(self):
         """Returns str name of the current active Scalr environment.
         """
@@ -201,7 +205,7 @@ class EnvironmentDashboard(Menu):
 
     @property
     def loaded(self):
-        return elements.Label("Last errors", driver=self.driver).visible()
+        return elements.Button(text="Dashboard", driver=self.driver).visible()
 
 
 class AccountDashboard(Menu):
@@ -234,12 +238,17 @@ class ACL(Menu):
         menu = elements.Menu(label=access_for, driver=self.driver)
         menu.select(access_type)
 
-    def get_permission(self, name):
+    def get_permission(self, name, label=None):
         """Returns Checkbox object for specific permission.
 
            :param str name: Name(text) of the permission.
         """
-        return elements.Checkbox(value=name, driver=self.driver)
+        if label:
+            return elements.Checkbox(
+                xpath='//* [contains(text(), "%s")]//parent::* [@data-value="%s"]' % (label, name.lower()),
+                driver=self.driver)
+        else:
+            return elements.Checkbox(value=name, driver=self.driver)
 
 
 class Users(Menu):
@@ -249,6 +258,10 @@ class Users(Menu):
     new_user_button = elements.Button(text="New user")
     email_field = elements.Input(name="email")
     save_button = elements.Button(icon="save")
+    admin_access_on = elements.Button(text="On")
+    admin_access_off = elements.Button(text="Off")
+    allow_to_manage_envs_checkbox = elements.Checkbox(
+        text="Allow to manage environments")
 
     @property
     def loaded(self):
