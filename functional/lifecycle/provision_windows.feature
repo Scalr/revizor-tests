@@ -90,7 +90,6 @@ Feature: Windows server provision with chef and ansible tower
         Then script Windows_Show_Env executed in HostUp with exitcode 0 and contain scalr-ansible for M1
         When I reboot server M1
         And Scalr receives RebootFinish from M1
-        And scalarizr is running on M1
         Then script Windows_Show_Env executed in RebootComplete with exitcode 0 and contain scalr-ansible for M1
         When I suspend server M1
         Then I wait server M1 in suspended state
