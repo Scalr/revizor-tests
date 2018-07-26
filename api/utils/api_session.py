@@ -10,6 +10,8 @@ import pytz
 import hashlib
 import binascii
 import datetime
+
+import box
 import requests
 
 from urllib.parse import urlencode, urlparse, urlunparse
@@ -66,6 +68,11 @@ class ScalrApiSession(requests.Session):
 
         return request
 
+    def send(self, request, **kwargs):
+        response = super().send(request, **kwargs)
+        setattr(response, 'json_data', self.__class__.json_to_box(response))
+        return response
+
     def request(self, method, endpoint, params, body=None, filters=None, *args, **kwargs):
         # Set uri
         uri = endpoint.format(**params)
@@ -85,4 +92,12 @@ class ScalrApiSession(requests.Session):
             raise e.__class__(", ".join(errors))
         return resp
 
-
+    @staticmethod
+    def json_to_box(resp):
+        r = None
+        if isinstance(resp, requests.models.Response):
+            try:
+                r = box.Box(resp.json())
+            except json.JSONDecodeError:
+                pass
+        return r

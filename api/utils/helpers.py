@@ -46,3 +46,21 @@ class Defaults(object):
         'number': 1,
         'array': []
     }
+
+
+class Platform(object):
+    AZURE = 'azure'
+    CISCO = 'cisco'
+    CLOUDSTACK = 'cloudstack'
+    EC2 = 'ec2'
+    GCE = 'gce'
+    HPCLOUD = 'hpcloud'
+    IDCF = 'idcf'
+    MIRANTIS = 'mirantis'
+    NEBULA = 'nebula'
+    OPENSTACK = 'openstack'
+    OCS = 'ocs'
+    RACKSPACENGUK = 'rackspacenguk'
+    RACKSPACENGUS = 'rackspacengus'
+    VIO = 'vio'
+    VMWARE = 'vmware'

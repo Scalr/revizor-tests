@@ -21,7 +21,7 @@ class TestOs(object):
             "/api/v1beta0/user/envId/os/",
             params=dict(envId=self.env_id),
             filters=dict(id=self.os_id))
-        assert resp.json()['data'][0]['id'] == self.os_id
+        assert resp.json_data.data[0].id == self.os_id
 
     def test_os_get(self):
         # Execute request
@@ -30,4 +30,4 @@ class TestOs(object):
             params=dict(
                 envId=self.env_id,
                 osId=self.os_id))
-        assert resp.json()['data']['id'] == self.os_id
+        assert resp.json_data.data.id == self.os_id
