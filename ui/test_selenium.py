@@ -123,11 +123,11 @@ class TestSelenium():
         res = ''.join(out.splitlines()[-18:])
         message = base64.b64decode(''.join(res)).decode("utf-8")
         temp_password = re.search('\\nYour password is: (.+)\\n\\nResources', message).group(1)
-        self.login_page.update_password_and_login('selenium@scalr.com', temp_password, 'Scalrtest123!')
+        self.login_page.update_password_and_login('selenium@scalr.com', temp_password, 'Scalrtesting123!')
 
     def test_new_user_farms_access(self):
         env_dashboard = self.login_page.login(
-            'selenium@scalr.com', 'Scalrtest123!')
+            'selenium@scalr.com', 'Scalrtesting123!')
         farms_page = env_dashboard.go_to_farms()
         farms = farms_page.list_farms()
         farm_names = [farm['name'] for farm in farms]
@@ -139,7 +139,7 @@ class TestSelenium():
 
     def test_create_farm_with_new_user(self):
         env_dashboard = self.login_page.login(
-            'selenium@scalr.com', 'Scalrtest123!')
+            'selenium@scalr.com', 'Scalrtesting123!')
         farms_page = env_dashboard.menu.go_to_farms()
         new_farm_page = farms_page.new_farm()
         new_farm_page.farm_name_field.write('Selenium Farm3')
