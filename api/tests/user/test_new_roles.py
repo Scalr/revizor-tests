@@ -19,6 +19,8 @@ class TestNewRoles(object):
 
     dev_role_category = 9
 
+    image_name_suffix = "mbeh1"
+
     cloud_platforms = [
         Platform.EC2,
         Platform.GCE,
@@ -85,7 +87,7 @@ class TestNewRoles(object):
         images = list(filter(
             lambda i:
                 i.cloudFeatures.virtualization == "hvm" and
-                i.name.startswith("mbeh1") and
+                i.name.startswith(self.image_name_suffix) and
                 i.status == 'active',
             self.list_images(
                     platform=Platform.EC2,
@@ -103,7 +105,6 @@ class TestNewRoles(object):
 
     def test_new_role_existing_images(self):
         images = list()
-        image_name_suffix = "mbeh1"
 
         # Create new role
         role = self.create_role(
@@ -113,7 +114,7 @@ class TestNewRoles(object):
         for platform in self.cloud_platforms:
             platform_images = list(filter(
                 lambda i:
-                    i.name.startswith(image_name_suffix) and
+                    i.name.startswith(self.image_name_suffix) and
                     i.status == 'active',
                 self.list_images(
                         platform=platform,
@@ -122,7 +123,7 @@ class TestNewRoles(object):
             assert platform_images, "images with given search criteria " \
                                     "{platform}:{pattern}* not found".format(
                                         platform=platform,
-                                        pattern=image_name_suffix)
+                                        pattern=self.image_name_suffix)
             images.append(platform_images[0].id)
         # Add images to role
         for image_id in images:
