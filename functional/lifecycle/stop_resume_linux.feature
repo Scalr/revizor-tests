@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/chef_boot_steps
+Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/provision_steps
 Feature: Linux server resume strategy
     In order to check resume strategy
     I monitoring server state changes

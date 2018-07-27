@@ -467,3 +467,14 @@ def start_building(step):
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
     return node.install_chef()
+
+
+@step('Initialization was failed on "([a-zA-Z]+)" phase with "([\w\W]+)" message on (\w+)')
+def check_failed_status_message(step, phase, msg, serv_as):
+    server = getattr(world, serv_as)
+    patterns = (phase, msg)
+    failed_status_msg = server.get_failed_status_message()
+    msg_head = failed_status_msg.split("\n")[0].replace("&quot;", "")
+    LOG.debug('Initialization status message: %s' % msg_head)
+    assert all(pattern in msg_head for pattern in patterns), \
+        "Initialization was not failed on %s with message %s" % patterns
