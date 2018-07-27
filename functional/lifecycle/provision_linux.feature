@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/provision_linux_steps, steps/lifecycle_steps, steps/scripting_steps
+Using step definitions from: steps/common_steps, steps/provision_steps, steps/lifecycle_steps, steps/scripting_steps
 Feature: Linux server provision with chef and ansible tower
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd

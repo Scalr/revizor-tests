@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/provision_linux_steps, steps/scripting_steps, steps/szradm_steps
+Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/scripting_steps, steps/provision_steps, steps/scripting_steps, steps/szradm_steps
 Feature: Linux server fast smoke test
 
     @ec2 @gce @cloudstack @rackspaceng @openstack @azure @boot

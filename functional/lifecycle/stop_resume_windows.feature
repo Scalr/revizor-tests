@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/provision_linux_steps, steps/windows_steps
+Using step definitions from: steps/common_steps, steps/lifecycle_steps, steps/provision_steps, steps/windows_steps
 Feature: Windows server resume strategy
     In order to check resume strategy
     I monitoring server state changes
