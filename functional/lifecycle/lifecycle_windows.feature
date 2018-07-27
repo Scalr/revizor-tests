@@ -81,7 +81,7 @@ Feature: Windows server lifecycle
         | https://gist.githubusercontent.com/Theramas/48753f91f4af72be12c03c0485b27f7d/raw/97caf55e74c8db6c5bf96b6a29e48c043ac873ed/test| asynchronous | local | Multiplatform script successfully executed | |
         | Non ascii script wrong interpreter | asynchronous | | | The only supported interpreters on Windows in first shebang are ('powershell', 'cmd') |
         | Exit 1 with stdout message | asynchronous | | Message in stdout section | |
-        | C:\absent_local_script_with_stderr_checking.ps1 | asynchronous | local |  | C:\absent_local_script_with_stdout_checking.ps1 |
+        | C:\absent_local_script_with_stderr_checking.ps1 | asynchronous | local |  | Script not found 'C:\\absent_local_script_with_stderr_checking.ps1' |
         | Create local script | asynchronous | | Directory: C:\; local_script.ps1 | |
         | Non ascii script corect execution | asynchronous | | TUVWXyz; A?AA?AA?A-A?AA?AA?A | |
         | C:\local_script.ps1 | asynchronous | local       | Local script work! |             | # Bloked by SCALARIZR-2470
