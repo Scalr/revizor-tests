@@ -10,7 +10,7 @@ from revizor2.conf import CONF
 from revizor2.api import Script, IMPL, Server
 from revizor2.utils import wait_until
 from revizor2.consts import ServerStatus, Platform
-from revizor2.exceptions import MessageFailed
+from revizor2.exceptions import MessageFailed, MessageNotFounded
 from revizor2.helpers import install_behaviors_on_node
 
 LOG = logging.getLogger(__name__)
@@ -58,7 +58,7 @@ def waiting_server(step, state, serv_as, timeout=1400):
         timeout = 2400
     role = world.get_role()
     server = world.wait_server_bootstrapping(role, state, timeout)
-    LOG.info('Server succesfully %s' % state)
+    LOG.info('Server %s succesfully %s' % (server.id, state))
     setattr(world, serv_as, server)
 
 
@@ -148,6 +148,12 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_me
             world.farm.servers.reload()
             server = [serv for serv in world.farm.servers if serv.status == ServerStatus.RUNNING]
         LOG.info('Wait message %s / %s in servers: %s' % (msgtype, msg.strip(), server))
+        if msg == 'VhostReconfigure' and CONF.feature.platform.is_ec2 and failed:
+            server.logs.reload()
+            for log in server.logs:
+                if msg in log.message:
+                    return
+            raise MessageNotFounded("%s was not found in %s system logs!" % (msg, server.id))
         try:
             s = find_message(server, msg.strip(), msgtype, timeout=timeout)
             setattr(world, serv_as, s)
@@ -191,7 +197,7 @@ def execute_script(step, local, script_name, exec_type, serv_as):
         path = script_name
         script_id = None
     else:
-        script_id = Script.get_id(script_name)['id']
+        script_id = Script.get_id(script_name)
     LOG.info('Execute script "%s" with id: %s' % (script_name, script_id))
     server.scriptlogs.reload()
     setattr(world, '_server_%s_last_scripts' % server.id, copy.deepcopy(server.scriptlogs))
@@ -461,3 +467,14 @@ def start_building(step):
 def install_chef(step):
     node = getattr(world, 'cloud_server', None)
     return node.install_chef()
+
+
+@step('Initialization was failed on "([a-zA-Z]+)" phase with "([\w\W]+)" message on (\w+)')
+def check_failed_status_message(step, phase, msg, serv_as):
+    server = getattr(world, serv_as)
+    patterns = (phase, msg)
+    failed_status_msg = server.get_failed_status_message()
+    msg_head = failed_status_msg.split("\n")[0].replace("&quot;", "")
+    LOG.debug('Initialization status message: %s' % msg_head)
+    assert all(pattern in msg_head for pattern in patterns), \
+        "Initialization was not failed on %s with message %s" % patterns

@@ -1,5 +1,7 @@
 import re
 
+from lettuce import world
+
 from revizor2.conf import CONF
 from revizor2.consts import Dist, Platform
 from revizor2.helpers import farmrole
@@ -45,7 +47,7 @@ class Defaults(object):
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)
             ]
-        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
+        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-7-x', 'centos-6-x', 'ubuntu-14-04']:
             params.storage.volumes.append(
                 params.storage,
                 farmrole.Volume(engine='raid', size=1, level=1, volumes=2, mount='/media/raidmount')
@@ -147,6 +149,18 @@ class Defaults(object):
             params.bootstrap_with_chef.daemonize = True
 
     @staticmethod
+    def set_chef_hostname(params):
+        if CONF.feature.dist.id != Dist('coreos').id:
+            chef_host_name = getattr(world, 'chef_hostname_for_cookbook')
+            params.bootstrap_with_chef.enabled = True
+            params.bootstrap_with_chef.server = farmrole.ChefServer(
+                url='https://api.opscode.com/organizations/webta')
+            params.bootstrap_with_chef.runlist = '["recipe[set_hostname_attr::default]"]'
+            params.bootstrap_with_chef.daemonize = True
+            params.bootstrap_with_chef.attributes = '{"new_hostname": "%s"}' % chef_host_name
+            params.network.hostname_template = ''
+
+    @staticmethod
     def set_winchef(params):
         params.bootstrap_with_chef.enabled = True
         params.bootstrap_with_chef.server = farmrole.ChefServer(
@@ -168,7 +182,7 @@ class Defaults(object):
         if chef_opts[2] == 'private':
             url = 'git@github.com:Scalr/int-cookbooks.git'
             params.bootstrap_with_chef.path = 'cookbooks'
-            params.bootstrap_with_chef.private_key = open(CONF.ssh.private_key, 'r').read()
+            params.bootstrap_with_chef.private_key = CONF.ssh.private_key.read_text()
         else:
             url = 'https://github.com/Scalr/sample-chef-repo.git'
         if chef_opts[-1] == 'branch':
@@ -207,12 +221,12 @@ class Defaults(object):
 
     @staticmethod
     def set_failed_hostname(params):
-        params.network.hostname_template = '{REVIZOR_FAILED_HOSTNAME}'
+        params.network.hostname_template = 'r{REVIZOR_FAILED_HOSTNAME}'
 
     @staticmethod
     def set_hostname(params):
         params.network.hostname_source = 'template'
-        params.network.hostname_template = '{SCALR_FARM_ID}-{SCALR_FARM_ROLE_ID}-{SCALR_INSTANCE_INDEX}'
+        params.network.hostname_template = 'r{SCALR_FARM_ID}-{SCALR_FARM_ROLE_ID}-{SCALR_INSTANCE_INDEX}'
 
     @staticmethod
     def set_termination_preferences(params):
@@ -250,6 +264,19 @@ class Defaults(object):
                                        attributes='{"create_file":{"path":"/root/chef_hostup_result"}}'),
             farmrole.OrchestrationRule(event='HostUp', script='/bin/uname'),
             farmrole.OrchestrationRule(event='HostUp', script='Sleep 10', timeout=5)
+        ]
+
+    @staticmethod
+    def set_ansible_orchestration(params):
+        configuration_id = getattr(world, 'configuration_id')
+        job_template_id = getattr(world, 'job_template_id')
+        params.orchestration.rules = [
+            farmrole.OrchestrationRule(event='HostUp', configuration=configuration_id,
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_HostUp'),
+            farmrole.OrchestrationRule(event='RebootComplete', configuration=configuration_id,
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_RebootComplete'),
+            farmrole.OrchestrationRule(event='ResumeComplete', configuration=configuration_id,
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_ResumeComplete')
         ]
 
     @staticmethod
@@ -304,4 +331,23 @@ class Defaults(object):
     def set_prepare_scaling_win(params):
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostInit', script='Revizor scaling prepare windows')
+        ]
+
+    @staticmethod
+    def set_docker(params):
+        params.orchestration.rules.append(
+            params.orchestration,
+            farmrole.OrchestrationRule(event='HostInit', script='https://get.docker.com')
+        )
+
+    @staticmethod
+    def set_ansible_tower(params):
+        credentials_name = getattr(world, 'credentials_name')
+        pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
+        boot_config_name = credentials_name + str(pk)
+        configuration_id = getattr(world, 'configuration_id')
+        params.bootstrap_with_at.enabled = True
+        params.bootstrap_with_at.hostname = 'publicIp'
+        params.bootstrap_with_at.configurations = [
+            farmrole.AnsibleTowerConfiguration(id=configuration_id, name=boot_config_name, variables='')
         ]

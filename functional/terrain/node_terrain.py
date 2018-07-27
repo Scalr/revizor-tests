@@ -11,7 +11,7 @@ from lettuce import world, step
 from libcloud.compute.types import NodeState
 from datetime import datetime
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.helpers.jsonrpc import ServiceError
@@ -216,6 +216,15 @@ class VerifyProcessWork(object):
         return all(results)
 
 
+@step('I execute \'(.+)\' in (.+)$')
+def execute_command(step, command, serv_as):
+    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
+        command = '/opt/bin/' + command
+    node = world.cloud.get_node(getattr(world, serv_as))
+    LOG.info('Execute command on server: %s' % command)
+    node.run(command)
+
+
 @step('I change repo in ([\w\d]+) to system$')
 def change_repo(step, serv_as):
     server = getattr(world, serv_as)
@@ -329,10 +338,7 @@ def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this u
     if service == 'scalarizr' and CONF.feature.dist.is_windows:
         status = None
         for _ in range(5):
-            try:
-                status = server.upd_api.status()['service_status']
-            except ServiceError:
-                status = server.upd_api_old.status()['service_status']
+            status = server.upd_api.status()['service_status']
             if status == 'running':
                 return
             time.sleep(5)
@@ -395,10 +401,7 @@ def assert_scalarizr_version_old(step, repo, serv_as):
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr']
     versions.sort()
     LOG.info('Scalarizr versions in repository %s: %s' % (branch, versions))
-    try:
-        server_info = server.upd_api.status(cached=False)
-    except Exception:
-        server_info = server.upd_api_old.status()
+    server_info = server.upd_api.status(cached=False)
     LOG.debug('Server %s status: %s' % (server.id, server_info))
     # if not repo == server_info['repository']:
     #     raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'
@@ -714,6 +717,9 @@ def creating_role(step, image_type=None, non_scalarized=None):
     if platform.is_gce:
         cloud_location = ""
         image_id = image.extra['selfLink'].split('projects')[-1][1:]
+    elif platform.is_azure:
+        cloud_location = platform.location
+        image_id = '/'.join(image.name.split(' ')[:-1]) + '/latest'
     else:
         cloud_location = platform.location
         image_id = image.id
@@ -723,6 +729,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
         cloud_location=cloud_location,
         image_id=image_id
     )
+    if platform.is_azure:
+        image_kwargs['cloud_location'] = ""
     name = 'tmp-{}-{}-{:%d%m%Y-%H%M%S}'.format(
             image_type,
             CONF.feature.dist.id,
@@ -734,7 +742,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
     # Checking an image
     try:
         LOG.debug('Checking an image {image_id}:{platform}({cloud_location})'.format(**image_kwargs))
-        IMPL.image.check(**image_kwargs)
+        image_check_result = IMPL.image.check(**image_kwargs)
         image_registered = False
     except Exception as e:
         if not ('Image has already been registered' in e.message):
@@ -749,7 +757,8 @@ def creating_role(step, image_type=None, non_scalarized=None):
             software=behaviors,
             name=name,
             is_scalarized=is_scalarized,
-            has_cloudinit=has_cloudinit))
+            has_cloudinit=has_cloudinit,
+            image_volumes=image_check_result.get('volumes', None)))
         image = IMPL.image.create(**image_kwargs)
     else:
         image = IMPL.image.get(image_id=image_id)
@@ -943,7 +952,7 @@ def verify_ports_in_iptables(step, ports, should_not_contain, serv_as):
         LOG.debug('Check port "%s" in iptables rules' % port)
         if port in iptables_rules and should_not_contain:
             raise AssertionError('Port "%s" in iptables rules!' % port)
-        elif not should_not_contain and not port in iptables_rules:
+        elif not should_not_contain and port not in iptables_rules:
             raise AssertionError('Port "%s" is NOT in iptables rules!' % port)
 
 

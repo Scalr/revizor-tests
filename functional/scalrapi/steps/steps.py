@@ -13,12 +13,13 @@ import logging
 import binascii
 import requests
 
-from revizor2 import CONF
-from urllib import urlencode
-from revizor2.api import IMPL
-from lettuce import world, step
 from collections import namedtuple
+from lettuce import world, step
+from urllib import urlencode
 from urlparse import urlparse, urlunparse
+
+from revizor2 import CONF
+from revizor2.backend import IMPL
 
 LOG = logging.getLogger(__name__)
 

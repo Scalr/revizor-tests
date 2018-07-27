@@ -4,7 +4,7 @@ Feature: Discovery manager service
     As a scalr user
     I use Discovery manager service
 
-    @ec2 @agentless
+    @ec2 @azure @agentless
     Scenario: Import running instances into Scalr
         Given I have a an empty running farm
         When I have a server running in cloud
@@ -13,7 +13,7 @@ Feature: Discovery manager service
         And I add created role to the farm with manual scaling
         And I run the server imports running in the cloud
 
-    @ec2 @agentless
+    @ec2 @azure @agentless
     Scenario: Deploy scalr agent
         Given I see running server M1
         And scalarizr not installed on the M1 server

@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import boto3
-import os
 import requests
 from azure.common.credentials import ServicePrincipalCredentials
 from botocore import config as boto_config
@@ -21,7 +20,7 @@ class CloudServicePlatform(object):
     def __init__(self, request_id, secret):
         self.request_id = request_id
         self.secret = secret
-        self.cacert_path = os.path.join(CONF.main.keysdir, 'csg-%s.pem' % self.request_id)
+        self.cacert_path = CONF.main.keysdir / ('csg-%s.pem' % self.request_id)
         self.csg_proxy = None
         self.request = None
 
@@ -33,12 +32,11 @@ class CloudServicePlatform(object):
         csg_port = world.get_scalr_config_value('scalr.csg.endpoint.port')
         self.csg_proxy = '%s:%s' % (te_url, csg_port)
 
-        if not os.path.exists(CONF.main.keysdir):
-            os.makedirs(CONF.main.keysdir)
-        if not os.path.exists(self.cacert_path):
+        if not CONF.main.keysdir.exists():
+            CONF.main.keysdir.mkdir(parents=True)
+        if not self.cacert_path.exists():
             r = requests.get('http://csg/cert/pem', proxies={'http': self.csg_proxy})
-            with open(self.cacert_path, 'w') as f:
-                f.write(r.text)
+            self.cacert_path.write_text(r.text)
 
     @classmethod
     def get_service(cls, service_name):
@@ -50,7 +48,21 @@ class CloudServicePlatform(object):
         service = self.get_service(service_name)(self)
         self._verify_impl(service)
 
+    def verify_denied(self, service_name, reason):
+        service = self.get_service(service_name)(self)
+        self._verify_denied_impl(service, reason)
+
+    def verify_policy(self, service_name, **rules):
+        service = self.get_service(service_name)(self)
+        self._verify_policy_impl(service, **rules)
+
     def _verify_impl(self, service):
+        raise NotImplementedError()
+
+    def _verify_denied_impl(self, service, reason):
+        raise NotImplementedError()
+
+    def _verify_policy_impl(self, service, **rules):
         raise NotImplementedError()
 
     @staticmethod
@@ -69,6 +81,10 @@ class Ec2ServicePlatform(CloudServicePlatform):
     """
     services = ec2_services.services
     region = 'us-east-1'
+    error_text = {
+        'restricted': 'Client is unknown or has no access to service',
+        'disabled': 'Client is not Active'
+    }
 
     def __init__(self, request_id, secret):
         super(Ec2ServicePlatform, self).__init__(request_id, secret)
@@ -87,12 +103,21 @@ class Ec2ServicePlatform(CloudServicePlatform):
 
     def get_client(self, service_name, region=None):
         return self.session.client(service_name,
-                                   verify=self.cacert_path,
+                                   verify=str(self.cacert_path),
                                    config=self.client_config,
                                    region_name=region or Ec2ServicePlatform.region)
 
     def _verify_impl(self, service):
         service.verify()
+
+    def _verify_denied_impl(self, service, reason):
+        service.verify_denied(Ec2ServicePlatform.error_text[reason])
+
+    def _verify_policy_impl(self, service, **rules):
+        if hasattr(service, 'verify_policy') and callable(service.verify_policy):
+            service.verify_policy(**rules)
+        else:
+            raise NotImplementedError('Policy validation is not supported in %s service' % service)
 
 
 class AzureServicePlatform(CloudServicePlatform):
@@ -101,6 +126,10 @@ class AzureServicePlatform(CloudServicePlatform):
     Contains Azure-specific logic that is common for all services
     """
     services = azure_services.services
+    error_text = {
+        'restricted': 'Bad Request',
+        'disabled': 'Client is not Active'
+    }
 
     def __init__(self, request_id, secret):
         super(AzureServicePlatform, self).__init__(request_id, secret)
@@ -113,15 +142,23 @@ class AzureServicePlatform(CloudServicePlatform):
         # some azure management clients strictly require subscription_id parameter
         # to be of type `str`, and fail when it's `unicode`
         self.subscription_id = str(self.request['cc_id'])
+
+    def get_credentials(self):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
-                      REQUESTS_CA_BUNDLE=self.cacert_path):
-            self.credentials = ServicePrincipalCredentials(
+                      REQUESTS_CA_BUNDLE=str(self.cacert_path)):
+            creds = ServicePrincipalCredentials(
                 client_id=self.request['client_id'],
                 secret=self.secret,
                 tenant=self.request['tenant_id']
             )
+        return creds
 
     def _verify_impl(self, service):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
-                      REQUESTS_CA_BUNDLE=self.cacert_path):
+                      REQUESTS_CA_BUNDLE=str(self.cacert_path)):
             service.verify()
+
+    def _verify_denied_impl(self, service, reason):
+        with env_vars(https_proxy='http://%s' % self.csg_proxy,
+                      REQUESTS_CA_BUNDLE=str(self.cacert_path)):
+            service.verify_denied(AzureServicePlatform.error_text[reason])

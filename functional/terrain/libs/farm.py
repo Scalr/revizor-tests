@@ -1,18 +1,18 @@
-import time
+import os
+import re
 import logging
+import types
 from datetime import datetime
 
 from lettuce import world
 
+from defaults import Defaults
 from revizor2.api import Farm, IMPL
 from revizor2.conf import CONF
-from revizor2.fixtures import tables
-from revizor2.consts import BEHAVIORS_ALIASES
+from revizor2.consts import BEHAVIORS_ALIASES, DATABASE_BEHAVIORS
 from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.helpers.roles import get_role_versions
-
-from lxml import etree
 
 LOG = logging.getLogger(__name__)
 
@@ -57,104 +57,105 @@ def give_empty_farm(launched=False):
 
 
 @world.absorb
-def add_role_to_farm(behavior, options, role_id=None):
-    """
-    Insert role to farm by behavior and find role in Scalr by generated name.
-    Role name generate by the following format:
-    {behavior}{RV_ROLE_VERSION}-{RV_DIST}-{RV_ROLE_TYPE}
-    Moreover if we setup environment variable RV_ROLE_ID it added role with this ID (not by name)
-    """
-    platform = CONF.feature.platform
-    #FIXME: Rewrite this ugly and return RV_ROLE_VERSION
-    def get_role(behavior, dist=None):
-        if CONF.feature.role_type == 'shared':
-            #TODO: Try get from Scalr
-            role = tables('roles-shared').filter(
-                {'dist': CONF.feature.dist.id,
-                 'behavior': behavior,
-                 'platform': platform.name}).first()
-            role = IMPL.role.get(role.keys()[0])
-        else:
-            if behavior in BEHAVIORS_ALIASES:
-                behavior = BEHAVIORS_ALIASES[behavior]
-            if '-cloudinit' in behavior:
-                mask = 'tmp-%s-%s-*-*' % (behavior, CONF.feature.dist.id)
-            else:
-                if CONF.feature.role_type == 'instance':
-                    mask = '%s*-%s-%s-instance' % (behavior, dist, CONF.feature.role_type)
-                else:
-                    mask = '%s*-%s-%s' % (behavior, dist, CONF.feature.role_type)
-            LOG.info('Get role versions by mask: %s' % mask)
-            versions = get_role_versions(mask)
-            versions.sort()
-            versions.reverse()
-            #TODO: Return RV_ROLE_VERSION
-            if CONF.feature.role_type == 'instance':
-                role_name = '%s%s-%s-%s-instance' % (
-                    behavior, versions[0],
-                    dist, CONF.feature.role_type)
-            elif '-cloudinit' in behavior:
-                role_name = 'tmp-%s-%s-%s' % (behavior, CONF.feature.dist.id, versions[0])
-            else:
-                role_name = '%s%s-%s-%s' % (
-                    behavior, versions[0],
-                    dist, CONF.feature.role_type)
-            LOG.info('Get role by name: %s' % role_name)
-            roles = IMPL.role.list(query=role_name)
-            if not roles:
-                raise NotFound('Role with name: %s not found in Scalr' % role_name)
-            role = roles[0]
-        return role
-    # WORKAROUND!
-    dist = CONF.feature.dist.mask
-    if CONF.feature.role_id:
-        LOG.info("Get role by id: '%s'" % CONF.feature.role_id)
-        if CONF.feature.role_id.isdigit():
-            role = IMPL.role.get(CONF.feature.role_id)
-        else:
-            roles = IMPL.role.list(query=CONF.feature.role_id)
-            if roles:
-                role = roles[0]
-        if not behavior in role['behaviors']: #TODO: Think about role id and behavior
-            LOG.warning('Behavior %s not in role behaviors %s' % (behavior, role['behaviors']))
-            role = get_role(behavior, role['dist'])
-        if not role:
-            raise NotFound('Role with id %s not found in Scalr, please check' % CONF.feature.role_id)
-    else:
-        if not role_id:
-            role = get_role(behavior, dist)
-        else:
-            role = IMPL.role.get(role_id)
-    world.wrt(etree.Element('meta', name='role', value=role['name']))
-    world.wrt(etree.Element('meta', name='dist', value=role['dist']))
-    old_roles_id = [r.id for r in world.farm.roles]
-    options.alias = options.alias or role['name']
-    LOG.info('Add role %s with alias %s to farm' % (role['id'], options.alias))
-    if dist in ('windows-2008', 'windows-2012') and platform.is_azure:
-        LOG.debug('Dist is windows, set instance type')
-        options.instance_type = 'Standard_A1'
-    if platform.is_ec2:
-        options.global_variables.variables.append(
-            options.global_variables,
-            farmrole.Variable(
-                name='REVIZOR_TEST_ID',
-                value=getattr(world, 'test_id')
-            )
-        )
-    world.farm.add_role(role['id'], options=options.to_json())
-    time.sleep(3)
-    world.farm.roles.reload()
-    new_role = [r for r in world.farm.roles if r.id not in old_roles_id]
-    if not new_role:
-        raise AssertionError('Added role "%s" not found in farm' % role['name'])
-    setattr(world, 'role_params_%s' % new_role[0].id, options)
-    return new_role[0]
-
-
-@world.absorb
 def get_farm_state(state):
     world.farm = Farm.get(world.farm.id)
     if world.farm.status == state:
         return True
     else:
         raise AssertionError('Farm is Not in %s state' % state)
+
+
+@world.absorb
+def setup_farmrole_params(
+        role_options=None,
+        alias=None,
+        behaviors=None,
+        setup_bundled_role=False):
+
+    platform = CONF.feature.platform
+    dist = CONF.feature.dist
+    behaviors = behaviors or []
+    role_options = role_options or []
+    role_params = farmrole.FarmRoleParams(platform, alias=alias)
+
+    if isinstance(behaviors, types.StringTypes):
+        behaviors = [behaviors]
+
+    if not (setup_bundled_role and len('{}-{}'.format(world.farm.name, alias)) < 63):
+        Defaults.set_hostname(role_params)
+
+    for opt in role_options:
+        LOG.info('Inspect role option: %s' % opt)
+        if opt in ('branch_latest', 'branch_stable'):
+            role_params.advanced.agent_update_repository = opt.split('_')[1]
+        elif 'redis processes' in opt:
+            redis_count = re.findall(r'(\d+) redis processes', opt)[0].strip()
+            LOG.info('Setup %s redis processes' % redis_count)
+            role_params.database.redis_processes = int(redis_count)
+        elif 'chef-solo' in opt:
+            Defaults.set_chef_solo(role_params, opt)
+        else:
+            Defaults.apply_option(role_params, opt)
+
+    if not setup_bundled_role:
+        if dist.is_windows:
+            role_params.advanced.reboot_after_hostinit = True
+        elif dist.id == 'scientific-6-x' or \
+                (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
+            role_params.advanced.disable_iptables_mgmt = False
+
+        if platform.is_ec2:
+            role_params.global_variables.variables.append(
+                role_params.global_variables,
+                farmrole.Variable(
+                    name='REVIZOR_TEST_ID',
+                    value=getattr(world, 'test_id')
+                )
+            )
+        if 'rabbitmq' in behaviors:
+            role_params.network.hostname_template = ''
+
+    if any(b in DATABASE_BEHAVIORS for b in behaviors):
+        LOG.debug('Setup default db storages')
+        Defaults.set_db_storage(role_params)
+        if 'redis' in behaviors:
+            LOG.info('Insert redis settings')
+            snapshotting_type = CONF.feature.redis_snapshotting
+            role_params.database.redis_persistence_type = snapshotting_type
+            role_params.database.redis_use_password = True
+    return role_params
+
+
+@world.absorb
+def get_role_by_behavior(behavior):
+    behavior = BEHAVIORS_ALIASES.get(behavior, behavior)
+    dist = CONF.feature.dist
+    use_cloudinit_role = "-cloudinit" in behavior
+    role_type = CONF.feature.role_type
+
+    if use_cloudinit_role:
+        dist_mask = dist.id
+        role_ver_tpl = 'tmp-{beh}-{dist}-*-*'
+        role_name_tpl = 'tmp-{beh}-{dist}-{ver}'
+    else:
+        dist_mask = dist.mask
+        role_ver_tpl = '{beh}*-{dist}-{type}'
+        role_name_tpl = '{beh}{ver}-{dist}-{type}'
+
+    role_ver_mask = role_ver_tpl.format(
+        beh=behavior,
+        dist=dist_mask,
+        type=role_type)
+    LOG.info('Get role versions by mask: %s' % role_ver_mask)
+
+    role_version = get_role_versions(role_ver_mask, use_latest=True)
+    role_name = role_name_tpl.format(
+        beh=behavior,
+        dist=dist_mask,
+        ver=role_version,
+        type=role_type)
+    LOG.info('Get role by name: %s' % role_name)
+    roles = IMPL.role.list(dist=dist.dist, query=role_name)
+    if roles:
+        return roles[0]
+    raise NotFound('Role with name: %s not found in Scalr' % role_name)

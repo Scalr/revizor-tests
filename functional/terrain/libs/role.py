@@ -4,7 +4,7 @@ import logging
 
 from lettuce import world
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 
 
 LOG = logging.getLogger(__name__)

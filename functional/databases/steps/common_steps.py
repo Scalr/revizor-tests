@@ -7,7 +7,7 @@ from datetime import timedelta
 from lettuce import world, step
 from lxml import html, etree
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.fixtures import resources
@@ -17,9 +17,15 @@ from revizor2.consts import ServerStatus, Platform
 
 LOG = logging.getLogger(__name__)
 
-###DataBases handlers
+### DataBases handlers
 #####################
-#{'mysql': Mysql, 'mysql2': Mysql, 'percona': Mysql, 'mariadb': Mysql, 'redis': Redis, 'postgresql': PostgreSQL}
+# {'mysql': Mysql,
+# 'mysql2': Mysql,
+# 'percona': Mysql,
+# 'mariadb': Mysql,
+# 'redis': Redis,
+# 'postgresql': PostgreSQL}
+
 realisations = dict()
 
 
@@ -250,6 +256,7 @@ def session_is_available(step, service, search_string, element):
        Takes a variable as argument world.launch_request out of step launch_session"""
     if not world.launch_request:
         raise Exception('The %s service page is not found') % service
+    world.launch_request.history.append(world.launch_request)
     for resp in world.launch_request.history:
         LOG.debug('Response from: %s' % resp.url)
         try:
@@ -257,7 +264,7 @@ def session_is_available(step, service, search_string, element):
             if search_string in tree.xpath('//%s' % element)[0].text:
                 LOG.info("The %s service is launched." % service)
                 break
-        except etree.XMLSyntaxError:
+        except (etree.XMLSyntaxError, etree.ParserError):
             continue
     else:
         raise AssertionError("The %s service is not launched." % service)

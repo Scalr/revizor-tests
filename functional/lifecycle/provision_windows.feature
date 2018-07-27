@@ -1,5 +1,5 @@
-Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps, steps/chef_boot_steps
-Feature: Windows server provision with chef
+Using step definitions from: steps/common_steps, steps/windows_steps, steps/lifecycle_steps, steps/scripting_steps, steps/szradm_steps, steps/provision_steps
+Feature: Windows server provision with chef and ansible tower
     In order to manage server lifecycle
     As a scalr user
     I want to be able to monitor server state changes
@@ -60,3 +60,47 @@ Feature: Windows server provision with chef
         And file 'C:\chef_result_file' exist in M1 windows
         And scalarizr version is last in M1
         And hostname in M1 is valid
+
+    @ec2 @gce @openstack @azure
+    Scenario: Setup Ansible Tower Bootstrap Configurations
+        Given I get Ansible Tower server id
+        And I create a New AT 'regular' group 'G1' for Inventory 'Revizor_windows_33'
+        And AT group 'G1' exists in inventory 'Revizor_windows_33' in AT server
+        And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor-windows-cred'
+        And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
+        And I get and save AT job template id for 'Windows_Show_Env'
+
+   @ec2 @gce @openstack @azure
+    Scenario: Bootstrapping role with Ansible Tower
+        Given I have a clean and stopped farm
+        When I add role to this farm with ansible-tower,ansible_orchestration
+        When I start farm
+        Then I expect server bootstrapping as M1
+        And scalarizr version is last in M1
+        And server M1 exists in ansible-tower hosts list
+        And user 'scalr-ansible' has been created in M1
+
+    @ec2 @gce @openstack @azure
+    Scenario: Launch Ansible Tower Job from AT server
+        When I launch job 'Revizor_windows_Job_Template' with credential 'Revizor-windows-cred' and expected result 'successful' in M1
+        Then I checked that deployment through AT was performed in M1 and the output is 'dir1'
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd @stopresume
+    Scenario: Verify AT job execution on event: HostUp, RebootComplete, ResumeComplete
+        Then script Windows_Show_Env executed in HostUp with exitcode 0 and contain scalr-ansible for M1
+        When I reboot server M1
+        And Scalr receives RebootFinish from M1
+        Then script Windows_Show_Env executed in RebootComplete with exitcode 0 and contain scalr-ansible for M1
+        When I suspend server M1
+        Then I wait server M1 in suspended state
+        When I resume server M1
+        Then I wait server M1 in resuming state
+        Then I wait server M1 in running state
+        Then script Windows_Show_Env executed in ResumeComplete with exitcode 0 and contain scalr-ansible for M1
+        And not ERROR in M1 scalarizr log
+
+    @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
+    Scenario: Verify Scalr delete node from AT server
+        When I stop farm
+        And wait all servers are terminated
+        And server M1 not exists in ansible-tower hosts list

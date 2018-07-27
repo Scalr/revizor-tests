@@ -7,7 +7,7 @@ from itertools import chain
 
 from lettuce import world, step, after, before
 
-from revizor2.api import IMPL
+from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
@@ -146,15 +146,6 @@ def attach_script(step, script_name):
             "runAs": ""
         }]
     )
-
-
-@step('I execute \'(.+)\' in (.+)$')
-def execute_command(step, command, serv_as):
-    if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
-        command = '/opt/bin/' + command
-    node = world.cloud.get_node(getattr(world, serv_as))
-    LOG.info('Execute command on server: %s' % command)
-    node.run(command)
 
 
 @step('server ([\w\d]+) contain \'(.+)\'')
@@ -395,7 +386,7 @@ def assert_server_message_count(step, msg, serv_as):
 
 @before.each_scenario
 def remove_raid_support(scenario):
-    if CONF.feature.dist.id not in ['centos-6-x', 'ubuntu-14-04'] or CONF.feature.platform != 'ec2':
+    if CONF.feature.dist.id not in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04'] or CONF.feature.platform != Platform.EC2:
         for step in scenario.steps[:]:
             if '/media/raidmount' in step.sentence:
                 scenario.steps.remove(step)

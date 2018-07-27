@@ -35,7 +35,8 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
     'Caught exception reading instance data',
     'Expected list, got null. Selector: listvolumesresponse',
     'error was thrown due to the hostname format',
-    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded"
+    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded",
+    "Error synchronizing server time: Unable to synchronize time, cause ntpdate binary is not found in $PATH"
 ]
 
 # Run powershell script as Administrator
@@ -250,14 +251,14 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                     lookup_server = None
                     lookup_node = None
                     continue
-                if platform.is_azure and azure_failed != 2:
-                    LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
-                        lookup_server.id,
-                        azure_failed + 1,
-                        lookup_server.get_failed_status_message()))
-                    azure_failed += 1
-                    time.sleep(15)
-                    continue
+                # if platform.is_azure and azure_failed != 2:
+                #     LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
+                #         lookup_server.id,
+                #         azure_failed + 1,
+                #         lookup_server.get_failed_status_message()))
+                #     azure_failed += 1
+                #     time.sleep(15)
+                #     continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
                     return lookup_server
@@ -320,7 +321,8 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
                     lookup_server.messages.reload()
                     if platform.is_azure \
                             and not Dist(lookup_server.role.dist).is_windows \
-                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)):
+                            and not ('ResumeComplete' in map(lambda m: m.name, lookup_server.messages)) \
+                            and lookup_server.is_scalarized:
                         LOG.debug('Wait update ssh authorized keys on azure %s server' % lookup_server.id)
                         wait_server_message(
                             lookup_server,
@@ -612,7 +614,7 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
-    return '%s-%s-%s' % (
+    return 'r%s-%s-%s' % (
         world.farm.id,
         server.farm_role_id,
         server.index
