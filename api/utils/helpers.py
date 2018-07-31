@@ -49,6 +49,7 @@ class Defaults(object):
 
 
 class Platform(object):
+
     AZURE = 'azure'
     CISCO = 'cisco'
     CLOUDSTACK = 'cloudstack'
@@ -64,3 +65,26 @@ class Platform(object):
     RACKSPACENGUS = 'rackspacengus'
     VIO = 'vio'
     VMWARE = 'vmware'
+
+
+class BuiltInAutomation(object):
+
+    BASE = 'base'
+    CHEF = 'chef'
+    MYSQL = 'mysql'
+    POSTGRESQL = 'postgresql'
+    PEERCONA = 'percona'
+    APACHE = 'apache'
+    TOMCAT = 'tomcat'
+    HAPROXY = 'haproxy'
+    NGINX = 'nginx'
+    MEMCACHED = 'memcached'
+    REDIS = 'redis'
+    RABBITMQ = 'rabbitmq'
+
+    INVALID = 'invalid'
+
+    UNCOMBINED_BEHAVIORS = [
+        MYSQL,
+        POSTGRESQL
+    ]

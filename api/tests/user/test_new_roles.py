@@ -5,8 +5,10 @@ Created on 13.06.18
 """
 
 import pytest
+import requests
+import six
 
-from api.utils.helpers import Platform, uniq_uuid
+from api.utils.helpers import Platform, BuiltInAutomation, uniq_uuid
 
 
 class TestNewRoles(object):
@@ -26,16 +28,24 @@ class TestNewRoles(object):
         Platform.GCE,
         Platform.CLOUDSTACK]
 
+    exc_messages = dict(
+        invalid_os_id="ObjectNotFound: 'Role.os.id' ({os_id}) was not found.",
+        invalid_automation="Role.builtinAutomation' ({automation}) are invalid",
+        uncombined_behavior="'Role.builtinAutomation' ({}, {}) behaviors can't be combined.")
+
     @pytest.fixture(autouse=True)
     def init_session(self, api):
         self.api = api
 
-    def create_role(self, os_id, role_category):
+    def create_role(self, os_id, role_category, automation=None):
+        builtin_automation = automation or BuiltInAutomation.BASE
+        if isinstance(builtin_automation, six.string_types):
+            builtin_automation = [builtin_automation]
         resp = self.api.create(
             "/api/v1beta0/user/envId/roles/",
             params=dict(envId=self.env_id),
             body=dict(
-                builtinAutomation=["base"],
+                builtinAutomation=builtin_automation,
                 category={"id": role_category},
                 name="tmp-api-%s" % uniq_uuid(),
                 os={"id": os_id}))
@@ -93,7 +103,7 @@ class TestNewRoles(object):
                     platform=Platform.EC2,
                     os=self.os_id,
                     scope=self.scope)))
-        assert images, "images with given search criteria not found"
+        assert images
         image_id = images[0].id
         # Add image to role
         self.create_role_image(role.id, image_id)
@@ -120,10 +130,7 @@ class TestNewRoles(object):
                         platform=platform,
                         os=self.os_id,
                         scope=self.scope)))
-            assert platform_images, "images with given search criteria " \
-                                    "{platform}:{pattern}* not found".format(
-                                        platform=platform,
-                                        pattern=self.image_name_suffix)
+            assert platform_images
             images.append(platform_images[0].id)
         # Add images to role
         for image_id in images:
@@ -131,3 +138,32 @@ class TestNewRoles(object):
         # Assert role images
         assert all(ri.image.id in images for ri in self.list_role_images(role.id))
 
+    def test_new_role_invalid_os_id(self):
+        invalid_os_id = "ubuntu-19-04"
+        exc_message = self.exc_messages['invalid_os_id'].format(
+            os_id=invalid_os_id)
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_role(
+                invalid_os_id,
+                self.dev_role_category)
+        assert e.value.args[0] == exc_message
+
+    def test_new_role_invalid_automation_types(self):
+        exc_message = self.exc_messages['invalid_automation'].format(
+            automation=BuiltInAutomation.INVALID)
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_role(
+                self.os_id,
+                self.dev_role_category,
+                automation=BuiltInAutomation.INVALID)
+        assert exc_message in e.value.args[0]
+
+    def test_new_role_uncombined_behaviors(self):
+        exc_message = self.exc_messages['uncombined_behavior'].format(
+            *BuiltInAutomation.UNCOMBINED_BEHAVIORS)
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_role(
+                self.os_id,
+                self.dev_role_category,
+                automation=BuiltInAutomation.UNCOMBINED_BEHAVIORS)
+        assert exc_message in e.value.args[0]
