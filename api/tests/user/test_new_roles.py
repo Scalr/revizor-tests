@@ -21,17 +21,11 @@ class TestNewRoles(object):
 
     dev_role_category = 9
 
-    image_name_suffix = "mbeh1"
-
-    cloud_platforms = [
-        Platform.EC2,
-        Platform.GCE,
-        Platform.CLOUDSTACK]
-
     exc_messages = dict(
-        invalid_os_id="ObjectNotFound: 'Role.os.id' ({os_id}) was not found.",
-        invalid_automation="Role.builtinAutomation' ({automation}) are invalid",
-        uncombined_behavior="'Role.builtinAutomation' ({}, {}) behaviors can't be combined.")
+        invalid_os_id="'Role.os.id' ({os_id}) was not found.",
+        invalid_automation="'Role.builtinAutomation' ({automation}) are invalid",
+        uncombined_behavior="'Role.builtinAutomation' ({}, {}) behaviors can't be combined.",
+        registered_image="'RoleImage.image.id' ({}) with 'cloudLocation' ({}) has already been registered.")
 
     @pytest.fixture(autouse=True)
     def init_session(self, api):
@@ -97,7 +91,7 @@ class TestNewRoles(object):
         images = list(filter(
             lambda i:
                 i.cloudFeatures.virtualization == "hvm" and
-                i.name.startswith(self.image_name_suffix) and
+                i.name.startswith("mbeh1") and
                 i.status == 'active',
             self.list_images(
                     platform=Platform.EC2,
@@ -116,15 +110,20 @@ class TestNewRoles(object):
     def test_new_role_existing_images(self):
         images = list()
 
+        cloud_platforms = [
+            Platform.EC2,
+            Platform.GCE,
+            Platform.CLOUDSTACK]
+
         # Create new role
         role = self.create_role(
             self.os_id,
             self.dev_role_category)
         # Get images
-        for platform in self.cloud_platforms:
+        for platform in cloud_platforms:
             platform_images = list(filter(
                 lambda i:
-                    i.name.startswith(self.image_name_suffix) and
+                    i.name.startswith("mbeh1") and
                     i.status == 'active',
                 self.list_images(
                         platform=platform,
@@ -146,7 +145,7 @@ class TestNewRoles(object):
             self.create_role(
                 invalid_os_id,
                 self.dev_role_category)
-        assert e.value.args[0] == exc_message
+        assert exc_message in e.value.args[0]
 
     def test_new_role_invalid_automation_types(self):
         exc_message = self.exc_messages['invalid_automation'].format(
@@ -166,4 +165,29 @@ class TestNewRoles(object):
                 self.os_id,
                 self.dev_role_category,
                 automation=BuiltInAutomation.UNCOMBINED_BEHAVIORS)
+        assert exc_message in e.value.args[0]
+
+    def test_new_role_one_platform_tow_images(self):
+        # Find images
+        images = list(filter(
+            lambda i:
+                i.cloudFeatures.virtualization == "hvm" and
+                i.name.startswith("mbeh") and
+                i.status == 'active',
+            self.list_images(
+                    platform=Platform.EC2,
+                    os=self.os_id,
+                    scope=self.scope)))
+        assert images
+        # Create new role
+        role = self.create_role(
+            self.os_id,
+            self.dev_role_category)
+        # Add images to role
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            for image in images:
+                exc_message = self.exc_messages['registered_image'].format(
+                    image.cloudImageId,
+                    image.cloudLocation)
+                self.create_role_image(role.id, image.id)
         assert exc_message in e.value.args[0]
