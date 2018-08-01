@@ -1,4 +1,4 @@
-Using step definitions from: steps/common_steps, steps/scripting_steps, steps/lifecycle_steps, steps/chef_boot_steps
+Using step definitions from: steps/common_steps, steps/scripting_steps, steps/lifecycle_steps, steps/provision_steps
 Feature: Orchestration features test
 
     @ec2 @gce @vmware @cloudstack @rackspaceng @openstack @azure
