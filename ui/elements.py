@@ -2,6 +2,7 @@ import time
 
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
 
 import locators
 
@@ -38,6 +39,13 @@ class BaseElement:
                 continue
             time.sleep(6)
         raise NoSuchElementException(self.locator[1])
+
+    def mouse_over(self):
+        self.scroll_into_view()
+        element = self.get_element()
+        chain = ActionChains(self.driver)
+        chain.move_to_element(element)
+        chain.perform()
 
     def visible(self, timeout=3):
         start = time.time()
@@ -79,12 +87,6 @@ class Button(BaseElement):
 
     def click(self):
         self.get_element().click()
-
-    def mouse_over(self):
-        element = self.get_element()
-        chain = ActionChains(self.driver)
-        chain.move_to_element(element)
-        chain.perform()
 
 
 class SplitButton(BaseElement):
@@ -239,7 +241,7 @@ class Label(BaseElement):
             raise ValueError('No locator policy was provided!')
 
 
-class ScalrMainMenu():
+class ScalrMainMenu:
 
     def __init__(self, driver):
         self.driver = driver
@@ -299,7 +301,6 @@ class ScalrMainMenu():
         sub_option = option[1].strip() if len(option) > 1 else None
         item = self.list_items()[main_option]
         if item.hidden():
-            print("Scrolling into view")
             item.scroll_into_view()
         if sub_option:
             item.mouse_over()

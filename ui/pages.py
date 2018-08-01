@@ -191,6 +191,14 @@ class Menu(BasePage):
         elements.Button(href="#/account/environments", driver=self.driver).click()
         return Environments(self.driver, self.base_url)
 
+    @wait_for_page_to_load
+    def go_to_images(self):
+        """ Redirects to Images Page.
+            Returns Environment page object.
+        """
+        elements.Button(href="#/images", driver=self.driver).click()
+        return Images(self.driver, self.base_url)
+
     def logout(self):
         """Logs out from current user session.
            Redirects to Scalr Login Page.
@@ -435,6 +443,52 @@ class FarmDesigner(Menu):
         else:
             self.save_splitbutton.click("Save farm")
         return Farms(self.driver, self.base_url)
+
+
+class Images(Menu):
+    URL_TEMPLATE = '/#/images'
+    new_image_button = elements.Button(text="New image")
+
+    @property
+    def loaded(self):
+        return self.new_image_button.visible(timeout=6)
+
+    @wait_for_page_to_load
+    def image_builder(self):
+        self.new_image_button.click()
+        return RolesBuilder(self.driver, self.base_url)
+
+
+class RolesBuilder(Menu):
+    """Role/Image builder page.
+    """
+    URL_TEMPLATE = '/#/roles/builder'
+    only_image_checkbox = elements.Checkbox(
+        text="Only create an Image, do not create a Role using that Image")
+    name_field = elements.Input(label="Name")
+    create_button = elements.Button(text="Create")
+
+    @property
+    def loaded(self):
+        return elements.Label("Location and operating system", driver=self.driver).visible()
+
+    def create_role(self, os, name, behaviors=[], only_image=False):
+        """Creates new role or image.
+           :param os str: Name of the desired operating system as it's presented in Scalr UI.
+           :param name str: Name of the new role/image.
+           :param behaviors list of str: Names of the desired behaviors (software) as they are presented in Scalr UI.
+           :param only_image bool: Create only image or both image and role.
+        """
+        elements.Button(text=os, driver=self.driver).click()
+        for behavior in behaviors:
+            elements.Button(text=behavior, driver=self.driver).click()
+        self.name_field.write(name)
+        if only_image:
+            self.only_image_checkbox.check()
+        self.create_button.click()
+        label = "Image" if only_image else "Role"
+        if not elements.Label("%s creation progress" % label, driver=self.driver).visible(timeout=9):
+            raise NoSuchElementException("User was not redirected to %s creation page" % label)
 
 
 class Servers(Menu):
