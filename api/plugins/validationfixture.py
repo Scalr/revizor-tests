@@ -6,7 +6,8 @@ Created on 12.07.18
 
 import requests
 
-from api.utils.helpers import Defaults, remove_empty_values
+from api.utils.helpers import remove_empty_values
+from api.utils.consts import Defaults
 from api.utils.exceptions import ResponseValidationError
 
 from flex.core import load as load_schema_from_file, validate as validate_response
@@ -28,9 +29,6 @@ class ValidationUtil(object):
         self._fileutil = fileutil
         self._api_level = api_level
 
-    def __call__(self, data, *args, **kwargs):
-        return self.validate(data)
-
     def _load(self):
         path = self._fileutil.get_swagger_difinitions(self._api_level)
         self._swagger_schema = load_schema_from_file(path)
@@ -45,27 +43,30 @@ class ValidationUtil(object):
         if not response.status_code == response_successful_code:
             raise ResponseValidationError('Response successful code not valid')
 
-    def validate(self, data):
+    def validate(self, data, ext_validation=False):
         """
         :type: data: requests.Response
         :param data: raw requests.response
+
+        :type: ext_validation: bool
+        :param: ext_validation: Enabled response validation by flex
 
         :return: None or validation error
         """
         if not isinstance(data, requests.models.Response):
             raise ValueError('Not valid data format')
         self.request_ok(data)
-        validation_res = None
-        """
-        try:
-            data = data.json()
-            validation_res = validate_response(
-                self._get_raw_schema(),
-                data
-            )
-        except (ValidationError, ValueError) as e:
-            validation_res = e
-        """
+        if ext_validation:
+            try:
+                data = data.json()
+                validation_res = validate_response(
+                    self._get_raw_schema(),
+                    data
+                )
+            except (ValidationError, ValueError) as e:
+                validation_res = e
+        else:
+            validation_res = None
         return validation_res
 
     @staticmethod

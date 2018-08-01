@@ -41,8 +41,11 @@ class AppSession(object):
         self._app = App.create(schema)
         self._app_root = self.__class__._app_root.format(api_level=self._app_level)
         self._app_tree = Box(AppSession._get_schema_tree(self._app.root.paths.keys()))
-        self._app_checker = ValidationUtil(self._app_level, fileutil)
+        self._app_checker = ValidationUtil(
+            self._app_level,
+            fileutil)
         self._app_session = ScalrApiSession(**fileutil.api_credentials)
+        self._request = request
 
     def __getattr__(self, name):
         def _handler(*args, **kwargs):
@@ -70,7 +73,11 @@ class AppSession(object):
             **self._app_checker.check_request_params(
                 self._get_request_spec_by_endpoint(endpoint),
                 request_kwargs))
-        validation_result = self._app_checker(response)
+        validation_result = self._app_checker.validate(
+            response,
+            ext_validation=self._request.config.getoption(
+                "ext_validation",
+                default=False))
         if validation_result:
             raise ResponseValidationError("Api response does not match specification: %s" % validation_result)
         return response

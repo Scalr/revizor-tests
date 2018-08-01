@@ -8,7 +8,8 @@ import pytest
 import requests
 import six
 
-from api.utils.helpers import Platform, BuiltInAutomation, uniq_uuid
+from api.utils.helpers import uniq_uuid
+from api.utils.consts import Platform, BuiltInAutomation
 
 
 class TestNewRoles(object):
