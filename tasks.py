@@ -21,8 +21,8 @@ def grid(ctx, docs=False, port='4444'):
             ctx.run('docker network create grid')
         grid_cmd = """
             docker run -d -p {port}:{port} --name selenium-hub selenium/hub &&
-            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome &&
-            docker run -d --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox""".format(port=port)
+            docker run -d -P -p 6001:5900 --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-chrome-debug &&
+            docker run -d -P -p 5901:5900 --link selenium-hub:hub -v /dev/shm:/dev/shm selenium/node-firefox-debug""".format(port=port)
         ctx.run(grid_cmd)
 
 
