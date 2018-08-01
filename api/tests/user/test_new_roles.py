@@ -21,12 +21,6 @@ class TestNewRoles(object):
 
     dev_role_category = 9
 
-    exc_messages = dict(
-        invalid_os_id="'Role.os.id' ({os_id}) was not found.",
-        invalid_automation="'Role.builtinAutomation' ({automation}) are invalid",
-        uncombined_behavior="'Role.builtinAutomation' ({}, {}) behaviors can't be combined.",
-        registered_image="'RoleImage.image.id' ({}) with 'cloudLocation' ({}) has already been registered.")
-
     @pytest.fixture(autouse=True)
     def init_session(self, api):
         self.api = api
@@ -139,8 +133,8 @@ class TestNewRoles(object):
 
     def test_new_role_invalid_os_id(self):
         invalid_os_id = "ubuntu-19-04"
-        exc_message = self.exc_messages['invalid_os_id'].format(
-            os_id=invalid_os_id)
+        exc_message = "'Role.os.id' ({}) was not found.".format(
+            invalid_os_id)
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_role(
                 invalid_os_id,
@@ -148,8 +142,9 @@ class TestNewRoles(object):
         assert exc_message in e.value.args[0]
 
     def test_new_role_invalid_automation_types(self):
-        exc_message = self.exc_messages['invalid_automation'].format(
-            automation=BuiltInAutomation.INVALID)
+        exc_message = "'Role.builtinAutomation' ({}) " \
+                      "are invalid".format(
+                        BuiltInAutomation.INVALID)
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_role(
                 self.os_id,
@@ -158,8 +153,9 @@ class TestNewRoles(object):
         assert exc_message in e.value.args[0]
 
     def test_new_role_uncombined_behaviors(self):
-        exc_message = self.exc_messages['uncombined_behavior'].format(
-            *BuiltInAutomation.UNCOMBINED_BEHAVIORS)
+        exc_message = "'Role.builtinAutomation' ({}, {}) " \
+                      "behaviors can't be combined.".format(
+                        *BuiltInAutomation.UNCOMBINED_BEHAVIORS)
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_role(
                 self.os_id,
@@ -167,7 +163,7 @@ class TestNewRoles(object):
                 automation=BuiltInAutomation.UNCOMBINED_BEHAVIORS)
         assert exc_message in e.value.args[0]
 
-    def test_new_role_one_platform_tow_images(self):
+    def test_new_role_one_platform_two_images(self):
         # Find images
         images = list(filter(
             lambda i:
@@ -186,8 +182,9 @@ class TestNewRoles(object):
         # Add images to role
         with pytest.raises(requests.exceptions.HTTPError) as e:
             for image in images:
-                exc_message = self.exc_messages['registered_image'].format(
-                    image.cloudImageId,
-                    image.cloudLocation)
+                exc_message = "'RoleImage.image.id' ({}) with 'cloudLocation' " \
+                              "({}) has already been registered.".format(
+                                image.cloudImageId,
+                                image.cloudLocation)
                 self.create_role_image(role.id, image.id)
         assert exc_message in e.value.args[0]
