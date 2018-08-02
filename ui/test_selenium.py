@@ -1,5 +1,6 @@
 import pytest
 import re
+import os
 import base64
 
 from selenium.common.exceptions import NoSuchElementException
@@ -11,7 +12,7 @@ from fixtures import testenv
 
 class TestSelenium():
     default_user = 'test@scalr.com'
-    default_password = '^Qb?${q8DB'
+    default_password = 'EXJx^YqLaI'
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, testenv):
@@ -39,8 +40,12 @@ class TestSelenium():
     def test_create_new_user(self):
         ssh = self.container.get_ssh()
         ssh.run("rm -f /opt/scalr-server/libexec/mail/ssmtp")
+        for root, dirs, files in os.walk(Path.home()):
+            for name in files:
+                if name == 'ssmtp':
+                    path = os.path.abspath(os.path.join(root, name))
         self.container.put_file(
-            '/vagrant/revizor/etc/fixtures/resources/scripts/ssmtp',
+            path,
             '/opt/scalr-server/libexec/mail/ssmtp')
         ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
         env_dashboard = self.login_page.login(

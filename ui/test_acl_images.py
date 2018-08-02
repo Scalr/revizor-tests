@@ -1,6 +1,8 @@
 import base64
 import re
+import os
 import time
+from pathlib import Path
 
 import pytest
 from selenium.common.exceptions import NoSuchElementException
@@ -43,8 +45,12 @@ class TestACLImages():
     def test_create_new_user(self):
         ssh = self.container.get_ssh()
         ssh.run("rm -f /opt/scalr-server/libexec/mail/ssmtp")
+        for root, dirs, files in os.walk(Path.home()):
+            for name in files:
+                if name == 'ssmtp':
+                    path = os.path.abspath(os.path.join(root, name))
         self.container.put_file(
-            '/vagrant/revizor/etc/fixtures/resources/scripts/ssmtp',
+            path,
             '/opt/scalr-server/libexec/mail/ssmtp')
         ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
         env_dashboard = self.login_page.login(
@@ -137,5 +143,3 @@ class TestACLImages():
         images_page = env_dashboard.go_to_images()
         builder_page = images_page.image_builder()
         builder_page.create_role("Ubuntu 14.04 Trusty", "test-selenium-image", only_image=True)
-
-
