@@ -39,9 +39,10 @@ def webtests(ctx, testpath='', browsers='all', processes='', localmode=''):
         Usage: '--browsers firefox,chrome,...'.
        :param str processes: number of processes for parallel testing.
         Usage: '--processes 3'.
-       :param localmode str: for test runs on local machine. 
+       :param localmode str: for test runs on local machine.
         Usage '--localmode true'.
     """
+    ctx.run('rm -rf __pycache__ *.pyc ui/__pycache__ ui/*.pyc')
     browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
     processes = ' -n %s' % processes if processes else ''
     for browser in browsers:
