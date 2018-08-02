@@ -453,10 +453,9 @@ class Images(Menu):
     def loaded(self):
         return self.new_image_button.visible(timeout=6)
 
-    @wait_for_page_to_load
     def image_builder(self):
         self.new_image_button.click()
-        return RolesBuilder(self.driver, self.base_url)
+        return ImagesBuilder(self.driver, self.base_url)
 
 
 class RolesBuilder(Menu):
@@ -470,7 +469,7 @@ class RolesBuilder(Menu):
 
     @property
     def loaded(self):
-        return elements.Label("Location and operating system", driver=self.driver).visible()
+        return elements.Label(text="Location and operating system", driver=self.driver).visible()
 
     def create_role(self, os, name, behaviors=[], only_image=False):
         """Creates new role or image.
@@ -489,6 +488,10 @@ class RolesBuilder(Menu):
         label = "Image" if only_image else "Role"
         if not elements.Label("%s creation progress" % label, driver=self.driver).visible(timeout=9):
             raise NoSuchElementException("User was not redirected to %s creation page" % label)
+
+
+class ImagesBuilder(RolesBuilder):
+    URL_TEMPLATE = '/#/roles/builder?image'
 
 
 class Servers(Menu):
