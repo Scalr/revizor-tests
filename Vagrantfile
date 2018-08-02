@@ -14,8 +14,6 @@ boxes = {
 
 Vagrant.configure("2") do |config|
     config.vm.network "forwarded_port", guest: 4444, host: 4444, auto_correct: true
-    config.vm.network "forwarded_port", guest: 5991, host: 5991, auto_correct: true
-    config.vm.network "forwarded_port", guest: 5992, host: 5992, auto_correct: true
 
     if Vagrant.has_plugin?("vagrant-cachier")
         config.cache.scope = :box
