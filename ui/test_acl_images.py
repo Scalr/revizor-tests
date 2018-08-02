@@ -24,7 +24,6 @@ class TestACLImages():
             self.driver,
             'http://%s.test-env.scalr.com' % self.container.te_id).open()
 
-
     def test_create_acl(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
@@ -43,16 +42,6 @@ class TestACLImages():
             timeout=15), "No message present about successfull saving of the new ACL"
 
     def test_create_new_user(self):
-        ssh = self.container.get_ssh()
-        ssh.run("rm -f /opt/scalr-server/libexec/mail/ssmtp")
-        for root, dirs, files in os.walk(Path.home()):
-            for name in files:
-                if name == 'ssmtp':
-                    path = os.path.abspath(os.path.join(root, name))
-        self.container.put_file(
-            path,
-            '/opt/scalr-server/libexec/mail/ssmtp')
-        ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
         acc_dashboard = env_dashboard.menu.go_to_account()
