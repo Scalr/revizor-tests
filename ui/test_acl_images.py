@@ -7,8 +7,8 @@ from pathlib import Path
 import pytest
 from selenium.common.exceptions import NoSuchElementException
 
-import pages
-import elements
+from pages.login import LoginPage
+from elements.base import Label, Button
 from fixtures import testenv
 
 
@@ -20,7 +20,7 @@ class TestACLImages():
     def prepare_env(self, selenium, testenv):
         self.driver = selenium
         self.container = testenv
-        self.login_page = pages.LoginPage(
+        self.login_page = LoginPage(
             self.driver,
             'http://%s.test-env.scalr.com' % self.container.te_id).open()
 
@@ -36,7 +36,7 @@ class TestACLImages():
         acl_page.get_permission(
             "Manage", label="Allows to manage (register/edit/delete) images.").uncheck()
         acl_page.save_button.click()
-        message_popup = elements.Label(
+        message_popup = Label(
             text="ACL successfully saved", driver=acl_page.driver)
         assert message_popup.visible(
             timeout=15), "No message present about successfull saving of the new ACL"
@@ -51,11 +51,11 @@ class TestACLImages():
         users_page.admin_access_on.click()
         users_page.allow_to_manage_envs_checkbox.check()
         users_page.save_button.click()
-        message_popup = elements.Label(
+        message_popup = Label(
             text="User successfully added and invite sent", driver=users_page.driver)
         assert message_popup.visible(
             timeout=15), "No message present about successfull saving of the new user!"
-        table_entry = elements.Label(
+        table_entry = Label(
             xpath='//table [starts-with(@id, "tableview")]//child::div [contains(text(), "selenium@scalr.com")]',
             driver=users_page.driver)
         assert table_entry.visible(
@@ -71,15 +71,15 @@ class TestACLImages():
         teams_page.acl_combobox.select('Selenium')
         teams_page.add_user_to_team('selenium@scalr.com')
         teams_page.save_button.click()
-        message_popup = elements.Label(
+        message_popup = Label(
             text="Team successfully saved", driver=teams_page.driver)
         assert message_popup.visible(
             timeout=15), "No message present about successfull saving of the new Team"
-        table_entry = elements.Label(
+        table_entry = Label(
             text="Selenium Team", driver=teams_page.driver)
         assert table_entry.visible(timeout=15), "Selenium Team was not found!"
 
-    def test_new_environment(self):
+    def test_create_new_environment(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
         acc_dashboard = env_dashboard.menu.go_to_account()
@@ -91,7 +91,7 @@ class TestACLImages():
             "Google Compute Engine", "global-gce-scalr-labs (PAID)")
         env_page.grant_access("Selenium Team")
         env_page.save_button.click()
-        message_popup = elements.Label(
+        message_popup = Label(
             text="Environment successfully created", driver=env_page.driver)
         assert message_popup.visible(
             timeout=15), "No message present about successfull saving of the new Environment"
@@ -117,18 +117,19 @@ class TestACLImages():
         main_menu_items = env_dashboard.scalr_main_menu.list_items()
         main_menu_items['Images'].mouse_over()
         time.sleep(3)
-        assert elements.Button(text="Images Library", driver=self.driver).visible(), "Can't find Images Library in Images sub-menu!"
-        assert elements.Button(text="Image Builder", driver=self.driver).visible(), "Can't find Image Builder in Images sub-menu!"
-        assert elements.Button(text="Bundle Tasks", driver=self.driver).visible(), "Can't find Bundle Tasks in Images sub-menu!"
+        assert Button(text="Images Library", driver=self.driver).visible(), "Can't find Images Library in Images sub-menu!"
+        assert Button(text="Image Builder", driver=self.driver).visible(), "Can't find Image Builder in Images sub-menu!"
+        assert Button(text="Bundle Tasks", driver=self.driver).visible(), "Can't find Bundle Tasks in Images sub-menu!"
         disabled_options = ["Register Existing Image",
                             "Create Image from non-Scalr Server"]
         for option in disabled_options:
-            assert elements.Button(text=option, driver=self.driver).hidden(), '%s is present in Images submenu!' % option
+            assert Button(text=option, driver=self.driver).hidden(), '%s is present in Images submenu!' % option
 
-    def test_image_builder(self):
+    def test_create_image_with_builder(self):
         env_dashboard = self.login_page.login(
             'selenium@scalr.com', 'Scalrtesting123!')
         env_dashboard = env_dashboard.go_to_environment(env_name="Selenium Env")
         images_page = env_dashboard.go_to_images()
         builder_page = images_page.image_builder()
         builder_page.create_role("Ubuntu 14.04 Trusty", "test-selenium-image", only_image=True)
+        # Blocked by SCALRCORE-9383

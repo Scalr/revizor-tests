@@ -5,12 +5,14 @@ import base64
 
 from selenium.common.exceptions import NoSuchElementException
 
-import pages
-import elements
+from pages.login import LoginPage
+from pages.environment_scope import FarmDesigner
+from elements import locators
+from elements.base import Label
 from fixtures import testenv
 
 
-class TestSelenium():
+class TestACLFarms():
     default_user = 'test@scalr.com'
     default_password = 'EXJx^YqLaI'
 
@@ -18,7 +20,7 @@ class TestSelenium():
     def prepare_env(self, selenium, testenv):
         self.driver = selenium
         self.container = testenv
-        self.login_page = pages.LoginPage(
+        self.login_page = LoginPage(
             self.driver,
             'http://%s.test-env.scalr.com' % self.container.te_id).open()
 
@@ -34,7 +36,7 @@ class TestSelenium():
         acl_page.permissions_filter.write('Farms Your Teams Own')
         acl_page.get_permission("Update").uncheck()
         acl_page.save_button.click()
-        message_popup = elements.Label(text="ACL successfully saved", driver=acl_page.driver)
+        message_popup = Label(text="ACL successfully saved", driver=acl_page.driver)
         assert message_popup.visible(timeout=15), "No message present about successfull saving of the new ACL"
 
     def test_create_new_user(self):
@@ -45,9 +47,9 @@ class TestSelenium():
         users_page.new_user_button.click()
         users_page.email_field.write('selenium@scalr.com')
         users_page.save_button.click()
-        message_popup = elements.Label(text="User successfully added and invite sent", driver=users_page.driver)
+        message_popup = Label(text="User successfully added and invite sent", driver=users_page.driver)
         assert message_popup.visible(timeout=15), "No message present about successfull saving of the new user!"
-        table_entry = elements.Label(
+        table_entry = Label(
             xpath='//table [starts-with(@id, "tableview")]//child::div [contains(text(), "selenium@scalr.com")]',
             driver=users_page.driver)
         assert table_entry.visible(timeout=15), "User with email selenium@scalr.com was not found in users table!"
@@ -62,12 +64,12 @@ class TestSelenium():
         teams_page.acl_combobox.select('Selenium')
         teams_page.add_user_to_team('selenium@scalr.com')
         teams_page.save_button.click()
-        message_popup = elements.Label(text="Team successfully saved", driver=teams_page.driver)
+        message_popup = Label(text="Team successfully saved", driver=teams_page.driver)
         assert message_popup.visible(timeout=15), "No message present about successfull saving of the new Team"
-        table_entry = elements.Label(text="Selenium Team", driver=teams_page.driver)
+        table_entry = Label(text="Selenium Team", driver=teams_page.driver)
         assert table_entry.visible(timeout=15), "Selenium Team was not found!"
 
-    def test_new_environment(self):
+    def test_create_new_environment(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
         acc_dashboard = env_dashboard.menu.go_to_account()
@@ -78,7 +80,7 @@ class TestSelenium():
         env_page.link_cloud_to_environment("Google Compute Engine", "global-gce-scalr-labs (PAID)")
         env_page.grant_access("Selenium Team")
         env_page.save_button.click()
-        message_popup = elements.Label(text="Environment successfully created", driver=env_page.driver)
+        message_popup = Label(text="Environment successfully created", driver=env_page.driver)
         assert message_popup.visible(timeout=15), "No message present about successfull saving of the new Environment"
         envs = env_page.list_environments()
         assert any("Selenium Env" in env.text for env in envs), "Selenium Env was not found in list!"
@@ -107,7 +109,7 @@ class TestSelenium():
         farms_page = new_farm_page.save_farm()
         farms = [farm["name"] for farm in farms_page.list_farms()]
         assert "Selenium Farm2" in farms, "Selenium Farm2 not found!"
-        farm = elements.Label(
+        farm = Label(
             xpath='//div [@data-qtip="<span>Selenium Team</span><br/>"]//ancestor::tr/child::td/child::div [contains(text(), "Selenium Farm2")]',
             driver=farms_page.driver)
         assert farm.visible(), "Selenium Farm2 with Selenium Team was not found!"
@@ -143,4 +145,4 @@ class TestSelenium():
         farm = [farm for farm in farms_page.list_farms() if farm['name'] == "Selenium Farm3"][0]
         assert farm, "Selenium Farm3 not found!"
         farm_designer = farms_page.configure_farm(farm['farm_id'])
-        assert isinstance(farm_designer, pages.FarmDesigner), "Unable to open Farm Designer page for Selenium Farm3"
+        assert isinstance(farm_designer, FarmDesigner), "Unable to open Farm Designer page for Selenium Farm3"

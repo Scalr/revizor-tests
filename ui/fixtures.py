@@ -7,7 +7,6 @@ import os
 from pathlib import Path
 
 from revizor2.testenv import TestEnv
-from pages import LoginPage
 
 
 @pytest.fixture(scope="class")
