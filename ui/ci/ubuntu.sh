@@ -13,4 +13,4 @@ cd /vagrant/ui/ci
 /usr/local/bin/invoke requirements --path /vagrant/revizor/requirements.txt
 cd /vagrant
 /usr/local/bin/invoke grid
-echo 'export PYTHONPATH=$PYTHONPATH:/vagrant/revizor/src' >> /home/vagrant/.bashrc
+echo 'export PYTHONPATH=$PYTHONPATH:/vagrant/revizor/src:/vagrant/ui' >> /home/vagrant/.bashrc
