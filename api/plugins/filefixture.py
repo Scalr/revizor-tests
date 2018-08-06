@@ -5,7 +5,6 @@ Created on 05.06.18
 """
 
 import re
-import json
 
 import pytest
 import requests
@@ -45,15 +44,10 @@ class FileFixture(object):
     @property
     def api_credentials(self):
         if not self._api_credentials:
-            mask = "environment*"
             try:
-                credentials = self._find(self.root_dir, mask)
+                self._api_credentials = getattr(self._request.config, 'api_environment')
             except Exception as e:
-                raise e.__class__("Credentials by mask {} is unavailable on {}".format(
-                    mask,
-                    self.root_dir.as_posix()))
-            with credentials.open() as f:
-                self._api_credentials = json.load(f)
+                raise e.__class__("Api environment credentials is unavailable")
         return self._api_credentials
 
     def _get_swagger_difinitions_from_url(self, pattern, dst):

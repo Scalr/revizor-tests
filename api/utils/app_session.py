@@ -75,9 +75,7 @@ class AppSession(object):
                 request_kwargs))
         validation_result = self._app_checker.validate(
             response,
-            ext_validation=self._request.config.getoption(
-                "ext_validation",
-                default=False))
+            ext_validation=self._request.config.getoption("ext_validation"))
         if validation_result:
             raise ResponseValidationError("Api response does not match specification: %s" % validation_result)
         return response
