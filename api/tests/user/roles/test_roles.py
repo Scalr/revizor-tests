@@ -12,7 +12,7 @@ from api.utils.helpers import uniq_uuid
 from api.utils.consts import Platform, BuiltInAutomation
 
 
-class TestNewRoles(object):
+class TestRoles(object):
 
     os_id = "ubuntu-14-04"
 
@@ -77,7 +77,7 @@ class TestNewRoles(object):
         )
         return resp.json_data.data
 
-    def test_new_role_one_existing_image(self):
+    def test_new_role_existing_image(self):
         # Create new role
         role = self.create_role(
             self.os_id,
@@ -164,7 +164,7 @@ class TestNewRoles(object):
                 automation=BuiltInAutomation.UNCOMBINED_BEHAVIORS)
         assert exc_message in e.value.args[0]
 
-    def test_new_role_one_platform_two_images(self):
+    def test_new_role_platform_with_two_images(self):
         # Find images
         images = list(filter(
             lambda i:
