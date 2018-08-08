@@ -10,7 +10,7 @@ class TestLifecycleLinux:
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm):
         lib_farm.add_role_to_farm(context, farm, role_options=['storages', 'noiptables'])
         farm.launch()
-        server = lib_server.wait_status(context, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
         context['server'] = server
         lifecycle_steps.validate_instance_vcpus_info(server)
         lib_server.assert_scalarizr_version(server)

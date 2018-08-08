@@ -14,6 +14,7 @@ LOG = logging.getLogger(__name__)
 
 
 def wait_status(context: dict,
+                cloud: Cloud,
                 farm: Farm,
                 role: Role = None,
                 status: str = ServerStatus.RUNNING,
@@ -110,7 +111,7 @@ def wait_status(context: dict,
                                                                 ServerStatus.SUSPENDED] \
                     and status != ServerStatus.PENDING:
                 LOG.debug('Try to get node object for lookup server')
-                lookup_node = context['cloud'].get_node(lookup_server)
+                lookup_node = cloud.get_node(lookup_server)
 
             LOG.debug('Verify update log in node')
             if lookup_node and lookup_server.status == ServerStatus.PENDING and status != ServerStatus.PENDING:
