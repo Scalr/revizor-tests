@@ -32,6 +32,11 @@ def initialize_test(context: dict, cloud: Cloud):
 
 
 @pytest.fixture(scope='session')
+def servers() -> dict:
+    return {}
+
+
+@pytest.fixture(scope='session')
 def farm():
     if CONF.main.farm_id is None:
         LOG.info('Farm ID not set, create a new farm for test')

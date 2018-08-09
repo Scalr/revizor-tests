@@ -1,15 +1,6 @@
-import json
-import logging
-
 from collections import defaultdict
 from xml.etree import ElementTree as ET
 import yaml
-
-from revizor2 import CONF
-from revizor2.api import Server
-from revizor2.cloud import Cloud
-
-LOG = logging.getLogger(__name__)
 
 
 class SzrAdmResultsParser:
@@ -160,27 +151,3 @@ class SzrAdmResultsParser:
             for j in data.values():
                 for x in SzrAdmResultsParser.get_values_by_key(j, key):
                     yield x
-
-
-def run_command(cloud: Cloud, server: Server, command: str):
-    node = cloud.get_node(server)
-    with node.remote_connection() as conn:
-        LOG.info(f'Execute a command: {command} on a remote host: {server.id}')
-        if command == 'szradm q list-farm-role-params':
-            farm_role_id = json.loads(conn.run('szradm q list-roles --format=json').std_out)['roles'][0]['id']
-            command = f'szradm q list-farm-role-params farm-role-id={farm_role_id}'
-        if CONF.feature.dist.id == 'coreos':
-            command = 'PATH=$PATH:/opt/bin; ' + command
-        out = conn.run(command)
-        if out.status_code:
-            raise AssertionError(f"Command: {command} was not executed properly. An error has occurred:\n{out.std_err}")
-        LOG.debug(f'Parsing a command result: {out.std_out}')
-        result = SzrAdmResultsParser.parser(out.std_out)
-        LOG.debug(f'Command result was successfully parsed on a remote host:{server.id}\n{result}')
-        return result
-
-
-def get_key(szradm_response: dict, pattern: str) -> tuple:
-    key_value = list(SzrAdmResultsParser.get_values_by_key(szradm_response, pattern))
-    key_count = len(key_value[0] if isinstance(key_value[0], list) else key_value)
-    return key_value, key_count

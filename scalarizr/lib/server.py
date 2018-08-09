@@ -3,12 +3,11 @@ import time
 from typing import List
 
 from revizor2 import CONF
-from revizor2.api import Farm, Role, Server
+from revizor2.api import Farm, Role, Server, Message
 from revizor2.cloud import Cloud
 from revizor2.consts import ServerStatus, Dist, Platform
 from revizor2.exceptions import ServerTerminated, \
     ServerFailed, TimeoutError
-from revizor2.helpers.parsers import parser_for_os_family, get_repo_url
 
 LOG = logging.getLogger(__name__)
 
@@ -175,122 +174,14 @@ def wait_status(context: dict,
         raise TimeoutError(f'New server in role "{role}" was not founding')
 
 
-def assert_scalarizr_version(server: Server, branch: str = None):
-    """
-    Argument branch can be system or role.
-    System branch - CONF.feature.branch
-    Role branch - CONF.feature.to_branch
-    """
-    # FIXME: Rewrite this ugly code!
-    if branch == 'system' or not branch:
-        branch = CONF.feature.branch
-    elif branch == 'role':
-        branch = CONF.feature.to_branch
-    os_family = Dist(server.role.dist).family
-    # if branch == 'latest' and 'base' in server.role.behaviors:
-    #     branch = DEFAULT_PY3_BRANCH
-    if '.' in branch and branch.replace('.', '').isdigit():
-        last_version = branch
-    else:
-        # Get custom repo url
-        index_url = get_repo_url(os_family, branch)
-        LOG.debug('Check package from index_url: %s' % index_url)
-        repo_data = parser_for_os_family(server.role.dist)(index_url=index_url)
-        versions = [package['version'] for package in repo_data if
-                    package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
-        versions.sort(reverse=True)
-        last_version = versions[0]
-        if last_version.strip().endswith('-1'):
-            last_version = last_version.strip()[:-2]
-    LOG.debug('Last scalarizr version %s for branch %s' % (last_version, branch))
-    # Get installed scalarizr version
-    for _ in range(10):
-        try:
-            update_status = server.upd_api.status(cached=False)
-            installed_version = update_status['installed']
-            if installed_version.strip().endswith('-1'):
-                installed_version = installed_version.strip()[:-2]
-            break
-        except Exception:
-            time.sleep(3)
-    else:
-        raise AssertionError('Can\'t get access to update client 5 times (15 seconds)')
-    LOG.debug('Last scalarizr version from update client status: %s' % update_status['installed'])
-    if not update_status['state'] == 'noop' and update_status['prev_state'] == 'completed':
-        assert update_status['state'] == 'completed', \
-            'Update client not in normal state. Status = "%s", Previous state = "%s"' % \
-            (update_status['state'], update_status['prev_state'])
-    assert last_version == installed_version, \
-        'Server not has last build of scalarizr package, installed: %s last_version: %s' % (
-        installed_version, last_version)
-
-
-def verify_hostname_is_valid(server: Server):
-    hostname = server.api.system.get_hostname()
-    valid_hostname = get_hostname_by_server_format(server)
-    assert hostname.lower() == valid_hostname.lower(), \
-        f'Hostname in server {server.id} is not valid: {hostname} ({valid_hostname})'
-
-
-def get_hostname_by_server_format(server: Server):
+def get_hostname_by_server_format(server: Server) -> str:
     return f'r{server.farm_id}-{server.farm_role_id}-{server.index}'
 
 
-# @world.run_only_if(platform=['!%s' % Platform.RACKSPACENGUS, '!%s' % Platform.CLOUDSTACK],
-#     dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos']) <-- TODO
-def verify_ports_in_iptables(cloud: Cloud, server: Server, ports: List[int], invert: bool = False):
-    LOG.info(f'Verify ports {ports} in iptables')
-    if CONF.feature.platform.is_cloudstack:
-        LOG.info('Not check iptables because CloudStack')
-        return
-    node = cloud.get_node(server)
-    iptables_rules = node.run('iptables -L').std_out
-    LOG.debug(f'iptables rules:\n{iptables_rules}')
-    for port in ports:
-        LOG.debug(f'Check port "{port}" in iptables rules')
-        if str(port) in iptables_rules and invert:
-            raise AssertionError('Port "%s" in iptables rules!' % port)
-        elif not invert and str(port) not in iptables_rules:
-            raise AssertionError('Port "%s" is NOT in iptables rules!' % port)
+def get_iptables_rules(cloud: Cloud, server: Server) -> str:
+    return cloud.get_node(server).run('iptables -L').std_out
 
 
-def run_cmd_command(server: Server, command: str, raise_exc: bool = True):
-    console = get_windows_session(server)
-    LOG.info('Run command: %s in server %s' % (command, server.id))
-    out = console.run_cmd(command)
-    LOG.debug('Result of command: %s\n%s' % (out.std_out, out.std_err))
-    if not out.status_code == 0 and raise_exc:
-        raise AssertionError('Command: "%s" exit with status code: %s and stdout: %s\n stderr:%s' % (
-        command, out.status_code, out.std_out, out.std_err))
-    return out
-
-
-def get_windows_session(server: Server = None, public_ip: str = None, password: str = None, timeout: int = None):
-    platform = CONF.feature.platform
-    time_until = time.time() + timeout if timeout else None
-    username = 'Administrator'
-    port = 5985
-    while True:
-        try:
-            if server:
-                server.reload()
-                public_ip = server.public_ip
-                password = password or server.windows_password
-                if not password:
-                    password = 'Scalrtest123'
-            if platform.is_gce or platform.is_azure:
-                username = 'scalr'
-            elif platform.is_cloudstack and world.cloud._driver.use_port_forwarding():
-                node = world.cloud.get_node(server)
-                port = world.cloud.open_port(node, port)
-            LOG.info('Used credentials for windows session: %s:%s %s:%s' % (public_ip, port, username, password))
-            session = winrm.Session(
-                'http://%s:%s/wsman' % (public_ip, port),
-                auth=(username, password))
-            LOG.debug('WinRm instance: %s' % session)
-            return session
-        except Exception as e:
-            LOG.error('Got windows session error: %s' % e.message)
-        if time.time() >= time_until:
-            raise TimeoutError
-        time.sleep(5)
+def get_incoming_messages(server: Server, msg: str) -> List[Message]:
+    server.messages.reload()
+    return [m for m in server.messages if m.type == 'in' and m.name == msg]
