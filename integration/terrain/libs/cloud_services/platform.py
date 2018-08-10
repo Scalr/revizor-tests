@@ -1,7 +1,6 @@
 from datetime import datetime
 
 import boto3
-import os
 import requests
 from azure.common.credentials import ServicePrincipalCredentials
 from botocore import config as boto_config
@@ -21,7 +20,7 @@ class CloudServicePlatform(object):
     def __init__(self, request_id, secret):
         self.request_id = request_id
         self.secret = secret
-        self.cacert_path = os.path.join(CONF.main.keysdir, 'csg-%s.pem' % self.request_id)
+        self.cacert_path = CONF.main.keysdir / ('csg-%s.pem' % self.request_id)
         self.csg_proxy = None
         self.request = None
 
@@ -33,12 +32,11 @@ class CloudServicePlatform(object):
         csg_port = world.get_scalr_config_value('scalr.csg.endpoint.port')
         self.csg_proxy = '%s:%s' % (te_url, csg_port)
 
-        if not os.path.exists(CONF.main.keysdir):
-            os.makedirs(CONF.main.keysdir)
-        if not os.path.exists(self.cacert_path):
+        if not CONF.main.keysdir.exists():
+            CONF.main.keysdir.mkdir(parents=True)
+        if not self.cacert_path.exists():
             r = requests.get('http://csg/cert/pem', proxies={'http': self.csg_proxy})
-            with open(self.cacert_path, 'w') as f:
-                f.write(r.text)
+            self.cacert_path.write_text(r.text)
 
     @classmethod
     def get_service(cls, service_name):
@@ -105,7 +103,7 @@ class Ec2ServicePlatform(CloudServicePlatform):
 
     def get_client(self, service_name, region=None):
         return self.session.client(service_name,
-                                   verify=self.cacert_path,
+                                   verify=str(self.cacert_path),
                                    config=self.client_config,
                                    region_name=region or Ec2ServicePlatform.region)
 
@@ -147,7 +145,7 @@ class AzureServicePlatform(CloudServicePlatform):
 
     def get_credentials(self):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
-                      REQUESTS_CA_BUNDLE=self.cacert_path):
+                      REQUESTS_CA_BUNDLE=str(self.cacert_path)):
             creds = ServicePrincipalCredentials(
                 client_id=self.request['client_id'],
                 secret=self.secret,
@@ -157,10 +155,10 @@ class AzureServicePlatform(CloudServicePlatform):
 
     def _verify_impl(self, service):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
-                      REQUESTS_CA_BUNDLE=self.cacert_path):
+                      REQUESTS_CA_BUNDLE=str(self.cacert_path)):
             service.verify()
 
     def _verify_denied_impl(self, service, reason):
         with env_vars(https_proxy='http://%s' % self.csg_proxy,
-                      REQUESTS_CA_BUNDLE=self.cacert_path):
+                      REQUESTS_CA_BUNDLE=str(self.cacert_path)):
             service.verify_denied(AzureServicePlatform.error_text[reason])

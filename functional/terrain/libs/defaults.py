@@ -47,7 +47,7 @@ class Defaults(object):
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)
             ]
-        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-6-x', 'ubuntu-14-04']:
+        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-7-x', 'centos-6-x', 'ubuntu-14-04']:
             params.storage.volumes.append(
                 params.storage,
                 farmrole.Volume(engine='raid', size=1, level=1, volumes=2, mount='/media/raidmount')
@@ -182,7 +182,7 @@ class Defaults(object):
         if chef_opts[2] == 'private':
             url = 'git@github.com:Scalr/int-cookbooks.git'
             params.bootstrap_with_chef.path = 'cookbooks'
-            params.bootstrap_with_chef.private_key = open(CONF.ssh.private_key, 'r').read()
+            params.bootstrap_with_chef.private_key = CONF.ssh.private_key.read_text()
         else:
             url = 'https://github.com/Scalr/sample-chef-repo.git'
         if chef_opts[-1] == 'branch':
@@ -267,6 +267,19 @@ class Defaults(object):
         ]
 
     @staticmethod
+    def set_ansible_orchestration(params):
+        configuration_id = getattr(world, 'configuration_id')
+        job_template_id = getattr(world, 'job_template_id')
+        params.orchestration.rules = [
+            farmrole.OrchestrationRule(event='HostUp', configuration=configuration_id,
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_HostUp'),
+            farmrole.OrchestrationRule(event='RebootComplete', configuration=configuration_id,
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_RebootComplete'),
+            farmrole.OrchestrationRule(event='ResumeComplete', configuration=configuration_id,
+                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_ResumeComplete')
+        ]
+
+    @staticmethod
     def set_small_linux_orchestration(params):
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostInit', script='Revizor last reboot'),
@@ -326,3 +339,15 @@ class Defaults(object):
             params.orchestration,
             farmrole.OrchestrationRule(event='HostInit', script='https://get.docker.com')
         )
+
+    @staticmethod
+    def set_ansible_tower(params):
+        credentials_name = getattr(world, 'credentials_name')
+        pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
+        boot_config_name = credentials_name + str(pk)
+        configuration_id = getattr(world, 'configuration_id')
+        params.bootstrap_with_at.enabled = True
+        params.bootstrap_with_at.hostname = 'publicIp'
+        params.bootstrap_with_at.configurations = [
+            farmrole.AnsibleTowerConfiguration(id=configuration_id, name=boot_config_name, variables='')
+        ]
