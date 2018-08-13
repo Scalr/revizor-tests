@@ -3,9 +3,11 @@
 Created on 22.06.18
 @author: Eugeny Kurkovich
 """
+
 import uuid
 from functools import reduce
 
+from .consts import PlatformStore
 
 def rgetattr(obj, attr, *args):
     def _getattr(obj, attr):
@@ -29,4 +31,7 @@ def uniq_uuid():
     return str(uuid.uuid4().hex)[:16]
 
 
-
+def serialize_data_store(obj):
+    if isinstance(obj, PlatformStore):
+        return obj._name
+    return obj

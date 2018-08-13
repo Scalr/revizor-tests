@@ -7,7 +7,7 @@ Created on 12.07.18
 import requests
 
 from api.utils.helpers import remove_empty_values
-from api.utils.consts import Defaults
+from api.utils.consts import APIParams
 from api.utils.exceptions import ResponseValidationError
 
 from flex.core import load as load_schema_from_file, validate as validate_response
@@ -77,7 +77,7 @@ class ValidationUtil(object):
         body = remove_empty_values(req_params.get('body'))
 
         # Validate request type
-        available_methods = {rt: m for rt, m in Defaults.request_types.items() if m in schema.keys()}
+        available_methods = {rt: m for rt, m in APIParams.request_types.items() if m in schema.keys()}
         http_meth = available_methods.get(method)
         if not http_meth:
             raise ValueError("Not supported endpoint request type, got {0}, expected {1}".format(

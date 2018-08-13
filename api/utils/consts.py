@@ -4,7 +4,11 @@ Created on 01.08.18
 @author: Eugeny Kurkovich
 """
 
-class Defaults(object):
+ENV_ID = 5
+COST_PROJECT_ID = "30c59dba-fc9b-4d0f-83ec-4b5043b12f72"
+
+
+class APIParams(object):
 
     request_types = {
         'create': 'post',
@@ -23,23 +27,36 @@ class Defaults(object):
     }
 
 
+class PlatformStore(object):
+
+    def __init__(self, name, location=None, instance_type=None, network=None, zone=None):
+        self.instance_type = instance_type
+        self.location = location
+        self.network = network
+        self._name = name
+        self.zone = zone
+
+    def __repr__(self):
+        return repr(self._name)
+
+
 class Platform(object):
 
-    AZURE = 'azure'
-    CISCO = 'cisco'
-    CLOUDSTACK = 'cloudstack'
-    EC2 = 'ec2'
-    GCE = 'gce'
-    HPCLOUD = 'hpcloud'
-    IDCF = 'idcf'
-    MIRANTIS = 'mirantis'
-    NEBULA = 'nebula'
-    OPENSTACK = 'openstack'
-    OCS = 'ocs'
-    RACKSPACENGUK = 'rackspacenguk'
-    RACKSPACENGUS = 'rackspacengus'
-    VIO = 'vio'
-    VMWARE = 'vmware'
+    AZURE = PlatformStore('azure', 'eastus', 'Standard_A1')
+    CISCO = PlatformStore('cisco')
+    CLOUDSTACK = PlatformStore('cloudstack', 'CSRP03', '9704e6fa-e2c3-4fb1-aa20-fc215adfb6db')
+    EC2 = PlatformStore('ec2', 'us-east-1', 't2.small')
+    GCE = PlatformStore('gce', 'us-central1', 'n1-standard-1', 'scalr-labs/global/networks/default', 'us-central1-a')
+    HPCLOUD = PlatformStore('hpcloud')
+    IDCF = PlatformStore('idcf')
+    MIRANTIS = PlatformStore('mirantis')
+    NEBULA = PlatformStore('nebula')
+    OPENSTACK = PlatformStore('openstack', 'RegionOne', '2')
+    OCS = PlatformStore('ocs')
+    RACKSPACENGUK = PlatformStore('rackspacenguk')
+    RACKSPACENGUS = PlatformStore('rackspacengus', 'DFW', '3')
+    VIO = PlatformStore('vio')
+    VMWARE = PlatformStore('vmware', 'datacenter-21', '2eb93579efde')
 
 
 class BuiltInAutomation(object):
@@ -63,3 +80,4 @@ class BuiltInAutomation(object):
         MYSQL,
         POSTGRESQL
     ]
+

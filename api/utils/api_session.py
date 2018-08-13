@@ -16,7 +16,6 @@ import requests
 
 from urllib.parse import urlencode, urlparse, urlunparse
 
-
 SIGNATURE_VER = "V1-HMAC-SHA256"
 API_DEBUG_VER = "1"
 
@@ -73,14 +72,14 @@ class ScalrApiSession(requests.Session):
         setattr(response, 'json_data', self.__class__.json_to_box(response))
         return response
 
-    def request(self, method, endpoint, params, body=None, filters=None, *args, **kwargs):
+    def request(self, method, endpoint, params, body=None, filters=None,  serializer=None, *args, **kwargs):
         # Set uri
         uri = endpoint.format(**params)
         # Set string to sign
         query_string = urlencode(sorted(filters.items())) if filters else ""
         # Set url
         url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
-        body = json.dumps(body) if body else body
+        body = json.dumps(body, default=serializer) if body else body
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
         try:
             resp.raise_for_status()

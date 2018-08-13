@@ -9,7 +9,7 @@ import requests
 import six
 
 from api.utils.helpers import uniq_uuid
-from api.utils.consts import Platform, BuiltInAutomation
+from api.utils.consts import Platform, BuiltInAutomation, ENV_ID
 
 
 class TestRoles(object):
@@ -18,7 +18,7 @@ class TestRoles(object):
 
     scope = "environment"
 
-    env_id = "5"
+    env_id = ENV_ID
 
     dev_role_category = 9
 

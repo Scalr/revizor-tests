@@ -16,6 +16,7 @@ from box import Box
 from api.plugins.validationfixture import ValidationUtil
 from api.utils.api_session import ScalrApiSession
 from api.utils.exceptions import ResponseValidationError
+from api.utils.helpers import serialize_data_store
 
 
 class AppSession(object):
@@ -70,6 +71,7 @@ class AppSession(object):
             filters=filters
         )
         response = self._app_session.request(
+            serializer=serialize_data_store,
             **self._app_checker.check_request_params(
                 self._get_request_spec_by_endpoint(endpoint),
                 request_kwargs))
