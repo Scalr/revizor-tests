@@ -9,7 +9,6 @@ from pages.login import LoginPage
 from pages.environment_scope import FarmDesigner
 from elements import locators
 from elements.base import Label
-from fixtures import testenv
 
 
 class TestACLFarms():
@@ -27,8 +26,7 @@ class TestACLFarms():
     def test_create_new_acl(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
-        acc_dashboard = env_dashboard.menu.go_to_account()
-        acl_page = acc_dashboard.menu.go_to_acl()
+        acl_page = env_dashboard.menu.go_to_account().menu.go_to_acl()
         acl_page.new_acl_button.click()
         acl_page.name_field.write('Selenium')
         acl_page.permissions_filter.write('All Farms')
@@ -36,19 +34,16 @@ class TestACLFarms():
         acl_page.permissions_filter.write('Farms Your Teams Own')
         acl_page.get_permission("Update").uncheck()
         acl_page.save_button.click()
-        message_popup = Label(text="ACL successfully saved", driver=acl_page.driver)
-        assert message_popup.visible(timeout=15), "No message present about successfull saving of the new ACL"
+        assert acl_page.page_message.text == "ACL successfully saved", "No message present about successfull saving of the new ACL"
 
     def test_create_new_user(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
-        acc_dashboard = env_dashboard.menu.go_to_account()
-        users_page = acc_dashboard.menu.go_to_users()
+        users_page = env_dashboard.menu.go_to_account().menu.go_to_users()
         users_page.new_user_button.click()
         users_page.email_field.write('selenium@scalr.com')
         users_page.save_button.click()
-        message_popup = Label(text="User successfully added and invite sent", driver=users_page.driver)
-        assert message_popup.visible(timeout=15), "No message present about successfull saving of the new user!"
+        assert users_page.page_message.text == "User successfully added and invite sent", "No message present about successfull saving of the new user!"
         table_entry = Label(
             xpath='//table [starts-with(@id, "tableview")]//child::div [contains(text(), "selenium@scalr.com")]',
             driver=users_page.driver)
@@ -57,39 +52,35 @@ class TestACLFarms():
     def test_create_new_team(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
-        acc_dashboard = env_dashboard.menu.go_to_account()
-        teams_page = acc_dashboard.menu.go_to_teams()
+        teams_page = env_dashboard.menu.go_to_account().menu.go_to_teams()
         teams_page.new_team_button.click()
         teams_page.team_name_field.write("Selenium Team")
         teams_page.acl_combobox.select('Selenium')
         teams_page.add_user_to_team('selenium@scalr.com')
         teams_page.save_button.click()
-        message_popup = Label(text="Team successfully saved", driver=teams_page.driver)
-        assert message_popup.visible(timeout=15), "No message present about successfull saving of the new Team"
+        assert teams_page.page_message.text == "Team successfully saved", "No message present about successfull saving of the new Team"
         table_entry = Label(text="Selenium Team", driver=teams_page.driver)
         assert table_entry.visible(timeout=15), "Selenium Team was not found!"
 
     def test_create_new_environment(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
-        acc_dashboard = env_dashboard.menu.go_to_account()
-        env_page = acc_dashboard.menu.go_to_environments()
+        env_page = env_dashboard.menu.go_to_account().menu.go_to_environments()
         env_page.new_env_button.click()
         env_page.env_name_field.write("Selenium Env")
         env_page.cost_center_combobox.select("Default cost centre")
         env_page.link_cloud_to_environment("Google Compute Engine", "global-gce-scalr-labs (PAID)")
         env_page.grant_access("Selenium Team")
         env_page.save_button.click()
-        message_popup = Label(text="Environment successfully created", driver=env_page.driver)
-        assert message_popup.visible(timeout=15), "No message present about successfull saving of the new Environment"
+        assert env_page.page_message.text == "Environment successfully created", "No message present about successfull saving of the new Environment"
         envs = env_page.list_environments()
         assert any("Selenium Env" in env.text for env in envs), "Selenium Env was not found in list!"
 
     def test_create_farm_from_new_env(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
-        env_dashboard = env_dashboard.menu.go_to_environment(env_name="Selenium Env")
-        farms_page = env_dashboard.menu.go_to_farms()
+        farms_page = env_dashboard.menu.go_to_environment(
+            env_name="Selenium Env").menu.go_to_farms()
         new_farm_page = farms_page.new_farm()
         new_farm_page.farm_name_field.write('Selenium Farm')
         new_farm_page.projects_dropdown.select("Default project / Default cost centre")
@@ -100,8 +91,8 @@ class TestACLFarms():
     def test_create_farm_for_team(self):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
-        env_dashboard = env_dashboard.menu.go_to_environment(env_name="Selenium Env")
-        farms_page = env_dashboard.menu.go_to_farms()
+        farms_page = env_dashboard.menu.go_to_environment(
+            env_name="Selenium Env").menu.go_to_farms()
         new_farm_page = farms_page.new_farm()
         new_farm_page.farm_name_field.write('Selenium Farm2')
         new_farm_page.projects_dropdown.select("Default project / Default cost centre")
@@ -137,8 +128,7 @@ class TestACLFarms():
     def test_create_farm_with_new_user(self):
         env_dashboard = self.login_page.login(
             'selenium@scalr.com', 'Scalrtesting123!')
-        farms_page = env_dashboard.menu.go_to_farms()
-        new_farm_page = farms_page.new_farm()
+        new_farm_page = env_dashboard.menu.go_to_farms().new_farm()
         new_farm_page.farm_name_field.write('Selenium Farm3')
         new_farm_page.projects_dropdown.select("Default project / Default cost centre")
         farms_page = new_farm_page.save_farm()
