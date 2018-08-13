@@ -6,7 +6,7 @@ from pypom import Page
 from pypom.exception import UsageError
 
 from elements import locators
-from elements.base import BaseElement
+from elements.base import BaseElement, Label
 
 
 def wait_for_page_to_load(func, *args, **kwargs):
@@ -34,3 +34,9 @@ class BasePage(Page):
         for el in self.__class__.__dict__.values():
             if isinstance(el, BaseElement):
                 el.driver = self.driver
+
+    @property
+    def page_message(self):
+        return Label(
+            xpath='//div[starts-with(@id, "tooltip") and contains(@class, "x-tip-message")]',
+            driver=self.driver)
