@@ -7,13 +7,14 @@ from pathlib import Path
 import pytest
 from selenium.common.exceptions import NoSuchElementException
 
+from revizor2.conf import CONF
 from pages.login import LoginPage
 from elements.base import Label, Button
 
 
-class TestACLImages():
-    default_user = 'test@scalr.com'
-    default_password = 'EXJx^YqLaI'
+class TestACLImages:
+    default_user = CONF.credentials.testenv.accounts.default['username']
+    default_password = CONF.credentials.testenv.accounts.default['password']
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, testenv):
