@@ -40,13 +40,16 @@ class Setup(object):
 
     def add_role_to_farm(self, farm_id, alias,
                          location, platform,
-                         instance_type_id, role_id, **kwargs):
+                         instance_type_id, role_id,
+                         network, zone, **kwargs):
         body = dict(
             alias=alias,
             cloudLocation=location,
             cloudPlatform=platform,
             instanceType={'id': instance_type_id},
+            availabilityZones=[zone],
             role={'id': role_id},
+            networking={'networks': [{'id': network}]},
             **kwargs
         )
 
@@ -91,6 +94,16 @@ class Setup(object):
         )
         return resp.json_data.data
 
+    def get_farm_roles(self, farm_id):
+        resp = self.api.list(
+            "/api/v1beta0/user/envId/farms/farmId/farm-roles/",
+            params=dict(
+                envId=self.env_id,
+                farmId=farm_id
+            )
+        )
+        return resp.json_data.data
+
     @property
     def uniq_farm_name(self):
         return "tmp-api-%s" % uniq_uuid()
@@ -102,10 +115,10 @@ class TestEmptyFarm(Setup):
     def bootstrap(self, api):
         self.api = super().init_api(api)
         # create empty Farm
-        farm = self.create_farm()
+        self.farm = self.create_farm()
         # gen tpl from Farm
         self.farm_tpl = self.gen_farm_template(
-            farm_id=farm.id)
+            farm_id=self.farm.id)
         self.role = self.get_role(self.role_id)
 
     def test_deploy_empty_farm(self):
@@ -118,7 +131,7 @@ class TestEmptyFarm(Setup):
         # check Farm created
         assert farm_tpl.farm.name == self.get_farm(farm_id=farm.id).name
 
-    def test_deploy_farm(self):
+    def test_deploy_farm_add_farm_role(self):
         farm_tpl = self.farm_tpl.copy()
         # modify farm template
         farm_tpl.farm.name = self.uniq_farm_name
@@ -139,20 +152,48 @@ class TestEmptyFarm(Setup):
         )
         # check Farm created
         assert farm_tpl.farm.name == self.get_farm(farm_id=farm.id).name
+        assert self.get_farm_roles(farm.id)
+
+    def test_deploy_existing_farm(self):
+        # create Farm from template
+        exc_message = "'FarmTemplate.farm.name' ({farm_name}) already exists. " \
+                      "The 'id' is ({farm_id})".format(
+            farm_name=self.farm.name,
+            farm_id=self.farm.id
+        )
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(
+                farm_tpl=self.farm_tpl.to_dict())
+        assert exc_message in e.value.args[0]
 
 
-class TestGCEFarm(Setup):
+class TestSimpleFarm(Setup):
 
-    def test_farm_template_gce(self):
+    @pytest.fixture(autouse=True)
+    def bootstrap(self, api):
+        self.api = super().init_api(api)
+        role = self.get_role(self.role_id)
         # create empty Farm
-        farm = self.create_farm()
-        role_params = dict(
-            farm_id=farm.id,
-            alias=farm.name,
+        self.farm = self.create_farm()
+        # add role to farm
+        self.add_role_to_farm(
+            farm_id=self.farm.id,
+            alias=role.name,
             location=Platform.GCE.location,
             platform=Platform.GCE,
             instance_type_id=Platform.GCE.instance_type,
-            role_id=''
+            zone=Platform.GCE.zone,
+            network=Platform.GCE.network,
+            role_id=role.id
         )
-        # add role to farm
-        farm_role = self.add_role_to_farm(**role_params)
+        # gen tpl from Farm
+        self.farm_tpl = self.gen_farm_template(
+            farm_id=self.farm.id)
+
+    def test_deploy_farm_invalid_tpl_structure(self):
+        exc_message = "InvalidStructure: 'Farm.data' does not exist."
+        farm_tpl = {'data': self.farm_tpl.copy()}
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message == e.value.args[0]
+

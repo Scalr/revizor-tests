@@ -48,9 +48,9 @@ def pytest_addoption(parser):
 
 
 def pytest_sessionstart(session):
-    te_id = session.config.getoption("te_id")
     if session.config.getoption('no_show_capture'):
         session.config.option.showcapture = 'no'
+    te_id = session.config.getoption("te_id")
     if not te_id:
         sys.stdout.write("\033[0;32m\nPrepare Scalr environment...\n")
         test_env = TestEnv.create(
