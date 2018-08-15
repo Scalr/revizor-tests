@@ -13,14 +13,7 @@ from paramiko import ssh_exception
 from revizor2.testenv import TestEnv
 from revizor2.backend import IMPL
 from revizor2.conf import CONF
-import logging
 
-logger = logging.getLogger('api-testing')
-console = logging.StreamHandler()
-console.setLevel(logging.INFO)
-
-logger.addHandler(console)
-logger.setLevel(logging.INFO)
 
 TE_HOST_TPL = "{}.test-env.scalr.com"
 TE_URI_SCHEMA = "http"
@@ -28,31 +21,41 @@ TE_URI_SCHEMA = "http"
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--ev", "--ext_validation", dest="ext_validation", action="store_true", default=False,
+        "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=False,
         help="Set default behavior of validation util, if 'False' api response not validate by flex"
     )
     parser.addoption(
-        "--te_id", "--scalr_te_id", dest="te_id", action="store", help="Scalr test environment id", default=None
+        "--te_id", "--test_environment_id", dest="te_id",
+        action="store", help="Scalr test environment id", default=None
     )
     parser.addoption(
-        "--br", "--branch", dest="branch", action="store", help="Scalr branch", default="master"
+        "--te_br", "--test_environment_branch", dest="te_branch",
+        action="store", help="Scalr branch", default="master"
     )
     parser.addoption(
-        "--notes", dest="notes", action="store",
+        "--te_notes", dest="te_notes", action="store",
         help="Scalr test environment description", default='api testing environment'
     )
     parser.addoption(
-        "--store_te", dest="store_te", action="store", help="Store Scalr test environment", default=False
+        "--remove-test-env", dest="remove_te",
+        action="store", help="Remove Scalr test environment after test is finished",
+        default=True
+    )
+    parser.addoption(
+        "--show-capture-repress", dest="no_show_capture",
+        action="store", help="Repress capture output", default=True
     )
 
 
 def pytest_sessionstart(session):
     te_id = session.config.getoption("te_id")
+    if session.config.getoption('no_show_capture'):
+        session.config.option.showcapture = 'no'
     if not te_id:
         sys.stdout.write("\033[0;32m\nPrepare Scalr environment...\n")
         test_env = TestEnv.create(
-            branch=session.config.getoption("branch"),
-            notes=session.config.getoption("notes"))
+            branch=session.config.getoption("te_branch"),
+            notes=session.config.getoption("te_notes"))
         # Wait test environment is Running
         while True:
             try:
@@ -80,7 +83,7 @@ def pytest_sessionstart(session):
 
 def pytest_sessionfinish(session):
     test_env = getattr(session.config, "test_env", None)
-    if not session.config.getoption('store_te') and test_env:
+    if session.config.getoption('remove_te') and test_env:
         sys.stdout.write("\033[1;31m\n\nDestroy environment: %s ..." % test_env.te_id)
         test_env.destroy()
 

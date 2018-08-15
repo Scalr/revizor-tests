@@ -43,20 +43,20 @@ class ValidationUtil(object):
         if not response.status_code == response_successful_code:
             raise ResponseValidationError('Response successful code not valid')
 
-    def validate(self, data, ext_validation=False):
+    def validate(self, data, flex_validation=False):
         """
         :type: data: requests.Response
         :param data: raw requests.response
 
-        :type: ext_validation: bool
-        :param: ext_validation: Enabled response validation by flex
+        :type: flex_validation: bool
+        :param: flex_validation: Enabled response validation by flex
 
         :return: None or validation error
         """
         if not isinstance(data, requests.models.Response):
             raise ValueError('Not valid data format')
         self.request_ok(data)
-        if ext_validation:
+        if flex_validation:
             try:
                 data = data.json()
                 validation_res = validate_response(

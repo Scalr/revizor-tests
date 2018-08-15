@@ -9,6 +9,7 @@ from functools import reduce
 
 from .consts import PlatformStore
 
+
 def rgetattr(obj, attr, *args):
     def _getattr(obj, attr):
         return getattr(obj, attr, *args)
