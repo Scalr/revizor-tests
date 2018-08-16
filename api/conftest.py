@@ -26,7 +26,7 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--te_id", "--test_environment_id", dest="te_id",
-        action="store", help="Scalr test environment id", default=None
+        action="store", help="Scalr test environment id to use existing env", default=None
     )
     parser.addoption(
         "--te_br", "--test_environment_branch", dest="te_branch",

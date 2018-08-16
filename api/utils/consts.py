@@ -37,7 +37,7 @@ class PlatformStore(object):
         self.zone = zone
 
     def __repr__(self):
-        return repr(self._name)
+        return str(self._name)
 
 
 class Platform(object):

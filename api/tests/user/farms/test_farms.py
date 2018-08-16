@@ -175,7 +175,7 @@ class TestSimpleFarm(Setup):
         role = self.get_role(self.role_id)
         # create empty Farm
         self.farm = self.create_farm()
-        # add role to farm
+        # add GCE role to farm by api call
         self.add_role_to_farm(
             farm_id=self.farm.id,
             alias=role.name,
@@ -197,3 +197,31 @@ class TestSimpleFarm(Setup):
             self.create_farm(farm_tpl=farm_tpl)
         assert exc_message == e.value.args[0]
 
+    def test_deploy_farm_invalid_cost_project_id(self):
+        exc_message = "ObjectNotFound: 'FarmTemplate.farm.project.id' ({project_id}) was not found."
+        farm_tpl = self.farm_tpl.copy()
+        # set invalid project id
+        farm_tpl.farm.project.id = uniq_uuid()
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(project_id=farm_tpl.farm.project.id) == e.value.args[0]
+
+    def test_deploy_farm_invalid_role_id(self):
+        exc_message = "ObjectNotFound: 'FarmTemplate.roles.id' ({role_id}) was not found " \
+                      "or isn't in scope for the current Environment."
+        farm_tpl = self.farm_tpl.copy()
+        # set invalid role id
+        farm_tpl.roles[0].role.id = uniq_uuid()
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(role_id=farm_tpl.roles[0].role.id) == e.value.args[0]
+
+    def test_deploy_farm_invalid_role_name(self):
+        exc_message = "ObjectNotFound: 'FarmTemplate.roles.name' ({role_name}) was not found " \
+                      "or isn't in scope for the current Environment."
+        farm_tpl = self.farm_tpl.copy()
+        # set invalid role name
+        farm_tpl.roles[0].role.name = uniq_uuid()
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(role_name=farm_tpl.roles[0].role.name) == e.value.args[0]
