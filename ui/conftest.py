@@ -43,6 +43,17 @@ def testenv(request):
                 time.sleep(3)
             except NoValidConnectionsError:
                 time.sleep(3)
+    yield container
+    if request.node.session.testsfailed == 0 and not te_id:
+        container.destroy()
+
+
+@pytest.fixture(scope="function")
+def mock_ssmtp(request):
+    if hasattr(request.instance, 'container'):
+        container = request.instance.container
+    else:
+        raise AttributeError("Test instance has no TestEnv associated with it!")
     ssh = container.get_ssh()
     ssh.run("rm -f /opt/scalr-server/libexec/mail/ssmtp")
     ssmtp_script = resources('scripts/ssmtp')
@@ -50,6 +61,3 @@ def testenv(request):
         ssmtp_script.fp.name,
         '/opt/scalr-server/libexec/mail/ssmtp')
     ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
-    yield container
-    if request.node.session.testsfailed == 0 and not te_id:
-        container.destroy()
