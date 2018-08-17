@@ -216,7 +216,7 @@ class Dropdown(BaseElement):
 
 
 class Input(BaseElement):
-    """Any writable field element, typically search and filter field
+    """Any writable field element.
     """
 
     def _make_locator(self, name=None, label=None, xpath=None):
@@ -238,6 +238,9 @@ class Input(BaseElement):
 
 
 class SearchInput(Input):
+    """Input field that filters contents of the page.
+       Write method wait for filtration to take effect (waits for 'cancel' button in field to appear).
+    """
 
     def write(self, text):
         element = self.get_element()
