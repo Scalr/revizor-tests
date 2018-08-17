@@ -30,7 +30,7 @@ def grid(ctx, docs=False, port='4444'):
 
 
 @task
-def webtests(ctx, testpath='', browsers='all', processes='', localmode=''):
+def webtests(ctx, testpath='', browsers='all', processes='', teid='', localmode=''):
     """Incrementally executes speicified selenium/pytest test cases with specified browsers.
 
        :param str testpath: path to specific pytest modules or folders with tests.
@@ -39,16 +39,19 @@ def webtests(ctx, testpath='', browsers='all', processes='', localmode=''):
         Usage: '--browsers firefox,chrome,...'.
        :param str processes: number of processes for parallel testing.
         Usage: '--processes 3'.
+       :param str teid: specify id for already created TestEnv.
+        Usage: '--teid <id>'.
        :param localmode str: for test runs on local machine.
         Usage '--localmode true'.
     """
-    ctx.run('rm -rf __pycache__ *.pyc ui/__pycache__ ui/*.pyc')
+    ctx.run(r'find . -name "*.pyc" -exec rm -f {} \;')
     browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
     processes = ' -n %s' % processes if processes else ''
+    teid = '--te_id %s' % teid if teid else ''
     for browser in browsers:
         driver = browser if localmode else 'Remote'
-        command = 'python3 -m pytest%s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s' %\
-            (processes, driver, browser, testpath)
+        command = 'python3 -m pytest%s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s' %\
+            (processes, driver, browser, teid, testpath)
         print(command)
         ctx.run(command)
 
