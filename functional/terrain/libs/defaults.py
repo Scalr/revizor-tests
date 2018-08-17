@@ -270,13 +270,19 @@ class Defaults(object):
     def set_ansible_orchestration(params):
         configuration_id = getattr(world, 'configuration_id')
         job_template_id = getattr(world, 'job_template_id')
+        at_python_path = ''
+        if not CONF.feature.dist.is_windows:
+            at_python_path = getattr(world, 'at_python_path') + '\n'
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostUp', configuration=configuration_id,
-                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_HostUp'),
+                                       jobtemplate=job_template_id,
+                                       variables=at_python_path + 'dir2: Extra_Var_HostUp'),
             farmrole.OrchestrationRule(event='RebootComplete', configuration=configuration_id,
-                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_RebootComplete'),
+                                       jobtemplate=job_template_id,
+                                       variables=at_python_path + 'dir2: Extra_Var_RebootComplete'),
             farmrole.OrchestrationRule(event='ResumeComplete', configuration=configuration_id,
-                                       jobtemplate=job_template_id, variables='dir2: Extra_Var_ResumeComplete')
+                                       jobtemplate=job_template_id,
+                                       variables=at_python_path + 'dir2: Extra_Var_ResumeComplete')
         ]
 
     @staticmethod
