@@ -234,6 +234,14 @@ class Input(BaseElement):
     def write(self, text):
         element = self.get_element()
         element.clear()
+        element.send_keys(text)
+
+
+class SearchInput(Input):
+
+    def write(self, text):
+        element = self.get_element()
+        element.clear()
         Button(xpath='//div [contains(@id, "trigger-cancelButton")]',
                driver=self.driver).hidden()
         element.send_keys(text)

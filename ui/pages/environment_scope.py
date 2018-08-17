@@ -5,7 +5,7 @@ from selenium.common.exceptions import NoSuchElementException
 from pypom import Page
 from pypom.exception import UsageError
 
-from elements.base import Label, Button, Input, Dropdown, SplitButton, Checkbox, Menu
+from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu
 from elements import locators
 from pages.base import wait_for_page_to_load, BasePage
 from pages.common import CommonTopMenu
@@ -53,7 +53,7 @@ class Farms(EnvironmentTopMenu):
     new_farm_button = Button(text="New Farm")
     farms_info = Label(
         xpath='//div [@class="x-grid-item-container"]/child::table')
-    search_farm_field = Input(name="searchfield")
+    search_farm_field = SearchInput(name="searchfield")
 
     @property
     def loaded(self):

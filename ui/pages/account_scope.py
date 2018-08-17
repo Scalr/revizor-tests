@@ -6,7 +6,7 @@ from pypom import Page
 from pypom.exception import UsageError
 
 from elements import locators
-from elements.base import Button, Label, Input, Menu, Checkbox, Combobox
+from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -61,7 +61,7 @@ class ACL(AccountTopMenu):
     URL_TEMPLATE = '/#/account/acl'
     new_acl_button = Button(text="New ACL")
     name_field = Input(label="ACL name")
-    permissions_filter = Input(label="Permissions")
+    permissions_filter = SearchInput(label="Permissions")
     save_button = Button(icon="save")
 
     @property

@@ -4,7 +4,7 @@ from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from pypom.exception import UsageError
 
-from elements.base import Input, Button, Menu
+from elements.base import Button, Menu
 from elements.page_objects import LeftPopupMenu
 from elements import locators
 
