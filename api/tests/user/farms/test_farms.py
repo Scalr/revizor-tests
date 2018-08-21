@@ -22,7 +22,8 @@ class Setup(object):
             self.__class__.api = api
         return self.__class__.api
 
-    def create_farm(self, name=None, project_id=None, farm_tpl=None, **kwargs):
+    def create_farm(self, name=None, project_id=None,
+                    farm_tpl=None, return_status_code=False, **kwargs):
         name = name or self.uniq_farm_name
         project_id = project_id or self.cost_project_id
 
@@ -35,8 +36,11 @@ class Setup(object):
             "/api/v1beta0/user/envId/farms/",
             params=dict(envId=self.env_id),
             body=farm_tpl or body)
-
-        return resp.json_data.data
+        if return_status_code:
+            res = resp.status_code
+        else:
+            res = resp.json_data.data
+        return res
 
     def add_role_to_farm(self, farm_id, alias,
                          location, platform,
@@ -64,7 +68,7 @@ class Setup(object):
         return resp.json_data.data
 
     def gen_farm_template(self, farm_id, farm_name=None):
-        tpl = self.api.get(
+        tpl = self.api.generate_template(
             "/api/v1beta0/user/envId/farms/farmId/actions/generate-template/",
             params=dict(
                 envId=self.env_id,
@@ -169,22 +173,34 @@ class TestEmptyFarm(Setup):
 
 class TestSimpleFarm(Setup):
 
+
+    def change_role_deprecated_state(self, role_id, deprecated=True):
+        body = dict(deprecate=deprecated)
+        resp = self.api.deprecate(
+            "/api/v1beta0/user/envId/roles/roleId/actions/deprecate/",
+            params=dict(
+                envId=self.env_id,
+                roleId=role_id),
+            body=body)
+        return resp.json_data.data
+
+
     @pytest.fixture(autouse=True)
     def bootstrap(self, api):
         self.api = super().init_api(api)
-        role = self.get_role(self.role_id)
+        self.role = self.get_role(self.role_id)
         # create empty Farm
         self.farm = self.create_farm()
         # add GCE role to farm by api call
         self.add_role_to_farm(
             farm_id=self.farm.id,
-            alias=role.name,
+            alias=self.role.name,
             location=Platform.GCE.location,
             platform=Platform.GCE,
             instance_type_id=Platform.GCE.instance_type,
             zone=Platform.GCE.zone,
             network=Platform.GCE.network,
-            role_id=role.id
+            role_id=self.role.id
         )
         # gen tpl from Farm
         self.farm_tpl = self.gen_farm_template(
@@ -225,3 +241,70 @@ class TestSimpleFarm(Setup):
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl)
         assert exc_message.format(role_name=farm_tpl.roles[0].role.name) == e.value.args[0]
+
+    def test_deploy_farm_deprecated_role(self):
+        exc_message = "Deprecated: 'FarmTemplate.roles.role.id' ({role_id}) is deprecated."
+        # set role deprecated
+        self.change_role_deprecated_state(self.role.id)
+        farm_tpl = self.farm_tpl.copy()
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(role_id=self.role.id) == e.value.args[0]
+        # unset role deprecated
+        self.change_role_deprecated_state(self.role.id, deprecated=False)
+
+    def test_deploy_farm_invalid_cloud_platform(self):
+        exc_message = "InvalidValue: 'FarmTemplate.roles.cloudPlatform ({platform}) is invalid."
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.roles[0].cloudPlatform = Platform.INVALID
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(platform=Platform.INVALID) == e.value.args[0]
+
+    def test_deploy_farm_invalid_cloud_location(self):
+        exc_message = "InvalidValue: 'FarmTemplate.roles.cloudLocation' ({location}) is invalid " \
+                      "for 'FarmRole.alias' ({name})."
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.roles[0].cloudLocation = Platform.INVALID.location
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(location=Platform.INVALID.location, name=self.role.name) == e.value.args[0]
+
+    def test_deploy_farm_invalid_zone(self):
+        exc_message = "ObjectNotFoundOnCloud: 'FarmTemplate.roles.availabilityZones' ({zone}) was not found in the cloud."
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.roles[0].availabilityZones[0] = Platform.INVALID.zone
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(zone=Platform.INVALID.zone) in e.value.args[0]
+
+    def test_deploy_farm_invalid_instance_type(self):
+        exc_message = "InvalidValue: 'FarmTemplate.roles.instanceType.id' ({type}) is invalid."
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.roles[0].instanceType.id = Platform.INVALID.instance_type
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(type=Platform.INVALID.instance_type) == e.value.args[0]
+
+    def test_deploy_farm_invalid_instance_cpu_count(self):
+        exc_message = "InvalidValue: Custom 'FarmTemplate.roles.instanceType' ({cpu}) CPU count 0 is invalid."
+        custom_cpu = 'custom-0-0'
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.roles[0].instanceType.id = custom_cpu
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(cpu=custom_cpu) in e.value.args[0]
+
+    def test_deploy_farm_invalid_instance_memory_size(self):
+        exc_message = "InvalidValue: Custom 'FarmTemplate.roles.instanceType' ({ram}) memory size 0 is invalid."
+        custom_ram = 'custom-1-0'
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.roles[0].instanceType.id = custom_ram
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl)
+        assert exc_message.format(ram=custom_ram) in e.value.args[0]

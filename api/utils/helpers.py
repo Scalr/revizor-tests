@@ -22,9 +22,9 @@ def reverse_dict(d):
 
 def remove_empty_values(obj):
     if isinstance(obj, dict):
-        obj = dict(x for x in obj.items() if all(x))
+        obj = dict(x for x in obj.items() if all(i is not None for i in x))
     elif isinstance(obj, (list, tuple)):
-        obj = [x for x in obj if x]
+        obj = [x for x in obj if x is not None]
     return None or obj
 
 

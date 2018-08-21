@@ -19,10 +19,10 @@ class ValidationUtil(object):
     _swagger_schema = None
 
     _successful_response_codes = dict(
-        GET=200,
-        PATCH=200,
-        POST=201,
-        DELETE=204
+        GET=[200],
+        PATCH=[200],
+        POST=[200, 201],
+        DELETE=[204]
     )
 
     def __init__(self, api_level, fileutil):
@@ -40,7 +40,7 @@ class ValidationUtil(object):
 
     def request_ok(self, response):
         response_successful_code = self._successful_response_codes.get(response.request.method)
-        if not response.status_code == response_successful_code:
+        if response.status_code not in response_successful_code:
             raise ResponseValidationError('Response successful code not valid')
 
     def validate(self, data, flex_validation=False):

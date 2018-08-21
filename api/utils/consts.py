@@ -15,7 +15,29 @@ class APIParams(object):
         'delete': 'delete',
         'edit': 'patch',
         'list': 'get',
-        'get': 'get'
+        'get': 'get',
+        'fire': 'post',
+        'import_server': 'post',
+        'clone': 'post',
+        'generate_template': 'get',
+        'launch': 'post',
+        'lock': 'post',
+        'resume': 'post',
+        'suspend': 'post',
+        'terminate': 'post',
+        'unlock': 'post',
+        'copy': 'post',
+        'replace': 'post',
+        'deprecate': 'post',
+        'promote': 'post',
+        'create_rule': 'post',
+        'delete_rule': 'delete',
+        'edit_rule': 'patch',
+        'edit_scaling_configuration': 'patch',
+        'get_rule': 'get',
+        'get_scaling_configuration': 'get',
+        'execute': 'post',
+        'reboot': 'post'
     }
 
     response_data_types = {
@@ -57,6 +79,7 @@ class Platform(object):
     RACKSPACENGUS = PlatformStore('rackspacengus', 'DFW', '3')
     VIO = PlatformStore('vio')
     VMWARE = PlatformStore('vmware', 'datacenter-21', '2eb93579efde')
+    INVALID = PlatformStore('invalid', 'invalid', 'invalid', 'invalid', 'invalid')
 
 
 class BuiltInAutomation(object):
@@ -73,9 +96,7 @@ class BuiltInAutomation(object):
     MEMCACHED = 'memcached'
     REDIS = 'redis'
     RABBITMQ = 'rabbitmq'
-
     INVALID = 'invalid'
-
     UNCOMBINED_BEHAVIORS = [
         MYSQL,
         POSTGRESQL
