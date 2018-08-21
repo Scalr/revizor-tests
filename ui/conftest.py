@@ -15,6 +15,9 @@ def pytest_addoption(parser):
     parser.addoption(
         "--te_id", action="store", default=None, help="Use already created TestEnv."
     )
+    parser.addoption(
+        "--cleanup", action="store", default=None, help="Destroy TestEnv even when some tests fail."
+    )
 
 
 def pytest_runtest_makereport(item, call):
@@ -31,6 +34,7 @@ def testenv(request):
        unless some of the tests failed.
     """
     te_id = request.config.getoption("--te_id")
+    cleanup = request.config.getoption("--cleanup")
     if te_id:
         container = TestEnv(te_id)
     else:
@@ -44,7 +48,7 @@ def testenv(request):
             except NoValidConnectionsError:
                 time.sleep(3)
     yield container
-    if request.node.session.testsfailed == 0 and not te_id:
+    if (request.node.session.testsfailed == 0 and not te_id) or cleanup:
         container.destroy()
 
 
