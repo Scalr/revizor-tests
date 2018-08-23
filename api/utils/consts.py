@@ -51,35 +51,98 @@ class APIParams(object):
 
 class PlatformStore(object):
 
-    def __init__(self, name, location=None, instance_type=None, network=None, zone=None):
+    def __init__(self, name, location=None,
+                 instance_type=None, network=None,
+                 folder=None, zone=None,
+                 compute_resource=None, host=None,
+                 subnet=None, resource_group=None,
+                 storage_account=None, data_store=None,
+                 resource_pool=None):
         self.instance_type = instance_type
         self.location = location
         self.network = network
         self._name = name
         self.zone = zone
+        self.folder = folder
+        self.compute_resource = compute_resource
+        self.host = host
+        self.subnet = subnet
+        self.resource_group = resource_group
+        self.storage_account = storage_account
+        self.resource_pool = resource_pool
+        self.data_store = data_store
 
     def __repr__(self):
         return str(self._name)
 
+    def __getattr__(self, attr):
+        if attr.startswith('is'):
+            platform = attr.split('_')[-1]
+            return platform == self._name
+        super().__getattribute__(attr)
+
 
 class Platform(object):
 
-    AZURE = PlatformStore('azure', 'eastus', 'Standard_A1')
-    CISCO = PlatformStore('cisco')
-    CLOUDSTACK = PlatformStore('cloudstack', 'CSRP03', '9704e6fa-e2c3-4fb1-aa20-fc215adfb6db')
-    EC2 = PlatformStore('ec2', 'us-east-1', 't2.small')
-    GCE = PlatformStore('gce', 'us-central1', 'n1-standard-1', 'scalr-labs/global/networks/default', 'us-central1-a')
-    HPCLOUD = PlatformStore('hpcloud')
-    IDCF = PlatformStore('idcf')
-    MIRANTIS = PlatformStore('mirantis')
-    NEBULA = PlatformStore('nebula')
-    OPENSTACK = PlatformStore('openstack', 'RegionOne', '2')
-    OCS = PlatformStore('ocs')
-    RACKSPACENGUK = PlatformStore('rackspacenguk')
-    RACKSPACENGUS = PlatformStore('rackspacengus', 'DFW', '3')
-    VIO = PlatformStore('vio')
-    VMWARE = PlatformStore('vmware', 'datacenter-21', '2eb93579efde')
-    INVALID = PlatformStore('invalid', 'invalid', 'invalid', 'invalid', 'invalid')
+    AZURE = PlatformStore(name='azure',
+                          location='eastus',
+                          instance_type='Standard_A1',
+                          network='/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/'
+                                  'resourceGroups/revizor/providers/Microsoft.Network/'
+                                  'virtualNetworks/revizor',
+                          zone='/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/'
+                               'resourceGroups/revizor/providers/Microsoft.Compute/'
+                               'availabilitySets/revizor',
+                          subnet='/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/'
+                                 'resourceGroups/revizor/providers/Microsoft.Network/'
+                                 'virtualNetworks/revizor/subnets/revizor',
+                          resource_group='/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/'
+                                         'resourceGroups/revizor',
+                          storage_account='/subscriptions/6276d188-6b35-4b44-be1d-12633d236ed8/'
+                                          'resourceGroups/revizor/providers/Microsoft.Storage/'
+                                          'storageAccounts/revizor')
+
+    CLOUDSTACK = PlatformStore(name='cloudstack',
+                               location='CSRP03',
+                               instance_type='9704e6fa-e2c3-4fb1-aa20-fc215adfb6db',
+                               network='bbb69489-35c2-45e0-b416-850eb19fcd2e')
+
+    EC2 = PlatformStore(name='ec2',
+                        location='us-east-1',
+                        instance_type='t2.small',
+                        network='vpc-596aa03e')
+
+    GCE = PlatformStore(name='gce',
+                        location='us-central1',
+                        instance_type='n1-standard-1',
+                        network='scalr-labs/global/networks/default',
+                        zone='us-central1-a')
+
+    OPENSTACK = PlatformStore(name='openstack',
+                              location='RegionOne',
+                              instance_type='2',
+                              network='9d001c2f-3960-46cb-aef4-8bbc96500958')
+
+    RACKSPACENGUS = PlatformStore(name='rackspacengus',
+                                  location='DFW',
+                                  instance_type='3',
+                                  network='00000000-0000-0000-0000-000000000000')
+
+    VMWARE = PlatformStore(name='vmware',
+                           location='datacenter-21',
+                           instance_type='2eb93579efde',
+                           network='network-104',
+                           folder='group-v22',
+                           compute_resource='domain-c35',
+                           host='host-442',
+                           resource_pool='resgroup-36',
+                           data_store='datastore-443')
+
+    INVALID = PlatformStore(name='invalid',
+                            location='invalid',
+                            instance_type='invalid',
+                            network='invalid',
+                            zone='invalid')
 
 
 class BuiltInAutomation(object):
