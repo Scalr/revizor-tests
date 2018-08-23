@@ -37,7 +37,7 @@ class TestACLImages:
         acl_page.save_button.click()
         assert acl_page.page_message.text == "ACL successfully saved", "No message present about successfull saving of the new ACL"
 
-    def test_create_new_user(self):
+    def test_create_new_user(self, mock_ssmtp):
         env_dashboard = self.login_page.login(
             self.default_user, self.default_password)
         users_page = env_dashboard.menu.go_to_account().menu.go_to_users()
