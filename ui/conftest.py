@@ -38,7 +38,7 @@ def testenv(request):
     if te_id:
         container = TestEnv(te_id)
     else:
-        container = TestEnv.create(branch='master')
+        container = TestEnv.create(branch='master', notes='Selenium test container')
         for _ in range(5):
             try:
                 services = container.get_service_status()
