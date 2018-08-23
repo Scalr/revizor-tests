@@ -29,7 +29,7 @@ def grid(ctx, docs=False, port='4444'):
         ctx.run(grid_cmd)
 
 
-@task
+@task(grid)
 def webtests(ctx, testpath='', browsers='all', processes='', teid='', localmode='', cleanup=''):
     """Incrementally executes speicified selenium/pytest test cases with specified browsers.
 
