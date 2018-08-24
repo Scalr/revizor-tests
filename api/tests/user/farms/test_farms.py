@@ -345,10 +345,12 @@ class TestFarmAllCloudRoles(Setup):
         role = self.get_role(self.role_id)
         # create empty Farm
         self.farm = self.create_farm()
+        self.platforms = []
         # add role for all cloud to farm by api call
         for attr, _ in inspect.getmembers(Platform):
             if re.match("(^[^Ia-z_\W]+)", attr):
                 platform = getattr(Platform, attr)
+                self.platforms.append(str(platform))
                 role_args = dict([attr for attr in inspect.getmembers(platform)
                      if not attr[0].startswith('_')])
                 self.add_role_to_farm(
@@ -366,5 +368,18 @@ class TestFarmAllCloudRoles(Setup):
         farm_tpl.farm.name = self.uniq_farm_name
         farm = self.create_farm(farm_tpl=farm_tpl.to_dict())
         farm_roles_platforms = [fr.cloudPlatform for fr in self.get_farm_roles(farm.id)]
-        consts_platforms = [str(p[1]) for p in inspect.getmembers(Platform) if re.match("(^[^Ia-z_\W]+)", p[0])]
-        assert farm_roles_platforms.sort() == consts_platforms.sort()
+        assert farm_roles_platforms.sort() == self.platforms.sort()
+
+    def test_deploy_farm_aws_invalid_instance_type(self):
+        exc_message = "InvalidValue: 'FarmTemplate.roles.instanceType.id' ({type}) is invalid."
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        # set invalid aws farm role instance type
+        for farm_role in farm_tpl.roles:
+            if farm_role.cloudPlatform == str(Platform.EC2):
+                farm_role.instanceType.id = Platform.INVALID.instance_type
+                break
+        with pytest.raises(requests.exceptions.HTTPError) as e:
+            self.create_farm(farm_tpl=farm_tpl.to_dict())
+        assert exc_message.format(type=Platform.INVALID.instance_type) == e.value.args[0]
+
