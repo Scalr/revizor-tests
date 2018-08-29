@@ -47,10 +47,9 @@ class LoginPage(BasePage):
         self.login_button.click()
         self.new_password_field.write(new_password)
         self.confirm_password_field.write(new_password)
-        for _ in range(5):
-            if Button(class_name='x-mask', driver=self.driver).hidden():
-                break
+        self.update_password_button.visible(timeout=9)
         self.update_password_button.click()
+        self.password_field.visible(timeout=9)
         self.password_field.write(new_password)
         self.login_button.click()
         from pages.environment_scope import EnvironmentDashboard
