@@ -45,21 +45,25 @@ class Setup(object):
                          folder=None, compute_resource=None,
                          resource_pool=None, data_store=None,
                          host=None, subnet=None,
-                         resource_group=None, storage_account=None):
+                         resource_group=None, storage_account=None, **kwargs):
 
-        cloud_features =None
+        cloud_features = None
+        networks = []
+        if not isinstance(network, list):
+            network = [network]
+        for n in network:
+            networks.append({'id': n})
         # azure farm role settings
         if platform.is_azure:
             network = {
-                'networks': [{'id': network}],
+                'networks': networks,
                 'subnets': [{'id': subnet}]}
             cloud_features = {
                 "resourceGroup": resource_group,
                 "storageAccount": storage_account}
             zone = [zone]
         else:
-            network = {'networks': [{'id': network}]}
-
+            network = {'networks': networks}
         # vmware farm role settings
         if platform.is_vmware:
             cloud_features = {
@@ -68,11 +72,9 @@ class Setup(object):
                 'hosts': [host],
                 'resourcePool': resource_pool,
                 'dataStore': data_store}
-
         # gce farm role settings
         if platform.is_gce:
             zone = [zone]
-
 
         body = dict(
             alias='{}-{}'.format(alias, platform),
@@ -83,6 +85,7 @@ class Setup(object):
             role={'id': role_id},
             networking=network,
             cloudFeatures=cloud_features,
+            **kwargs
         )
 
         resp = self.api.create(
@@ -92,7 +95,6 @@ class Setup(object):
                 farmId=farm_id
             ),
             body=remove_empty_values(body))
-
         return resp.json_data.data
 
     def gen_farm_template(self, farm_id, farm_name=None):
@@ -132,6 +134,16 @@ class Setup(object):
             params=dict(
                 envId=self.env_id,
                 farmId=farm_id
+            )
+        )
+        return resp.json_data.data
+
+    def get_farm_role_details(self, farm_role_id):
+        resp = self.api.get(
+            "/api/v1beta0/user/envId/farm-roles/farmRoleId/",
+            params=dict(
+                envId=self.env_id,
+                farmRoleId=farm_role_id
             )
         )
         return resp.json_data.data
@@ -200,7 +212,6 @@ class TestEmptyFarm(Setup):
 
 
 class TestSimpleFarm(Setup):
-
 
     def change_role_deprecated_state(self, role_id, deprecated=True):
         body = dict(deprecate=deprecated)
@@ -376,10 +387,182 @@ class TestFarmAllCloudRoles(Setup):
         farm_tpl.farm.name = self.uniq_farm_name
         # set invalid aws farm role instance type
         for farm_role in farm_tpl.roles:
-            if farm_role.cloudPlatform == str(Platform.EC2):
+            if farm_role.cloudPlatform == Platform.EC2:
                 farm_role.instanceType.id = Platform.INVALID.instance_type
                 break
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
         assert exc_message.format(type=Platform.INVALID.instance_type) == e.value.args[0]
+
+class TestFarmComplexFarmRoleSettings(Setup):
+
+    chef_bootstraping_rule = {
+        "bootstrapping": {
+            "enabled": True,
+            "type": "ChefServerBootstrapConfiguration",
+            "server": {"id": 1},
+            "runList": '["recipe[memcached::default]", "recipe[revizorenv]"]',
+            "attributes": '{"memcached": {"memory": "1024"}}'}}
+
+    scaling_rule = {
+        "base_options": {
+            "calculatingPeriod": 15,
+            "name": "LoadAverages",
+            "ruleType": "LoadAveragesScalingRule",
+            "scaleDown": 1,
+            "scaleUp": 2},
+        "rule_details":  {
+            "considerSuspendedServers": "running",
+            "enabled": True,
+            "maxInstances": 2,
+            "minInstances": 1,
+            "scalingBehavior": "launch-terminate"}}
+
+    storages_configuration = {
+        "fromTemplateIfMissing": True,
+        "mounting": {
+            "enabled": True,
+            "fileSystem": "ext3",
+            "mountPoint": "/mnt/"},
+        "reUse": True,
+        "template": {
+            "type": "pd-standard",
+            "size": 10},
+        "type": "PersistentStorageConfiguration"}
+
+    orchestration_config = {
+        "events": ["HostInit", "BeforeHostUp", "HostUp"],
+        "rule": {"action": {
+            "actionType": "ScalrScriptAction",
+            "scriptVersion": {
+                "script": {"id": 2369},
+                "version": -1}},
+        "blocking": True,
+        "enabled": True,
+        "order": 10,
+        "runAs": "root",
+        "target": {
+            "targetType": "TriggeringServerTarget"
+        },
+        "timeout": 1200,
+        "trigger": {
+            "event": {"id": None},
+            "triggerType": "SpecificEventTrigger"}}}
+
+    ext_vmware_network_id = "network-103"
+
+
+    def add_scaling_rule(self, farm_role_id, scaling_rule):
+        self.api.create_rule(
+            "/api/v1beta0/user/envId/farm-roles/farmRoleId/scaling/",
+            params=dict(
+                envId=self.env_id,
+                farmRoleId=farm_role_id
+            ),
+            body=scaling_rule['base_options'])
+        self.api.edit_scaling_configuration(
+            "/api/v1beta0/user/envId/farm-roles/farmRoleId/scaling/",
+            params=dict(
+                envId=self.env_id,
+                farmRoleId=farm_role_id
+            ),
+            body=scaling_rule['rule_details'])
+
+    def add_ext_storage(self, farm_role_id, storage_conf):
+        self.api.create(
+            "/api/v1beta0/user/envId/farm-roles/farmRoleId/storage/",
+            params=dict(
+                envId=self.env_id,
+                farmRoleId=farm_role_id
+            ),
+            body=storage_conf
+        )
+
+    def add_orchestration_rules(self, farm_role_id, orchestration_config):
+        for event in orchestration_config['events']:
+            orchestration_config['rule']['trigger']['event']['id'] = event
+            self.api.create(
+                "/api/v1beta0/user/envId/farm-roles/farmRoleId/orchestration-rules/",
+                params=dict(
+                    envId=self.env_id,
+                    farmRoleId=farm_role_id),
+                body=orchestration_config['rule']
+            )
+
+    def get_storages(self, farm_role_id):
+        resp = self.api.list(
+            "/api/v1beta0/user/envId/farm-roles/farmRoleId/storage/",
+            params=dict(
+                envId=self.env_id,
+                farmRoleId=farm_role_id))
+        return resp.json_data.data
+
+    def get_orchestration_rules(self, farm_role_id):
+        resp = self.api.list(
+            "/api/v1beta0/user/envId/farm-roles/farmRoleId/orchestration-rules/",
+            params=dict(
+                envId=self.env_id,
+                farmRoleId=farm_role_id))
+        return resp.json_data.data
+
+    @pytest.fixture(autouse=True)
+    def bootstrap(self, api):
+        platforms = [Platform.GCE, Platform.VMWARE]
+        self.api = super().init_api(api)
+        role = self.get_role(self.role_id)
+        # create empty Farm
+        self.farm = self.create_farm()
+        for platform in platforms:
+            role_args = dict([attr for attr in inspect.getmembers(platform)
+                     if not attr[0].startswith('_')])
+            if platform.is_gce:
+                role_args.update(self.chef_bootstraping_rule)
+            elif platform.is_vmware:
+                role_args['network'] = [role_args['network'], self.ext_vmware_network_id]
+            farm_role = self.add_role_to_farm(
+                farm_id=self.farm.id,
+                role_id=role.id,
+                alias=role.name,
+                platform=platform,
+                **role_args)
+            if platform.is_gce:
+                self.add_scaling_rule(
+                    farm_role_id=farm_role.id,
+                    scaling_rule=self.scaling_rule)
+                self.add_ext_storage(
+                    farm_role_id=farm_role.id,
+                    storage_conf=self.storages_configuration)
+                self.add_orchestration_rules(
+                    farm_role_id=farm_role.id,
+                    orchestration_config=self.orchestration_config)
+        # gen tpl from Farm
+        self.farm_tpl = self.gen_farm_template(
+            farm_id=self.farm.id)
+
+    def test_deploy_complex_farm(self):
+        farm_tpl = self.farm_tpl.copy()
+        farm_tpl.farm.name = self.uniq_farm_name
+        farm = self.create_farm(farm_tpl=farm_tpl.to_dict())
+        farm_roles = self.get_farm_roles(farm_id=farm.id)
+        for farm_role in farm_roles:
+            farm_role_details = self.get_farm_role_details(farm_role.id)
+            if farm_role.cloudPlatform == Platform.GCE:
+                # get farm role storage list
+                farm_role_storage = self.get_storages(farm_role.id)
+                # get farm role orchestration rules
+                farm_role_orchestraion_rules = self.get_orchestration_rules(farm_role.id)
+                # check farm role scalling rules
+                assert self.scaling_rule['base_options']['name'] in farm_role_details.scaling.rules \
+                       and self.scaling_rule['rule_details']['enabled'] == farm_role_details.scaling.enabled
+                # check farm role chef bootstraping config
+                assert self.chef_bootstraping_rule['bootstrapping']['runList'] == farm_role_details.bootstrapping.runList
+                # check farm role storage
+                assert any(self.storages_configuration['type'] == storage.type for storage in farm_role_storage)
+                # check farm role orchestration rules
+                assert all(orchestration_rule.trigger.event.id in self.orchestration_config['events']
+                           for orchestration_rule in farm_role_orchestraion_rules)
+            if farm_role.cloudPlatform == Platform.VMWARE:
+                assert any(self.ext_vmware_network_id == network.id for network in farm_role_details.networking.networks)
+
+
 

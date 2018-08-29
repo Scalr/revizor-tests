@@ -81,6 +81,9 @@ class PlatformStore(object):
             return platform == self._name
         super().__getattribute__(attr)
 
+    def __eq__(self, other):
+        return other == self._name
+
 
 class Platform(object):
 
