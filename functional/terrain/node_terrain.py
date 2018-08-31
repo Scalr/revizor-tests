@@ -378,35 +378,6 @@ def find_string_in_debug_log(step, serv_as, string):
         raise AssertionError('String "%s" not found in scalarizr_debug.log. Grep result: %s' % (string, out))
 
 
-
-
-@step('scalarizr version from (\w+) repo is last in (.+)$')
-@world.passed_by_version_scalarizr('2.5.14')
-def assert_scalarizr_version_old(step, repo, serv_as):
-    """
-    Argument repo can be system or role.
-    System repo - CONF.feature.branch
-    Role repo - CONF.feature.to_branch
-    """
-    if repo == 'system':
-        branch = CONF.feature.branch
-    elif repo == 'role':
-        branch = CONF.feature.to_branch
-    server = getattr(world, serv_as)
-    if branch == 'latest' and 'base' in server.role.behaviors:
-        branch = DEFAULT_PY3_BRANCH
-    version_old = world.get_scalaraizr_latest_version(branch)
-    LOG.info('Scalarizr versions in repository %s: %s' % (branch, versions))
-    server_info = server.upd_api.status(cached=False)
-    LOG.debug('Server %s status: %s' % (server.id, server_info))
-    # if not repo == server_info['repository']:
-    #     raise AssertionError('Scalarizr installed on server from different repo (%s) must %s'
-    #                          % (server_info['repository'], repo))
-    if not version_old == server_info['installed']:
-        raise AssertionError('Installed scalarizr version is not last! Installed %s, last: %s'
-                             % (server_info['installed'], version_old))
-
-
 @world.absorb
 def get_scalaraizr_latest_version(branch):
     os_family = CONF.feature.dist.family
@@ -414,7 +385,6 @@ def get_scalaraizr_latest_version(branch):
     LOG.debug('Check package from index_url: %s' % index_url)
     repo_data = parser_for_os_family(CONF.feature.dist.mask)(index_url=index_url)
     versions = [package['version'] for package in repo_data if package['name'] == 'scalarizr'] if os_family != 'coreos' else repo_data
-    # raise Exception(versions)
     versions.sort(reverse=True)
     return versions[0]
 
@@ -426,7 +396,6 @@ def assert_scalarizr_version(step, branch, serv_as):
     System branch - CONF.feature.branch
     Role branch - CONF.feature.to_branch
     """
-    #FIXME: Rewrite this ugly code!
     server = getattr(world, serv_as)
     if branch == 'system' or not branch:
         branch = CONF.feature.branch
