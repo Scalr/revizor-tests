@@ -1,0 +1,3 @@
+pyswagger==0.8.37
+python-box
+flex
