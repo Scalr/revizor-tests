@@ -5,6 +5,7 @@ Created on 22.06.18
 """
 
 import uuid
+import sys
 from functools import reduce
 
 from .consts import PlatformStore
@@ -36,3 +37,26 @@ def serialize_data_store(obj):
     if isinstance(obj, PlatformStore):
         return obj._name
     return obj
+
+
+class ColorPrint(object):
+
+    @staticmethod
+    def print_fail(message, suffix='\n', prefix='\n'):
+        sys.stderr.write(prefix + '\x1b[1;31m' + message.strip() + '\x1b[0m' + suffix)
+
+    @staticmethod
+    def print_pass(message, suffix='\n', prefix='\n'):
+        sys.stdout.write(prefix + '\x1b[1;32m' + message.strip() + '\x1b[0m' + suffix)
+
+    @staticmethod
+    def print_warn(message, suffix='\n', prefix='\n'):
+        sys.stderr.write(prefix + '\x1b[1;33m' + message.strip() + '\x1b[0m' + suffix)
+
+    @staticmethod
+    def print_info(message, suffix='\n', prefix='\n'):
+        sys.stdout.write(prefix + '\x1b[1;34m' + message.strip() + '\x1b[0m' + suffix)
+
+    @staticmethod
+    def print_bold(message, suffix='\n', prefix='\n'):
+        sys.stdout.write(prefix + '\x1b[1;37m' + message.strip() + '\x1b[0m' + suffix)

@@ -13,78 +13,81 @@ from paramiko import ssh_exception
 from revizor2.testenv import TestEnv
 from revizor2.backend import IMPL
 from revizor2.conf import CONF
+from api.utils.helpers import ColorPrint
 
 
 TE_HOST_TPL = "{}.test-env.scalr.com"
-TE_URI_SCHEMA = "http"
 
 
 def pytest_addoption(parser):
-    parser.addoption(
+    group = parser.getgroup("docker controller", "fatmouse", after="general")
+    group.addoption(
         "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=False,
         help="Set default behavior of validation util, if 'False' api response not validate by flex"
     )
-    parser.addoption(
-        "--te_id", "--test_environment_id", dest="te_id",
+    group.addoption(
+        "--te-id", "--test-environment_id", dest="te_id",
         action="store", help="Scalr test environment id to use existing env", default=None
     )
-    parser.addoption(
-        "--te_br", "--test_environment_branch", dest="te_branch",
+    group.addoption(
+        "--te-br", "--test-environment_branch", dest="te_branch",
         action="store", help="Scalr branch", default="master"
     )
-    parser.addoption(
-        "--te_notes", dest="te_notes", action="store",
+    group.addoption(
+        "--te-notes", dest="te_notes", action="store",
         help="Scalr test environment description", default='api testing environment'
     )
-    parser.addoption(
-        "--remove-test-env", dest="remove_te",
-        action="store", help="Remove Scalr test environment after test is finished",
-        default=True
+    group.addoption(
+        "--te-creation-timeout", "--te-ct", dest="te_timeout", action="store",
+        help="Scalr test environment creation timeout", default=60, type=int
     )
-    parser.addoption(
-        "--show-capture-repress", dest="no_show_capture",
-        action="store", help="Repress capture output", default=True
+    group.addoption(
+        "--store-test-env", dest="store_te", action="store_true",
+        help="Store Scalr test environment after tests is finished"
     )
 
 
 def pytest_sessionstart(session):
-    if session.config.getoption('no_show_capture'):
+    if "--show-capture" not in sys.argv:
         session.config.option.showcapture = 'no'
     te_id = session.config.getoption("te_id")
     if not te_id:
-        sys.stdout.write("\033[0;32m\nPrepare Scalr environment...\n")
+        ColorPrint.print_pass("Prepare Scalr environment...")
         test_env = TestEnv.create(
             branch=session.config.getoption("te_branch"),
             notes=session.config.getoption("te_notes"))
-        # Wait test environment is Running
-        while True:
-            try:
-                test_env.get_ssh()
-                break
-            except ssh_exception.NoValidConnectionsError:
-                time.sleep(1)
-        session.config.test_env = test_env
     else:
         test_env = TestEnv(te_id)
+    # Wait test environment is Running
+    time_delta = time.time()+session.config.getoption("te_timeout")
+    while time.time() <= time_delta:
+        try:
+            test_env.get_ssh()
+            session.config.test_env = test_env
+            break
+        except ssh_exception.NoValidConnectionsError:
+            time.sleep(1)
+    else:
+        ColorPrint.print_fail("")
+        raise RuntimeError("Test environment timeout expired...")
     # Create api v2 keys
     CONF.scalr.te_id = test_env.te_id
     api_key = IMPL.api_key.new()
     # Store settings
     session.config.api_environment = dict(
         host=TE_HOST_TPL.format(test_env.te_id),
-        schema=TE_URI_SCHEMA,
+        schema="http",
         secret_key=api_key['secretKey'],
         secret_key_id=api_key['keyId']
     )
-    sys.stdout.write(
-        "\033[0;32m\n\nTest will run in this test environment: %s\n" %
-        TE_HOST_TPL.format(test_env.te_id))
+    ColorPrint.print_pass("Test will run in this test environment: %s" % TE_HOST_TPL.format(test_env.te_id))
 
 
 def pytest_sessionfinish(session):
     test_env = getattr(session.config, "test_env", None)
-    if session.config.getoption('remove_te') and test_env:
-        sys.stdout.write("\033[1;31m\n\nDestroy environment: %s ..." % test_env.te_id)
+    store_test_env = session.config.getoption('store_te', default=False)
+    if test_env and not store_test_env:
+        ColorPrint.print_fail("Destroy environment: %s ..." % test_env.te_id)
         test_env.destroy()
 
 
