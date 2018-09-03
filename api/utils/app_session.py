@@ -29,7 +29,7 @@ class AppSession(object):
 
     _app_tree = None
 
-    _app_session = None
+    _api_session = None
 
     _app_checker = None
 
@@ -45,7 +45,7 @@ class AppSession(object):
         self._app_checker = ValidationUtil(
             self._app_level,
             fileutil)
-        self._app_session = ScalrApiSession(**fileutil.api_credentials)
+        self._api_session = ScalrApiSession(**fileutil.api_credentials)
         self._request = request
 
     def __getattr__(self, name):
@@ -60,7 +60,7 @@ class AppSession(object):
         return _handler
 
     def close(self):
-        self._app_session.close()
+        self._api_session.close()
 
     def _execute_request(self, endpoint, method, params, filters=None, body=None):
         request_kwargs = dict(
@@ -70,7 +70,7 @@ class AppSession(object):
             body=body,
             filters=filters
         )
-        response = self._app_session.request(
+        response = self._api_session.request(
             serializer=serialize_data_store,
             **self._app_checker.check_request_params(
                 self._get_request_spec_by_endpoint(endpoint),

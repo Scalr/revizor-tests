@@ -38,7 +38,7 @@ class TestRoles(object):
                 category={"id": role_category},
                 name="tmp-api-%s" % uniq_uuid(),
                 os={"id": os_id}))
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def create_role_image(self, role_id, image_id):
         resp = self.api.create(
@@ -50,7 +50,7 @@ class TestRoles(object):
                 image={'id': image_id},
                 role={'id': role_id}
             ))
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def list_images(self, platform=None, os=None, scope=None, agent_installed=True):
         resp = self.api.list(
@@ -63,7 +63,7 @@ class TestRoles(object):
                 scope=scope
             )
         )
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def list_role_images(self, role_id, image=None, role=None):
         resp = self.api.list(
@@ -75,9 +75,9 @@ class TestRoles(object):
                 image=image,
                 role=role)
         )
-        return resp.json_data.data
+        return resp.box_repr.data
 
-    def test_new_role_existing_image(self):
+    def test_create_role_with_image(self):
         # Create new role
         role = self.create_role(
             self.os_id,
@@ -92,18 +92,19 @@ class TestRoles(object):
                     platform=Platform.EC2,
                     os=self.os_id,
                     scope=self.scope)))
-        assert images
+        assert len(images), "No active images with mbeh1 in name found"
         image_id = images[0].id
         # Add image to role
         self.create_role_image(role.id, image_id)
         # Assert role images
-        assert list(filter(
+        role_images = list(filter(
             lambda i:
                 image_id == i.image.id,
             self.list_role_images(role.id)))
+        assert len(role_images), 'Image was not properly added to role'
 
-    def test_new_role_existing_images(self):
-        images = list()
+    def test_create_role_with_several_images(self):
+        images = []
 
         cloud_platforms = [
             Platform.EC2,
@@ -132,7 +133,7 @@ class TestRoles(object):
         # Assert role images
         assert all(ri.image.id in images for ri in self.list_role_images(role.id))
 
-    def test_new_role_invalid_os_id(self):
+    def test_create_role_with_invalid_os_id(self):
         invalid_os_id = "ubuntu-19-04"
         exc_message = "'Role.os.id' ({}) was not found.".format(
             invalid_os_id)
@@ -142,7 +143,7 @@ class TestRoles(object):
                 self.dev_role_category)
         assert exc_message in e.value.args[0]
 
-    def test_new_role_invalid_automation_types(self):
+    def test_create_role_with_invalid_automation_types(self):
         exc_message = "'Role.builtinAutomation' ({}) " \
                       "are invalid".format(
                         BuiltInAutomation.INVALID)
@@ -153,7 +154,7 @@ class TestRoles(object):
                 automation=BuiltInAutomation.INVALID)
         assert exc_message in e.value.args[0]
 
-    def test_new_role_uncombined_behaviors(self):
+    def test_create_role_with_uncombined_behaviors(self):
         exc_message = "'Role.builtinAutomation' ({}, {}) " \
                       "behaviors can't be combined.".format(
                         *BuiltInAutomation.UNCOMBINED_BEHAVIORS)
@@ -164,7 +165,7 @@ class TestRoles(object):
                 automation=BuiltInAutomation.UNCOMBINED_BEHAVIORS)
         assert exc_message in e.value.args[0]
 
-    def test_new_role_platform_with_two_images(self):
+    def test_create_role_with_two_images_for_platform(self):
         # Find images
         images = list(filter(
             lambda i:
@@ -175,7 +176,11 @@ class TestRoles(object):
                     platform=Platform.EC2,
                     os=self.os_id,
                     scope=self.scope)))
-        assert images
+        assert len(images), "No active images with 'mbeh' in name found for EC2 platform"
+        exc_message = "'RoleImage.image.id' ({}) with 'cloudLocation' " \
+                      "({}) has already been registered.".format(
+            images[1].cloudImageId,
+            images[1].cloudLocation)
         # Create new role
         role = self.create_role(
             self.os_id,
@@ -183,9 +188,5 @@ class TestRoles(object):
         # Add images to role
         with pytest.raises(requests.exceptions.HTTPError) as e:
             for image in images:
-                exc_message = "'RoleImage.image.id' ({}) with 'cloudLocation' " \
-                              "({}) has already been registered.".format(
-                                image.cloudImageId,
-                                image.cloudLocation)
                 self.create_role_image(role.id, image.id)
         assert exc_message in e.value.args[0]

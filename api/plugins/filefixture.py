@@ -36,31 +36,28 @@ class FileFixture(object):
 
     def __init__(self, request):
         self._request = request
-        root = request.config.rootdir
-        self.root_dir = Path(root.strpath)
+        self.root_dir = Path(request.config.rootdir.strpath)
         self.working_dir = request.config.option.working_dir
         self._api_credentials = None
 
     @property
     def api_credentials(self):
         if not self._api_credentials:
-            try:
-                self._api_credentials = getattr(self._request.config, 'api_environment')
-            except Exception as e:
-                raise e.__class__("Api environment credentials is unavailable")
+            self._api_credentials = getattr(self._request.config, 'api_environment')
         return self._api_credentials
 
-    def _get_swagger_difinitions_from_url(self, pattern, dst):
+    def _get_swagger_definitions_from_url(self, api_level, dst):
         if not dst.exists():
             dst.mkdir(parents=True)
         url = urlunparse((
             self.api_credentials['schema'],
             self.api_credentials['host'],
-            self._schemas_uri_suffix.format(api_level=pattern),
+            self._schemas_uri_suffix.format(api_level=api_level),
             '', '', ''))
         resp = requests.get(url=url, allow_redirects=True)
         resp.raise_for_status()
-        fname = re.findall('=([\w\W]+)$', resp.headers['Content-Disposition'])[0]
+        print(resp.headers['Content-Disposition'])
+        fname = re.findall("filename=([\w\W]+)$", resp.headers['Content-Disposition'])[0]
         dst = dst.joinpath(fname)
         dst.write_bytes(resp.content)
         return dst
@@ -73,7 +70,7 @@ class FileFixture(object):
         try:
             swagger_def = self._find(**search_criteria)
         except (PathNotFoundError, FileNotFoundError):
-            swagger_def = self._get_swagger_difinitions_from_url(pattern, path)
+            swagger_def = self._get_swagger_definitions_from_url(pattern, path)
         return swagger_def.as_posix()
 
     def _find(self, path, mask):

@@ -46,7 +46,7 @@ class Setup(object):
             "/api/v1beta0/user/envId/farms/",
             params=dict(envId=self.env_id),
             body=body)
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def add_role_to_farm(self, farm_id, role_id,
                          alias, platform,
@@ -105,7 +105,7 @@ class Setup(object):
                 farmId=farm_id
             ),
             body=remove_empty_values(body))
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def gen_farm_template(self, farm_id, farm_name=None):
         tpl = self.api.generate_template(
@@ -113,7 +113,7 @@ class Setup(object):
             params=dict(
                 envId=self.env_id,
                 farmId=farm_id
-            )).json_data.data
+            )).box_repr.data
         if farm_name:
             tpl.farm.name = farm_name
         return tpl
@@ -126,7 +126,7 @@ class Setup(object):
                 farmId=farm_id
             )
         )
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def get_role(self, role_id):
         resp = self.api.get(
@@ -136,7 +136,7 @@ class Setup(object):
                 roleId=role_id
             )
         )
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def get_farm_roles(self, farm_id):
         resp = self.api.list(
@@ -146,7 +146,7 @@ class Setup(object):
                 farmId=farm_id
             )
         )
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def get_farm_role_details(self, farm_role_id):
         resp = self.api.get(
@@ -156,7 +156,7 @@ class Setup(object):
                 farmRoleId=farm_role_id
             )
         )
-        return resp.json_data.data
+        return resp.box_repr.data
 
     @property
     def uniq_farm_name(self):
@@ -233,7 +233,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
                 envId=self.env_id,
                 roleId=role_id),
             body=body)
-        return resp.json_data.data
+        return resp.box_repr.data
 
 
     @pytest.fixture(autouse=True)
@@ -513,7 +513,7 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             params=dict(
                 envId=self.env_id,
                 farmRoleId=farm_role_id))
-        return resp.json_data.data
+        return resp.box_repr.data
 
     def get_orchestration_rules(self, farm_role_id):
         resp = self.api.list(
@@ -521,7 +521,7 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             params=dict(
                 envId=self.env_id,
                 farmRoleId=farm_role_id))
-        return resp.json_data.data
+        return resp.box_repr.data
 
     @pytest.fixture(autouse=True)
     def bootstrap(self, api):

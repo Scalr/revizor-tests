@@ -69,7 +69,7 @@ class ScalrApiSession(requests.Session):
 
     def send(self, request, **kwargs):
         response = super().send(request, **kwargs)
-        setattr(response, 'json_data', self.__class__.json_to_box(response))
+        setattr(response, 'box_repr', self.__class__.json_to_box(response))
         return response
 
     def request(self, method, endpoint, params, body=None, filters=None,  serializer=None, *args, **kwargs):
