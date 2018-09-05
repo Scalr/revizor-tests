@@ -1,5 +1,5 @@
 import logging
-from typing import List
+import typing as tp
 
 from revizor2 import CONF
 from revizor2.api import Server
@@ -47,7 +47,7 @@ def validate_hostname(server: Server):
 
 # @world.run_only_if(platform=['!%s' % Platform.RACKSPACENGUS, '!%s' % Platform.CLOUDSTACK],
 #     dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos']) <-- TODO
-def validate_iptables_ports(cloud: Cloud, server: Server, ports: List[int], invert: bool = False):
+def validate_iptables_ports(cloud: Cloud, server: Server, ports: tp.List[int], invert: bool = False):
     LOG.info(f'Verify ports {ports} in iptables')
     if CONF.feature.platform.is_cloudstack:
         LOG.info('Skip iptables check for Cloudstack')

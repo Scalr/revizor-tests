@@ -1,4 +1,5 @@
 import logging
+import typing as tp
 
 from revizor2.api import Server
 from revizor2.cloud import Cloud
@@ -8,7 +9,7 @@ from scalarizr.lib.util.szradm_resultsparser import SzrAdmResultsParser
 LOG = logging.getLogger(__name__)
 
 
-def get_key(szradm_response: dict, pattern: str) -> tuple:
+def get_key(szradm_response: dict, pattern: str) -> tp.Tuple[list, int]:
     key_value = list(SzrAdmResultsParser.get_values_by_key(szradm_response, pattern))
     key_count = len(key_value[0] if isinstance(key_value[0], list) else key_value)
     return key_value, key_count

@@ -12,3 +12,4 @@ azure-mgmt-sql>=0.9.1
 azure-mgmt-monitor>=0.5.2
 pytest>=3.7.1
 ansible-tower-cli==3.2.1
+pika>=0.12.0

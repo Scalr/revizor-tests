@@ -1,6 +1,6 @@
 import logging
 import time
-from typing import List
+import typing as tp
 
 from revizor2 import CONF
 from revizor2.api import Farm, Role, Server, Message
@@ -182,6 +182,6 @@ def get_iptables_rules(cloud: Cloud, server: Server) -> str:
     return cloud.get_node(server).run('iptables -L').std_out
 
 
-def get_incoming_messages(server: Server, msg: str) -> List[Message]:
+def get_incoming_messages(server: Server, msg: str) -> tp.List[Message]:
     server.messages.reload()
     return [m for m in server.messages if m.type == 'in' and m.name == msg]

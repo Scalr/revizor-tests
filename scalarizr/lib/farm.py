@@ -1,6 +1,6 @@
 import logging
 import re
-from typing import List, Union
+import typing as tp
 
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
@@ -17,7 +17,7 @@ def add_role_to_farm(context: dict,
                      farm: Farm,
                      behavior: str = None,
                      role_name: str = None,
-                     role_options: List[str] = None,
+                     role_options: tp.List[str] = None,
                      alias: str = None):
     behavior = (behavior or CONF.feature.behavior).strip()
     role_name = (role_name or '').strip()
@@ -95,9 +95,9 @@ def get_role_by_behavior(behavior) -> dict:
 
 def setup_farmrole_params(context: dict,
                           farm: Farm,
-                          role_options: List[str] = None,
+                          role_options: tp.List[str] = None,
                           alias: str = None,
-                          behaviors: Union[str, List[str]] = None,
+                          behaviors: tp.Union[str, tp.List[str]] = None,
                           setup_bundled_role: bool = False) -> farmrole.FarmRoleParams:
     platform = CONF.feature.platform
     dist = CONF.feature.dist
