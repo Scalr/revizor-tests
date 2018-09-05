@@ -29,8 +29,8 @@ def grid(ctx, docs=False, port='4444'):
         ctx.run(grid_cmd)
 
 
-@task(grid)
-def webtests(ctx, testpath='', browsers='all', processes='', teid='', localmode='', cleanup=''):
+@task
+def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode='', te_remove=''):
     """Incrementally executes speicified selenium/pytest test cases with specified browsers.
 
        :param str testpath: path to specific pytest modules or folders with tests.
@@ -39,22 +39,22 @@ def webtests(ctx, testpath='', browsers='all', processes='', teid='', localmode=
         Usage: '--browsers firefox,chrome,...'.
        :param str processes: number of processes for parallel testing.
         Usage: '--processes 3'.
-       :param str teid: specify id for already created TestEnv.
-        Usage: '--teid <id>'.
+       :param str te_id: specify id for already created TestEnv.
+        Usage: '--te-id <id>'.
        :param localmode str: for test runs on local machine.
         Usage '--localmode true'.
-       :param cleanup str: always destroy created TestEnv.
-        Usage '--cleanup true'.
+       :param te_remove str: always destroy created TestEnv.
+        Usage '--te-remove true'.
     """
     ctx.run(r'find . -name "*.pyc" -exec rm -f {} \;')
     browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
     processes = ' -n %s' % processes if processes else ''
-    teid = '--te_id %s' % teid if teid else ''
-    cleanup = '--cleanup %s' % cleanup if cleanup else ''
+    te_id = '--te-id %s' % te_id if te_id else ''
+    te_remove = '--te-remove true' if te_remove else ''
     for browser in browsers:
         driver = browser if localmode else 'Remote'
         command = 'python3 -m pytest%s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s %s' %\
-            (processes, driver, browser, teid, cleanup, testpath)
+            (processes, driver, browser, testpath, te_id, te_remove)
         print(command)
         ctx.run(command)
 
