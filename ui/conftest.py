@@ -13,10 +13,10 @@ from revizor2.fixtures import resources
 
 def pytest_addoption(parser):
     parser.addoption(
-        "--te_id", action="store", default=None, help="Use already created TestEnv."
+        "--te-id", action="store", default=None, help="Use already created TestEnv."
     )
     parser.addoption(
-        "--cleanup", action="store", default=None, help="Destroy TestEnv even when some tests fail."
+        "--te-remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
     )
 
 
@@ -33,8 +33,8 @@ def testenv(request):
        Destroys container after all tests in TestClass were executed,
        unless some of the tests failed.
     """
-    te_id = request.config.getoption("--te_id")
-    cleanup = request.config.getoption("--cleanup")
+    te_id = request.config.getoption("--te-id")
+    te_remove = request.config.getoption("--te-remove")
     if te_id:
         container = TestEnv(te_id)
     else:
@@ -48,7 +48,7 @@ def testenv(request):
             except NoValidConnectionsError:
                 time.sleep(3)
     yield container
-    if (request.node.session.testsfailed == 0 and not te_id) or cleanup:
+    if (request.node.session.testsfailed == 0 and not te_id) or te_remove:
         container.destroy()
 
 
