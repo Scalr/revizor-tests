@@ -12,7 +12,7 @@ import requests
 from pathlib import Path
 from urllib.parse import urlunparse
 
-from api.utils.exceptions import FileNotFoundError, PathNotFoundError
+from api.utils.exceptions import PathNotFoundError
 
 
 @pytest.fixture(scope="session", autouse=True)

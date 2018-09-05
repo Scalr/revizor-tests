@@ -5,19 +5,11 @@ Created on 09.07.18
 """
 
 
-class BaseException(Exception):
-    pass
-
-
 class UnexpectedSchemasFormat(BaseException):
     pass
 
 
 class ResponseValidationError(BaseException):
-    pass
-
-
-class FileNotFoundError(BaseException):
     pass
 
 

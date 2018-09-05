@@ -51,26 +51,9 @@ class APIParams(object):
 
 class PlatformStore(object):
 
-    def __init__(self, name, location=None,
-                 instance_type=None, network=None,
-                 folder=None, zone=None,
-                 compute_resource=None, host=None,
-                 subnet=None, resource_group=None,
-                 storage_account=None, data_store=None,
-                 resource_pool=None):
-        self.instance_type = instance_type
-        self.location = location
-        self.network = network
+    def __init__(self, name, **kwargs):
         self._name = name
-        self.zone = zone
-        self.folder = folder
-        self.compute_resource = compute_resource
-        self.host = host
-        self.subnet = subnet
-        self.resource_group = resource_group
-        self.storage_account = storage_account
-        self.resource_pool = resource_pool
-        self.data_store = data_store
+        self.__dict__.update(**kwargs)
 
     def __repr__(self):
         return str(self._name)
@@ -147,18 +130,17 @@ class Platform(object):
                             network='invalid',
                             zone='invalid')
 
-
 class BuiltInAutomation(object):
 
     BASE = 'base'
     CHEF = 'chef'
-    MYSQL = 'mysql'
+    MYSQL = 'mysql2'
     POSTGRESQL = 'postgresql'
     PEERCONA = 'percona'
-    APACHE = 'apache'
+    APACHE = 'app'
     TOMCAT = 'tomcat'
     HAPROXY = 'haproxy'
-    NGINX = 'nginx'
+    NGINX = 'www'
     MEMCACHED = 'memcached'
     REDIS = 'redis'
     RABBITMQ = 'rabbitmq'
