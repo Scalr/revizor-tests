@@ -20,17 +20,17 @@ TE_HOST_TPL = "{}.test-env.scalr.com"
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup("docker controller", "fatmouse", after="general")
+    group = parser.getgroup("revizor api framework", after="general")
     group.addoption(
         "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=False,
         help="Set default behavior of validation util, if 'False' api response not validate by flex"
     )
     group.addoption(
-        "--te-id", "--test-environment_id", dest="te_id",
+        "--te-id", "--test-environment-id", dest="te_id",
         action="store", help="Scalr test environment id to use existing env", default=None
     )
     group.addoption(
-        "--te-br", "--test-environment_branch", dest="te_branch",
+        "--te-br", "--test-environment-branch", dest="te_branch",
         action="store", help="Scalr branch", default="master"
     )
     group.addoption(
