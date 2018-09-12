@@ -20,7 +20,7 @@ TE_HOST_TPL = "{}.test-env.scalr.com"
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup("revizor api framework", after="general")
+    group = parser.getgroup("revizor api testing", after="general")
     group.addoption(
         "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=False,
         help="Set default behavior of validation util, if 'False' api response not validate by flex"
@@ -42,8 +42,8 @@ def pytest_addoption(parser):
         help="Scalr test environment creation timeout", default=60, type=int
     )
     group.addoption(
-        "--store-test-env", dest="store_te", action="store_true",
-        help="Store Scalr test environment after tests is finished"
+        "--te-no-delete", dest="te_no_delete", action="store_true",
+        help="Don't remove test environment after tests is finished"
     )
 
 
@@ -85,7 +85,7 @@ def pytest_sessionstart(session):
 
 def pytest_sessionfinish(session):
     test_env = getattr(session.config, "test_env", None)
-    store_test_env = session.config.getoption('store_te', default=False)
+    store_test_env = session.config.getoption('te_no_delete', default=False)
     if test_env and not store_test_env:
         ColorPrint.print_fail("Destroy environment: %s ..." % test_env.te_id)
         test_env.destroy()
