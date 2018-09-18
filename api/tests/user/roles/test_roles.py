@@ -8,7 +8,7 @@ import pytest
 import requests
 import six
 
-from api.utils.helpers import uniq_uuid
+from api.utils.helpers import unique_uuid
 from api.utils.consts import Platform, BuiltInAutomation, ENV_ID
 
 
@@ -36,7 +36,7 @@ class TestRoles(object):
             body=dict(
                 builtinAutomation=builtin_automation,
                 category={"id": role_category},
-                name="tmp-api-%s" % uniq_uuid(),
+                name="tmp-api-%s" % unique_uuid(),
                 os={"id": os_id}))
         return resp.box_repr.data
 

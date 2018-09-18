@@ -56,7 +56,6 @@ class FileFixture(object):
             '', '', ''))
         resp = requests.get(url=url, allow_redirects=True)
         resp.raise_for_status()
-        print(resp.headers['Content-Disposition'])
         fname = re.findall("filename=([\w\W]+)$", resp.headers['Content-Disposition'])[0]
         dst = dst.joinpath(fname)
         dst.write_bytes(resp.content)

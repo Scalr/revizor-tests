@@ -19,6 +19,12 @@ from api.utils.helpers import ColorPrint
 TE_HOST_TPL = "{}.test-env.scalr.com"
 
 
+pytest_plugins = [
+    "api.plugins.filefixture",
+    "api.utils.app_session"
+]
+
+
 def pytest_addoption(parser):
     group = parser.getgroup("revizor api testing", after="general")
     group.addoption(
@@ -39,7 +45,7 @@ def pytest_addoption(parser):
     )
     group.addoption(
         "--te-creation-timeout", "--te-ct", dest="te_timeout", action="store",
-        help="Scalr test environment creation timeout", default=60, type=int
+        help="Scalr test environment creation timeout", default=300, type=int
     )
     group.addoption(
         "--te-no-delete", dest="te_no_delete", action="store_true",
@@ -65,9 +71,10 @@ def pytest_sessionstart(session):
             test_env.get_ssh()
             session.config.test_env = test_env
             break
-        except ssh_exception.NoValidConnectionsError:
+        except (ssh_exception.NoValidConnectionsError, ssh_exception.SSHException):
             time.sleep(1)
     else:
+        test_env.destroy()
         ColorPrint.print_fail("")
         raise RuntimeError("Test environment timeout expired...")
     # Create api v2 keys
@@ -85,13 +92,7 @@ def pytest_sessionstart(session):
 
 def pytest_sessionfinish(session):
     test_env = getattr(session.config, "test_env", None)
-    store_test_env = session.config.getoption('te_no_delete', default=False)
-    if test_env and not store_test_env:
+    no_delete = session.config.getoption('te_no_delete', default=False)
+    if test_env and not no_delete:
         ColorPrint.print_fail("Destroy environment: %s ..." % test_env.te_id)
         test_env.destroy()
-
-
-pytest_plugins = [
-    "api.plugins.filefixture",
-    "api.utils.app_session"
-]

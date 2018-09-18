@@ -29,7 +29,7 @@ def remove_empty_values(obj):
     return None or obj
 
 
-def uniq_uuid():
+def unique_uuid():
     return str(uuid.uuid4().hex)[:16]
 
 

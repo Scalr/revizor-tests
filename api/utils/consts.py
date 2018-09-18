@@ -96,7 +96,8 @@ class Platform(object):
     EC2 = PlatformStore(name='ec2',
                         location='us-east-1',
                         instance_type='t2.small',
-                        network='vpc-596aa03e')
+                        network='vpc-596aa03e',
+                        subnet='subnet-41b49e24')
 
     GCE = PlatformStore(name='gce',
                         location='us-central1',

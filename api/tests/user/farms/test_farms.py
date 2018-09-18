@@ -10,7 +10,7 @@ import inspect
 import pytest
 import requests
 
-from api.utils.helpers import uniq_uuid, remove_empty_values
+from api.utils.helpers import unique_uuid, remove_empty_values
 from api.utils.consts import Platform, COST_PROJECT_ID, ENV_ID
 
 
@@ -31,24 +31,46 @@ class Setup(object):
     role_id = 57039
 
     @staticmethod
-    def init_api(api):
-        if not Setup.api:
-            Setup.api = api
-        return Setup.api
+    def get_unique_farm_name():
+        return "tmp-api-%s" % unique_uuid()
 
-    def create_farm(self, farm_tpl=None, **kwargs):
+    @classmethod
+    def create_farm(cls, farm_tpl=None, **kwargs):
         body = farm_tpl or dict(
-            name=self.uniq_farm_name,
-            project={"id": self.cost_project_id},
-            **kwargs
-        )
-        resp = self.api.create(
+            name=cls.get_unique_farm_name(),
+            project={"id": cls.cost_project_id},
+            **kwargs)
+        resp = cls.api.create(
             "/api/v1beta0/user/envId/farms/",
-            params=dict(envId=self.env_id),
+            params=dict(envId=cls.env_id),
             body=body)
         return resp.box_repr.data
 
-    def add_role_to_farm(self, farm_id, role_id,
+    @classmethod
+    def gen_farm_template(cls, farm_id, farm_name=None):
+        tpl = cls.api.generate_template(
+            "/api/v1beta0/user/envId/farms/farmId/actions/generate-template/",
+            params=dict(
+                envId=cls.env_id,
+                farmId=farm_id
+            )).box_repr.data
+        if farm_name:
+            tpl.farm.name = farm_name
+        return tpl
+
+    @classmethod
+    def get_role(cls, role_id):
+        resp = cls.api.get(
+            "/api/v1beta0/user/envId/roles/roleId/",
+            params=dict(
+                envId=cls.env_id,
+                roleId=role_id
+            )
+        )
+        return resp.box_repr.data
+
+    @classmethod
+    def add_role_to_farm(cls, farm_id, role_id,
                          alias, platform,
                          location=None, instance_type=None,
                          network=None, zone=None,
@@ -72,6 +94,10 @@ class Setup(object):
                 "resourceGroup": resource_group,
                 "storageAccount": storage_account}
             zone = [zone]
+        elif platform.is_ec2:
+            network = {
+                "networks": networks,
+                "subnets": [{"id": subnet}]}
         else:
             network = {'networks': networks}
         # vmware farm role settings
@@ -98,25 +124,13 @@ class Setup(object):
             **kwargs
         )
 
-        resp = self.api.create(
+        resp = cls.api.create(
             "/api/v1beta0/user/envId/farms/farmId/farm-roles/",
             params=dict(
-                envId=self.env_id,
-                farmId=farm_id
-            ),
+                envId=cls.env_id,
+                farmId=farm_id),
             body=remove_empty_values(body))
         return resp.box_repr.data
-
-    def gen_farm_template(self, farm_id, farm_name=None):
-        tpl = self.api.generate_template(
-            "/api/v1beta0/user/envId/farms/farmId/actions/generate-template/",
-            params=dict(
-                envId=self.env_id,
-                farmId=farm_id
-            )).box_repr.data
-        if farm_name:
-            tpl.farm.name = farm_name
-        return tpl
 
     def get_farm(self, farm_id):
         resp = self.api.get(
@@ -124,16 +138,6 @@ class Setup(object):
             params=dict(
                 envId=self.env_id,
                 farmId=farm_id
-            )
-        )
-        return resp.box_repr.data
-
-    def get_role(self, role_id):
-        resp = self.api.get(
-            "/api/v1beta0/user/envId/roles/roleId/",
-            params=dict(
-                envId=self.env_id,
-                roleId=role_id
             )
         )
         return resp.box_repr.data
@@ -158,28 +162,20 @@ class Setup(object):
         )
         return resp.box_repr.data
 
-    @property
-    def uniq_farm_name(self):
-        return "tmp-api-%s" % uniq_uuid()
-
 
 class TestEmptyFarm(Setup):
 
-    @pytest.fixture(autouse=True)
-    def bootstrap(self, api):
-        if not self.api:
-            self.api = super().init_api(api)
-        if not self.role:
-            self.__class__.role = self.get_role(self.role_id)
-        if not self.farm:
-            self.__class__.farm = self.create_farm()
-            # gen tpl from Farm
-            self.__class__.farm_tpl = self.gen_farm_template(
-                farm_id=self.__class__.farm.id)
+    @classmethod
+    @pytest.fixture(autouse=True, scope="class")
+    def bootstrap(cls, api):
+        cls.api = api
+        cls.role = cls.get_role(cls.role_id)
+        cls.farm = cls.create_farm()
+        cls.farm_tpl = cls.gen_farm_template(farm_id=cls.farm.id)
 
     def test_deploy_empty_farm(self):
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         # create Farm from template
         farm = self.create_farm(
             farm_tpl=farm_tpl.to_dict()
@@ -190,7 +186,7 @@ class TestEmptyFarm(Setup):
     def test_deploy_farm_add_farm_role(self):
         farm_tpl = self.farm_tpl.copy()
         # modify farm template
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         # add role to farm template
         role_params = dict(
             cloudLocation=Platform.GCE.location,
@@ -215,8 +211,7 @@ class TestEmptyFarm(Setup):
         exc_message = "'FarmTemplate.farm.name' ({farm_name}) already exists. " \
                       "The 'id' is ({farm_id})".format(
             farm_name=self.farm.name,
-            farm_id=self.farm.id
-        )
+            farm_id=self.farm.id)
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(
                 farm_tpl=self.farm_tpl.to_dict())
@@ -235,29 +230,25 @@ class TestDeployFarmWithOneFarmRole(Setup):
             body=body)
         return resp.box_repr.data
 
-
-    @pytest.fixture(autouse=True)
-    def bootstrap(self, api):
-        if not self.api:
-            self.api = super().init_api(api)
-        if not self.role:
-            self.__class__.role = self.get_role(self.role_id)
-        if not self.farm:
-            self.__class__.farm = self.create_farm()
-            # add GCE role to farm by api call
-            self.add_role_to_farm(
-                farm_id=self.__class__.farm.id,
-                role_id=self.__class__.role.id,
-                alias=self.__class__.role.name,
-                location=Platform.GCE.location,
-                platform=Platform.GCE,
-                instance_type=Platform.GCE.instance_type,
-                zone=Platform.GCE.zone,
-                network=Platform.GCE.network
-            )
-            # gen tpl from Farm
-            self.__class__.farm_tpl = self.gen_farm_template(
-                farm_id=self.__class__.farm.id)
+    @classmethod
+    @pytest.fixture(autouse=True, scope="class")
+    def bootstrap(cls, api):
+        cls.api = api
+        cls.role = cls.get_role(cls.role_id)
+        cls.farm = cls.create_farm()
+        # add GCE role to farm by api call
+        cls.add_role_to_farm(
+            farm_id=cls.farm.id,
+            role_id=cls.role.id,
+            alias=cls.role.name,
+            location=Platform.GCE.location,
+            platform=Platform.GCE,
+            instance_type=Platform.GCE.instance_type,
+            zone=Platform.GCE.zone,
+            network=Platform.GCE.network
+        )
+        # gen tpl from Farm
+        cls.farm_tpl = cls.gen_farm_template(farm_id=cls.farm.id)
 
     def test_deploy_farm_invalid_tpl_structure(self):
         exc_message = "InvalidStructure: 'Farm.data' does not exist."
@@ -270,7 +261,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         exc_message = "ObjectNotFound: 'FarmTemplate.farm.project.id' ({project_id}) was not found."
         farm_tpl = self.farm_tpl.copy()
         # set invalid project id
-        farm_tpl.farm.project.id = uniq_uuid()
+        farm_tpl.farm.project.id = unique_uuid()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
         assert exc_message.format(project_id=farm_tpl.farm.project.id) == e.value.args[0]
@@ -280,7 +271,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
                       "or isn't in scope for the current Environment."
         farm_tpl = self.farm_tpl.copy()
         # set invalid role id
-        farm_tpl.roles[0].role.id = uniq_uuid()
+        farm_tpl.roles[0].role.id = unique_uuid()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
         assert exc_message.format(role_id=farm_tpl.roles[0].role.id) == e.value.args[0]
@@ -290,7 +281,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
                       "or isn't in scope for the current Environment."
         farm_tpl = self.farm_tpl.copy()
         # set invalid role name
-        farm_tpl.roles[0].role.name = uniq_uuid()
+        farm_tpl.roles[0].role.name = unique_uuid()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
         assert exc_message.format(role_name=farm_tpl.roles[0].role.name) == e.value.args[0]
@@ -318,7 +309,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         exc_message = "InvalidValue: 'FarmTemplate.roles.cloudLocation' ({location}) is invalid " \
                       "for 'FarmRole.alias' ({name})."
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm_tpl.roles[0].cloudLocation = Platform.INVALID.location
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
@@ -327,7 +318,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
     def test_deploy_farm_invalid_zone(self):
         exc_message = "ObjectNotFoundOnCloud: 'FarmTemplate.roles.availabilityZones' ({zone}) was not found in the cloud."
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm_tpl.roles[0].availabilityZones[0] = Platform.INVALID.zone
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
@@ -336,7 +327,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
     def test_deploy_farm_invalid_instance_type(self):
         exc_message = "InvalidValue: 'FarmTemplate.roles.instanceType.id' ({type}) is invalid."
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm_tpl.roles[0].instanceType.id = Platform.INVALID.instance_type
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
@@ -346,7 +337,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         exc_message = "InvalidValue: Custom 'FarmTemplate.roles.instanceType' ({cpu}) CPU count 0 is invalid."
         custom_cpu = 'custom-0-0'
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm_tpl.roles[0].instanceType.id = custom_cpu
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
@@ -356,7 +347,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         exc_message = "InvalidValue: Custom 'FarmTemplate.roles.instanceType' ({ram}) memory size 0 is invalid."
         custom_ram = 'custom-1-0'
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm_tpl.roles[0].instanceType.id = custom_ram
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
@@ -366,35 +357,33 @@ class TestDeployFarmWithAllCloudRoles(Setup):
 
     platforms = None
 
-    @pytest.fixture(autouse=True)
-    def bootstrap(self, api):
-        if not self.api:
-            self.api = super().init_api(api)
-        if not self.role:
-            self.__class__.role = self.get_role(self.role_id)
-        if not self.farm:
-            self.__class__.farm = self.create_farm()
-            self.__class__.platforms = []
-            # add role for all cloud to farm by api call
-            for attr, _ in inspect.getmembers(Platform):
-                if re.match("(^[^Ia-z_\W]+)", attr):
-                    platform = getattr(Platform, attr)
-                    self.__class__.platforms.append(str(platform))
-                    role_args = dict([attr for attr in inspect.getmembers(platform)
-                                      if not attr[0].startswith('_')])
-                    self.add_role_to_farm(
-                        farm_id=self.__class__.farm.id,
-                        role_id=self.__class__.role.id,
-                        alias=self.__class__.role.name,
-                        platform=platform,
-                        **role_args)
-            # gen tpl from Farm
-            self.__class__.farm_tpl = self.gen_farm_template(
-                farm_id=self.__class__.farm.id)
+    @classmethod
+    @pytest.fixture(autouse=True, scope="class")
+    def bootstrap(cls, api):
+        cls.api = api
+        cls.role = cls.get_role(cls.role_id)
+        cls.farm = cls.create_farm()
+        cls.platforms = []
+        # add role for all cloud to farm by api call
+        for attr, _ in inspect.getmembers(Platform):
+            if re.match("(^[^Ia-z_\W]+)", attr):
+                platform = getattr(Platform, attr)
+                cls.platforms.append(str(platform))
+                role_args = dict(
+                    [attr for attr in inspect.getmembers(platform)
+                     if not attr[0].startswith('_')])
+                cls.add_role_to_farm(
+                    farm_id=cls.farm.id,
+                    role_id=cls.role.id,
+                    alias=cls.role.name,
+                    platform=platform,
+                    **role_args)
+        # gen tpl from Farm
+        cls.farm_tpl = cls.gen_farm_template(farm_id=cls.farm.id)
 
     def test_deploy_farm_all_cloud_roles(self):
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm = self.create_farm(farm_tpl=farm_tpl.to_dict())
         farm_roles_platforms = [fr.cloudPlatform for fr in self.get_farm_roles(farm.id)]
         assert farm_roles_platforms.sort() == self.platforms.sort()
@@ -402,7 +391,7 @@ class TestDeployFarmWithAllCloudRoles(Setup):
     def test_deploy_farm_aws_invalid_instance_type(self):
         exc_message = "InvalidValue: 'FarmTemplate.roles.instanceType.id' ({type}) is invalid."
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         # set invalid aws farm role instance type
         for farm_role in farm_tpl.roles:
             if farm_role.cloudPlatform == Platform.EC2:
@@ -411,6 +400,7 @@ class TestDeployFarmWithAllCloudRoles(Setup):
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
         assert exc_message.format(type=Platform.INVALID.instance_type) == e.value.args[0]
+
 
 class TestDeployFarmWithComplexFarmRoleSettings(Setup):
 
@@ -455,54 +445,56 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             "scriptVersion": {
                 "script": {"id": 2369},
                 "version": -1}},
-        "blocking": True,
-        "enabled": True,
-        "order": 10,
-        "runAs": "root",
-        "target": {
-            "targetType": "TriggeringServerTarget"
-        },
-        "timeout": 1200,
-        "trigger": {
-            "event": {"id": None},
-            "triggerType": "SpecificEventTrigger"}}}
+            "blocking": True,
+            "enabled": True,
+            "order": 10,
+            "runAs": "root",
+            "target": {
+                "targetType": "TriggeringServerTarget"
+            },
+            "timeout": 1200,
+            "trigger": {
+                "event": {"id": None},
+                "triggerType": "SpecificEventTrigger"}}}
 
     ext_vmware_network_id = "network-103"
 
-
-    def add_scaling_rule(self, farm_role_id, scaling_rule):
-        self.api.create_rule(
+    @classmethod
+    def add_scaling_rule(cls, farm_role_id, scaling_rule):
+        cls.api.create_rule(
             "/api/v1beta0/user/envId/farm-roles/farmRoleId/scaling/",
             params=dict(
-                envId=self.env_id,
+                envId=cls.env_id,
                 farmRoleId=farm_role_id
             ),
             body=scaling_rule['base_options'])
-        self.api.edit_scaling_configuration(
+        cls.api.edit_scaling_configuration(
             "/api/v1beta0/user/envId/farm-roles/farmRoleId/scaling/",
             params=dict(
-                envId=self.env_id,
+                envId=cls.env_id,
                 farmRoleId=farm_role_id
             ),
             body=scaling_rule['rule_details'])
 
-    def add_ext_storage(self, farm_role_id, storage_conf):
-        self.api.create(
+    @classmethod
+    def add_ext_storage(cls, farm_role_id, storage_conf):
+        cls.api.create(
             "/api/v1beta0/user/envId/farm-roles/farmRoleId/storage/",
             params=dict(
-                envId=self.env_id,
+                envId=cls.env_id,
                 farmRoleId=farm_role_id
             ),
             body=storage_conf
         )
 
-    def add_orchestration_rules(self, farm_role_id, orchestration_config):
+    @classmethod
+    def add_orchestration_rules(cls, farm_role_id, orchestration_config):
         for event in orchestration_config['events']:
             orchestration_config['rule']['trigger']['event']['id'] = event
-            self.api.create(
+            cls.api.create(
                 "/api/v1beta0/user/envId/farm-roles/farmRoleId/orchestration-rules/",
                 params=dict(
-                    envId=self.env_id,
+                    envId=cls.env_id,
                     farmRoleId=farm_role_id),
                 body=orchestration_config['rule']
             )
@@ -523,44 +515,41 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
                 farmRoleId=farm_role_id))
         return resp.box_repr.data
 
-    @pytest.fixture(autouse=True)
-    def bootstrap(self, api):
-        if not self.api:
-            self.api = super().init_api(api)
-        if not self.role:
-            self.__class__.role = self.get_role(self.role_id)
-        if not self.farm:
-            self.__class__.farm = self.create_farm()
-            for platform in [Platform.GCE, Platform.VMWARE]:
-                role_args = dict([attr for attr in inspect.getmembers(platform)
-                         if not attr[0].startswith('_')])
-                if platform.is_gce:
-                    role_args.update(self.chef_bootstraping_rule)
-                elif platform.is_vmware:
-                    role_args['network'] = [role_args['network'], self.ext_vmware_network_id]
-                farm_role = self.add_role_to_farm(
-                    farm_id=self.__class__.farm.id,
-                    role_id=self.__class__.role.id,
-                    alias=self.__class__.role.name,
-                    platform=platform,
-                    **role_args)
-                if platform.is_gce:
-                    self.add_scaling_rule(
-                        farm_role_id=farm_role.id,
-                        scaling_rule=self.scaling_rule)
-                    self.add_ext_storage(
-                        farm_role_id=farm_role.id,
-                        storage_conf=self.storages_configuration)
-                    self.add_orchestration_rules(
-                        farm_role_id=farm_role.id,
-                        orchestration_config=self.orchestration_config)
-            # gen tpl from Farm
-            self.farm_tpl = self.gen_farm_template(
-                farm_id=self.__class__.farm.id)
+    @classmethod
+    @pytest.fixture(autouse=True, scope="class")
+    def bootstrap(cls, api):
+        cls.api = api
+        cls.role = cls.get_role(cls.role_id)
+        cls.farm = cls.create_farm()
+        for platform in [Platform.GCE, Platform.VMWARE]:
+            role_args = dict([attr for attr in inspect.getmembers(platform)
+                              if not attr[0].startswith('_')])
+            if platform.is_gce:
+                role_args.update(cls.chef_bootstraping_rule)
+            elif platform.is_vmware:
+                role_args['network'] = [role_args['network'], cls.ext_vmware_network_id]
+            farm_role = cls.add_role_to_farm(
+                farm_id=cls.farm.id,
+                role_id=cls.role.id,
+                alias=cls.role.name,
+                platform=platform,
+                **role_args)
+            if platform.is_gce:
+                cls.add_scaling_rule(
+                    farm_role_id=farm_role.id,
+                    scaling_rule=cls.scaling_rule)
+                cls.add_ext_storage(
+                    farm_role_id=farm_role.id,
+                    storage_conf=cls.storages_configuration)
+                cls.add_orchestration_rules(
+                    farm_role_id=farm_role.id,
+                    orchestration_config=cls.orchestration_config)
+        # gen tpl from Farm
+        cls.farm_tpl = cls.gen_farm_template(farm_id=cls.farm.id)
 
     def test_deploy_complex_farm(self):
         farm_tpl = self.farm_tpl.copy()
-        farm_tpl.farm.name = self.uniq_farm_name
+        farm_tpl.farm.name = self.get_unique_farm_name()
         farm = self.create_farm(farm_tpl=farm_tpl.to_dict())
         farm_roles = self.get_farm_roles(farm_id=farm.id)
         for farm_role in farm_roles:
@@ -572,7 +561,7 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
                 farm_role_orchestraion_rules = self.get_orchestration_rules(farm_role.id)
                 # check farm role scalling rules
                 assert self.scaling_rule['base_options']['name'] in farm_role_details.scaling.rules \
-                       and self.scaling_rule['rule_details']['enabled'] == farm_role_details.scaling.enabled
+                    and self.scaling_rule['rule_details']['enabled'] == farm_role_details.scaling.enabled
                 # check farm role chef bootstraping config
                 assert self.chef_bootstraping_rule['bootstrapping']['runList'] == farm_role_details.bootstrapping.runList
                 # check farm role storage
