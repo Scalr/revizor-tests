@@ -50,7 +50,11 @@ class BaseElement:
         chain.perform()
 
     def visible(self):
-        return self.driver.find_elements(*self.locator)[0].is_displayed()
+        elements = self.driver.find_elements(*self.locator)
+        if elements:
+            return elements[0].is_displayed()
+        else:
+            return False
 
     def hidden(self):
         return not self.visible()
