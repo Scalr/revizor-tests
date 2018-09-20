@@ -29,7 +29,7 @@ Feature: Windows server read/execute scaling test
         And I add role to this farm with scaling_read_win
         When I start farm
         Then I expect server bootstrapping as M1
-        And scalarizr version from system repo last in M1
+        And scalarizr version from system is last in M1
 
     @ec2 @gce @cloudstack @rackspaceng @openstack
     Scenario: Test read scaling up

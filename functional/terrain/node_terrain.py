@@ -401,8 +401,6 @@ def assert_scalarizr_version(step, branch, serv_as):
         branch = CONF.feature.branch
     elif branch == 'role':
         branch = CONF.feature.to_branch
-    # if branch == 'latest' and 'base' in server.role.behaviors:
-    #     branch = DEFAULT_PY3_BRANCH
     if '.' in branch and branch.replace('.', '').isdigit():
         last_version = branch
     else:
