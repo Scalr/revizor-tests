@@ -1,7 +1,9 @@
 import time
 
-from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException
+from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 from elements import locators
 
@@ -47,17 +49,19 @@ class BaseElement:
         chain.move_to_element(element)
         chain.perform()
 
-    def visible(self, timeout=3):
-        start = time.time()
-        while (time.time() - start) < timeout:
-            elements = self.driver.find_elements(*self.locator)
-            if elements and elements[0].is_displayed():
-                return True
-            time.sleep(3)
-        return False
+    def visible(self):
+        return self.driver.find_elements(*self.locator)[0].is_displayed()
 
-    def hidden(self, timeout=3):
-        return not self.visible(timeout=timeout)
+    def hidden(self):
+        return not self.visible()
+
+    def wait_until_condition(self, condition, timeout=10):
+        wait = WebDriverWait(self.driver, timeout)
+        try:
+            wait.until(condition(self.locator))
+            return True
+        except TimeoutException:
+            return False
 
     def scroll_into_view(self):
         if self.hidden():
@@ -246,10 +250,10 @@ class SearchInput(Input):
         element = self.get_element()
         element.clear()
         Button(xpath='//div [contains(@id, "trigger-cancelButton")]',
-               driver=self.driver).hidden()
+               driver=self.driver).wait_until_condition(EC.invisibility_of_element_located, timeout=3)
         element.send_keys(text)
         Button(xpath='//div [contains(@id, "trigger-cancelButton")]',
-               driver=self.driver).visible()
+               driver=self.driver).wait_until_condition(EC.visibility_of_element_located, timeout=3)
 
 
 class Label(BaseElement):
