@@ -2,6 +2,7 @@ import time
 
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support import expected_conditions as EC
 from pypom import Page
 from pypom.exception import UsageError
 
@@ -43,7 +44,7 @@ class EnvironmentDashboard(EnvironmentTopMenu):
 
     @property
     def loaded(self):
-        return Button(text="Dashboard", driver=self.driver).visible()
+        return Button(text="Dashboard", driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
 
 
 class Farms(EnvironmentTopMenu):

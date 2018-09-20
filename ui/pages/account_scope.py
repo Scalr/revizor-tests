@@ -2,6 +2,7 @@ import time
 
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support import expected_conditions as EC
 from pypom import Page
 from pypom.exception import UsageError
 
@@ -66,7 +67,7 @@ class ACL(AccountTopMenu):
 
     @property
     def loaded(self):
-        return self.new_acl_button.visible()
+        return self.new_acl_button.wait_until_condition(EC.visibility_of_element_located)
 
     def set_access(self, access_for, access_type):
         """Set specified access level for specified Scalr property.
