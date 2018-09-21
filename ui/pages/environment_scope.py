@@ -58,7 +58,7 @@ class Farms(EnvironmentTopMenu):
 
     @property
     def loaded(self):
-        return self.new_farm_button.visible()
+        return self.new_farm_button.wait_until_condition(EC.visibility_of_element_located)
 
     @wait_for_page_to_load
     def new_farm(self):
@@ -117,7 +117,7 @@ class FarmDesigner(EnvironmentTopMenu):
 
     @property
     def loaded(self):
-        return self.farm_settings_label.visible()
+        return self.farm_settings_label.wait_until_condition(EC.visibility_of_element_located)
 
     @wait_for_page_to_load
     def save_farm(self, launch=False):
@@ -140,7 +140,7 @@ class Images(EnvironmentTopMenu):
 
     @property
     def loaded(self):
-        return self.new_image_button.visible(timeout=6)
+        return self.new_image_button.wait_until_condition(EC.visibility_of_element_located)
 
     def image_builder(self):
         self.new_image_button.click()
@@ -158,7 +158,9 @@ class RolesBuilder(EnvironmentTopMenu):
 
     @property
     def loaded(self):
-        return Label(text="Location and operating system", driver=self.driver).visible()
+        return Label(
+            text="Location and operating system",
+            driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
 
     def create_role(self, os, name, behaviors=[], only_image=False):
         """Creates new role or image.
@@ -175,7 +177,7 @@ class RolesBuilder(EnvironmentTopMenu):
             self.only_image_checkbox.check()
         self.create_button.click()
         label = "Image" if only_image else "Role"
-        if not Label("%s creation progress" % label, driver=self.driver).visible(timeout=9):
+        if not Label("%s creation progress" % label, driver=self.driver).wait_until_condition(EC.visibility_of_element_located):
             raise NoSuchElementException(
                 "User was not redirected to %s creation page" % label)
 

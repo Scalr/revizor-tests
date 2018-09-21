@@ -53,7 +53,9 @@ class AccountDashboard(AccountTopMenu):
 
     @property
     def loaded(self):
-        return Label("Environments in this account", driver=self.driver).visible()
+        return Label(
+            "Environments in this account",
+            driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
 
 
 class ACL(AccountTopMenu):
@@ -106,7 +108,7 @@ class Users(AccountTopMenu):
 
     @property
     def loaded(self):
-        return self.new_user_button.visible()
+        return self.new_user_button.wait_until_condition(EC.visibility_of_element_located)
 
 
 class Teams(AccountTopMenu):
@@ -120,7 +122,7 @@ class Teams(AccountTopMenu):
 
     @property
     def loaded(self):
-        return self.new_team_button.visible()
+        return self.new_team_button.wait_until_condition(EC.visibility_of_element_located)
 
     def add_user_to_team(self, email):
         """Adds specified User to currently selected Team.
@@ -158,7 +160,7 @@ class Environments(AccountTopMenu):
 
     @property
     def loaded(self):
-        return self.new_env_button.visible()
+        return self.new_env_button.wait_until_condition(EC.visibility_of_element_located)
 
     def link_cloud_to_environment(self, cloud_name, credentials_name):
         """Links cloud (by cloud name) to currently selected Scalr Environment
