@@ -16,7 +16,7 @@ DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
 DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.default['password']
 
 
-class TestACLFarms:
+class TestACL:
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, testenv):
