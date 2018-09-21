@@ -110,7 +110,9 @@ class AppSession(object):
 
 @pytest.fixture(scope='module', autouse=True)
 def api(request, fileutil):
+    print(" MY API BLAH")
     session = AppSession(request, fileutil)
+    print('SESSION %s' % session)
     request.addfinalizer(session.close)
     return session
 
