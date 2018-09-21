@@ -12,10 +12,11 @@ from revizor2.fixtures import resources
 
 
 def pytest_addoption(parser):
-    parser.addoption(
+    group = parser.getgroup("docker controller", "fatmouse", after="general")
+    group.addoption(
         "--te-id", action="store", default=None, help="Use already created TestEnv."
     )
-    parser.addoption(
+    group.addoption(
         "--te-remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
     )
 
@@ -24,7 +25,7 @@ def pytest_runtest_makereport(item, call):
     """Saves screenshot when test fails and saves it in /ui directory.
     """
     if call.when == 'call' and call.excinfo:
-        item.instance.driver.save_screenshot(os.getcwd() + "/%s.png" % (item.name + '-' + str(uuid.uuid1())))
+        item.instance.driver.save_screenshot(os.getcwd() + "/ui/%s.png" % (item.name + '-' + str(uuid.uuid1())))
 
 
 @pytest.fixture(scope="class")
