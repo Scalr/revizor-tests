@@ -148,6 +148,7 @@ class TestACL:
         for option in disabled_options:
             assert Button(text=option, driver=self.driver).hidden(), '%s is present in Images submenu!' % option
 
+    @pytest.mark.skip
     def test_create_image_with_builder(self):
         images_page = self.env_dashboard.go_to_images()
         builder_page = images_page.image_builder()
