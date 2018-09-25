@@ -59,10 +59,13 @@ class BaseElement:
     def hidden(self):
         return not self.visible()
 
-    def wait_until_condition(self, condition, timeout=10):
+    def wait_until_condition(self, condition, value=None, timeout=10):
         wait = WebDriverWait(self.driver, timeout)
         try:
-            wait.until(condition(self.locator))
+            if value:
+                wait.until(condition(self.locator, value))
+            else:
+                wait.until(condition(self.locator))
             return True
         except TimeoutException:
             return False
@@ -96,6 +99,7 @@ class Button(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def click(self):
+        self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
         self.get_element().click()
 
 
