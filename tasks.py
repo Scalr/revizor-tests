@@ -53,8 +53,8 @@ def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode
     te_remove = '--te-remove true' if te_remove else ''
     for browser in browsers:
         driver = browser if localmode else 'Remote'
-        command = 'python3 -m pytest%s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s %s' %\
-            (processes, driver, browser, testpath, te_id, te_remove)
+        command = 'python3 -m pytest%s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s %s --disable-warnings' %\
+            (processes, driver, browser, testpath, te_id, te_remove) #FIX ME - Deals with using deprecated options in third-party libraries (mainly pluggy)
         print(command)
         ctx.run(command)
 
