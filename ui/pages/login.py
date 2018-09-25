@@ -16,6 +16,7 @@ class LoginPage(BasePage):
     confirm_password_field = Input(label='Confirm')
     update_password_button = Button(
         xpath='//span [contains(text(), "Update my password")]')
+    password_reset_alert = Label(text="Password has been reset. Please log in.")
 
     @property
     def loaded(self):
@@ -53,6 +54,7 @@ class LoginPage(BasePage):
         self.update_password_button.click()
         self.password_field.wait_until_condition(EC.visibility_of_element_located, timeout=9)
         self.password_field.write(new_password)
+        self.login_button.wait_until_condition(EC.element_to_be_clickable)
         self.login_button.click()
         from pages.environment_scope import EnvironmentDashboard
         return EnvironmentDashboard(self.driver, self.base_url)
