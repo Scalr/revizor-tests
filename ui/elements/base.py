@@ -99,7 +99,7 @@ class Button(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def click(self):
-        self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
+        # self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
         self.get_element().click()
 
 
