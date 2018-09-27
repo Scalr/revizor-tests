@@ -115,6 +115,9 @@ class Platform(object):
                                   instance_type='3',
                                   network='00000000-0000-0000-0000-000000000000')
 
+
+    # TODO: Uncomment when VIMARE is fixed
+    '''
     VMWARE = PlatformStore(name='vmware',
                            location='datacenter-21',
                            instance_type='2eb93579efde',
@@ -124,6 +127,7 @@ class Platform(object):
                            host='host-442',
                            resource_pool='resgroup-36',
                            data_store='datastore-443')
+    '''
 
     INVALID = PlatformStore(name='invalid',
                             location='invalid',

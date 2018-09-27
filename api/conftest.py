@@ -21,7 +21,7 @@ TE_HOST_TPL = "{}.test-env.scalr.com"
 
 pytest_plugins = [
     "api.plugins.filefixture",
-    "api.utils.app_session"
+    "api.plugins.app_session"
 ]
 
 

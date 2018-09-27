@@ -22,11 +22,11 @@ API_DEBUG_VER = "1"
 
 class ScalrApiSession(requests.Session):
 
-    def __init__(self, host, secret_key_id, secret_key, schema=None):
+    def __init__(self, host, secret_key_id, secret_key, schema="http"):
         self.base_path = host
         self.secret_key_id = secret_key_id
         self.secret_key = secret_key
-        self.schema = schema or "http"
+        self.schema = schema
         super().__init__()
 
     def prepare_request(self, request):
