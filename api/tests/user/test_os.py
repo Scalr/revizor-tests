@@ -8,12 +8,13 @@ import pytest
 
 class TestOs(object):
 
+    api = None
     env_id = "5"
     os_id = "ubuntu-14-04"
 
-    @pytest.fixture(autouse=True)
-    def init_session(self, api):
-        self.api = api
+    @pytest.fixture(autouse=True, scope='class')
+    def bootstrap(self, request, api):
+        request.cls.api = api
 
     def test_os_list(self):
         # Execute request

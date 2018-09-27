@@ -14,6 +14,8 @@ from api.utils.consts import Platform, BuiltInAutomation, ENV_ID
 
 class TestRoles(object):
 
+    api = None
+
     os_id = "ubuntu-14-04"
 
     scope = "environment"
@@ -22,9 +24,9 @@ class TestRoles(object):
 
     dev_role_category = 9
 
-    @pytest.fixture(autouse=True)
-    def init_session(self, api):
-        self.api = api
+    @pytest.fixture(autouse=True, scope='class')
+    def bootstrap(self, request, api):
+        request.cls.api = api
 
     def create_role(self, os_id, role_category, automation=None):
         builtin_automation = automation or BuiltInAutomation.BASE
@@ -85,13 +87,13 @@ class TestRoles(object):
         # Find image
         images = list(filter(
             lambda i:
-                i.cloudFeatures.virtualization == "hvm" and
-                i.name.startswith("mbeh1") and
-                i.status == 'active',
+            i.cloudFeatures.virtualization == "hvm" and
+            i.name.startswith("mbeh1") and
+            i.status == 'active',
             self.list_images(
-                    platform=Platform.EC2,
-                    os=self.os_id,
-                    scope=self.scope)))
+                platform=Platform.EC2,
+                os=self.os_id,
+                scope=self.scope)))
         assert len(images), "No active images with mbeh1 in name found"
         image_id = images[0].id
         # Add image to role
@@ -99,7 +101,7 @@ class TestRoles(object):
         # Assert role images
         role_images = list(filter(
             lambda i:
-                image_id == i.image.id,
+            image_id == i.image.id,
             self.list_role_images(role.id)))
         assert len(role_images), 'Image was not properly added to role'
 
@@ -119,12 +121,12 @@ class TestRoles(object):
         for platform in cloud_platforms:
             platform_images = list(filter(
                 lambda i:
-                    i.name.startswith("mbeh1") and
-                    i.status == 'active',
+                i.name.startswith("mbeh1") and
+                i.status == 'active',
                 self.list_images(
-                        platform=platform,
-                        os=self.os_id,
-                        scope=self.scope)))
+                    platform=platform,
+                    os=self.os_id,
+                    scope=self.scope)))
             assert platform_images
             images.append(platform_images[0].id)
         # Add images to role
@@ -144,9 +146,7 @@ class TestRoles(object):
         assert exc_message in e.value.args[0]
 
     def test_create_role_with_invalid_automation_types(self):
-        exc_message = "'Role.builtinAutomation' ({}) " \
-                      "are invalid".format(
-                        BuiltInAutomation.INVALID)
+        exc_message = "'Role.builtinAutomation' ({}) are invalid".format(BuiltInAutomation.INVALID)
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_role(
                 self.os_id,
@@ -156,8 +156,7 @@ class TestRoles(object):
 
     def test_create_role_with_uncombined_behaviors(self):
         exc_message = "'Role.builtinAutomation' ({}, {}) " \
-                      "behaviors can't be combined.".format(
-                        *BuiltInAutomation.UNCOMBINED_BEHAVIORS)
+                      "behaviors can't be combined.".format(*BuiltInAutomation.UNCOMBINED_BEHAVIORS)
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_role(
                 self.os_id,
@@ -169,13 +168,13 @@ class TestRoles(object):
         # Find images
         images = list(filter(
             lambda i:
-                i.cloudFeatures.virtualization == "hvm" and
-                i.name.startswith("mbeh") and
-                i.status == 'active',
+            i.cloudFeatures.virtualization == "hvm" and
+            i.name.startswith("mbeh") and
+            i.status == 'active',
             self.list_images(
-                    platform=Platform.EC2,
-                    os=self.os_id,
-                    scope=self.scope)))
+                platform=Platform.EC2,
+                os=self.os_id,
+                scope=self.scope)))
         assert len(images), "No active images with 'mbeh' in name found for EC2 platform"
         exc_message = "'RoleImage.image.id' ({}) with 'cloudLocation' " \
                       "({}) has already been registered.".format(

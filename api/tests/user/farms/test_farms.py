@@ -15,7 +15,6 @@ from api.utils.consts import Platform, COST_PROJECT_ID, ENV_ID
 
 
 class Setup(object):
-
     api = None
 
     farm = None
@@ -313,7 +312,8 @@ class TestDeployFarmWithOneFarmRole(Setup):
         assert exc_message.format(location=Platform.INVALID.location, name=farm_tpl.roles[0].alias) == e.value.args[0]
 
     def test_deploy_farm_invalid_zone(self):
-        exc_message = "ObjectNotFoundOnCloud: 'FarmTemplate.roles.availabilityZones' ({zone}) was not found in the cloud."
+        exc_message = "ObjectNotFoundOnCloud: 'FarmTemplate.roles.availabilityZones' ({zone}) was not found in the " \
+                      "cloud."
         farm_tpl = self.farm_tpl.copy()
         farm_tpl.farm.name = self.get_unique_farm_name()
         farm_tpl.roles[0].availabilityZones[0] = Platform.INVALID.zone
@@ -352,7 +352,6 @@ class TestDeployFarmWithOneFarmRole(Setup):
 
 
 class TestDeployFarmWithAllCloudRoles(Setup):
-
     platforms = None
 
     @pytest.fixture(autouse=True, scope="class")
@@ -403,7 +402,6 @@ class TestDeployFarmWithAllCloudRoles(Setup):
 
 
 class TestDeployFarmWithComplexFarmRoleSettings(Setup):
-
     chef_bootstraping_rule = {
         "bootstrapping": {
             "enabled": True,
@@ -419,7 +417,7 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             "ruleType": "LoadAveragesScalingRule",
             "scaleDown": 1,
             "scaleUp": 2},
-        "rule_details":  {
+        "rule_details": {
             "considerSuspendedServers": "running",
             "enabled": True,
             "maxInstances": 2,
@@ -560,9 +558,10 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
                 farm_role_orchestraion_rules = self.get_orchestration_rules(farm_role.id)
                 # check farm role scalling rules
                 assert self.scaling_rule['base_options']['name'] in farm_role_details.scaling.rules \
-                    and self.scaling_rule['rule_details']['enabled'] == farm_role_details.scaling.enabled
+                       and self.scaling_rule['rule_details']['enabled'] == farm_role_details.scaling.enabled
                 # check farm role chef bootstraping config
-                assert self.chef_bootstraping_rule['bootstrapping']['runList'] == farm_role_details.bootstrapping.runList
+                assert self.chef_bootstraping_rule['bootstrapping'][
+                           'runList'] == farm_role_details.bootstrapping.runList
                 # check farm role storage
                 assert any(self.storages_configuration['type'] == storage.type for storage in farm_role_storage)
                 # check farm role orchestration rules
@@ -573,6 +572,4 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             if farm_role.cloudPlatform == Platform.VMWARE:
                 assert any(self.ext_vmware_network_id == network.id for network in farm_role_details.networking.networks)
             """
-
-
 
