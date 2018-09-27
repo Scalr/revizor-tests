@@ -7,9 +7,19 @@ from scalarizr.lifecycle.common import lifecycle, szradm
 
 
 class TestLifecycleLinux:
-    """Linux server lifecycle"""
+    """
+    Linux server lifecycle
+    In order to manage server lifecycle
+    As a scalr user
+    I want to be able to monitor server state changes
+    """
+
+    order = ('test_bootstrapping',
+             'test_szradm_listroles',
+             'test_attached_storages')
+
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Bootstraping"""
+        """Bootstrapping"""
         lib_farm.add_role_to_farm(context, farm, role_options=['storages', 'noiptables'])
         farm.launch()
         lib_server.wait_status(context, cloud, farm, status=ServerStatus.PENDING)
