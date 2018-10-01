@@ -389,7 +389,7 @@ def get_scalaraizr_latest_version(branch):
     return versions[0]
 
 
-@step(r'scalarizr version(?:\sfrom\s([\w\d_]+))* is last in ([\w\d]+)$')
+@step(r'scalarizr version(?:\sfrom\s([\w\d_]+)(?: repo))* is last in ([\w\d]+)$')
 def assert_scalarizr_version(step, branch, serv_as):
     """
     Argument branch can be system or role.

@@ -6,7 +6,7 @@ Feature: SzrAdm check backward compatibility
         Given I have a an empty running farm
         When I add app role to this farm with branch_latest, storages
         Then I expect server bootstrapping as A1
-        And scalarizr version from latest is last in A1
+        And scalarizr version from latest repo is last in A1
         When I change branch to system for app role
         Then I increase minimum servers to 2 for app role
         Then I expect server bootstrapping as A2

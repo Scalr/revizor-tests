@@ -50,12 +50,12 @@ Feature: Linux update for new package test
         When I start farm
         Then I see pending server M3
         And I wait and see running server M3
-        And scalarizr version from stable is last in M3
+        And scalarizr version from stable repo is last in M3
         When I change branch to system for role
         And I trigger scalarizr update by Scalr UI on M3
         Then update process is finished on M3 with status completed
         And Scalr receives HostUpdate from M3
-        And scalarizr version from system is last in M3
+        And scalarizr version from system repo is last in M3
         When I execute script 'Linux ping-pong' synchronous on M3
         And I see script result in M3
         And script output contains 'pong' in M3
@@ -73,12 +73,12 @@ Feature: Linux update for new package test
         When I start farm
         Then I see pending server M4
         And I wait and see running server M4
-        And scalarizr version from latest is last in M4
+        And scalarizr version from latest repo is last in M4
         When I change branch to system for role
         And I trigger scalarizr update by Scalr UI on M4
         Then update process is finished on M4 with status completed
         And Scalr receives HostUpdate from M4
-        And scalarizr version from system is last in M4
+        And scalarizr version from system repo is last in M4
         When I execute script 'Linux ping-pong' synchronous on M4
         And I see script result in M4
         And script output contains 'pong' in M4

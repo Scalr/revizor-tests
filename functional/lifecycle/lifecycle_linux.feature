@@ -137,7 +137,7 @@ Feature: Linux server lifecycle
     Scenario: Start farm
         When I start farm with delay
         Then I expect server bootstrapping as M1
-        And scalarizr version from system is last in M1
+        And scalarizr version from system repo is last in M1
 
     @ec2 @cloudstack @gce @storages
     Scenario: Check attached storages after restart farm

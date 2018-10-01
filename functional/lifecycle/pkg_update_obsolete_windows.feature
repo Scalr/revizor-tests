@@ -9,7 +9,7 @@ Feature: Update scalarizr windows test
       And I trigger scalarizr update by Scalr UI on M1
       Then update process is finished on M1 with status completed
       And Scalr receives HostUpdate from M1
-      And scalarizr version from role is last in M1
+      And scalarizr version from role repo is last in M1
       When I execute script 'Windows ping-pong. CMD' synchronous on M1
       Then I see script result in M1
       And script output contains 'pong' in M1
@@ -26,7 +26,7 @@ Feature: Update scalarizr windows test
       When I install new scalarizr to the server M2 manually
       Then update process is finished on M2 with status completed
       And Scalr receives HostUpdate from M2
-      And scalarizr version from role is last in M2
+      And scalarizr version from role repo is last in M2
       When I execute script 'Windows ping-pong. CMD' synchronous on M2
       Then I see script result in M2
       And script output contains 'pong' in M2
@@ -62,7 +62,7 @@ Feature: Update scalarizr windows test
       And I trigger scalarizr update by Scalr UI on M4
       Then update process is finished on M4 with status completed
       And Scalr receives HostUpdate from M4
-      And scalarizr version from role is last in M4
+      And scalarizr version from role repo is last in M4
       When I execute script 'Windows ping-pong. CMD' synchronous on M4
       Then I see script result in M4
       And script output contains 'pong' in M4
@@ -90,7 +90,7 @@ Feature: Update scalarizr windows test
       When I install new scalarizr to the server M6 manually
       Then update process is finished on M6 with status completed
       And Scalr receives HostUpdate from M6
-      And scalarizr version from role is last in M6
+      And scalarizr version from role repo is last in M6
       When I execute script 'Windows ping-pong. CMD' synchronous on M6
       Then I see script result in M6
       And script output contains 'pong' in M6
@@ -107,7 +107,7 @@ Feature: Update scalarizr windows test
       And I trigger scalarizr update by Scalr UI on M7
       Then update process is finished on M7 with status completed
       And Scalr receives HostUpdate from M7
-      And scalarizr version from role is last in M7
+      And scalarizr version from role repo is last in M7
       When I execute script 'Windows ping-pong. CMD' synchronous on M7
       Then I see script result in M7
       And script output contains 'pong' in M7
@@ -122,7 +122,7 @@ Feature: Update scalarizr windows test
       When I install new scalarizr to the server M8 manually
       Then update process is finished on M8 with status completed
       And Scalr receives HostUpdate from M8
-      And scalarizr version from role is last in M8
+      And scalarizr version from role repo is last in M8
       When I execute script 'Windows ping-pong. CMD' synchronous on M8
       Then I see script result in M8
       And script output contains 'pong' in M8
@@ -130,7 +130,7 @@ Feature: Update scalarizr windows test
     @manual @msi_new @ec2 @gce @allow_clean_data
     Scenario: Manual scalaizr update from msi_new to msi_new, Windows test
       Given I have manually installed scalarizr on M9
-      And scalarizr version from role is last in M9
+      And scalarizr version from role repo is last in M9
       And I save current Scalr update client version on M9
       When I build new package
       And I install new package to the server M9
@@ -150,7 +150,7 @@ Feature: Update scalarizr windows test
       When I have a an empty running farm
       And I add created role to the farm
       When I expect server bootstrapping as M10
-      Then scalarizr version from role is last in M10
+      Then scalarizr version from role repo is last in M10
       When I execute script 'Windows ping-pong. CMD' synchronous on M10
       And I see script result in M10
       And script output contains 'pong' in M10
@@ -170,7 +170,7 @@ Feature: Update scalarizr windows test
       And I add created role to the farm
       And I change branch for role
       When I expect server bootstrapping as M11
-      And scalarizr version from role is last in M11
+      And scalarizr version from role repo is last in M11
       When I build corrupt package
       And I set branch with corrupt package for role
       And I trigger scalarizr update by Scalr UI on M11
@@ -188,7 +188,7 @@ Feature: Update scalarizr windows test
       And I add created role to the farm
       And I change branch for role
       When I expect server bootstrapping as M12
-      And scalarizr version from role is last in M12
+      And scalarizr version from role repo is last in M12
       When I build new package
       And I set branch with new package for role
       When I trigger scalarizr update by Scalr UI on M12
