@@ -7,38 +7,14 @@ import pytest
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
-from revizor2.consts import Platform, Dist
 
 LOG = logging.getLogger(__name__)
 
 pytest_plugins = [
+    'scalarizr.plugins.revizor',
     'scalarizr.plugins.reporter',
     'scalarizr.plugins.ordering'
 ]
-
-
-def pytest_addoption(parser):
-    parser.addoption('--te-id', action='store', default=None)
-    parser.addoption('--platform', action='store', default=None)
-    parser.addoption('--dist', action='store', default=None)
-
-
-@pytest.fixture(scope='session', autouse=True)
-def prepare_config(request):
-    te_id = request.config.getoption('--te-id')
-    platform = request.config.getoption('--platform')
-    dist = request.config.getoption('--dist')
-    if te_id:
-        CONF.scalr.te_id = te_id
-    if platform:
-        CONF.feature.platform = Platform(driver=platform)
-    if dist:
-        CONF.feature.dist = Dist(dist_name=dist)
-
-
-@pytest.fixture(scope='session')
-def context() -> dict:
-    return {}
 
 
 @pytest.fixture(scope='session')
@@ -47,7 +23,17 @@ def cloud() -> Cloud:
     return Cloud()
 
 
-@pytest.fixture(scope='session', autouse=True)
+@pytest.fixture(scope='class')
+def context() -> dict:
+    return {}
+
+
+@pytest.fixture(scope='class')
+def servers() -> dict:
+    return {}
+
+
+@pytest.fixture(scope='class', autouse=True)
 def initialize_test(context: dict, cloud: Cloud):
     test_start_time = datetime.now()
     test_id = uuid.uuid4().hex
@@ -56,12 +42,7 @@ def initialize_test(context: dict, cloud: Cloud):
     LOG.info(f'Test ID: "{test_id}", started at {test_start_time}')
 
 
-@pytest.fixture(scope='session')
-def servers() -> dict:
-    return {}
-
-
-@pytest.fixture(scope='session')
+@pytest.fixture(scope='class')
 def farm():
     if CONF.main.farm_id is None:
         LOG.info('Farm ID not set, create a new farm for test')
