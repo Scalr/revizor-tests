@@ -48,7 +48,7 @@ def pytest_addoption(parser):
         help="Scalr test environment creation timeout", default=300, type=int
     )
     group.addoption(
-        "--te-no-delete", dest="te_no_delete", action="store_true",
+        "--te-no-delete", dest="te_no_delete", action="store_true", default=False,
         help="Don't remove test environment after tests is finished"
     )
 
