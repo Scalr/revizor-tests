@@ -52,9 +52,9 @@ cd ~/revizor-tests/api
 pytest --fv --te-id 25b68333623a tests/user/farms/test_farms.py::TestEmptyFarm::test_deploy_empty_farm
 ```
 
-# Написание тестов
+## Написание тестов
 
-## `Общие положения:`
+### `Общие положения:`
 
 Основным элементом api запроса является фикстура `api` `session="module"`.
 ```
@@ -80,7 +80,7 @@ app_level='account'
 не требует установки, т.е. тесты описывающие api запросы уровня `user` ее могут не содержать. Загруженная спецификация
 сохраняется во временной папке, используется повторно при следующих запусках тестов того же `app_level`.
 
-## `Константы:`
+### `Константы:`
 
 Наиболее часто встречающимся аргументом api запросов является платформа и связанные с ней атрибуты
 `(name|location|instance_type|network|zone|subnet|resource_group|storage_account)`. Для работы с данным аргументом предусмотрен
@@ -133,12 +133,12 @@ class Platform(object):
 
     var = Platform.AZURE.ext_attr
 ```
-# `Конструирование api запросов:`
+## `Конструирование api запросов:`
 Основой любого api теста является запрос. Данный framework в части конструирования запросов ориентирован на существующую
-(Scalr API Documentation)[https://api-explorer.scalr.com]. Написание запроса начинается с открытия страницы спецификации
+[Scalr API Documentation](https://api-explorer.scalr.com). Написание запроса начинается с открытия страницы спецификации
 интересующего вызова и повторения описательной части документации в тесте средствами python.
 
-`Пример простого запроса уровня user:` (OS: List)[https://api-explorer.scalr.com/user/os/get.html]
+`Пример простого запроса уровня user:` [OS: List](https://api-explorer.scalr.com/user/os/get.html)
 Страница документации начинается с заголовка `OS:List` кратко обозначающего область применения запроса и действие выполняемое
 в рамках данной области. В описываемом случае областью применения является `OS`, а действием `List`. Далее документация содержит
 описание точки входа в удаленное приложение `api endpoint`, перечисление обязательных и не обязательных параметров передаваемых
@@ -160,7 +160,7 @@ api.list(
 )
 ```
 
-`Пример запроса уровня user с расширенным списком передаваемых параметров:` (Images: Create)[https://api-explorer.scalr.com/user/images/post.html]
+`Пример запроса уровня user с расширенным списком передаваемых параметров:` [Images: Create](https://api-explorer.scalr.com/user/images/post.html)
 ```
 body = {
   "architecture": "i386",
@@ -192,8 +192,8 @@ api.create(
 )
 ```
 
-## Пример простых тестов с  написанием запросов демонстрирующих основные методы передачи аргументов приложению
-### Передача обязательных параметров
+### Пример простых тестов с  написанием запросов демонстрирующих основные методы передачи аргументов приложению
+#### Передача обязательных параметров
 
 ```
 import pytest
@@ -214,7 +214,7 @@ class TestPassRequiredParameters(object):
         assert resp.box_repr.data.id == os_id
 ```
 
-### Передача обязательных параметров, сужение выборки путем фильтрации возвращаемых данных средствами api
+#### Передача обязательных параметров, сужение выборки путем фильтрации возвращаемых данных средствами api
 
 ```
 import pytest
@@ -243,7 +243,7 @@ class TestPassQueryFilters(object):
         assert all(image.os.id == os_id for image in resp.box_repr.data)
 ```
 
-### Передача body в POST запросах
+#### Передача body в POST запросах
 
 ```
 import six
@@ -299,6 +299,6 @@ class TestPassBodyToQuery(object):
         assert role.name == role_name
 ```
 При внимательном рассмотрении обучающих примеров можно заметить, что все используемые запросы возвращают атрибут
-`resp.box_repr`, который является расширением стандартного (requests.Response.json)[http://docs.python-requests.org/en/master/api/#requests.Response]
-реализованый на безе сторонний библиотеки(python-box)[https://github.com/cdgriffith/Box] позволяющей обращаться к словарям с расширенной dot
+`resp.box_repr`, который является расширением стандартного [requests.Response.json](http://docs.python-requests.org/en/master/api/#requests.Response)
+реализованый на безе сторонний библиотеки[python-box](https://github.com/cdgriffith/Box) позволяющей обращаться к словарям с расширенной dot
 нотификацией.
