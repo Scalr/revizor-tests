@@ -1,6 +1,6 @@
 # Scalr API v.2 testing framework
 
-    Revizor2 надстройка основанная на Python 3, предназначена для автоматизации тестирования Scalr API, с простым, сжатым синтаксисом
+Revizor2 надстройка основанная на Python 3, предназначена для автоматизации тестирования Scalr API, с простым, сжатым синтаксисом
 опирающимся на [Scalr API Documentation](https://api-explorer.scalr.com) и использующая [pytest](https://docs.pytest.org/en/latest/) в качестве
 утилиты написания тестов.
 
