@@ -1,7 +1,7 @@
 import typing as tp
 
-import pytest
 from _pytest.config import Config
+from _pytest.main import Session
 from _pytest.python import Function
 
 from revizor2 import CONF
@@ -24,12 +24,11 @@ def pytest_addoption(parser):
     parser.addoption('--dist', action='store', default=None)
 
 
-@pytest.fixture(scope='session', autouse=True)
-def prepare_config(request):
-    te_id = request.config.getoption('--te-id')
-    farm_id = request.config.getoption('--farm-id')
-    platform = request.config.getoption('--platform')
-    dist = request.config.getoption('--dist')
+def pytest_sessionstart(session: Session):
+    te_id = session.config.getoption('--te-id')
+    farm_id = session.config.getoption('--farm-id')
+    platform = session.config.getoption('--platform')
+    dist = session.config.getoption('--dist')
     if te_id:
         CONF.scalr.te_id = te_id
     if farm_id:
