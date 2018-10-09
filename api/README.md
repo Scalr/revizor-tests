@@ -7,21 +7,22 @@ Revizor2 надстройка основанная на Python 3, предназ
 # Основные положения
 
 ## Установка
-```
-git clone git@github.com:Scalr/revizor.git ~/revizor
-git clone git@github.com:Scalr/revizor-tests.git ~/revizor-tests
-cd ~/revizor-tests/api
-sudo pip3 install -U -r requirements.txt
+```bash
+git clone git@github.com:Scalr/revizor.git /revizor
+echo 'export PYTHONPATH="$PYTHONPATH:/revizor/src"' >> ~/.bash_profile
+source ~/.bash_profile
+
+sudo pip3 install -U -r /revizor/requirements.txt
+
+git clone git@github.com:Scalr/revizor-tests.git /revizor-tests
+sudo pip3 install -U -r /revizor-tests/api/requirements.txt
 ```
 
 ## Запуск тестов
 
-`Аргументы командной строки`
+### Аргументы командной строки
 
-```
---flex-validation или --fv: Производить валидацию результатов api запросов на соответствие swagger спецификации
-средствами сторонней библиотеки flex. Значение по умолчанию: False
-
+```bash
 --te-id или --test-environment-id: Не создавать новое тестовое окружение использовать существующее.
 Значение по умолчанию: None
 
@@ -36,28 +37,30 @@ sudo pip3 install -U -r requirements.txt
 --te-no-delete: Указывает на необходимость сохранить запущенный или используемый контейнер по окончании работы тестов.
 Значение по умолчанию: False
 
+--flex-validation или --fv: Производить валидацию результатов api запросов на соответствие swagger спецификации
+средствами сторонней библиотеки flex. Значение по умолчанию: False
 ```
 
-`Пример запуска набора тестов с созданием тестового окружения, его сохранением и выполнением flex валидации`
+### Пример запуска набора тестов с созданием тестового окружения, его сохранением и выполнением flex валидации
 
-```
+```bash
 cd ~/revizor-tests/api
 pytest --fv --te-no-delete tests/user/farms/test_farms.py
 ```
 
-`Пример запуска кейса с использованием созданного ранее тестового окружения без его сохранения и выполненим flex валидации`
+### Пример запуска кейса с использованием созданного ранее тестового окружения без его сохранения и выполненим flex валидации
 
-```
+```bash
 cd ~/revizor-tests/api
 pytest --fv --te-id 25b68333623a tests/user/farms/test_farms.py::TestEmptyFarm::test_deploy_empty_farm
 ```
 
-## Написание тестов
+# Написание тестов
 
-### `Общие положения:`
+## Общие положения:
 
 Основным элементом api запроса является фикстура `api` `session="module"`.
-```
+```python
 @pytest.fixture(scope='module', autouse=True)
 def api(request, fileutil):
     session = AppSession(request, fileutil)
@@ -68,7 +71,7 @@ def api(request, fileutil):
 соответствие  swagger спецификации. Спецификация загружается со `Scalr` сервера на этапе инициализации теста в зависимости от
 значения переменной `app_level`. Переменная определяется для каждого модуля содержащего описание теста, после импорта
 используемых библиотек, зависит от уровня `API` запросов.
-```
+```python
 import pytest
 
 app_level='account'
@@ -80,15 +83,15 @@ app_level='account'
 не требует установки, т.е. тесты описывающие api запросы уровня `user` ее могут не содержать. Загруженная спецификация
 сохраняется во временной папке, используется повторно при следующих запусках тестов того же `app_level`.
 
-### `Константы:`
+## Константы:
 
 Наиболее часто встречающимся аргументом api запросов является платформа и связанные с ней атрибуты
 `(name|location|instance_type|network|zone|subnet|resource_group|storage_account)`. Для работы с данным аргументом предусмотрен
 набор констант `api/utils/consts.py` описывающих основные платформы `(AZURE|EC2|GCE|VMWARE|CLOUDSTACK|OPENSTACK)`
 
-`Пример использования констант`
+### Пример использования констант
 
-```
+```python
 from api.utils.consts import Platform
 
 # получение имени платформы передаваемого в api запрос
@@ -133,7 +136,7 @@ class Platform(object):
 
     var = Platform.AZURE.ext_attr
 ```
-## `Конструирование api запросов:`
+## Конструирование api запросов:
 Основой любого api теста является запрос. Данный framework в части конструирования запросов ориентирован на существующую
 [Scalr API Documentation](https://api-explorer.scalr.com). Написание запроса начинается с открытия страницы спецификации
 интересующего вызова и повторения описательной части документации в тесте средствами python.
@@ -149,7 +152,7 @@ class Platform(object):
 `Важно:` В качестве вызываемого метода фиксткры `api` указывается не тип api запроса `(get|post|patch|delete)`, а `lowercase` действие
 над областью применения запроса указанное в заголовке `(list|get|create|delete|copy|.........)`
 
-```
+```python
 api.list(
     # endpoint
     '/api/v1beta0/user/envId/os/',
@@ -160,8 +163,8 @@ api.list(
 )
 ```
 
-`Пример запроса уровня user с расширенным списком передаваемых параметров:` [Images: Create](https://api-explorer.scalr.com/user/images/post.html)
-```
+### Пример запроса уровня user с расширенным списком передаваемых параметров: [Images: Create](https://api-explorer.scalr.com/user/images/post.html)
+```python
 body = {
   "architecture": "i386",
   "cloudFeatures": {
@@ -195,7 +198,7 @@ api.create(
 ### Пример простых тестов с  написанием запросов демонстрирующих основные методы передачи аргументов приложению
 #### Передача обязательных параметров
 
-```
+```python
 import pytest
 
 
@@ -216,7 +219,7 @@ class TestPassRequiredParameters(object):
 
 #### Передача обязательных параметров, сужение выборки путем фильтрации возвращаемых данных средствами api
 
-```
+```python
 import pytest
 
 
@@ -245,7 +248,7 @@ class TestPassQueryFilters(object):
 
 #### Передача body в POST запросах
 
-```
+```python
 import six
 import pytest
 
