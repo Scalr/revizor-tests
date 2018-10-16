@@ -18,6 +18,7 @@ def get_role(alias=None):
     :return: class:FarmRole
     """
     def find_role(alias):
+        # NOTE: migrated
         LOG.debug('Find role with alias: %s' % alias)
         if not alias:
             role = getattr(world, '%s_role' % world.farm.roles[0].alias)

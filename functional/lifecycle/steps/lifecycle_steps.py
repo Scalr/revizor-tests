@@ -32,6 +32,7 @@ def having_server(step, state, serv_as):
 #TODO: Add check hostup message and direction
 @step("I save (\w+) configuration in '([\w]+)' message in ([\w\d]+)$")
 def save_config_from_message(step, config_group, message, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Get messages from server %s' % server.id)
@@ -68,6 +69,7 @@ def check_message_config(step, config_group, message, serv_as):
 
 @step("[directory|file] '([\W\w]+)' exist in ([\w\d]+)$")
 def check_path(step, path, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     with node.remote_connection() as conn:
@@ -85,6 +87,7 @@ def check_path(step, path, serv_as):
 
 @step("I create (\d+) files in '(.+)' in ([\w\d]+)")
 def create_files(step, file_count, directory, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Create %s files in directory %s' % (file_count, directory))
@@ -198,6 +201,7 @@ def verify_saved_and_new_volumes(step, mount_point):
 
 @step("I save mount table on ([\w\d]+)")
 def save_mount_table(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     LOG.info('Save mount table from server "%s"' % server.id)
     node = world.cloud.get_node(server)
@@ -209,6 +213,7 @@ def save_mount_table(step, serv_as):
 
 @step("disk from ([\w\d]+) mount points for '([\W\w]+)' exist in fstab on ([\w\d]+)")
 def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
+    # NOTE: migrated
     to_server = getattr(world, to_serv_as)
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
              (mount_point, to_server.id))
@@ -261,6 +266,7 @@ def verify_stdout_for_scripts(step, script_name, serv_as):
 
 @step("disk types in role are valid")
 def verify_attached_disk_types(step):
+    # NOTE: migrated
     LOG.info('Verify atype of attached disks')
     role = world.get_role()
     storage_config = IMPL.farm.get_role_settings(world.farm.id, role.role.id)['storages']
@@ -297,6 +303,7 @@ def checking_info_instance_vcpus(step, serv_as):
 
 @step(r"I reconfigure device partitions for '([\W\w]+)' on ([\w\d]+)")
 def create_partitions_on_volume(step, mnt_point, serv_as):
+    # NOTE: migrated
     script_name = "create_partitions.sh"
     script_src = resources(os.path.join("scripts", script_name)).get()
     path = os.path.join('/tmp', script_name)
@@ -317,6 +324,7 @@ def create_partitions_on_volume(step, mnt_point, serv_as):
 
 @step(r"I trigger snapshot creation from volume for '([\W\w]+)' on role")
 def create_volume_snapshot(step, mnt_point):
+    # NOTE: migrated
     device = world.get_storage_device_by_mnt_point(mnt_point)[0]
     LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
     kwargs = dict(
@@ -331,6 +339,7 @@ def create_volume_snapshot(step, mnt_point):
 
 @step(r"Volume snapshot creation become completed")
 def wait_voume_snapshot(step):
+    # NOTE: migrated
     def is_snapshot_completed(**kwargs):
         status = IMPL.aws_tools.snapshots_list(**kwargs)[0]['status']
         LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)

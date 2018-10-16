@@ -373,6 +373,7 @@ def farm_servers_state(state):
 
 @world.absorb
 def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=1000):
+    # NOTE: migrated
     if not isinstance(servers, (list, tuple)):
         servers = [servers]
     delivered_to = []
@@ -418,6 +419,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     servers.
     """
     def check_message_in_server(server, message_name, message_type):
+        # NOTE: migrated
         server.messages.reload()
         lookup_messages = getattr(world,
                                   '_server_%s_lookup_messages' % server.id, [])

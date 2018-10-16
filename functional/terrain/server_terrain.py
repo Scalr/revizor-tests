@@ -112,6 +112,7 @@ def rebundle_server(step, serv_as):
 
 @step('I (reboot|suspend|resume)(?: (soft|hard))? server ([\w\d]+)$')
 def server_state_action(step, action, reboot_type, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     LOG.info('%s server %s' % (action.capitalize(), server.id))
     args = {'method': reboot_type.strip() if reboot_type else 'soft'}
@@ -133,6 +134,7 @@ def server_state_action(step, action, reboot_type, serv_as):
 @step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?( without saving to the database)?')
 def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_message=None, timeout=1500):
     """Check scalr in/out message delivering"""
+    # NOTE: migrated
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
     find_message = getattr(world, 'wait_unstored_message' if unstored_message else 'wait_server_message')
     if serv_as == 'all':

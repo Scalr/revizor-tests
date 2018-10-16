@@ -15,6 +15,16 @@ def pytest_configure(config):
                             'boot: mark test as related to server bootstrap.')
     config.addinivalue_line('markers',
                             'szradm: mark test as related to SzrAdm.')
+    config.addinivalue_line('markers',
+                            'partition: mark test as related to volume partitioning.')
+    config.addinivalue_line('markers',
+                            'storages: mark test as related to storages.')
+    config.addinivalue_line('markers',
+                            'fstab: mark test as related to fstab.')
+    config.addinivalue_line('markers',
+                            'reboot: marked test reboots the server.')
+    config.addinivalue_line('markers',
+                            'scripting: test executes scripts on the server.')
 
 
 def pytest_addoption(parser):
