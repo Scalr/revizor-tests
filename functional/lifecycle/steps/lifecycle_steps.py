@@ -169,6 +169,7 @@ def check_file(step, serv_as, path):
 
 @step("I save device for '(.+)' for role")
 def save_device_for_additional_storage(step, mount_point):
+    # NOTE: migrated
     device_id = world.get_storage_device_by_mnt_point(mount_point)[0]['storageId']
     LOG.info('Volume Id for mount point "%s" is "%s"' % (mount_point, device_id))
     setattr(world, 'device_%s' % mount_point.replace('/', '_'), device_id)
@@ -176,6 +177,7 @@ def save_device_for_additional_storage(step, mount_point):
 
 @step("I delete saved device '(.+)'")
 def delete_volume(step, mount_point):
+    # NOTE: migrated
     device_id = getattr(world, 'device_%s' % mount_point.replace('/', '_'))
     LOG.info('Delete volume: %s' % device_id)
     volume = filter(lambda x: x.id == device_id, world.cloud.list_volumes())

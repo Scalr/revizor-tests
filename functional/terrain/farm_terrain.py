@@ -78,6 +78,7 @@ def delete_role_from_farm(step, role_type):
 @step('I (?:terminate|stop) farm')
 def farm_terminate(step):
     """Terminate (stopping) farm"""
+    # NOTE: migrated
     world.farm.terminate()
     time.sleep(30)
 

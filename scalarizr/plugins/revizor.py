@@ -29,6 +29,8 @@ def pytest_configure(config):
                             'restart: test restarts server agent.')
     config.addinivalue_line('markers',
                             'event: tests Scalr events.')
+    config.addinivalue_line('markers',
+                            'restartfarm: test restarts farm.')
 
 
 def pytest_addoption(parser):

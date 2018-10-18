@@ -30,7 +30,10 @@ class TestLifecycleLinux:
              'test_nonascii_script_out',
              'test_hidden_variable',
              'test_restart_scalarizr',
-             'test_custom_event')
+             'test_custom_event',
+             'test_custom_event_caching',
+             'test_stop_farm',
+             'test_delete_attached_storage')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -216,3 +219,30 @@ class TestLifecycleLinux:
         lib_server.validate_server_message(cloud, farm, msgtype='out', msg='TestEvent', server=server)
         lifecycle.validate_path(cloud, server, path='/tmp/f1')
         lifecycle.validate_path(cloud, server, path='/tmp/f2')
+
+    @pytest.mark.event
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
+    def test_custom_event_caching(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Caching custom event parameters"""
+        server = servers['M1']
+        event = lifecycle.define_event('TestEvent')
+        lifecycle.attach_script(context, farm, event_name=event['name'], script_name='TestingEventScript')
+        lib_node.execute_command(cloud, server,
+                                 command='szradm --fire-event TestEvent file1=/tmp/nocache1 file2=/tmp/nocache2')
+        lib_server.validate_server_message(cloud, farm, msgtype='out', msg='TestEvent', server=server)
+        lifecycle.validate_path(cloud, server, path='/tmp/nocache1')
+        lifecycle.validate_path(cloud, server, path='/tmp/nocache2')
+
+    @pytest.mark.restartfarm
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
+    def test_stop_farm(self, farm: Farm):
+        """Stop farm"""
+        farm.terminate()
+        lib_server.wait_servers_state(farm, 'terminated')
+
+    @pytest.mark.storages
+    @pytest.mark.platform('ec2', 'gce', 'cloudstack')
+    def test_delete_attached_storage(self, context: dict, cloud: Cloud, farm: Farm):
+        """Delete attached storage"""
+        device_id = lifecycle.get_device_for_additional_storage(context, farm, mount_point='/media/diskmount')
+        lifecycle.delete_volume(cloud, device_id)

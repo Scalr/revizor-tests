@@ -272,3 +272,26 @@ def attach_script(context: dict, farm: Farm, event_name: str, script_name: str):
             'runAs': ''
         }]
     )
+
+
+def get_device_for_additional_storage(context: dict, farm: Farm, mount_point: str):
+    device_id = lib_role.get_storage_device_by_mnt_point(context, farm, mount_point)[0]['storageId']
+    LOG.info('Volume Id for mount point "%s" is "%s"' % (mount_point, device_id))
+    return device_id
+
+
+def delete_volume(cloud: Cloud, device_id: str):
+    LOG.info('Delete volume: %s' % device_id)
+    volume = [v for v in cloud.list_volumes() if v.id == device_id]
+    if volume:
+        volume = volume[0]
+    else:
+        raise AssertionError('Can\'t found Volume in cloud with ID: %s' % device_id)
+    for i in range(10):
+        try:
+            cloud._driver._conn.destroy_volume(volume)
+            break
+        except Exception as e:
+            if 'attached' in e.message:
+                LOG.warning('Volume %s currently attached to server' % device_id)
+                time.sleep(60)

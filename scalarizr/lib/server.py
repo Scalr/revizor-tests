@@ -13,7 +13,7 @@ from revizor2.cloud import Cloud, ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform, MessageStatus
 from revizor2.exceptions import ServerTerminated, \
     ServerFailed, TimeoutError, MessageNotFounded, MessageFailed, ScalarizrLogError
-from revizor2.utils import DictToObj
+from revizor2.utils import DictToObj, wait_until
 
 LOG = logging.getLogger(__name__)
 
@@ -597,3 +597,22 @@ def validate_scalarizr_log_errors(cloud: Cloud, node: ExtendedNode, server: Serv
             if '%s:Traceback' % (line_number + 1) in lines[i+1]:
                 LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
                 raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+
+
+def wait_servers_state(farm: Farm, state):
+    """Wait for state of all servers"""
+    wait_until(farm_servers_state,
+               args=(farm, state),
+               timeout=1800,
+               error_text=('Servers in farm have no status %s' % state))
+
+
+def farm_servers_state(farm: Farm, state):
+    farm.servers.reload()
+    for server in farm.servers:
+        if server.status == ServerStatus.from_code(state):
+            LOG.info('Servers is in %s state' % state)
+            continue
+        else:
+            return False
+    return True
