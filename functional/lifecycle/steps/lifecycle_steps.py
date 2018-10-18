@@ -109,6 +109,7 @@ def check_file_count(step, directory, file_count, serv_as):
 
 @step('I define event \'(.+)\'$')
 def define_event_to_role(step, event):
+    # NOTE: migrated
     events = IMPL.event.list()
     res = filter(lambda x: x['name'] == event, events)
     if not res:
@@ -153,6 +154,7 @@ def attach_script(step, script_name):
 
 @step('server ([\w\d]+) contain \'(.+)\'')
 def check_file(step, serv_as, path):
+    # NOTE: migrated
     node = world.cloud.get_node(getattr(world, serv_as))
     with node.remote_connection() as conn:
         for attempt in range(5):

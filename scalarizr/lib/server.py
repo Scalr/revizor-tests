@@ -2,7 +2,9 @@ import copy
 import logging
 import re
 import time
+import traceback
 import typing as tp
+from datetime import datetime
 from distutils.util import strtobool
 
 from revizor2 import CONF
@@ -10,10 +12,20 @@ from revizor2.api import Farm, Role, Server, Message, Script
 from revizor2.cloud import Cloud, ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform, MessageStatus
 from revizor2.exceptions import ServerTerminated, \
-    ServerFailed, TimeoutError, MessageNotFounded, MessageFailed
+    ServerFailed, TimeoutError, MessageNotFounded, MessageFailed, ScalarizrLogError
 from revizor2.utils import DictToObj
 
 LOG = logging.getLogger(__name__)
+
+SCALARIZR_LOG_IGNORE_ERRORS = [
+    'boto',
+    'p2p_message',
+    'Caught exception reading instance data',
+    'Expected list, got null. Selector: listvolumesresponse',
+    'error was thrown due to the hostname format',
+    "HTTPSConnectionPool(host='my.scalr.com', port=443): Max retries exceeded",
+    "Error synchronizing server time: Unable to synchronize time, cause ntpdate binary is not found in $PATH"
+]
 
 
 def wait_status(context: dict,
@@ -498,3 +510,90 @@ def validate_string_in_file(cloud: Cloud, server: Server, file_path: str, value:
         'File %s %s: %s. Result of grep: %s' % (file_path,
                                                 'contains' if invert else 'does not contain',
                                                 value, out)
+
+
+def check_text_in_scalarizr_log(node: ExtendedNode, text: str):
+    out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text).std_out
+    if text in out:
+        return True
+    return False
+
+
+def check_scalarizr_log_errors(cloud: Cloud, server: Server, log_type: str = None):
+    """Check scalarizr log for errors"""
+    log_type = log_type or 'debug'
+    node = cloud.get_node(server)
+    if CONF.feature.dist.is_windows:
+        validate_scalarizr_log_errors(cloud, node, windows=True, server=server, log_type=log_type)
+    else:
+        validate_scalarizr_log_errors(cloud, node, log_type=log_type)
+
+
+def validate_scalarizr_log_errors(cloud: Cloud, node: ExtendedNode, server: Server = None,
+                                  log_type: str = None, windows: bool = False):
+    LOG.info('Verify scalarizr log in server: %s' % node.id)
+    if server:
+        server.reload()
+        if not server.public_ip:
+            LOG.debug('Server has no public IP yet')
+            return
+    else:
+        if isinstance(node, Server):
+            node = cloud.get_node(node)
+        if not node.public_ips or not node.public_ips[0]:
+            LOG.debug('Node has no public IP yet')
+            return
+    try:
+        if windows:
+            log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            if 'FINDSTR: Cannot open' in log_out.std_err:
+                log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            log_out = log_out.std_out
+            LOG.debug('Findstr result: %s' % log_out)
+        else:
+            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type)).std_out
+            LOG.debug('Grep result: %s' % log_out)
+    except BaseException as e:
+        LOG.error('Can\'t connect to server: %s' % e)
+        LOG.error(traceback.format_exc())
+        return
+
+    lines = log_out.splitlines()
+    for i, line in enumerate(lines):
+        ignore = False
+        LOG.debug('Verify line "%s" for errors' % line)
+        log_date = None
+        log_level = None
+        line_number = -1
+        now = datetime.now()
+        try:
+            line_number = int(line.split(':', 1)[0])
+            line = line.split(':', 1)[1]
+            log_date = datetime.strptime(line.split()[0], '%Y-%m-%d')
+            log_level = line.strip().split()[3]
+        except (ValueError, IndexError):
+            pass
+
+        if log_date:
+            if not log_date.year == now.year or \
+                    not log_date.month == now.month or \
+                    not log_date.day == now.day:
+                continue
+
+        for error in SCALARIZR_LOG_IGNORE_ERRORS:
+            LOG.debug('Check ignore error word in error line: %s' % error)
+            if error in line:
+                LOG.debug('Ignore this error line: %s' % line)
+                ignore = True
+                break
+        if ignore:
+            continue
+
+        if log_level == 'ERROR':
+            LOG.error('Found ERROR in scalarizr_%s.log:\n %s' % (log_type, line))
+            raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+
+        if log_level == 'WARNING' and i < len(lines) - 1:
+            if '%s:Traceback' % (line_number + 1) in lines[i+1]:
+                LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
+                raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))

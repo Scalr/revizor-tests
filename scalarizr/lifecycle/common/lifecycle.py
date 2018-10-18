@@ -232,3 +232,43 @@ def validate_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.
         else:
             assert mount_table[mount_point] == fstab[mount_point], (
                     'Disk from mount != disk in fstab: "%s" != "%s"' % (mount_table[mount_point], fstab[mount_point]))
+
+
+def define_event(event_name: str):
+    events = IMPL.event.list()
+    res = [e for e in events if e['name'] == event_name]
+    if not res:
+        LOG.info('Create new Event')
+        IMPL.event.change(event_name, 'Revizor FireEvent')
+        events = IMPL.event.list()
+        res = [e for e in events if e['name'] == event_name]
+    return res[0]
+
+
+def attach_script(context: dict, farm: Farm, event_name: str, script_name: str):
+    scripts = IMPL.script.list()
+    role = lib_role.get_role(context, farm)
+    res = [s for s in scripts if s['name'] == script_name][0]
+    LOG.info('Add script %s to custom event %s' % (res['name'], event_name))
+    IMPL.farm.edit_role(farm.id, role.role.id, scripting=[
+        {
+            'scope': 'farmrole',
+            'action': 'add',
+            'timeout': '1200',
+            'isSync': True,
+            'orderIndex': 10,
+            'type': 'scalr',
+            'isActive': True,
+            'eventName': event_name,
+            'target': {
+                'type': 'server'
+            },
+            'isFirstConfiguration': None,
+            'scriptId': str(res['id']),
+            'scriptName': res['name'],
+            'scriptOs': 'linux',
+            'version': -1,
+            'scriptPath': '',
+            'runAs': ''
+        }]
+    )

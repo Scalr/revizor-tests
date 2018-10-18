@@ -25,6 +25,10 @@ def pytest_configure(config):
                             'reboot: marked test reboots the server.')
     config.addinivalue_line('markers',
                             'scripting: test executes scripts on the server.')
+    config.addinivalue_line('markers',
+                            'restart: test restarts server agent.')
+    config.addinivalue_line('markers',
+                            'event: tests Scalr events.')
 
 
 def pytest_addoption(parser):

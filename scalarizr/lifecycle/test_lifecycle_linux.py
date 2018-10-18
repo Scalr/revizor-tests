@@ -4,6 +4,7 @@ from revizor2.api import Farm
 from revizor2.cloud import Cloud
 from revizor2.consts import ServerStatus
 from scalarizr.lib import farm as lib_farm
+from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import lifecycle, szradm
 
@@ -27,7 +28,9 @@ class TestLifecycleLinux:
              'test_execute_nonascii_script',
              'test_execute_nonascii_script_wrong',
              'test_nonascii_script_out',
-             'test_hidden_variable')
+             'test_hidden_variable',
+             'test_restart_scalarizr',
+             'test_custom_event')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -191,3 +194,25 @@ class TestLifecycleLinux:
                                                name='Verify hidden variable',
                                                log_contains='REVIZOR_HIDDEN_VARIABLE',
                                                new_only=True)
+
+    @pytest.mark.restart
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
+    def test_restart_scalarizr(self, cloud: Cloud, servers: dict):
+        """Restart scalarizr"""
+        server = servers['M1']
+        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_node.reboot_scalarizr(cloud, server)
+        lib_node.validate_scalarizr_log_contains(cloud, server, message='Scalarizr terminated')
+        lib_server.check_scalarizr_log_errors(cloud, server)
+
+    @pytest.mark.event
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
+    def test_custom_event(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Custom event"""
+        server = servers['M1']
+        event = lifecycle.define_event('TestEvent')
+        lifecycle.attach_script(context, farm, event_name=event['name'], script_name='TestingEventScript')
+        lib_node.execute_command(cloud, server, command='szradm --fire-event TestEvent file1=/tmp/f1 file2=/tmp/f2')
+        lib_server.validate_server_message(cloud, farm, msgtype='out', msg='TestEvent', server=server)
+        lifecycle.validate_path(cloud, server, path='/tmp/f1')
+        lifecycle.validate_path(cloud, server, path='/tmp/f2')

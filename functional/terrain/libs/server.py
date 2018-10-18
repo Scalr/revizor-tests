@@ -112,6 +112,7 @@ def run_cmd_command(server, command, raise_exc=True):
 
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
+    # NOTE: migrated
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     if server:
         server.reload()
@@ -684,6 +685,7 @@ def wait_rabbitmq_cp_url(*args, **kwargs):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
+    # NOTE: migrated
     out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text).std_out
     if text in out:
         return True
