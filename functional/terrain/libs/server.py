@@ -54,7 +54,7 @@ def get_windows_session(server=None, public_ip=None, password=None, timeout=None
             if server:
                 server.reload()
                 public_ip = server.public_ip
-                password = password or server.windows_password
+                password = password or server.remote_password
                 if not password:
                     password = 'Scalrtest123'
             if platform.is_gce or platform.is_azure:
