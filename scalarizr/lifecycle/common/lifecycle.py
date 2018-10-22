@@ -1,5 +1,6 @@
 import json
 import logging
+import re
 import time
 import typing as tp
 from itertools import chain
@@ -83,7 +84,7 @@ def validate_server_message_count(context: dict, server: Server, msg: str):
         f'Actual messages: {messages}'
 
 
-def get_config_from_message(cloud: Cloud, server: Server, config_group: str, message: str):
+def get_config_from_message(cloud: Cloud, server: Server, config_group: str, message: str) -> dict:
     node = cloud.get_node(server)
     LOG.info('Get messages from server %s' % server.id)
     messages = lib_server.get_szr_messages(node)
@@ -96,6 +97,13 @@ def get_config_from_message(cloud: Cloud, server: Server, config_group: str, mes
     LOG.info('Message details is %s' % message_details)
     LOG.info('Returning message part %s' % config_group)
     return message_details[config_group]
+
+
+def validate_message_config(cloud: Cloud, server: Server, config_group: str, message: str, old_details: dict):
+    message_details = get_config_from_message(cloud, server, config_group, message)
+    if old_details == message_details:
+        LOG.error('New and old details is not equal: %s\n %s' % (old_details, message_details))
+        raise AssertionError('New and old details is not equal')
 
 
 def validate_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
@@ -295,3 +303,57 @@ def delete_volume(cloud: Cloud, device_id: str):
             if 'attached' in e.message:
                 LOG.warning('Volume %s currently attached to server' % device_id)
                 time.sleep(60)
+
+
+def validate_files_count(cloud: Cloud, server: Server, directory: str, file_count: int):
+    node = cloud.get_node(server)
+    LOG.info('Check count of files in directory %s' % directory)
+    out = node.run('cd %s && ls' % directory).std_out.split()
+    for i in ['..', '.', '...', 'lost+found']:
+        if i in out:
+            out.remove(i)
+    if not file_count == len(out):
+        raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
+
+
+def validate_device_changed(context: dict, farm: Farm, mount_point: str, old_device_id: str):
+    device = lib_role.get_storage_device_by_mnt_point(context, farm, mount_point)[0]
+    if device['storageId'] == old_device_id:
+        raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
+
+
+def validate_scripts_launch_amt(server: Server, script_name):
+    script_name = re.sub('[^A-Za-z0-9/.]+', '_', script_name)[:50]
+    times = set()
+    counter = 0
+    server.scriptlogs.reload()
+    # TODO: PP > shitty logic here, check it up later
+    for script in server.scriptlogs:
+        if not script.name == script_name:
+            continue
+        counter += 1
+        times.add(script.message.splitlines()[-1].split()[-2][:-3])
+    if not len(times) == counter:
+        raise AssertionError('Last reboot times is equals: %s' % list(times))
+
+
+def add_storage_to_role(context: dict, farm: Farm, volume_snapshot_id: str):
+    role = lib_role.get_role(context, farm)
+    assert volume_snapshot_id, 'No volume snapshot provided'
+    LOG.info('Add volume from snapshot: %s to role' % volume_snapshot_id)
+    storage_settings = {'configs': [
+        {
+            "id": None,
+            "type": "ebs",
+            "fs": None,
+            "settings": {
+                "ebs.size": "1",
+                "ebs.type": "standard",
+                "ebs.snapshot": volume_snapshot_id},
+            "mount": False,
+            "reUse": False,
+            "status": "",
+            "rebuild": False
+        }
+    ]}
+    role.edit(storages=storage_settings)

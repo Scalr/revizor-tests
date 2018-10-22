@@ -1,5 +1,6 @@
 import logging
 import re
+import time
 import typing as tp
 
 from revizor2 import CONF
@@ -11,6 +12,24 @@ from revizor2.helpers.roles import get_role_versions
 from scalarizr.lib.defaults import Defaults
 
 LOG = logging.getLogger(__name__)
+
+
+def clear(farm: Farm):
+    farm.roles.reload()
+    if len(farm.roles):
+        LOG.info('Clear farm roles')
+        IMPL.farm.clear_roles(farm.id)
+    farm.vhosts.reload()
+    for vhost in farm.vhosts:
+        LOG.info(f'Delete vhost: {vhost.name}')
+        vhost.delete()
+    try:
+        farm.domains.reload()
+        for domain in farm.domains:
+            LOG.info(f'Delete domain: {domain.name}')
+            domain.delete()
+    except Exception:
+        pass
 
 
 def add_role_to_farm(context: dict,
@@ -152,3 +171,11 @@ def setup_farmrole_params(context: dict,
             role_params.database.redis_use_password = True
 
     return role_params
+
+
+def farm_launch_delayed(farm: Farm):
+    """Start farm with delay for cloudstack"""
+    if CONF.feature.platform.is_cloudstack:  # Maybe use on all cloudstack
+        time.sleep(1800)
+    farm.launch()
+    LOG.info('Launch farm \'%s\' (%s)' % (farm.id, farm.name))

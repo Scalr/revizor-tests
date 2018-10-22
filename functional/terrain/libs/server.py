@@ -189,6 +189,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
     :param class:Role role: Show in which role lookup a new server
     :return class:Server: Return a new Server
     """
+    # NOTE: migrated (wait_status)
     platform = CONF.feature.platform
     status = ServerStatus.from_code(status)
 

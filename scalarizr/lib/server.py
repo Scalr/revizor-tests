@@ -7,6 +7,7 @@ import typing as tp
 from datetime import datetime
 from distutils.util import strtobool
 
+import scalarizr.lib.role as lib_role
 from revizor2 import CONF
 from revizor2.api import Farm, Role, Server, Message, Script
 from revizor2.cloud import Cloud, ExtendedNode
@@ -34,7 +35,7 @@ def wait_status(context: dict,
                 role: Role = None,
                 status: str = ServerStatus.RUNNING,
                 timeout: int = 2100,
-                server: Server = None):
+                server: Server = None) -> Server:
     platform = CONF.feature.platform
     status = ServerStatus.from_code(status)
 
@@ -459,10 +460,10 @@ def validate_last_script_result(context: dict,
             event_matched = event is None or (log.event and log.event.strip() == event.strip())
             user_matched = user is None or (log.run_as == user)
             name_matched = name is None \
-                           or (name == 'chef' and log.name.strip().startswith(name)) \
-                           or (name.startswith('http') and log.name.strip().startswith(name)) \
-                           or (name.startswith('local') and log.name.strip().startswith(name)) \
-                           or log.name.strip() == name
+                or (name == 'chef' and log.name.strip().startswith(name)) \
+                or (name.startswith('http') and log.name.strip().startswith(name)) \
+                or (name.startswith('local') and log.name.strip().startswith(name)) \
+                or log.name.strip() == name
             LOG.debug('Script matched parameters: event - %s, user - %s, name - %s' % (
                 event_matched, user_matched, name_matched))
             if name_matched and event_matched and user_matched:
@@ -545,13 +546,16 @@ def validate_scalarizr_log_errors(cloud: Cloud, node: ExtendedNode, server: Serv
             return
     try:
         if windows:
-            log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+            log_out = node.run(
+                "findstr /n \"ERROR WARNING Traceback\" \"C:\Program Files\Scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             if 'FINDSTR: Cannot open' in log_out.std_err:
-                log_out = node.run("findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
+                log_out = node.run(
+                    "findstr /n \"ERROR WARNING Traceback\" \"C:\opt\scalarizr\\var\log\scalarizr_%s.log\"" % log_type)
             log_out = log_out.std_out
             LOG.debug('Findstr result: %s' % log_out)
         else:
-            log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type)).std_out
+            log_out = (
+                node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type)).std_out
             LOG.debug('Grep result: %s' % log_out)
     except BaseException as e:
         LOG.error('Can\'t connect to server: %s' % e)
@@ -594,9 +598,10 @@ def validate_scalarizr_log_errors(cloud: Cloud, node: ExtendedNode, server: Serv
             raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
         if log_level == 'WARNING' and i < len(lines) - 1:
-            if '%s:Traceback' % (line_number + 1) in lines[i+1]:
+            if '%s:Traceback' % (line_number + 1) in lines[i + 1]:
                 LOG.error('Found WARNING with Traceback in scalarizr_%s.log:\n %s' % (log_type, line))
-                raise ScalarizrLogError('Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
+                raise ScalarizrLogError(
+                    'Error in scalarizr_%s.log on server %s\nErrors: %s' % (log_type, node.id, log_out))
 
 
 def wait_servers_state(farm: Farm, state):
@@ -616,3 +621,13 @@ def farm_servers_state(farm: Farm, state):
         else:
             return False
     return True
+
+
+def expect_server_bootstraping_for_role(context: dict, cloud: Cloud, farm: Farm, role_type: str = None, timeout=1800):
+    """Expect server bootstrapping to 'Running' and check every 10 seconds scalarizr log for ERRORs and Traceback"""
+    role = lib_role.get_role(context, farm, alias=role_type) if role_type else None
+    platform = CONF.feature.platform
+    if platform.is_cloudstack or platform.is_openstack or platform.is_azure:
+        timeout = 3000
+    LOG.info('Expect server bootstrapping for %s role' % role_type)
+    return wait_status(context, cloud, farm, role=role, status=ServerStatus.RUNNING, timeout=timeout)

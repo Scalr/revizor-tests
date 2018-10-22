@@ -33,7 +33,13 @@ class TestLifecycleLinux:
              'test_custom_event',
              'test_custom_event_caching',
              'test_stop_farm',
-             'test_delete_attached_storage')
+             'test_delete_attached_storage',
+             'test_start_farm',
+             'test_attached_storages_restart',
+             'test_reboot_bootstrap',
+             'test_nonblank_volume',
+             'test_failed_hostname',
+             'test_unmanaged_storage')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -89,6 +95,7 @@ class TestLifecycleLinux:
         server = servers['M1']
         lifecycle.create_partitions_on_volume(cloud, server, mnt_point='/media/partition')
         snapshot_id = lifecycle.create_volume_snapshot(context, farm, '/media/partition')
+        context['volume_snapshot_id'] = snapshot_id
         lifecycle.validate_volume_snapshot(snapshot_id)
 
     @pytest.mark.fstab
@@ -245,4 +252,87 @@ class TestLifecycleLinux:
     def test_delete_attached_storage(self, context: dict, cloud: Cloud, farm: Farm):
         """Delete attached storage"""
         device_id = lifecycle.get_device_for_additional_storage(context, farm, mount_point='/media/diskmount')
+        context['M1_device_media_diskmount'] = device_id
         lifecycle.delete_volume(cloud, device_id)
+
+    @pytest.mark.restartfarm
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
+    def test_start_farm(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Start farm"""
+        lib_farm.farm_launch_delayed(farm)
+        server = lib_server.expect_server_bootstraping_for_role(context, cloud, farm)
+        servers['M1'] = server
+        lib_node.validate_scalarizr_version(server, 'system')
+
+    @pytest.mark.storages
+    @pytest.mark.platform('ec2', 'cloudstack', 'gce')
+    def test_attached_storages_restart(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Check attached storages after farm restart"""
+        server = servers['M1']
+        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        old_details = context['M1_hostup_volumes']
+        lifecycle.validate_message_config(cloud, server,
+                                          config_group='volumes', message='HostInitResponse',
+                                          old_details=old_details)
+        lifecycle.validate_path(cloud, server, '/media/diskmount')
+        lifecycle.validate_path(cloud, server, '/media/raidmount')
+        lifecycle.validate_files_count(cloud, server, '/media/raidmount', 100)
+        device_id = context['M1_device_media_diskmount']
+        lifecycle.validate_device_changed(context, farm, mount_point='/media/diskmount', old_device_id=device_id)
+
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
+    def test_reboot_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Reboot on bootstraping"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm, role_options=['init_reboot', 'small_linux_orchestration'])
+        farm.launch()
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        servers['M1'] = server
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='Revizor last reboot',
+                                               event='HostInit',
+                                               user='root',
+                                               exitcode=0)
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='Revizor last reboot',
+                                               event='HostUp',
+                                               user='root',
+                                               exitcode=0)
+        lifecycle.validate_scripts_launch_amt(server, 'Revizor last reboot')
+        lifecycle.validate_hostname(server)
+
+    @pytest.mark.partition
+    @pytest.mark.platform('ec2')
+    def test_nonblank_volume(self, context: dict, cloud: Cloud, farm: Farm):
+        """Check partition table recognized as a non-blank volume"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm)
+        snapshot_id = context['volume_snapshot_id']
+        lifecycle.add_storage_to_role(context, farm, snapshot_id)
+        farm.launch()
+        lib_server.wait_status(context, cloud, farm, status=ServerStatus.FAILED)
+
+    @pytest.mark.failedbootstrap
+    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'openstack')
+    def test_failed_hostname(self, context: dict, cloud: Cloud, farm: Farm):
+        """Failed bootstrap by hostname"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm, role_options=['failed_hostname'])
+        farm.launch()
+        lib_server.wait_status(context, cloud, farm, status=ServerStatus.FAILED)
+
+    @pytest.mark.platform('azure')
+    def test_unmanaged_storage(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Check attached unmanaged storage"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm, role_options=['unmanaged'])
+        farm.launch()
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        servers['M1'] = server
+        lifecycle.validate_attached_disk_types(context, cloud, farm)
+        lifecycle.validate_path(cloud, server, '/media/diskmount')
+        lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')

@@ -7,6 +7,9 @@ import pytest
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
+import scalarizr.lib.farm as lib_farm
+import scalarizr.lib.server as lib_server
+from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
 
@@ -55,21 +58,7 @@ def farm():
     else:
         LOG.info(f'Farm ID is set in config, use it: {CONF.main.farm_id}')
         test_farm = Farm.get(CONF.main.farm_id)
-    test_farm.roles.reload()
-    if len(test_farm.roles):
-        LOG.info('Clear farm roles')
-        IMPL.farm.clear_roles(test_farm.id)
-    test_farm.vhosts.reload()
-    for vhost in test_farm.vhosts:
-        LOG.info(f'Delete vhost: {vhost.name}')
-        vhost.delete()
-    try:
-        test_farm.domains.reload()
-        for domain in test_farm.domains:
-            LOG.info(f'Delete domain: {domain.name}')
-            domain.delete()
-    except Exception:
-        pass
+    lib_farm.clear(test_farm)
     LOG.info(f'Returning test farm: {test_farm.id}')
     try:
         yield test_farm
@@ -80,9 +69,11 @@ def farm():
         if test_farm.name.startswith('tmprev'):
             LOG.info('Delete working temporary farm')
             try:
-                # LOG.info('Wait all servers in farm terminated before delete')
-                # wait_until(world.farm_servers_state, args=('terminated',), timeout=1800,
-                #            error_text='Servers in farm not terminated too long')
+                LOG.info('Wait all servers in farm terminated before delete')
+                wait_until(lib_server.farm_servers_state,
+                           args=(test_farm, 'terminated'),
+                           timeout=1800,
+                           error_text='Servers in farm not terminated too long')
                 test_farm.destroy()
             except Exception as e:
                 LOG.warning(f'Farm cannot be deleted: {str(e)}')

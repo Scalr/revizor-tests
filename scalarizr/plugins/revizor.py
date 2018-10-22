@@ -31,6 +31,8 @@ def pytest_configure(config):
                             'event: tests Scalr events.')
     config.addinivalue_line('markers',
                             'restartfarm: test restarts farm.')
+    config.addinivalue_line('markers',
+                            'failedbootstrap: server fails on bootstrap in test.')
 
 
 def pytest_addoption(parser):

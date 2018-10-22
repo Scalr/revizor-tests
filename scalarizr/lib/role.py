@@ -1,12 +1,12 @@
 import logging
 
-from revizor2.api import Farm
+from revizor2.api import Farm, FarmRole
 from revizor2.backend import IMPL
 
 LOG = logging.getLogger(__name__)
 
 
-def get_role(context: dict, farm: Farm, alias: str = None):
+def get_role(context: dict, farm: Farm, alias: str = None) -> FarmRole:
     """
     Return save Role object with setted database object and all staff
     """

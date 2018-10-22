@@ -50,6 +50,7 @@ def save_config_from_message(step, config_group, message, serv_as):
 
 @step("(\w+) configuration in '([\w]+)' message in ([\w\d]+) is old")
 def check_message_config(step, config_group, message, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Get messages from server %s' % server.id)
@@ -96,6 +97,7 @@ def create_files(step, file_count, directory, serv_as):
 
 @step("count of files in directory '(.+)' is (\d+) in ([\w\d]+)")
 def check_file_count(step, directory, file_count, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Check count of files in directory %s' % directory)
@@ -198,6 +200,7 @@ def delete_volume(step, mount_point):
 
 @step("saved device for '(.+)' for role is another")
 def verify_saved_and_new_volumes(step, mount_point):
+    # NOTE: migrated
     device = world.get_storage_device_by_mnt_point(mount_point)[0]
     if device['storageId'] == getattr(world, 'device_%s' % mount_point.replace('/', '_')):
         raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
@@ -254,6 +257,7 @@ def verify_mount_point_in_fstab(step, from_serv_as, mount_point, to_serv_as):
 
 @step("start time in ([\w\d _-]+) scripts are different for ([\w\d]+)")
 def verify_stdout_for_scripts(step, script_name, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     script_name = re.sub('[^A-Za-z0-9/.]+', '_', script_name)[:50]
     times = set()
@@ -360,6 +364,7 @@ def wait_voume_snapshot(step):
 
 @step(r"I add new storage from volume snapshot to role")
 def add_storage_to_role(step):
+    # NOTE: migrated
     role = world.get_role()
     volume_snapshot_id = getattr(world, 'volume_snapshot_id', None)
     assert volume_snapshot_id, 'No volume snapshot found in world object'
