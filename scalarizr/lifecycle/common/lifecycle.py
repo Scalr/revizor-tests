@@ -13,9 +13,10 @@ from revizor2 import CONF
 from revizor2.api import Server, Farm
 from revizor2.backend import IMPL
 from revizor2.cloud import Cloud
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
+from scalarizr.lib.common import run_only_if
 
 LOG = logging.getLogger(__name__)
 
@@ -27,7 +28,7 @@ def validate_server_status(server: Server, status: str):
         f'Actual: {server.status}, expected: {expected_status}'
 
 
-# @world.run_only_if(platform='!%s' % Platform.VMWARE) <-- TODO
+@run_only_if(platform='!%s' % Platform.VMWARE)
 def validate_vcpus_info(server: Server):
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info(f'Server {server.id} vcpus info: {vcpus}')
@@ -54,8 +55,8 @@ def validate_hostname(server: Server):
         f'Actual: {hostname}, expected: {valid_hostname}'
 
 
-# @world.run_only_if(platform=['!%s' % Platform.RACKSPACENGUS, '!%s' % Platform.CLOUDSTACK],
-#     dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos']) <-- TODO
+@run_only_if(platform=['!%s' % Platform.RACKSPACENGUS, '!%s' % Platform.CLOUDSTACK],
+             dist=['!scientific6', '!centos-6-x', '!centos-7-x', '!coreos'])
 def validate_iptables_ports(cloud: Cloud, server: Server, ports: tp.List[int], invert: bool = False):
     LOG.info(f'Verify ports {ports} in iptables')
     if CONF.feature.platform.is_cloudstack:
@@ -71,7 +72,7 @@ def validate_iptables_ports(cloud: Cloud, server: Server, ports: tp.List[int], i
             raise AssertionError(f'Port "{port}" is NOT in iptables rules')
 
 
-# @world.run_only_if(platform=(Platform.EC2, Platform.GCE), storage='persistent') <-- TODO
+@run_only_if(platform=(Platform.EC2, Platform.GCE), storage='persistent')
 def validate_server_message_count(context: dict, server: Server, msg: str):
     """Assert messages count with Mounted Storages count"""
     messages = lib_server.get_incoming_messages(server, msg)
