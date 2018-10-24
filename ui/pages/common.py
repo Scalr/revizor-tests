@@ -53,6 +53,14 @@ class CommonTopMenu(BasePage):
         return AccountDashboard(self.driver, self.base_url)
 
     @wait_for_page_to_load
+    def go_to_admin(self):
+        """Switches to Admin level Dashboard.
+           Returns AdminDashboard page object.
+        """
+        from pages.admin_scope import AdminDashboard
+        return AdminDashboard(self.driver, self.base_url)
+
+    @wait_for_page_to_load
     def go_to_environment(self, env_name="acc1env1"):
         """Switches to specific Scalr environment.
            Returns EnvironmentDashboard page object.

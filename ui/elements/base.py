@@ -276,3 +276,11 @@ class Label(BaseElement):
             self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
+
+
+class GetURL(BaseElement):
+    """Go to the page without using menu
+    """
+
+    def go_to_page(self, container, page):
+        self.driver.get(container + page)

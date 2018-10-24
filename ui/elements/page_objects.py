@@ -3,7 +3,7 @@ import time
 from selenium.webdriver.common.action_chains import ActionChains
 
 from elements import locators
-from elements.base import Button
+from elements.base import Button, Input
 
 
 class LeftPopupMenu:
@@ -12,6 +12,8 @@ class LeftPopupMenu:
         self.driver = driver
         self.main_button = Button(
             icon='el-default-toolbar-small x-scalr-icon', driver=self.driver)
+        self.search_field = Input(
+            xpath=".//*[@placeholder='Menu filter']", driver=self.driver)
 
     def _convert_elements(self, elements):
         items = {}
@@ -23,6 +25,9 @@ class LeftPopupMenu:
 
     def click(self):
         return self.main_button.click()
+
+    def search_field(self):
+        return self.search_field
 
     def scroll(self, direction):
         chain = ActionChains(self.driver)
