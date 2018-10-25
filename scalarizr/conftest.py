@@ -3,6 +3,7 @@ import uuid
 from datetime import datetime
 
 import pytest
+from _pytest.fixtures import FixtureRequest
 
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
@@ -46,7 +47,7 @@ def initialize_test(context: dict, cloud: Cloud):
 
 
 @pytest.fixture(scope='class')
-def farm():
+def farm(request: FixtureRequest) -> Farm:
     if CONF.main.farm_id is None:
         LOG.info('Farm ID not set, create a new farm for test')
         test_farm = Farm.create(f'tmprev-{datetime.now().strftime("%d%m%H%M%f")}',
@@ -63,17 +64,20 @@ def farm():
     try:
         yield test_farm
     finally:
-        LOG.info('Clear and stop farm...')
-        test_farm.terminate()
-        IMPL.farm.clear_roles(test_farm.id)
-        if test_farm.name.startswith('tmprev'):
-            LOG.info('Delete working temporary farm')
-            try:
-                LOG.info('Wait all servers in farm terminated before delete')
-                wait_until(lib_server.farm_servers_state,
-                           args=(test_farm, 'terminated'),
-                           timeout=1800,
-                           error_text='Servers in farm not terminated too long')
-                test_farm.destroy()
-            except Exception as e:
-                LOG.warning(f'Farm cannot be deleted: {str(e)}')
+        failed_count = request.session.testsfailed
+        LOG.info('Failed tests: %s' % failed_count)
+        if (failed_count == 0 and CONF.feature.stop_farm) or (CONF.feature.stop_farm and CONF.scalr.te_id):
+            LOG.info('Clear and stop farm...')
+            test_farm.terminate()
+            IMPL.farm.clear_roles(test_farm.id)
+            if test_farm.name.startswith('tmprev'):
+                LOG.info('Delete working temporary farm')
+                try:
+                    LOG.info('Wait all servers in farm terminated before delete')
+                    wait_until(lib_server.farm_servers_state,
+                               args=(test_farm, 'terminated'),
+                               timeout=1800,
+                               error_text='Servers in farm not terminated too long')
+                    test_farm.destroy()
+                except Exception as e:
+                    LOG.warning(f'Farm cannot be deleted: {str(e)}')

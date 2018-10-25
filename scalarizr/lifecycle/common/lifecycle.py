@@ -136,18 +136,17 @@ def validate_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
 
 
 def validate_path(cloud: Cloud, server: Server, path: str):
+    LOG.info('Check directory %s' % path)
     node = cloud.get_node(server)
     with node.remote_connection() as conn:
-        for attempt in range(3):
+        for attempt in range(5):
             out = conn.run('/bin/ls %s' % path)
-            if not out.std_out and not out.std_err:
-                time.sleep(5)
-                continue
-            break
-        LOG.info('Check directory %s' % path)
-        if 'No such file or directory' in out.std_out or 'No such file or directory' in out.std_err or not out.std_out:
-            LOG.error('Directory (file) not exist')
-            raise AssertionError("'%s' not exist in server %s" % (path, server.id))
+            if out.status_code == 0:
+                break
+            time.sleep(15)
+        else:
+            LOG.error('Path %s does not exist' % path)
+            raise AssertionError("'%s' does not exist on server %s" % (path, server.id))
 
 
 def create_files(cloud: Cloud, server: Server, count: int, directory: str):

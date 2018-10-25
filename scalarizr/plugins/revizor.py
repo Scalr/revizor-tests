@@ -40,6 +40,7 @@ def pytest_addoption(parser):
     parser.addoption('--farm-id', action='store', default=None)
     parser.addoption('--platform', action='store', default=None)
     parser.addoption('--dist', action='store', default=None)
+    parser.addoption('--no-stop-farm', action='store_true', default=False)
 
 
 def pytest_sessionstart(session: Session):
@@ -55,6 +56,8 @@ def pytest_sessionstart(session: Session):
         CONF.feature.platform = Platform(driver=platform)
     if dist:
         CONF.feature.dist = Dist(dist_name=dist)
+    if session.config.getoption('--no-stop-farm'):
+        CONF.feature.stop_farm = False
 
 
 def pytest_collection_modifyitems(session, config: Config, items: tp.List[Function]):
