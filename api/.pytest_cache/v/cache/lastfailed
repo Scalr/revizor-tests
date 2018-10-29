@@ -1,0 +1,3 @@
+{
+  "tests/global/cloud_credentials/test_cloud_credentials.py::TestCloudCredentials::()::test_list_cc": true
+}

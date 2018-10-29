@@ -5,6 +5,7 @@ Created on 05.06.18
 """
 import sys
 import time
+import json
 
 import pytest
 
@@ -20,7 +21,6 @@ TE_HOST_TPL = "{}.test-env.scalr.com"
 
 
 pytest_plugins = [
-    "api.plugins.filefixture",
     "api.plugins.app_session"
 ]
 
@@ -65,7 +65,7 @@ def pytest_sessionstart(session):
     else:
         test_env = TestEnv(te_id)
     # Wait test environment is Running
-    time_delta = time.time()+session.config.getoption("te_timeout")
+    time_delta = time.time() + session.config.getoption("te_timeout")
     while time.time() <= time_delta:
         try:
             test_env.get_ssh()
@@ -79,13 +79,36 @@ def pytest_sessionstart(session):
         raise RuntimeError("Test environment timeout expired...")
     # Create api v2 keys
     CONF.scalr.te_id = test_env.te_id
-    api_key = IMPL.api_key.new()
+
+    working_dir = CONF.main.home / 'testenvs' / CONF.scalr.te_id
+    config_file = working_dir / 'settings.json'
+    te_config = {}
+
+    if not working_dir.exists():
+        working_dir.mkdir(parents=True)
+    else:
+        if config_file.is_file():
+            with open(config_file, 'r') as f:
+                te_config = json.load(f)
+    if 'user_api' not in te_config:
+        user_api_key = IMPL.api_key.new()
+        te_config['user_api'] = {
+            'id': user_api_key['keyId'],
+            'secret': user_api_key['secretKey']
+        }
+    if 'global_api' not in te_config:
+        global_api_key = IMPL.api_key.new(session='super_admin')
+        te_config['global_api'] = {
+            'id': global_api_key['keyId'],
+            'secret': global_api_key['secretKey']
+        }
+    with open(config_file, 'w') as f:
+        json.dump(te_config, f)
     # Store settings
+    session.config.working_dir = working_dir
     session.config.api_environment = dict(
         host=TE_HOST_TPL.format(test_env.te_id),
-        schema="http",
-        secret_key=api_key['secretKey'],
-        secret_key_id=api_key['keyId']
+        config=te_config
     )
     ColorPrint.print_pass("Test will run in this test environment: %s" % TE_HOST_TPL.format(test_env.te_id))
 
@@ -96,3 +119,5 @@ def pytest_sessionfinish(session):
     if test_env and not no_delete:
         ColorPrint.print_fail("Destroy environment: %s ..." % test_env.te_id)
         test_env.destroy()
+
+
