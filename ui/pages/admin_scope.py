@@ -28,7 +28,9 @@ class AdminDashboard(AdminLeftMenu):
 
     @property
     def loaded(self):
-        return Button(text="Admin Dashboard", driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
+        return Button(
+            text="Admin Dashboard", driver=self.driver).wait_until_condition(
+            EC.visibility_of_element_located)
 
 
 class PolicyTags(AdminLeftMenu):
@@ -44,7 +46,8 @@ class PolicyTags(AdminLeftMenu):
 
     @property
     def loaded(self):
-        return self.new_policy_tag_button.wait_until_condition(EC.visibility_of_element_located)
+        return self.new_policy_tag_button.wait_until_condition(
+            EC.visibility_of_element_located)
 
     def created_tag(self, tag_name=None):
         xpath = "//table[contains(.,'%s')]" % tag_name
@@ -61,4 +64,4 @@ class PolicyTags(AdminLeftMenu):
         :param action: can be 'Cancel' or 'Delete'
         """
         xpath = "//*[.='%s']" % action
-        pop_up_button = Button(xpath=xpath, driver=self.driver).click()
+        Button(xpath=xpath, driver=self.driver).click()

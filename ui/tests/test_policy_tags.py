@@ -60,7 +60,8 @@ class TestPolicyTags:
         policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
         policy_tag_page.new_policy_tag_button.click()
         policy_tag_page.save_button.click()
-        assert policy_tag_page.input_alert(text='This field is required'), "Alert message was not found!"
+        assert policy_tag_page.input_alert(
+            text='This field is required'), "Alert message was not found!"
 
     def test_create_tag_with_invalid_name(self):
         policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
