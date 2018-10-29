@@ -38,16 +38,27 @@ class PolicyTags(AdminLeftMenu):
     new_policy_tag_button = Button(text="New policy tag")
     name_field = Input(name="name")
     save_button = Button(icon="save")
-
-    # farm_settings_label = Label(text="Farm settings")
-    # farm_name_field = Input(name="name")
-    # projects_dropdown = Dropdown(input_name='projectId')
-    # teams_dropdown = Dropdown(xpath='//ul [@data-ref="itemList"]')
-    # save_splitbutton = SplitButton()
-    # new_image_button = Button(text="New image")
+    cancel_button = Button(icon="cancel")
+    delete_button_before_pop_up = Button(icon="delete")
+    deletion_pop_up = Button(xpath="//div[contains(.,'Delete Policy Tag ')][@class='message']")
 
     @property
     def loaded(self):
         return self.new_policy_tag_button.wait_until_condition(EC.visibility_of_element_located)
 
+    def created_tag(self, tag_name=None):
+        xpath = "//table[contains(.,'%s')]" % tag_name
+        created_tag = Button(xpath=xpath, driver=self.driver)
+        return created_tag
 
+    def input_alert(self, text):
+        xpath = '//div[@role="alert"][.="%s"]' % text
+        alert = Button(xpath=xpath, driver=self.driver)
+        return alert.visible()
+
+    def deletion_pop_up_buttons(self, action):
+        """
+        :param action: can be 'Cancel' or 'Delete'
+        """
+        xpath = "//*[.='%s']" % action
+        pop_up_button = Button(xpath=xpath, driver=self.driver).click()
