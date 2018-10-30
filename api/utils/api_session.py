@@ -48,7 +48,6 @@ class ScalrApiSession(requests.Session):
             uri,
             canonical_qs,
             body))
-
         # Sign request
         digest = hmac.new(self.secret_key.encode(), string_to_sign.encode(), hashlib.sha256).digest()
         signature = binascii.b2a_base64(digest).strip().decode()
@@ -81,14 +80,7 @@ class ScalrApiSession(requests.Session):
         url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
         body = json.dumps(body, default=serializer) if body else body
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
-        try:
-            resp.raise_for_status()
-        except Exception as e:
-            errors = [
-                "{code}: {msg}".format(code=e['code'], msg=e['message'])
-                for e in resp.json().get('errors')
-            ]
-            raise e.__class__(", ".join(errors))
+        resp.raise_for_status()
         return resp
 
     @staticmethod
