@@ -89,6 +89,14 @@ class AppSession(object):
     def _execute_request(self, endpoint, method, params=None, filters=None, body=None):
         scope = endpoint.split('/')[3]
 
+        if scope not in self.scopes:
+            self.scopes[scope] = {
+                'app': None,
+                'tree': None,
+                'flex': None,
+                'spec': None
+            }
+
         if self.scopes[scope]['app'] is None:
             self.scopes[scope]['app'] = App.create(self.get_swagger_specs(scope).as_posix())
             self.scopes[scope]['tree'] = Box(self._get_schema_tree(scope))
@@ -105,10 +113,17 @@ class AppSession(object):
             self._get_request_spec_by_endpoint(scope, endpoint),
             request_kwargs)
 
+        if scope in ('account', 'user'):
+            key_id = self._request.config.api_environment['config']['account_api']['id']
+            secret_key = self._request.config.api_environment['config']['account_api']['secret']
+        else:
+            key_id = self._request.config.api_environment['config']['global_api']['id']
+            secret_key = self._request.config.api_environment['config']['global_api']['secret']
+
         api = ScalrApiSession(
             host=self._request.config.api_environment['host'],
-            secret_key_id=self._request.config.api_environment['config']['{}_api'.format(scope)]['id'],
-            secret_key=self._request.config.api_environment['config']['{}_api'.format(scope)]['secret']
+            secret_key_id=key_id,
+            secret_key=secret_key
         )
 
         response = api.request(
@@ -200,7 +215,7 @@ class AppSession(object):
             raise ValueError("Endpoint {} does not exists".format(endpoint))
 
 
-@pytest.fixture(scope='module', autouse=True)
+@pytest.fixture(scope='session', autouse=True)
 def api(request):
     session = AppSession(request)
     return session

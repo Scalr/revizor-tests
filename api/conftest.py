@@ -90,9 +90,9 @@ def pytest_sessionstart(session):
         if config_file.is_file():
             with open(config_file, 'r') as f:
                 te_config = json.load(f)
-    if 'user_api' not in te_config:
+    if 'account_api' not in te_config:
         user_api_key = IMPL.api_key.new()
-        te_config['user_api'] = {
+        te_config['account_api'] = {
             'id': user_api_key['keyId'],
             'secret': user_api_key['secretKey']
         }

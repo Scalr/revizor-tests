@@ -7,6 +7,7 @@ import os
 import hmac
 import json
 import pytz
+import logging
 import hashlib
 import binascii
 import datetime
@@ -18,6 +19,12 @@ from urllib.parse import urlencode, urlparse, urlunparse
 
 SIGNATURE_VER = "V1-HMAC-SHA256"
 API_DEBUG_VER = "1"
+
+
+requests.Response.box = lambda self: box.Box(self.json())
+
+
+LOG = logging.getLogger(__name__)
 
 
 class ScalrApiSession(requests.Session):
@@ -66,11 +73,6 @@ class ScalrApiSession(requests.Session):
 
         return request
 
-    def send(self, request, **kwargs):
-        response = super().send(request, **kwargs)
-        setattr(response, 'box_repr', self.__class__.json_to_box(response))
-        return response
-
     def request(self, method, endpoint, params, body=None, filters=None,  serializer=None, *args, **kwargs):
         # Set uri
         uri = endpoint.format(**params)
@@ -80,15 +82,11 @@ class ScalrApiSession(requests.Session):
         url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
         body = json.dumps(body, default=serializer) if body else body
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
-        resp.raise_for_status()
+        try:
+            resp.raise_for_status()
+        except requests.HTTPError as e:
+            message = e.args
+            if 'errors' in resp.text:
+                message = '\n'.join(['{}: {}'.format(err['code'], err['message']) for err in resp.json().get('errors')])
+            raise e.__class__(message, request=e.request, response=e.response)
         return resp
-
-    @staticmethod
-    def json_to_box(resp):
-        r = None
-        if isinstance(resp, requests.models.Response):
-            try:
-                r = box.Box(resp.json())
-            except json.JSONDecodeError:
-                pass
-        return r
