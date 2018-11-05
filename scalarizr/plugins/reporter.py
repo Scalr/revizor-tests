@@ -91,6 +91,8 @@ class RevizorTerminalReporter(TerminalReporter):
                            **markup):
         w = self._tw.fullwidth
         loc = location[2]
+        if len(loc) > w // 2 - 8:
+            loc = textwrap.shorten(loc, w // 2 - 8)
         right = loc + ' [100%]'
         l_left = len(test_repr)
         l_right = len(right) + 1
