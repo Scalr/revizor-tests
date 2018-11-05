@@ -8,6 +8,13 @@ from revizor2 import CONF
 
 LOG = logging.getLogger(__name__)
 
+IP_RESOLVER_SITES = (
+    'http://revizor2.scalr-labs.com/get_ext_ip/',
+    'http://ifconfig.me/ip',
+    'http://myexternalip.com/raw',
+    'http://ip-address.ru/show'
+)
+
 
 def run_only_if(*args, **kwargs):
     """
@@ -57,3 +64,20 @@ def run_only_if(*args, **kwargs):
         return func
 
     return wrapper
+
+
+def get_external_local_ip():
+    for site in IP_RESOLVER_SITES:
+        try:
+            LOG.debug('Try get external IP address from site %s' % site)
+            my_ip = requests.get(site).text.strip()
+            if not re.match('\d+\.\d+\.\d+\.\d+', my_ip):
+                LOG.warning('Site %s not return my ip' % site)
+                continue
+            break
+        except requests.ConnectionError:
+            LOG.warning("Can't get external IP from site: %s, try next" % site)
+    else:
+        raise requests.ConnectionError("Can't get external IP from all sites in list")
+    LOG.info('Current external IP address is %s' % my_ip)
+    return my_ip

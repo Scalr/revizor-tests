@@ -8,6 +8,7 @@ from datetime import datetime
 from distutils.util import strtobool
 
 import scalarizr.lib.role as lib_role
+from scalarizr.lib.common import get_external_local_ip
 from revizor2 import CONF
 from revizor2.api import Farm, Role, Server, Message, Script
 from revizor2.cloud import Cloud, ExtendedNode
@@ -235,9 +236,9 @@ def get_szr_messages(node: ExtendedNode, convert: bool = False):
     return messages
 
 
-def execute_state_action(server: Server, action: str, reboot_type: str = None):
+def execute_state_action(server: Server, action: str, hard: bool = False):
     LOG.info('%s server %s' % (action.capitalize(), server.id))
-    args = {'method': reboot_type.strip() if reboot_type else 'soft'}
+    args = {'method': 'hard' if hard else 'soft'}
     meth = getattr(server, action)
     res = meth(**args) if action == 'reboot' else meth()
     error_message = None
@@ -631,3 +632,26 @@ def expect_server_bootstraping_for_role(context: dict, cloud: Cloud, farm: Farm,
         timeout = 3000
     LOG.info('Expect server bootstrapping for %s role' % role_type)
     return wait_status(context, cloud, farm, role=role, status=ServerStatus.RUNNING, timeout=timeout)
+
+
+def set_iptables_rule(cloud: Cloud, server: Server, port: tp.Union[int, tuple, list]):
+    """Insert iptables rule in the top of the list"""
+    LOG.info('Insert iptables rule to server %s for opening port %s' % (server, port))
+    node = cloud.get_node(server)
+    my_ip = get_external_local_ip()
+    LOG.info('My IP address: %s' % my_ip)
+    if isinstance(port, (tuple, list)):
+        if len(port) == 2:
+            port = ':'.join(str(x) for x in port)
+        else:
+            port = ','.join(str(x) for x in port)
+    node.run('iptables -I INPUT -p tcp -s %s --dport %s -j ACCEPT' % (my_ip, port))
+
+
+def validate_failed_status_message(server: Server, phase: str, msg: str):
+    patterns = (phase, msg)
+    failed_status_msg = server.get_failed_status_message()
+    msg_head = failed_status_msg.split("\n")[0].replace("&quot;", "")
+    LOG.debug('Initialization status message: %s' % msg_head)
+    assert all(pattern in msg_head for pattern in patterns), \
+        "Initialization was not failed on %s with message %s" % patterns

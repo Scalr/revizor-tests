@@ -134,7 +134,7 @@ USER_DATA = {
 
 
 class VerifyProcessWork(object):
-
+    # NOTE: migrated
     @staticmethod
     def verify(server, behavior=None, port=None):
         if not behavior:
@@ -328,6 +328,7 @@ def verify_port_status(step, port, closed, serv_as):
 @step(r'([\w-]+(?!process)) is( not)? running on (.+)')
 @world.run_only_if(dist=['!coreos'])
 def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this ugly logic
+    # NOTE: migrated
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
     if isinstance(port, collections.Iterable):

@@ -475,6 +475,7 @@ def install_chef(step):
 
 @step('Initialization was failed on "([a-zA-Z]+)" phase with "([\w\W]+)" message on (\w+)')
 def check_failed_status_message(step, phase, msg, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     patterns = (phase, msg)
     failed_status_msg = server.get_failed_status_message()

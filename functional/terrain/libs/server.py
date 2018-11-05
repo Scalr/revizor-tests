@@ -696,6 +696,7 @@ def check_text_in_scalarizr_log(node, text):
 @world.absorb
 def set_iptables_rule(server, port):
     """Insert iptables rule in the top of the list (str, str, list||tuple)->"""
+    # NOTE: migrated
     LOG.info('Insert iptables rule to server %s for opening port %s' % (server, port))
     node = world.cloud.get_node(server)
     my_ip = world.get_external_local_ip()
