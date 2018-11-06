@@ -112,6 +112,7 @@ def rebundle_server(step, serv_as):
 
 @step('I (reboot|suspend|resume)(?: (soft|hard))? server ([\w\d]+)$')
 def server_state_action(step, action, reboot_type, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     LOG.info('%s server %s' % (action.capitalize(), server.id))
     args = {'method': reboot_type.strip() if reboot_type else 'soft'}
@@ -133,6 +134,7 @@ def server_state_action(step, action, reboot_type, serv_as):
 @step('Scalr ([^ .]+) ([^ .]+) (?:to|from) ([^ .]+)( with fail)?( without saving to the database)?')
 def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_message=None, timeout=1500):
     """Check scalr in/out message delivering"""
+    # NOTE: migrated
     LOG.info('Check message %s %s server %s' % (msg, msgtype, serv_as))
     find_message = getattr(world, 'wait_unstored_message' if unstored_message else 'wait_server_message')
     if serv_as == 'all':
@@ -235,6 +237,7 @@ def assert_check_script_work(step, serv_as):
 @step('wait all servers are ([\w]+)$')
 def wait_for_servers_state(step, state):
     """Wait for state of all servers"""
+    # NOTE: migrated
     wait_until(world.farm_servers_state, args=(
         state, ), timeout=1800, error_text=('Servers in farm have no status %s' % state))
 
@@ -250,6 +253,7 @@ def verify_hostname_is_valid(step, serv_as):
 
 @step('not ERROR in ([\w]+) scalarizr(?: (debug|update))? log$')
 def check_scalarizr_log(step, serv_as, log_type=None):
+    # NOTE: migrated
     """Check scalarizr log for errors"""
     log_type = log_type or 'debug'
     server = getattr(world, serv_as)
@@ -471,6 +475,7 @@ def install_chef(step):
 
 @step('Initialization was failed on "([a-zA-Z]+)" phase with "([\w\W]+)" message on (\w+)')
 def check_failed_status_message(step, phase, msg, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     patterns = (phase, msg)
     failed_status_msg = server.get_failed_status_message()

@@ -112,6 +112,7 @@ def run_cmd_command(server, command, raise_exc=True):
 
 @world.absorb
 def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
+    # NOTE: migrated
     LOG.info('Verify scalarizr log in server: %s' % node.id)
     if server:
         server.reload()
@@ -188,6 +189,7 @@ def wait_server_bootstrapping(role=None, status=ServerStatus.RUNNING, timeout=21
     :param class:Role role: Show in which role lookup a new server
     :return class:Server: Return a new Server
     """
+    # NOTE: migrated (wait_status)
     platform = CONF.feature.platform
     status = ServerStatus.from_code(status)
 
@@ -373,6 +375,7 @@ def farm_servers_state(state):
 
 @world.absorb
 def wait_unstored_message(servers, message_name, message_type='out', find_in_all=False, timeout=1000):
+    # NOTE: migrated
     if not isinstance(servers, (list, tuple)):
         servers = [servers]
     delivered_to = []
@@ -418,6 +421,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
     servers.
     """
     def check_message_in_server(server, message_name, message_type):
+        # NOTE: migrated
         server.messages.reload()
         lookup_messages = getattr(world,
                                   '_server_%s_lookup_messages' % server.id, [])
@@ -682,6 +686,7 @@ def wait_rabbitmq_cp_url(*args, **kwargs):
 
 @world.absorb
 def check_text_in_scalarizr_log(node, text):
+    # NOTE: migrated
     out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text).std_out
     if text in out:
         return True
@@ -691,6 +696,7 @@ def check_text_in_scalarizr_log(node, text):
 @world.absorb
 def set_iptables_rule(server, port):
     """Insert iptables rule in the top of the list (str, str, list||tuple)->"""
+    # NOTE: migrated
     LOG.info('Insert iptables rule to server %s for opening port %s' % (server, port))
     node = world.cloud.get_node(server)
     my_ip = world.get_external_local_ip()

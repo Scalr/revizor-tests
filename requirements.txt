@@ -1,4 +1,4 @@
-git+https://github.com/Scalr/lettuce.git@c59cb4f922b4094e02939acf57b72bdac7cca495
+git+https://github.com/Scalr/lettuce.git@c59cb4f922b4094e02939acf57b72bdac7cca495#egg=lettuce
 PyChef>=0.3.0
 semver>=2.8.0
 githubpy>=1.1.0
@@ -10,4 +10,6 @@ azure-mgmt-containerregistry>=2.0.0
 azure-mgmt-containerservice>=4.1.0
 azure-mgmt-sql>=0.9.1
 azure-mgmt-monitor>=0.5.2
+pytest==3.8.0
 ansible-tower-cli==3.2.1
+pika>=0.12.0
