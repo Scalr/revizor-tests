@@ -43,7 +43,7 @@ def pytest_addoption(parser):
                     help='Use already created TestEnv.')
     group.addoption('--scalr-branch',
                     action='store',
-                    default='None',
+                    default=None,
                     help='Scalr branch to instantiate test environment from.')
     group.addoption('--farm-id',
                     action='store',
