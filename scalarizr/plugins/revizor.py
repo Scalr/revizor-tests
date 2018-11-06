@@ -36,11 +36,28 @@ def pytest_configure(config):
 
 
 def pytest_addoption(parser):
-    parser.addoption('--te-id', action='store', default=None)
-    parser.addoption('--farm-id', action='store', default=None)
-    parser.addoption('--platform', action='store', default=None)
-    parser.addoption('--dist', action='store', default=None)
-    parser.addoption('--no-stop-farm', action='store_true', default=False)
+    group = parser.getgroup('revizor', 'revizor tests options', after='general')
+    group.addoption('--te-id',
+                    action='store',
+                    default=None,
+                    help='Use already created TestEnv.')
+    group.addoption('--farm-id',
+                    action='store',
+                    default=None,
+                    help='Farm to use for tests. If not set, temporary Farm will be created.')
+    group.addoption('--platform',
+                    action='store',
+                    default=None,
+                    choices=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'],
+                    help='Cloud platform to launch tests on')
+    group.addoption('--dist',
+                    action='store',
+                    default=None,
+                    help='OS distro to be tested.')
+    group.addoption('--no-stop-farm',
+                    action='store_true',
+                    default=False,
+                    help='Leave test Farm running after the tests.')
 
 
 def pytest_sessionstart(session: Session):
@@ -61,6 +78,7 @@ def pytest_sessionstart(session: Session):
 
 
 def pytest_collection_modifyitems(session, config: Config, items: tp.List[Function]):
+    """Filter out tests according to @pytest.mark.platform marker"""
     remaining = []
     deselected = []
     for item in items:

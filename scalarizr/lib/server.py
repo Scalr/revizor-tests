@@ -50,7 +50,6 @@ def wait_status(context: dict,
 
     lookup_server = server or None
     lookup_node = None
-    azure_failed = 0
 
     start_time = time.time()
 
@@ -98,14 +97,6 @@ def wait_status(context: dict,
                     lookup_server = None
                     lookup_node = None
                     continue
-                # if platform.is_azure and azure_failed != 2:
-                #     LOG.warning('Server %s in Azure and failed %s attempt with message: "%s"' % (
-                #         lookup_server.id,
-                #         azure_failed + 1,
-                #         lookup_server.get_failed_status_message()))
-                #     azure_failed += 1
-                #     time.sleep(15)
-                #     continue
                 if status == ServerStatus.FAILED:
                     LOG.debug('Return server because we wait a failed state')
                     return lookup_server
