@@ -41,6 +41,10 @@ def pytest_addoption(parser):
                     action='store',
                     default=None,
                     help='Use already created TestEnv.')
+    group.addoption('--scalr-branch',
+                    action='store',
+                    default='None',
+                    help='Scalr branch to instantiate test environment from.')
     group.addoption('--farm-id',
                     action='store',
                     default=None,
@@ -58,15 +62,22 @@ def pytest_addoption(parser):
                     action='store_true',
                     default=False,
                     help='Leave test Farm running after the tests.')
+    group.addoption('--te-remove',
+                    action='store_true',
+                    default=False,
+                    help='Destroy TestEnv even when some tests fail.')
 
 
 def pytest_sessionstart(session: Session):
     te_id = session.config.getoption('--te-id')
+    scalr_branch = session.config.getoption('--scalr-branch')
     farm_id = session.config.getoption('--farm-id')
     platform = session.config.getoption('--platform')
     dist = session.config.getoption('--dist')
     if te_id:
         CONF.scalr.te_id = te_id
+    if scalr_branch:
+        CONF.scalr.branch = scalr_branch
     if farm_id:
         CONF.main.farm_id = farm_id
     if platform:

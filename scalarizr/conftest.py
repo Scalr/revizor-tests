@@ -1,15 +1,18 @@
 import logging
+import time
 import uuid
 from datetime import datetime
 
 import pytest
 from _pytest.fixtures import FixtureRequest
+from paramiko.ssh_exception import NoValidConnectionsError
 
+import scalarizr.lib.farm as lib_farm
+import scalarizr.lib.server as lib_server
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
-import scalarizr.lib.farm as lib_farm
-import scalarizr.lib.server as lib_server
+from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
 
 LOG = logging.getLogger(__name__)
@@ -19,6 +22,41 @@ pytest_plugins = [
     'scalarizr.plugins.reporter',
     'scalarizr.plugins.ordering'
 ]
+
+
+@pytest.fixture(scope='session', autouse=True)
+def testenv(request) -> TestEnv:
+    te = None
+    new_te = False
+    if CONF.scalr.te_id:
+        te = TestEnv(te_id=CONF.scalr.te_id)
+    elif CONF.scalr.branch:
+        LOG.info('Run test in Test Env with branch: %s' % CONF.scalr.branch)
+        # TODO: merge common TE creation process with UI
+        # and implement method to bypass nginx welcome page
+        notes = 'Revizor Scalarizr tests'
+        if CONF.credentials.scalr.accounts.default.username:
+            notes += (' <%s>' % CONF.credentials.scalr.accounts.default.username)
+        te = TestEnv.create(branch=CONF.scalr.branch, notes=notes)
+        for _ in range(5):
+            try:
+                services = te.get_service_status()
+                if all(service['state'] == 'RUNNING' for service in services):
+                    break
+                time.sleep(3)
+            except NoValidConnectionsError:
+                time.sleep(3)
+        CONF.scalr.te_id = te.te_id
+        new_te = True
+    try:
+        yield te
+    finally:
+        if te \
+          and CONF.feature.stop_farm \
+          and (new_te and request.session.testsfailed == 0 or request.config.getoption('--te-remove')):
+            # Removing TestEnv only if it was created by test and no tests failed
+            # or when --te-remove flag was given
+            te.destroy()
 
 
 @pytest.fixture(scope='session')
