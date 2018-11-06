@@ -40,7 +40,7 @@ class TestRoles(object):
                 category={"id": role_category},
                 name="tmp-api-%s" % unique_uuid(),
                 os={"id": os_id}))
-        return resp.box_repr.data
+        return resp.box().data
 
     def create_role_image(self, role_id, image_id):
         resp = self.api.create(
@@ -52,7 +52,7 @@ class TestRoles(object):
                 image={'id': image_id},
                 role={'id': role_id}
             ))
-        return resp.box_repr.data
+        return resp.box().data
 
     def list_images(self, platform=None, os=None, scope=None, agent_installed=True):
         resp = self.api.list(
@@ -65,7 +65,7 @@ class TestRoles(object):
                 scope=scope
             )
         )
-        return resp.box_repr.data
+        return resp.box().data
 
     def list_role_images(self, role_id, image=None, role=None):
         resp = self.api.list(
@@ -77,7 +77,7 @@ class TestRoles(object):
                 image=image,
                 role=role)
         )
-        return resp.box_repr.data
+        return resp.box().data
 
     def test_create_role_with_image(self):
         # Create new role
@@ -143,7 +143,7 @@ class TestRoles(object):
             self.create_role(
                 invalid_os_id,
                 self.dev_role_category)
-        assert exc_message in e.value.args[0]
+        assert exc_message in e.value.response.text
 
     def test_create_role_with_invalid_automation_types(self):
         exc_message = "'Role.builtinAutomation' ({}) are invalid".format(BuiltInAutomation.INVALID)
@@ -152,7 +152,7 @@ class TestRoles(object):
                 self.os_id,
                 self.dev_role_category,
                 automation=BuiltInAutomation.INVALID)
-        assert exc_message in e.value.args[0]
+        assert exc_message in e.value.response.text
 
     def test_create_role_with_uncombined_behaviors(self):
         exc_message = "'Role.builtinAutomation' ({}, {}) " \
@@ -162,7 +162,7 @@ class TestRoles(object):
                 self.os_id,
                 self.dev_role_category,
                 automation=BuiltInAutomation.UNCOMBINED_BEHAVIORS)
-        assert exc_message in e.value.args[0]
+        assert exc_message in e.value.response.text
 
     def test_create_role_with_two_images_for_platform(self):
         # Find images
@@ -188,4 +188,4 @@ class TestRoles(object):
         with pytest.raises(requests.exceptions.HTTPError) as e:
             for image in images:
                 self.create_role_image(role.id, image.id)
-        assert exc_message in e.value.args[0]
+        assert exc_message in e.value.response.text
