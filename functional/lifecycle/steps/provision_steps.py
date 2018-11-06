@@ -254,6 +254,14 @@ def get_at_job_template_id(step, job_template_name):
         setattr(world, 'job_template_id', job_template_info['id'])
 
 
+@step("I check dist and set ansible python interpreter as extra var for AT jobs")
+def set_ansible_py_interpreter(step):
+    at_python_path = 'at_python_path: null'
+    if CONF.feature.dist.id in ['ubuntu-16-04', 'ubuntu-18-04']:
+        at_python_path = 'at_python_path: 3'
+    setattr(world, 'at_python_path', at_python_path)
+
+
 @step(r"server ([\w\d]+) ([\w]+\s)*exists in ansible-tower hosts list")
 def check_hostname_exists_on_at_server(step, serv_as, negation):
     """
@@ -297,12 +305,16 @@ def check_at_user_on_server(step, expected_user, serv_as):
 @step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
 def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_as):
     pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
+    at_python_path = ''
+    if not CONF.feature.dist.is_windows:
+        at_python_path = getattr(world, 'at_python_path')
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job')
         job_settings = {
             "credential_id": pk,
             "extra_credentials": [],
-            "extra_vars": {}}
+            "extra_vars": [at_python_path]
+        }
         my_job = res.launch(job_template=job_name,
                             monitor=False,
                             wait=True,

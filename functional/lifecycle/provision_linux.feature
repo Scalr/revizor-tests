@@ -93,6 +93,7 @@ Feature: Linux server provision with chef and ansible tower
         And I add a new link with os 'linux' and Inventory 'Revizor_linux_32' and create credentials 'Revizor-linux-cred'
         And credential 'Revizor-linux-cred' exists in ansible-tower credentials list
         And I get and save AT job template id for 'Revizor_linux_Job_Template_with_Extra_Var'
+        And I check dist and set ansible python interpreter as extra var for AT jobs
 
     @ec2 @vmware @gce @cloudstack @openstack @rackspaceng @azure @systemd
     Scenario: Bootstrapping role with Ansible Tower
