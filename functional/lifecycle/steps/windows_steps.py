@@ -27,6 +27,7 @@ def check_windows_file(step, path, serv_as):
 
 @step(r"I reboot windows scalarizr in ([\w\d]+)")
 def reboot_windows(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     with node.remote_connection() as conn:
@@ -55,6 +56,7 @@ def check_terminated_in_log(step, serv_as):
 
 @step(r"not ERROR in ([\w\d]+) scalarizr windows log")
 def check_errors_in_log(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     out = node.run("findstr /c:\"ERROR\" \"C:\\opt\\scalarizr\\var\\log\\scalarizr_debug.log\"").std_out
@@ -78,6 +80,7 @@ def check_errors_in_log(step, serv_as):
 @step(r"server ([\w\d]+) has disks ([((?:\w):(?:\\\w+)?)(?:\(\w+_label\d*\))? (\d+) Gb,]+)")
 @world.run_only_if(platform=(Platform.EC2, Platform.GCE, Platform.AZURE))
 def check_attached_disk_size(step, serv_as, disks):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     cdisks = re.findall(r'([\w\d\:\\]+)(\([\w\d_]+\))? (\d+) Gb', disks)
     node = world.cloud.get_node(server)

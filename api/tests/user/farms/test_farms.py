@@ -1,9 +1,3 @@
-# coding: utf-8
-"""
-Created on 07.08.18
-@author: Eugeny Kurkovich
-"""
-
 import re
 
 import inspect
@@ -16,17 +10,11 @@ from api.utils.consts import Platform, COST_PROJECT_ID, ENV_ID
 
 class Setup(object):
     api = None
-
     farm = None
-
     farm_tpl = None
-
     role = None
-
     env_id = ENV_ID
-
     cost_project_id = COST_PROJECT_ID
-
     role_id = 57039
 
     @staticmethod
@@ -42,7 +30,7 @@ class Setup(object):
             "/api/v1beta0/user/envId/farms/",
             params=dict(envId=self.env_id),
             body=body)
-        return resp.box_repr.data
+        return resp.box().data
 
     def gen_farm_template(self, farm_id, farm_name=None):
         tpl = self.api.generate_template(
@@ -50,7 +38,7 @@ class Setup(object):
             params=dict(
                 envId=self.env_id,
                 farmId=farm_id
-            )).box_repr.data
+            )).box().data
         if farm_name:
             tpl.farm.name = farm_name
         return tpl
@@ -63,7 +51,7 @@ class Setup(object):
                 roleId=role_id
             )
         )
-        return resp.box_repr.data
+        return resp.box().data
 
     def add_role_to_farm(self, farm_id, role_id,
                          alias, platform,
@@ -125,7 +113,7 @@ class Setup(object):
                 envId=self.env_id,
                 farmId=farm_id),
             body=remove_empty_values(body))
-        return resp.box_repr.data
+        return resp.box().data
 
     def get_farm(self, farm_id):
         resp = self.api.get(
@@ -135,7 +123,7 @@ class Setup(object):
                 farmId=farm_id
             )
         )
-        return resp.box_repr.data
+        return resp.box().data
 
     def get_farm_roles(self, farm_id):
         resp = self.api.list(
@@ -145,7 +133,7 @@ class Setup(object):
                 farmId=farm_id
             )
         )
-        return resp.box_repr.data
+        return resp.box().data
 
     def get_farm_role_details(self, farm_role_id):
         resp = self.api.get(
@@ -155,7 +143,7 @@ class Setup(object):
                 farmRoleId=farm_role_id
             )
         )
-        return resp.box_repr.data
+        return resp.box().data
 
 
 class TestEmptyFarm(Setup):
@@ -210,7 +198,7 @@ class TestEmptyFarm(Setup):
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(
                 farm_tpl=self.farm_tpl.to_dict())
-        assert exc_message in e.value.args[0]
+        assert exc_message in e.value.response.text
 
 
 class TestDeployFarmWithOneFarmRole(Setup):
@@ -223,7 +211,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
                 envId=self.env_id,
                 roleId=role_id),
             body=body)
-        return resp.box_repr.data
+        return resp.box().data
 
     @pytest.fixture(autouse=True, scope="class")
     def bootstrap(self, request, api):
@@ -251,7 +239,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl = {'data': self.farm_tpl.copy()}
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl)
-        assert exc_message == e.value.args[0]
+        assert exc_message in e.value.args
 
     def test_deploy_farm_invalid_cost_project_id(self):
         exc_message = "ObjectNotFound: 'FarmTemplate.farm.project.id' ({project_id}) was not found."
@@ -260,7 +248,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl.farm.project.id = unique_uuid()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(project_id=farm_tpl.farm.project.id) == e.value.args[0]
+        assert exc_message.format(project_id=farm_tpl.farm.project.id) in e.value.args
 
     def test_deploy_farm_invalid_role_id(self):
         exc_message = "ObjectNotFound: 'FarmTemplate.roles.id' ({role_id}) was not found " \
@@ -270,7 +258,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl.roles[0].role.id = unique_uuid()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(role_id=farm_tpl.roles[0].role.id) == e.value.args[0]
+        assert exc_message.format(role_id=farm_tpl.roles[0].role.id) in e.value.args
 
     def test_deploy_farm_invalid_role_name(self):
         exc_message = "ObjectNotFound: 'FarmTemplate.roles.name' ({role_name}) was not found " \
@@ -280,7 +268,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl.roles[0].role.name = unique_uuid()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(role_name=farm_tpl.roles[0].role.name) == e.value.args[0]
+        assert exc_message.format(role_name=farm_tpl.roles[0].role.name) in e.value.args
 
     def test_deploy_farm_deprecated_role(self):
         exc_message = "Deprecated: 'FarmTemplate.roles.role.id' ({role_id}) is deprecated."
@@ -289,7 +277,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl = self.farm_tpl.copy()
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(role_id=self.role.id) == e.value.args[0]
+        assert exc_message.format(role_id=self.role.id) in e.value.args
         # unset role deprecated
         self.change_role_deprecated_state(self.role.id, deprecated=False)
 
@@ -299,7 +287,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl.roles[0].cloudPlatform = Platform.INVALID
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(platform=Platform.INVALID) == e.value.args[0]
+        assert exc_message.format(platform=Platform.INVALID) in e.value.args
 
     def test_deploy_farm_invalid_cloud_location(self):
         exc_message = "InvalidValue: 'FarmTemplate.roles.cloudLocation' ({location}) is invalid " \
@@ -309,7 +297,8 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl.roles[0].cloudLocation = Platform.INVALID.location
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(location=Platform.INVALID.location, name=farm_tpl.roles[0].alias) == e.value.args[0]
+        assert exc_message.format(
+            location=Platform.INVALID.location, name=farm_tpl.roles[0].alias) in e.value.args
 
     def test_deploy_farm_invalid_zone(self):
         exc_message = "ObjectNotFoundOnCloud: 'FarmTemplate.roles.availabilityZones' ({zone}) was not found in the " \
@@ -328,7 +317,7 @@ class TestDeployFarmWithOneFarmRole(Setup):
         farm_tpl.roles[0].instanceType.id = Platform.INVALID.instance_type
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(type=Platform.INVALID.instance_type) == e.value.args[0]
+        assert exc_message.format(type=Platform.INVALID.instance_type) in e.value.args[0]
 
     def test_deploy_farm_invalid_instance_cpu_count(self):
         exc_message = "InvalidValue: Custom 'FarmTemplate.roles.instanceType' ({cpu}) CPU count 0 is invalid."
@@ -398,7 +387,7 @@ class TestDeployFarmWithAllCloudRoles(Setup):
                 break
         with pytest.raises(requests.exceptions.HTTPError) as e:
             self.create_farm(farm_tpl=farm_tpl.to_dict())
-        assert exc_message.format(type=Platform.INVALID.instance_type) == e.value.args[0]
+        assert exc_message.format(type=Platform.INVALID.instance_type) in e.value.args[0]
 
 
 class TestDeployFarmWithComplexFarmRoleSettings(Setup):
@@ -500,7 +489,7 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             params=dict(
                 envId=self.env_id,
                 farmRoleId=farm_role_id))
-        return resp.box_repr.data
+        return resp.box().data
 
     def get_orchestration_rules(self, farm_role_id):
         resp = self.api.list(
@@ -508,7 +497,7 @@ class TestDeployFarmWithComplexFarmRoleSettings(Setup):
             params=dict(
                 envId=self.env_id,
                 farmRoleId=farm_role_id))
-        return resp.box_repr.data
+        return resp.box().data
 
     @pytest.fixture(autouse=True, scope="class")
     def bootstrap(self, request, api):

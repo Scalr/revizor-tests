@@ -154,6 +154,7 @@ def check_resolving(domain):
 
 @world.absorb
 def get_external_local_ip():
+    # NOTE: migrated
     for site in IP_RESOLVER_SITES:
         try:
             LOG.debug('Try get external IP address from site %s' % site)
