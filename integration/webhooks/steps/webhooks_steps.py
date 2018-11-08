@@ -20,7 +20,7 @@ def configure_flask(step, serv_as, tls):
     node.put_file('webhooks.py', resources('scripts/webhooks.py').get())  # Put flask script
     with node.remote_connection() as conn:
         conn.run("sudo bash /tmp/prepare_flask.sh")  # Run preparation script
-        conn.run("gunicorn -D -w 1 webhooks.py:app")  # Run flask in background process
+        conn.run("gunicorn -D -w 1 --bind localhost:5000 webhooks:app")  # Run flask in background process
 
 
 @step(r'I add ([\w\d]+) webhooks to Scalr')
