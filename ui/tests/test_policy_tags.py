@@ -29,6 +29,8 @@ class TestPolicyTags:
             self.url).open()
         self.admin_dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD, admin=True)
 
+# Admin scope> Policy tags> Create, validate and delete
+
     def goto_policy_tag_page(self):
         self.admin_dashboard.scalr_main_menu.click()
         main_menu_items = self.admin_dashboard.scalr_main_menu.list_items()
@@ -44,16 +46,17 @@ class TestPolicyTags:
         assert policy_tag_page.save_button.hidden(), 'Save button is present in Create Policy Tags submenu!'
         assert policy_tag_page.cancel_button.hidden(), 'Cancel button is present in Create Policy Tags submenu!'
 
-    def test_create_new_policy_tag(self, tag_name='tag1', aserts=True):
+    def test_create_new_policy_tag(self, tag_names=['test1'], aserts=True):
         policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
-        policy_tag_page.new_policy_tag_button.click()
-        policy_tag_page.name_field.write(tag_name)
-        policy_tag_page.save_button.click()
-        time.sleep(2)
-        if aserts:
-            assert policy_tag_page.page_message.text == "Policy Tag successfully saved", \
-                "No message present about successful saving of the new Policy Tag"
-            assert policy_tag_page.created_tag(tag_name).visible(), "Policy Tag was not found!"
+        for name in tag_names:
+            policy_tag_page.new_policy_tag_button.click()
+            policy_tag_page.name_field.write(name)
+            policy_tag_page.save_button.click()
+            time.sleep(2)
+            if aserts:
+                assert policy_tag_page.page_message.text == "Policy Tag successfully saved", \
+                    "No message present about successful saving of the new Policy Tag"
+                assert policy_tag_page.created_tag(name).visible(), "Policy Tag was not found!"
         return policy_tag_page
 
     def test_create_tag_with_empty_field(self):
@@ -79,28 +82,48 @@ class TestPolicyTags:
         policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
         for _ in range(2):
             policy_tag_page.new_policy_tag_button.click()
-            policy_tag_page.name_field.write('qwerty')
+            policy_tag_page.name_field.write('test2')
             policy_tag_page.save_button.click()
             time.sleep(1)
         assert policy_tag_page.input_alert(
             text='Name is in use'), "Alert message was not found!"
 
-    def test_cancel_deletion_policy_tag(self, tag_name='tag2'):
-        policy_tag_page = TestPolicyTags.test_create_new_policy_tag(self, tag_name)
-        policy_tag_page.created_tag(tag_name).click()
+    def test_cancel_deletion_policy_tag(self, name='test3'):
+        policy_tag_page = TestPolicyTags.test_create_new_policy_tag(self, tag_names=[name])
+        policy_tag_page.created_tag(name).click()
         policy_tag_page.delete_button_before_pop_up.click()
         policy_tag_page.deletion_pop_up_buttons('Cancel')
         time.sleep(2)
         assert policy_tag_page.deletion_pop_up.hidden(), "The confirmation pop-up was not closed!"
-        assert policy_tag_page.created_tag(tag_name).visible(), "Policy Tag was not found!"
+        assert policy_tag_page.created_tag(name).visible(), "Policy Tag was not found!"
 
-    def test_delete_policy_tag(self, tag_name='tag3'):
-        policy_tag_page = TestPolicyTags.test_create_new_policy_tag(self, tag_name)
-        policy_tag_page.created_tag(tag_name).click()
+    def test_delete_policy_tag(self, name='test4'):
+        policy_tag_page = TestPolicyTags.test_create_new_policy_tag(self, tag_names=[name])
+        policy_tag_page.created_tag(name).click()
         policy_tag_page.delete_button_before_pop_up.click()
         policy_tag_page.deletion_pop_up_buttons('Delete')
         time.sleep(2)
         assert policy_tag_page.deletion_pop_up.hidden(), "The confirmation pop-up was not closed!"
         assert policy_tag_page.page_message.text == "Policy Tag successfully deleted", \
             "No message present about successful deletion of the Policy Tag"
-        assert policy_tag_page.created_tag(tag_name).hidden(), " The Policy Tag was not deleted!"
+        assert policy_tag_page.created_tag(name).hidden(), " The Policy Tag was not deleted!"
+
+# Policy tags> Roles application
+
+    def test_preparationg_applying_to_roles(self):
+        tag_names = ['tag-1', 'tag-2', 'tag-3']
+        TestPolicyTags.test_create_new_policy_tag(self, tag_names)
+
+    def test_create_role_with_poliy_tag(self, role_name='selenium-role-policy-tag',
+                                        os_name='Ubuntu', os_version='16.04',
+                                        tag_name='tag-1', category='Base'):
+        new_roles_page = self.admin_dashboard.menu.go_to_roles().new_role()
+        new_roles_page.role_name_field.write(role_name)
+        new_roles_page.os_settings(os_name, os_version, category, tag_name)
+        new_roles_page.save_button.click()
+        assert new_roles_page.page_message.text == "Role saved", \
+            "No message present about successful saving of the Role"
+        assert new_roles_page.created_role(role_name).visible(), "Role was not found!"
+
+        time.sleep(10)
+
