@@ -134,7 +134,7 @@ USER_DATA = {
 
 
 class VerifyProcessWork(object):
-
+    # NOTE: migrated
     @staticmethod
     def verify(server, behavior=None, port=None):
         if not behavior:
@@ -218,6 +218,7 @@ class VerifyProcessWork(object):
 
 @step('I execute \'(.+)\' in (.+)$')
 def execute_command(step, command, serv_as):
+    # NOTE: migrated
     if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
         command = '/opt/bin/' + command
     node = world.cloud.get_node(getattr(world, serv_as))
@@ -327,6 +328,7 @@ def verify_port_status(step, port, closed, serv_as):
 @step(r'([\w-]+(?!process)) is( not)? running on (.+)')
 @world.run_only_if(dist=['!coreos'])
 def assert_check_service(step, service, closed, serv_as): #FIXME: Rewrite this ugly logic
+    # NOTE: migrated
     server = getattr(world, serv_as)
     port = SERVICES_PORTS_MAP[service]
     if isinstance(port, collections.Iterable):
@@ -463,6 +465,7 @@ def assert_scalarizr_version(step, branch, serv_as):
 
 @step('I reboot scalarizr in (.+)$')
 def reboot_scalarizr(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     if CONF.feature.dist.is_systemd:
         cmd = "systemctl restart scalarizr"
@@ -476,6 +479,7 @@ def reboot_scalarizr(step, serv_as):
 
 @step('see "(.+)" in ([\w]+) log')
 def check_log(step, message, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     LOG.info('Check scalarizr log for  termination')

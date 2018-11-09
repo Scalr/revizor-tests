@@ -20,7 +20,7 @@ def configure_flask(step, serv_as, tls):
     node.put_file('webhooks.py', resources('scripts/webhooks.py').get())  # Put flask script
     with node.remote_connection() as conn:
         conn.run("sudo bash /tmp/prepare_flask.sh")  # Run preparation script
-        conn.run("gunicorn -D -w 1 webhooks.py:app")  # Run flask in background process
+        conn.run("gunicorn -D -w 1 --bind localhost:5000 webhooks:app")  # Run flask in background process
 
 
 @step(r'I add ([\w\d]+) webhooks to Scalr')
@@ -35,7 +35,8 @@ def configure_webhooks(step, serv_as):
         url = "%s://%s%s" % (opts['schema'].strip(), server.public_ip, opts['endpoint'].strip())
         if current_endpoint_urls and url in current_endpoint_urls:
             continue
-        scalr_endpoint = IMPL.webhooks.create_endpoint(url)
+        name = opts['name'].strip()
+        scalr_endpoint = IMPL.webhooks.create_endpoint(name, url)
         created_endpoints.append(scalr_endpoint)
         webhook = IMPL.webhooks.create_webhook(
             '%s-%s' % (opts['name'].strip(), server.id.split('-')[0]),
@@ -95,7 +96,9 @@ def add_mail_service_webhook(step):
     if endpoints and any(e for e in endpoints if e['url'] == 'SCALR_MAIL_SERVICE'):
         endpoint = [endp for endp in endpoints if endp['url'] == 'SCALR_MAIL_SERVICE'][0]
     else:
-        endpoint = IMPL.webhooks.create_endpoint("http://mail.test")
+        url = "http://mail.test"
+        name = url
+        endpoint = IMPL.webhooks.create_endpoint(name, url)
         endpoint['id'] = endpoint['endpointId']
         cmd = """mysql --database="scalr" --execute 'update webhook_endpoints set url="SCALR_MAIL_SERVICE" where url="http://mail.test"'"""
         world.testenv.get_ssh().run(cmd)  # Change url to SCALR_MAIL_SERVICE
