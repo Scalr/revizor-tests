@@ -78,7 +78,7 @@ class TestACL:
         assert any("Selenium Env" in env.text for env in envs), "Selenium Env was not found in list!"
 
     def test_create_farm_from_new_env(self):
-        farms_page = self.env_dashboard.menu.go_to_environment(
+        farms_page = self.env_dashboard.menu.change_environment(
             env_name="Selenium Env").menu.go_to_farms()
         new_farm_page = farms_page.new_farm()
         new_farm_page.farm_name_field.write('Selenium Farm')
@@ -88,7 +88,7 @@ class TestACL:
         assert "Selenium Farm" in farms, "Selenium Farm not found!"
 
     def test_create_farm_for_team(self):
-        farms_page = self.env_dashboard.menu.go_to_environment(
+        farms_page = self.env_dashboard.menu.change_environment(
             env_name="Selenium Env").menu.go_to_farms()
         new_farm_page = farms_page.new_farm()
         new_farm_page.farm_name_field.write('Selenium Farm2')
@@ -136,8 +136,8 @@ class TestACL:
         assert isinstance(farm_designer, FarmDesigner), "Unable to open Farm Designer page for Selenium Farm3"
 
     def test_new_user_images_access(self):
-        self.env_dashboard.scalr_main_menu.click()
-        main_menu_items = self.env_dashboard.scalr_main_menu.list_items()
+        self.env_dashboard.scope_main_menu.click()
+        main_menu_items = self.env_dashboard.scope_main_menu.list_items()
         main_menu_items['Images'].mouse_over()
         time.sleep(3)
         assert Button(text="Images Library", driver=self.driver).visible(), "Can't find Images Library in Images sub-menu!"

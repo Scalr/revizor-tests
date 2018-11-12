@@ -46,6 +46,26 @@ class EnvironmentDashboard(EnvironmentTopMenu):
     def loaded(self):
         return Button(text="Dashboard", driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
 
+    @wait_for_page_to_load
+    def go_to_account(self):
+        """Switches to Account level Dashboard.
+           Returns AccountDashboard page object.
+        """
+        self._active_environment.click()
+        Button(text="Main account", driver=self.driver).click()
+        from pages.account_scope import AccountDashboard
+        return AccountDashboard(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def change_environment(self, env_name="acc1env1"):
+        """Switches to specific Scalr environment.
+           Returns EnvironmentDashboard page object.
+        """
+        self._active_environment.click()
+        if env_name not in self._active_environment.text:
+            Button(text=env_name, driver=self.driver).click()
+        return self
+
 
 class Farms(EnvironmentTopMenu):
     """Farms page (Environment Scope)

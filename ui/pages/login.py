@@ -2,12 +2,14 @@ from selenium.webdriver.support import expected_conditions as EC
 
 from pages.base import BasePage, wait_for_page_to_load
 from elements.base import Button, Input, Label
-from elements import locators
 
 
 class LoginPage(BasePage):
     """Default Scalr login page.
     """
+
+    DEFAULT_ADMIN_USER = "admin"
+
     loading_blocker = Button(element_id='loading')
     login_field = Input(name='scalrLogin')
     password_field = Input(name='scalrPass')
@@ -33,8 +35,16 @@ class LoginPage(BasePage):
         self.login_field.write(user)
         self.password_field.write(password)
         self.login_button.click()
-        from pages.environment_scope import EnvironmentDashboard
-        return EnvironmentDashboard(self.driver, self.base_url)
+        return self._get_user_dashboard(user)
+
+    def _get_user_dashboard(self, user):
+        if user != self.DEFAULT_ADMIN_USER:
+            from pages.environment_scope import EnvironmentDashboard
+            dashboard = EnvironmentDashboard(self.driver, self.base_url)
+        else:
+            from pages.global_scope import AdminDashboard
+            dashboard = AdminDashboard(self.driver, self.base_url)
+        return dashboard
 
     @wait_for_page_to_load
     def update_password_and_login(self, user, temp_password, new_password):
