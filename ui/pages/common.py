@@ -27,25 +27,6 @@ class CommonTopMenu(BasePage):
         return LeftPopupMenu(self.driver)
 
     @property
-    def _active_environment(self):
-        """Returns str name of the current active Scalr environment or False for global scope.
-        """
-        if self.scope_is_global:
-            return False
-        for name in ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']:
-            env = Button(text=name, driver=self.driver)
-            if env.visible():
-                return env
-        raise NoSuchElementException("Can't find active Environment!")
-
-    @property
-    def scope_is_global(self):
-        try:
-            return self.driver.find_element_by_xpath("//* [text()='Admin Dashboard']")
-        except NoSuchElementException:
-            return False
-
-    @property
     def login_as(self):
         self.scope_user_menu.click()
         return self.driver.find_element_by_xpath("//div[@class='x-username']").text
