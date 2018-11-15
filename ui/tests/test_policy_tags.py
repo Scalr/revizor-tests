@@ -10,7 +10,7 @@ from revizor2.conf import CONF
 from pages.login import LoginPage
 from pages.admin_scope import PolicyTags
 from elements import locators
-from elements.base import Label, Button
+from elements.base import Label, Button, Table
 
 DEFAULT_USER = CONF.credentials.testenv.accounts.admin['username']
 DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.admin['password']
@@ -115,15 +115,16 @@ class TestPolicyTags:
         TestPolicyTags.test_create_new_policy_tag(self, tag_names)
 
     def test_create_role_with_poliy_tag(self, role_name='selenium-role-policy-tag',
-                                        os_name='Ubuntu', os_version='16.04',
-                                        tag_name='tag-1', category='Base'):
+                                        os_name='Ubuntu', os_version='14.04',
+                                        tag_name='tag-1', category='Base',
+                                        image_name='base-ubuntu1404-global-160825-1528'):
         new_roles_page = self.admin_dashboard.menu.go_to_roles().new_role()
         new_roles_page.role_name_field.write(role_name)
         new_roles_page.os_settings(os_name, os_version, category, tag_name)
+        new_roles_page.add_image_button.click()
+        new_roles_page.add_image(image_name)
         new_roles_page.save_button.click()
+        assert new_roles_page.roles_table_sorted_by_roleid.visible(), "The roles table is not sorted by Id!"
         assert new_roles_page.page_message.text == "Role saved", \
             "No message present about successful saving of the Role"
         assert new_roles_page.created_role(role_name).visible(), "Role was not found!"
-
-        time.sleep(10)
-

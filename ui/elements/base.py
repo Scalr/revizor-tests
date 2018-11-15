@@ -78,7 +78,8 @@ class BaseElement:
 
 class Button(BaseElement):
 
-    def _make_locator(self, element_id=None, name=None, text=None, href=None, icon=None, class_name=None, xpath=None):
+    def _make_locator(self, element_id=None, name=None, text=None, href=None, icon=None,
+                      class_name=None, xpath=None, css=None):
         if element_id:
             self.locator = locators.IdLocator(element_id)
         elif name:
@@ -95,6 +96,8 @@ class Button(BaseElement):
             self.locator = locators.ClassLocator(class_name)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif css:
+            self.locator = locators.CSSLocator(css)
         else:
             raise ValueError('No locator policy was provided!')
 
@@ -231,7 +234,7 @@ class Input(BaseElement):
     """Any writable field element.
     """
 
-    def _make_locator(self, name=None, label=None, xpath=None):
+    def _make_locator(self, name=None, label=None, xpath=None, css=None):
         if name:
             self.locator = locators.XpathLocator(
                 '//input [contains(@name, "%s")]' % name)
@@ -240,6 +243,8 @@ class Input(BaseElement):
                 '//* [contains(text(),"%s")]//following::input' % label)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif css:
+            self.locator = locators.CSSLocator(css)
         else:
             raise ValueError('No locator policy was provided!')
 
@@ -276,6 +281,23 @@ class Label(BaseElement):
             self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
+
+
+class Table(BaseElement):
+    """Any clickable element in table with text
+    """
+
+    def _make_locator(self, text=None, xpath=None):
+        if text:
+            self.locator = locators.XpathLocator(
+                "//table[contains(.,'%s')]" % text)
+        elif xpath:
+            self.locator = locators.XpathLocator(xpath)
+        else:
+            raise ValueError('No locator policy was provided!')
+
+    def click(self):
+        self.get_element().click()
 
 
 class GetURL(BaseElement):
