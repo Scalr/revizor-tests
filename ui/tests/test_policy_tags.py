@@ -8,6 +8,7 @@ from selenium.common.exceptions import NoSuchElementException
 
 from revizor2.conf import CONF
 from pages.login import LoginPage
+from pages.roles import RolesEdit
 from pages.admin_scope import PolicyTags
 from elements import locators
 from elements.base import Label, Button, Table
@@ -110,21 +111,26 @@ class TestPolicyTags:
 
 # Policy tags> Roles application
 
-    def test_preparationg_applying_to_roles(self):
+    def preparationg_applying_to_roles(self):
         tag_names = ['tag-1', 'tag-2', 'tag-3']
         TestPolicyTags.test_create_new_policy_tag(self, tag_names)
 
-    def test_create_role_with_poliy_tag(self, role_name='selenium-role-policy-tag',
-                                        os_name='Ubuntu', os_version='14.04',
-                                        tag_name='tag-1', category='Base',
-                                        image_name='base-ubuntu1404-global-160825-1528'):
-        new_roles_page = self.admin_dashboard.menu.go_to_roles().new_role()
-        new_roles_page.role_name_field.write(role_name)
-        new_roles_page.os_settings(os_name, os_version, category, tag_name)
-        new_roles_page.add_image_button.click()
-        new_roles_page.add_image(image_name)
-        new_roles_page.save_button.click()
-        assert new_roles_page.roles_table_sorted_by_roleid.visible(), "The roles table is not sorted by Id!"
-        assert new_roles_page.page_message.text == "Role saved", \
-            "No message present about successful saving of the Role"
-        assert new_roles_page.created_role(role_name).visible(), "Role was not found!"
+    def test_create_role_with_policy_tag_admin_scope(self):
+        TestPolicyTags.preparationg_applying_to_roles(self)
+        roles_edit_page = self.admin_dashboard.menu.go_to_roles().new_role()
+        RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1')
+
+    def test_create_role_with_policy_tag_account_scope(self):
+        # login_page = self.admin_dashboard.menu.logout()
+        global DEFAULT_USER
+        DEFAULT_USER = 'test@scalr.com'
+        #self.env_dashboard.menu.go_to_account().scalr_main_menu.click()
+
+        main_menu_items = self.admin_dashboard.scalr_main_menu.list_items()
+        main_menu_items['Roles'].mouse_over()
+        # self.admin_dashboard.menu.go_to_accounts().log_in_to_account(self)
+        time.sleep(5)
+
+
+
+
