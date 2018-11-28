@@ -40,7 +40,7 @@ def testenv(request):
         container = TestEnv(te_id)
     else:
         container = TestEnv.create(branch='master', notes='Selenium test container')
-        for _ in range(5):
+        for _ in range(10):
             try:
                 services = container.get_service_status()
                 if all(service['state'] == 'RUNNING' for service in services):

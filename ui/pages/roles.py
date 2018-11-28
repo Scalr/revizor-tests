@@ -64,12 +64,10 @@ class RolesEdit(AdminTopMenu):
         if tag_name:
             tag_from_list = li % tag_name
             Button(xpath="//input[@name='tags']", driver=self.driver).click()
-            time.sleep(1)
             Button(xpath=tag_from_list, driver=self.driver).click()
-            time.sleep(1)
+            Button(xpath="//div[@id='body-container']", driver=self.driver).click()
         category_from_list = li % category
         Button(xpath="//div[starts-with(@id, 'combobox')]/input[@name='catId']", driver=self.driver).click()
-        time.sleep(1)
         found_category = Button(xpath=category_from_list, driver=self.driver)
         found_category.wait_until_condition(EC.visibility_of_element_located)
         found_category.click()
@@ -88,7 +86,7 @@ class RolesEdit(AdminTopMenu):
         return created_role
 
     def create_role(self, roles_edit_page, tag_name=None, **roles_settings):
-        role = {
+        default_role = {
             'role_name': 'selenium-role-policy-tag',
             'os_name': 'Ubuntu',
             'os_version': '14.04',
@@ -97,17 +95,17 @@ class RolesEdit(AdminTopMenu):
             'image_name': 'base-ubuntu1404-global-160825-1528'
         }
         if roles_settings:
-            role.update(roles_settings)
-        roles_edit_page.role_name_field.write(role['role_name'])
-        os_name = role['os_name'],
-        os_version = role['os_version'],
-        category = role['category']
+            default_role.update(roles_settings)
+        roles_edit_page.role_name_field.write(default_role['role_name'])
+        os_name = default_role['os_name'],
+        os_version = default_role['os_version'],
+        category = default_role['category']
         roles_edit_page.os_settings(os_name, os_version, category, tag_name)
         roles_edit_page.add_image_button.click()
-        roles_edit_page.add_image(role['image_name'])
+        roles_edit_page.add_image(default_role['image_name'])
         roles_edit_page.save_button.click()
         assert roles_edit_page.roles_table_sorted_by_roleid.visible(), "The roles table is not sorted by Id!"
         assert roles_edit_page.page_message.text == "Role saved", \
             "No message present about successful saving of the Role"
-        assert roles_edit_page.created_role(role['role_name']).visible(), "Role was not found!"
+        assert roles_edit_page.created_role(default_role['role_name']).visible(), "Role was not found!"
         return roles_edit_page

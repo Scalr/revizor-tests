@@ -58,6 +58,7 @@ class TestPolicyTags:
                 assert policy_tag_page.page_message.text == "Policy Tag successfully saved", \
                     "No message present about successful saving of the new Policy Tag"
                 assert policy_tag_page.created_tag(name).visible(), "Policy Tag was not found!"
+        time.sleep(2)
         return policy_tag_page
 
     def test_create_tag_with_empty_field(self):
@@ -115,22 +116,39 @@ class TestPolicyTags:
         tag_names = ['tag-1', 'tag-2', 'tag-3']
         TestPolicyTags.test_create_new_policy_tag(self, tag_names)
 
+    def go_to_account_scope(self):
+        # account_dashboard = self.admin_dashboard.menu.go_to_accounts().menu.log_in_to_account()
+        self.admin_dashboard.menu.logout()
+        global DEFAULT_USER
+        DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
+        global DEFAULT_PASSWORD
+        DEFAULT_PASSWORD =  CONF.credentials.testenv.accounts.default['password']
+        login_page = LoginPage(
+            self.driver,
+            self.url).open()
+        self.env_dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
+        account_dashboard = self.env_dashboard.menu.go_to_account()
+        return account_dashboard
+
+    def go_to_roles_page_account_scope(self):
+        account_dashboard = TestPolicyTags.go_to_account_scope(self)
+        account_dashboard.scalr_main_menu.click()
+        main_menu_items = self.admin_dashboard.scalr_main_menu.list_items()
+        main_menu_items['Roles\nADD NEW'].mouse_over()
+        roles_page = account_dashboard.go_to_roles()
+        return roles_page
+
     def test_create_role_with_policy_tag_admin_scope(self):
         TestPolicyTags.preparationg_applying_to_roles(self)
-        roles_edit_page = self.admin_dashboard.menu.go_to_roles().new_role()
+        roles_page = self.admin_dashboard.menu.go_to_roles()
+        roles_edit_page = roles_page.new_role()
         RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1')
+        assert roles_page.new_role_button.visible()
 
     def test_create_role_with_policy_tag_account_scope(self):
-        # login_page = self.admin_dashboard.menu.logout()
-        global DEFAULT_USER
-        DEFAULT_USER = 'test@scalr.com'
-        #self.env_dashboard.menu.go_to_account().scalr_main_menu.click()
-
-        main_menu_items = self.admin_dashboard.scalr_main_menu.list_items()
-        main_menu_items['Roles'].mouse_over()
-        # self.admin_dashboard.menu.go_to_accounts().log_in_to_account(self)
-        time.sleep(5)
-
-
-
-
+        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self)
+        roles_edit_page = roles_page.new_role()
+        roles_settings = {
+            'role_name': 'selenium-role-policy-tag-2'
+        }
+        RolesEdit.create_role(self, roles_edit_page, tag_name='tag-2', **roles_settings)

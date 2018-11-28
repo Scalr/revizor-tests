@@ -96,7 +96,6 @@ class Accounts(AdminTopMenu):
     def loaded(self):
         return self.new_account_button.wait_until_condition(EC.visibility_of_element_located)
 
-    @wait_for_page_to_load
     def log_in_to_account(self, account_name='Main account'):
         """Clicks on the login button for login as:
         'Main account',

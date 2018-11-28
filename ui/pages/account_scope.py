@@ -48,7 +48,18 @@ class AccountTopMenu(CommonTopMenu):
         return Environments(self.driver, self.base_url)
 
 
-class AccountDashboard(AccountTopMenu):
+class AccountLeftMenu(CommonTopMenu):
+
+    def go_to_roles(self):
+        """Redirects to Roles page (list of Scalr roles).
+           Returns Roles page object.
+        """
+        from pages.roles import Roles
+        Button(xpath="//a[@role='menuitem']/span[.='Roles Library']", driver=self.driver).click()
+        return Roles(self.driver, self.base_url)
+
+
+class AccountDashboard(AccountTopMenu, AccountLeftMenu):
     URL_TEMPLATE = '/#/account/dashboard'
 
     @property
