@@ -127,21 +127,21 @@ def farm(request: FixtureRequest) -> Farm:
 @pytest.fixture(scope="session", autouse=True)
 def upload_scripts(testenv):
     if CONF.scalr.te_id:
-        LOG.info("Upload scripts")
+        LOG.info("Uploading scripts.")
         path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
         upload_counter = 0
         for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
             with (path_to_scripts / script_path).open(mode='r') as f:
                 script = json.load(f)
-            exist_scripts = Script.get_id(name=script['name'])
-            if exist_scripts:
-                LOG.info("Script '%s' already exist" % (script['name']))
+            existing_scripts = Script.get_id(name=script['name'])
+            if existing_scripts:
+                LOG.info("Script '%s' already exists." % (script['name']))
             else:
                 IMPL.script.create(
                     name=script['name'],
                     description=script['description'],
                     content=script['content']
                 )
-                LOG.info("Script '%s' upload successfully" % (script['name']))
+                LOG.info("Script '%s' successfully uploaded." % (script['name']))
                 upload_counter += 1
         LOG.info("Total number of uploaded scripts: %s" % upload_counter)
