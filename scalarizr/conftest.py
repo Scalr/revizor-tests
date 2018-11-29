@@ -1,6 +1,8 @@
 import logging
 import time
 import uuid
+import os
+import json
 from datetime import datetime
 
 import pytest
@@ -10,7 +12,7 @@ from paramiko.ssh_exception import NoValidConnectionsError
 import scalarizr.lib.farm as lib_farm
 import scalarizr.lib.server as lib_server
 from revizor2 import CONF
-from revizor2.api import Farm, IMPL
+from revizor2.api import Farm, IMPL, Script
 from revizor2.cloud import Cloud
 from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
@@ -26,6 +28,7 @@ pytest_plugins = [
 
 @pytest.fixture(scope='session', autouse=True)
 def testenv(request) -> TestEnv:
+    LOG.info('Preparing TestEnv')
     te = None
     new_te = False
     if CONF.scalr.te_id:
@@ -119,3 +122,26 @@ def farm(request: FixtureRequest) -> Farm:
                     test_farm.destroy()
                 except Exception as e:
                     LOG.warning(f'Farm cannot be deleted: {str(e)}')
+
+
+@pytest.fixture(scope="session", autouse=True)
+def upload_scripts(testenv):
+    if CONF.scalr.te_id:
+        LOG.info("Upload scripts")
+        path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
+        upload_counter = 0
+        for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
+            with (path_to_scripts / script_path).open(mode='r') as f:
+                script = json.load(f)
+            exist_scripts = Script.get_id(name=script['name'])
+            if exist_scripts:
+                LOG.info("Script '%s' already exist" % (script['name']))
+            else:
+                IMPL.script.create(
+                    name=script['name'],
+                    description=script['description'],
+                    content=script['content']
+                )
+                LOG.info("Script '%s' upload successfully" % (script['name']))
+                upload_counter += 1
+        LOG.info("Total number of uploaded scripts: %s" % upload_counter)
