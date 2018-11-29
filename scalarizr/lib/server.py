@@ -505,6 +505,17 @@ def validate_string_in_file(cloud: Cloud, server: Server, file_path: str, value:
                                                 value, out)
 
 
+def validate_file_exists(cloud: Cloud, server: Server, file_path: str, invert: bool = False):
+    LOG.info('Verify file "%s" in %s %sexist.' % (file_path, server.id,
+                                                  'does not ' if invert else ""))
+    node = cloud.get_node(server)
+    out = node.run(
+        'test -e %s && echo file exists || echo file not found' % file_path).std_out.strip()
+    result = True if out == 'file exists' else False
+    assert bool(result) ^ invert, \
+        'File %s %sexist!' % (file_path, "" if invert else "does not ")
+
+
 def check_text_in_scalarizr_log(node: ExtendedNode, text: str):
     out = node.run('cat /var/log/scalarizr_debug.log | grep "%s"' % text).std_out
     if text in out:
