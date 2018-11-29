@@ -16,7 +16,7 @@ def verify_recipes_in_runlist(server: Server, recipes: dict):
 
     run_list = chef.Node(host_name, api=chef_api).run_list
     if len(run_list) != len(recipes):
-        raise AssertionError('Number of recipes in the node is wrong: "%s" != "%s" "%s"' %
+        raise AssertionError('Number of recipes in the node is wrong: "%s" != "%s". Actual runlist in Chef Node: "%s"' %
                              (len(run_list), len(recipes), run_list))
     if not all(recipe in ','.join(run_list) for recipe in recipes):
-        raise AssertionError('Recipe "%s" does not exist in the runlist!' % run_list)
+        raise AssertionError('Recipe "%s" is not in the runlist!' % run_list)
