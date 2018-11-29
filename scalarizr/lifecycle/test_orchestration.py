@@ -1,9 +1,8 @@
 import pytest
 
-from revizor2 import CONF
 from revizor2.api import Farm
 from revizor2.cloud import Cloud
-from revizor2.consts import ServerStatus, Platform
+from revizor2.consts import ServerStatus
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
@@ -19,6 +18,7 @@ class TestOrchestration:
              'test_verify_script_execution_on_bootstrap',
              'test_verify_chef_execution',
              'test_execute_scripts_on_linux',
+             'test_execute_scripts_user',
              'test_bootstrap_with_fail_script')
 
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
@@ -106,6 +106,36 @@ class TestOrchestration:
                                                name=script_name,
                                                log_contains=output,
                                                std_err=False,
+                                               new_only=True)
+
+    @pytest.mark.parametrize('user, exists',
+                             [
+                                 ('', True),
+                                 ('root', True),
+                                 ('revizor', True),
+                                 ('unknown', False),
+                                 ('a' * 255, False),
+                             ],
+                             ids=[
+                                 'empty',
+                                 'root',
+                                 'revizor',
+                                 'unknown',
+                                 'a * 255',
+                             ])
+    def test_execute_scripts_user(self, context: dict, cloud: Cloud, farm: Farm, servers: dict,
+                                  user, exists):
+        """Check script execution as user"""
+        server = servers['M1']
+        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.execute_script(context, farm, server, script_name='env', user=user)
+        user = user if user else 'root'
+        contains = ("USER=%s" if exists else "no such user: '%s'") % user
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='env',
+                                               log_contains=contains,
+                                               user=user,
+                                               std_err=not exists,
                                                new_only=True)
 
     def test_bootstrap_with_fail_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
