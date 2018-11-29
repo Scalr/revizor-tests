@@ -12,7 +12,7 @@ from paramiko.ssh_exception import NoValidConnectionsError
 import scalarizr.lib.farm as lib_farm
 import scalarizr.lib.server as lib_server
 from revizor2 import CONF
-from revizor2.api import Farm, IMPL, Script
+from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
 from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
@@ -128,13 +128,13 @@ def farm(request: FixtureRequest) -> Farm:
 def upload_scripts(testenv):
     if CONF.scalr.te_id:
         LOG.info("Uploading scripts.")
+        existing_scripts = [script['name'] for script in IMPL.script.list()]
         path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
         upload_counter = 0
         for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
             with (path_to_scripts / script_path).open(mode='r') as f:
                 script = json.load(f)
-            existing_scripts = Script.get_id(name=script['name'])
-            if existing_scripts:
+            if script['name'] in existing_scripts:
                 LOG.info("Script '%s' already exists." % (script['name']))
             else:
                 IMPL.script.create(
