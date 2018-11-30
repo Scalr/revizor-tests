@@ -33,6 +33,8 @@ def pytest_configure(config):
                             'restartfarm: test restarts farm.')
     config.addinivalue_line('markers',
                             'failedbootstrap: server fails on bootstrap in test.')
+    config.addinivalue_line('markers',
+                            'chef: test verifies Chef orchestration.')
 
 
 def pytest_addoption(parser):

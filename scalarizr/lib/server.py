@@ -379,7 +379,7 @@ def validate_server_message(cloud: Cloud, farm: Farm, msgtype: str, msg: str, se
 
 
 def execute_script(context: dict, farm: Farm, server: Server, script_name: str,
-                   is_local: bool = False, synchronous: bool = False):
+                   is_local: bool = False, synchronous: bool = False, user=''):
     path = None
     if is_local:
         path = script_name
@@ -390,7 +390,7 @@ def execute_script(context: dict, farm: Farm, server: Server, script_name: str,
     server.scriptlogs.reload()
     context['_server_%s_last_scripts' % server.id] = copy.deepcopy(server.scriptlogs)
     context['_server_%s_last_script_name' % server.id] = script_name
-    Script.script_execute(farm.id, server.farm_role_id, server.id, script_id, int(synchronous), path=path)
+    Script.script_execute(farm.id, server.farm_role_id, server.id, script_id, int(synchronous), path=path, run_as=user)
     LOG.info('Script executed success')
 
 
