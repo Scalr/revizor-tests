@@ -13,3 +13,4 @@ azure-mgmt-monitor>=0.5.2
 pytest==3.8.0
 ansible-tower-cli==3.2.1
 pika>=0.12.0
+docker>=3.5.1
