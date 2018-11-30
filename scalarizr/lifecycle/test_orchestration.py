@@ -115,5 +115,5 @@ class TestOrchestration:
         server = lib_server.wait_status(
             context, cloud, farm, status=ServerStatus.FAILED)
         assert server.is_init_failed, "Server %s failed not on Initializing" % server.id
-        assert 'BeforeHostUp' and 'Multiplatform_exit_1&quot; exited with code 1' in server.get_failed_status_message(),\
+        assert ('BeforeHostUp' and 'Multiplatform_exit_1&quot; exited with code 1') in server.get_failed_status_message(),\
             "Unexpected Failed status message: %s" % server.get_failed_status_message()
