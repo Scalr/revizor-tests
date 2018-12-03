@@ -49,6 +49,7 @@ class LeftPopupMenu:
                 break
 
     def list_items(self):
+        LOG.debug('List items in Scalr main (left) menu.')
         self.scroll("up")
         upper_elements = Button(
             xpath='//div [contains(@class, "x-topmenu-dropdown")]//child::a [@role="menuitem"]',
@@ -62,6 +63,7 @@ class LeftPopupMenu:
         return items
 
     def select(self, option):
+        LOG.debug('Select "%s" from Scalr main menu.' % option)
         option = option.split('>')
         main_option = option[0].strip()
         sub_option = option[1].strip() if len(option) > 1 else None
