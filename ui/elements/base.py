@@ -110,7 +110,7 @@ class Button(BaseElement):
 
     def click(self):
         LOG.debug('Click button %s' % str(self.locator))
-        # self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
+        self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
         self.get_element().click()
 
 
