@@ -421,6 +421,7 @@ def assert_scalarizr_version(step, branch, serv_as):
     Role branch - CONF.feature.to_branch
     """
     #FIXME: Rewrite this ugly code!
+    # NOTE: migrated
     server = getattr(world, serv_as)
     if branch == 'system' or not branch:
         branch = CONF.feature.branch
@@ -714,6 +715,7 @@ def creating_image(step, image_type=None):
 
 @step(r'I add ([\w]+-?[\w]+?\s)?image to the new roles?(\sas non scalarized)*$')
 def creating_role(step, image_type=None, non_scalarized=None):
+    # NOTE: migrated but with changes!
     image = getattr(world, 'image')
     image_type = (image_type or 'base').strip()
     platform = CONF.feature.platform
@@ -871,6 +873,7 @@ def get_repo_type(custom_branch, custom_version=None):
 
 @step(r"I install(?: new)? scalarizr(?: ([\w\d\.\'\-]+))?(?: (with sysprep))? to the server(?: ([\w][\d]))?(?: (manually))?(?: from the branch ([\w\d\W]+))?")
 def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=None, use_rv_to_branch=None, custom_branch=None):
+    # NOTE: migrated
     node = getattr(world, 'cloud_server', None)
     resave_node = True if node else False
     server = getattr(world, (serv_as or '').strip(), None)

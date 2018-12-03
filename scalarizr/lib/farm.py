@@ -4,7 +4,7 @@ import time
 import typing as tp
 
 from revizor2 import CONF
-from revizor2.api import Farm, IMPL
+from revizor2.api import Farm, IMPL, Role
 from revizor2.consts import BEHAVIORS_ALIASES, DATABASE_BEHAVIORS
 from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
@@ -35,12 +35,16 @@ def clear(farm: Farm):
 def add_role_to_farm(context: dict,
                      farm: Farm,
                      behavior: str = None,
+                     role: Role = None,
                      role_name: str = None,
                      role_options: tp.List[str] = None,
                      alias: str = None):
     behavior = (behavior or CONF.feature.behavior).strip()
     role_name = (role_name or '').strip()
-    role_id = CONF.feature.role_id or context.get(f'{role_name}_id', None)
+    if role:
+        role_id = Role.id  #FIXME: Use Role object below
+    else:
+        role_id = CONF.feature.role_id or context.get(f'{role_name}_id', None)
     if role_options:
         LOG.debug(f'Additional role options: {role_options}')
     if role_id:

@@ -177,7 +177,7 @@ class TestLifecycleLinux:
                                   script_name='Non ascii script wrong interpreter', synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='Non ascii script wrong interpreter',
-                                               log_contains="Interpreter not found '/no/ÃƒÂ§ÃƒÂ£o'",
+                                               log_contains="Interpreter not found '/no/Ã§Ã£o'",
                                                std_err=True, new_only=True)
 
     @pytest.mark.scripting
@@ -190,11 +190,11 @@ class TestLifecycleLinux:
                                   script_name='non-ascii-output', synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='non-ascii-output',
-                                               log_contains='ÃƒÂ¼',
+                                               log_contains='Ã¼',
                                                new_only=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='non-ascii-output',
-                                               log_contains='ã‚¯ãƒž',
+                                               log_contains='クマ',
                                                std_err=True, new_only=True)
 
     @pytest.mark.scripting
