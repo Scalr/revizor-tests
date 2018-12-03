@@ -7,7 +7,7 @@ import requests
 import scalarizr.lib.server as lib_server
 from revizor2 import CONF
 from revizor2.api import Cloud, Server
-from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
+from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Dist
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.helpers.parsers import get_repo_url, parser_for_os_family
 from revizor2.utils import wait_until
@@ -209,3 +209,23 @@ def validate_service(cloud: Cloud, server: Server, service: str, closed: bool = 
         raise AssertionError("Service %s must be don't work but it work!" % service)
     if not closed and not check_result:
         raise AssertionError("Service %s must be work but it doesn't work! (results: %s)" % (service, check_result))
+
+
+def validate_process_options(cloud: Cloud, server: Server, process: str, options: str):
+    #TODO: Add systemd support
+    LOG.debug('Checking options %s for process %s.' % (options, process))
+    node = cloud.get_node(server)
+    with node.remote_connection() as conn:
+        for _ in range(3):
+            out = conn.run('ps aux | grep %s' % process)
+            LOG.debug('Grep for ps aux: %s' % out.std_out)
+            for line in out.std_out.splitlines():
+                if 'grep' in line:
+                    continue
+                LOG.info('Working with line: %s' % line)
+                if options not in line and CONF.feature.dist != Dist('amzn1609') and not CONF.feature.dist.is_systemd:
+                    raise AssertionError('Options %s are not in process, %s' % (
+                        options, ' '.join(line.split()[10:])))
+                else:
+                    return True
+        raise AssertionError('Process %s not found.' % process)

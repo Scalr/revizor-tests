@@ -379,7 +379,7 @@ def validate_server_message(cloud: Cloud, farm: Farm, msgtype: str, msg: str, se
 
 
 def execute_script(context: dict, farm: Farm, server: Server, script_name: str,
-                   is_local: bool = False, synchronous: bool = False):
+                   is_local: bool = False, synchronous: bool = False, user=''):
     path = None
     if is_local:
         path = script_name
@@ -390,7 +390,7 @@ def execute_script(context: dict, farm: Farm, server: Server, script_name: str,
     server.scriptlogs.reload()
     context['_server_%s_last_scripts' % server.id] = copy.deepcopy(server.scriptlogs)
     context['_server_%s_last_script_name' % server.id] = script_name
-    Script.script_execute(farm.id, server.farm_role_id, server.id, script_id, int(synchronous), path=path)
+    Script.script_execute(farm.id, server.farm_role_id, server.id, script_id, int(synchronous), path=path, run_as=user)
     LOG.info('Script executed success')
 
 
@@ -503,6 +503,17 @@ def validate_string_in_file(cloud: Cloud, server: Server, file_path: str, value:
         'File %s %s: %s. Result of grep: %s' % (file_path,
                                                 'contains' if invert else 'does not contain',
                                                 value, out)
+
+
+def validate_file_exists(cloud: Cloud, server: Server, file_path: str, invert: bool = False):
+    LOG.info('Verify file "%s" in %s %sexist.' % (file_path, server.id,
+                                                  'does not ' if invert else ""))
+    node = cloud.get_node(server)
+    out = node.run(
+        'test -e %s && echo file exists || echo file not found' % file_path).std_out.strip()
+    result = True if out == 'file exists' else False
+    assert bool(result) ^ invert, \
+        'File %s %sexist!' % (file_path, "" if invert else "does not ")
 
 
 def check_text_in_scalarizr_log(node: ExtendedNode, text: str):
