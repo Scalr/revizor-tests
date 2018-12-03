@@ -1,9 +1,12 @@
 import time
+import logging
 
 from selenium.webdriver.common.action_chains import ActionChains
 
 from elements import locators
 from elements.base import Button
+
+LOG = logging.getLogger()
 
 
 class LeftPopupMenu:
