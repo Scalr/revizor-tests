@@ -66,6 +66,14 @@ def pytest_addoption(parser):
                     action='store_true',
                     default=False,
                     help='Destroy TestEnv even when some tests fail.')
+    group.addoption('--branch',
+                    action='store',
+                    default='master',
+                    help='Scalarizr branch for farmrole.')
+    group.addoption('--ci-repo',
+                    action='store',
+                    default='drone',
+                    help='Scalarizr package source.')
 
 
 def pytest_sessionstart(session: Session):
@@ -74,6 +82,8 @@ def pytest_sessionstart(session: Session):
     farm_id = session.config.getoption('--farm-id')
     platform = session.config.getoption('--platform')
     dist = session.config.getoption('--dist')
+    branch = session.config.getoption('--branch')
+    ci_repo = session.config.getoption('--ci-repo')
     if te_id:
         CONF.scalr.te_id = te_id
     if scalr_branch:
@@ -86,6 +96,10 @@ def pytest_sessionstart(session: Session):
         CONF.feature.dist = Dist(dist_name=dist)
     if session.config.getoption('--no-stop-farm'):
         CONF.feature.stop_farm = False
+    if branch:
+        CONF.feature.branch = branch
+    if ci_repo:
+        CONF.feature.ci_repo = ci_repo
 
 
 def pytest_collection_modifyitems(session, config: Config, items: tp.List[Function]):
