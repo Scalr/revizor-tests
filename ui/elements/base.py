@@ -1,4 +1,5 @@
 import time
+import logging
 
 from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException
 from selenium.webdriver.common.action_chains import ActionChains
@@ -6,6 +7,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from elements import locators
+
+LOG = logging.getLogger()
 
 
 class BaseElement:
@@ -22,12 +25,14 @@ class BaseElement:
 
     @property
     def text(self):
+        LOG.debug('Get element %s text.' % str(self.locator))
         return self.get_element().text
 
     def get_element(self, show_hidden=False):
         return self.list_elements(show_hidden=show_hidden)[0]
 
     def list_elements(self, show_hidden=False):
+        LOG.debug("Locate element/elements %s" % str(self.locator))
         for _ in range(5):
             try:
                 if show_hidden:
@@ -43,6 +48,7 @@ class BaseElement:
         raise NoSuchElementException(self.locator[1])
 
     def mouse_over(self):
+        LOG.debug('Mouse over element %s' % str(self.locator))
         self.scroll_into_view()
         element = self.get_element()
         chain = ActionChains(self.driver)
@@ -50,16 +56,19 @@ class BaseElement:
         chain.perform()
 
     def visible(self):
+        LOG.debug('Check visibily status of the element %s' % str(self.locator))
         elements = self.driver.find_elements(*self.locator)
         if elements:
             return elements[0].is_displayed()
         else:
+            LOG.debug('Element %s was not found.' % str(self.locator))
             return False
 
     def hidden(self):
         return not self.visible()
 
     def wait_until_condition(self, condition, value=None, timeout=10):
+        LOG.debug("Wait until element %s is in condition %s." % (str(self.locator), condition))
         wait = WebDriverWait(self.driver, timeout)
         try:
             if value:
@@ -71,6 +80,7 @@ class BaseElement:
             return False
 
     def scroll_into_view(self):
+        LOG.debug('Ateempt to scroll element %s into view.' % str(self.locator))
         if self.hidden():
             self.driver.execute_script(
                 "arguments[0].scrollIntoView();", self.driver.find_elements(*self.locator)[0])
@@ -99,7 +109,8 @@ class Button(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def click(self):
-        # self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
+        LOG.debug('Click button %s' % str(self.locator))
+        self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
         self.get_element().click()
 
 
@@ -120,6 +131,7 @@ class SplitButton(BaseElement):
 
            :param str option: text in option element.
         """
+        LOG.debug('Click option %s in split button %s' % (str(self.locator), option))
         main_button = self.get_element()
         chain = ActionChains(self.driver)
         chain.move_to_element(main_button)
@@ -144,11 +156,13 @@ class Checkbox(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def check(self):
+        LOG.debug('Check checkbox %s' % str(self.locator))
         element = self.get_element()
         if 'x-cb-checked' not in element.get_attribute("class"):
             element.click()
 
     def uncheck(self):
+        LOG.debug('Uncheck checkbox %s' % str(self.locator))
         element = self.get_element()
         if 'x-cb-checked' in element.get_attribute("class"):
             element.click()
@@ -172,6 +186,7 @@ class Combobox(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
+        LOG.debug('Select option %s in combobox %s' % (option, str(self.locator)))
         self.get_element().click()
         if self.span:
             Button(xpath='//span[contains(text(), "%s")]//parent::li' %
@@ -198,12 +213,14 @@ class Menu(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
+        LOG.debug("Select option %s in menu %s" % (option, str(self.locator)))
         self.get_element().click()
         Button(
             xpath='//* [contains(text(), "%s")]//ancestor::a[starts-with(@id, "menuitem")]' % option,
             driver=self.driver).click()
 
     def click(self):
+        LOG.debug("Click on menu %s" % str(self.locator))
         self.get_element().click()
 
 
@@ -222,6 +239,7 @@ class Dropdown(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
+        LOG.debug('Select option %s in dropdown %s' % (option, str(self.locator)))
         self.get_element().click()
         Button(xpath='//* [contains(text(), "%s")]//parent::div' %
                option, driver=self.driver).click()
@@ -244,6 +262,7 @@ class Input(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def write(self, text):
+        LOG.debug('Write "%s" in input field %s' % (text, str(self.locator)))
         element = self.get_element()
         element.clear()
         element.send_keys(text)
@@ -255,6 +274,7 @@ class SearchInput(Input):
     """
 
     def write(self, text):
+        LOG.debug('Write text "%s" in search field %s' % (text, str(self.locator)))
         element = self.get_element()
         element.clear()
         Button(xpath='//div [contains(@id, "trigger-cancelButton")]',

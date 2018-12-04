@@ -46,7 +46,6 @@ def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode
        :param te_remove str: always destroy created TestEnv.
         Usage '--te-remove true'.
     """
-    ctx.run(r'find . -name "*.pyc" -exec rm -f {} \;')
     browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
     processes = ' -n %s' % processes if processes else ''
     te_id = '--te-id %s' % te_id if te_id else ''
