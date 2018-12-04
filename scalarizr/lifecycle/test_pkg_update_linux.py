@@ -25,6 +25,7 @@ class TestPkgUpdateLinux:
 
     @pytest.mark.parametrize('branch', ['stable', 'latest'])
     def test_update_from_branch_on_startup(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, branch: str):
+        """Update scalarizr from release to branch on startup"""
         image = update.get_clean_image(cloud)
         role = lib_role.create_role(image)
         farm.launch()
@@ -50,6 +51,7 @@ class TestPkgUpdateLinux:
 
     @pytest.mark.parametrize('branch', ['stable', 'latest'])
     def test_update_to_branch_from_ui(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, branch: str):
+        """Update scalarizr from release to branch via UI"""
         farm.launch()
         lib_farm.add_role_to_farm(context, farm, role_options=['branch_{}'.format(branch)])
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
@@ -74,6 +76,7 @@ class TestPkgUpdateLinux:
         lib_server.check_scalarizr_log_errors(cloud, server, log_type='update')
 
     def test_update_from_branch_to_stable_on_startup(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Update scalarizr from branch to stable on startup"""
         image = update.get_clean_image(cloud)
         role = lib_role.create_role(image)
         farm.launch()
@@ -99,6 +102,7 @@ class TestPkgUpdateLinux:
 
     def test_update_from_stable_to_branch_on_startup_and_new_package(self, context: dict, cloud: Cloud, farm: Farm,
                                                                      servers: dict):
+        """Update scalarizr from stable to branch on startup with new pkg"""
         image = update.get_clean_image(cloud)
         role = lib_role.create_role(image)
         farm.launch()
@@ -130,6 +134,7 @@ class TestPkgUpdateLinux:
 
     def test_update_from_branch_to_branch_on_startup_and_new_package(self, context: dict, cloud: Cloud, farm: Farm,
                                                                      servers: dict):
+        """Update scalarizr from branch to branch on startup with new pkg"""
         image = update.get_clean_image(cloud)
         role = lib_role.create_role(image)
         farm.launch()
