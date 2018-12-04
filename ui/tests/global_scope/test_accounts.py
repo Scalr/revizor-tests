@@ -33,5 +33,13 @@ class TestAccounts(object):
         self.admin_dashboard = login_page.login(USER, PASSWORD)
 
     def test_create_account(self):
-        acp = self.admin_dashboard.go_to_accounts().go_to_account()
-        ecp = acp.go_to_environment()
+        import time
+        accounts_page = self.admin_dashboard.go_to_accounts()
+        edit_popup = accounts_page.open_edit_popup()
+        edit_popup.name_field.write("Selenium")
+        edit_popup.select_account_owner("test")
+        time.sleep(3)
+        edit_popup.comments_field.write("Selenium test new account")
+        edit_popup.cost_centers_field.select(option='Default cost centre', hide_options=True)
+        edit_popup.create_button.click()
+        time.sleep(10)

@@ -3,6 +3,7 @@ import time
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
+from selenium.webdriver.common.action_chains import ActionChains
 from pypom import Page
 from pypom.exception import UsageError
 
@@ -100,12 +101,7 @@ class Accounts(AdminTopMenu):
     URL_TEMPLATE = '/#/admin/accounts'
     new_account_button = Button(text="New account")
     edit_account_button = Button(href="#/admin/accounts/1/edit")
-    name_field = Input(xpath="//input [@name='name']")
-    owner_email_field = Input(xpath="//input [@name='ownerEmail']")
-    comments_field = Input(xpath="//textarea [@name='comments']")
-    cost_centers_field = Dropdown(input_name="ccs")
-    create_button = Button(element_id="button-1206")
-    cancel_button = Button(element_id="button-1207")
+
 
     @wait_for_page_to_load
     def go_to_account(self, account_name=None):
@@ -121,6 +117,42 @@ class Accounts(AdminTopMenu):
     @property
     def loaded(self):
         return self.new_account_button.wait_until_condition(EC.visibility_of_element_located)
+
+    def open_edit_popup(self):
+        self.new_account_button.click()
+        return AccountEditPopup(self.driver)
+
+
+class AccountEditPopup(Accounts):
+    """Implements New Account popup window elements
+    """
+    popup_label = Label(xpath="//div [contains(text(), 'Admin » Accounts')]")
+    name_field = Input(xpath="//input [@name='name']")
+    owner_email_field = Button(xpath="//input [@name='ownerEmail']")
+    comments_field = Input(xpath="//textarea [@name='comments']")
+    cost_centers_field = Dropdown(input_name="ccs")
+    create_button = Button(xpath="//span [text()='Create']//ancestor::a")
+    cancel_button = Button(xpath="//span [text()='Cancel']//ancestor::a")
+
+    @property
+    def loaded(self):
+        return self.popup_label.wait_until_condition(EC.visibility_of_element_located)
+
+    def select_account_owner(self, name=None):
+        actions = ActionChains(self.driver)
+        name = name or 'selenium'
+        self.owner_email_field.click()
+        #search_btn = Button(driver=self.driver, xpath="(//div [text()='Search'])[position()=last()]")
+        search_input = Input(driver=self.driver, xpath="(//div [text()='Search'])[position()=last()]//following::input")
+        search_input.get_element(show_hidden=True)
+        search_input.write('sdfs')
+        #actions.click(search_btn)
+        #actions.send_keys(search_input)
+        #actions.perform()
+        import time
+        time.sleep(5)
+        Button(driver=self.driver, xpath="//div [contains(text(), '%s')]" % name).click()
+        Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
 
 class Users(AdminTopMenu):

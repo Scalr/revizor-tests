@@ -47,6 +47,10 @@ class AccountTopMenu(CommonTopMenu):
                driver=self.driver).click()
         return Environments(self.driver, self.base_url)
 
+    @property
+    def accounts_menu(self):
+        return Button(xpath="//span [contains(@class, 'x-icon-environment')]", driver=self.driver)
+
 
 class AccountDashboard(AccountTopMenu):
     URL_TEMPLATE = '/#/account/dashboard'
@@ -62,7 +66,7 @@ class AccountDashboard(AccountTopMenu):
         """Switches to specific Scalr environment.
            Returns EnvironmentDashboard page object.
         """
-        Button(xpath="//span[@id='button-1274-btnIconEl']", driver=self.driver).click()
+        self.accounts_menu.click()
         Button(xpath="//span[text()='%s']//ancestor::a[contains(@class, 'x-menu-item')]" % env_name,
                driver=self.driver).click()
         from pages.environment_scope import EnvironmentDashboard

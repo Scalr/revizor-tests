@@ -221,10 +221,13 @@ class Dropdown(BaseElement):
         else:
             raise ValueError('No locator policy was provided!')
 
-    def select(self, option):
+    def select(self, option, hide_options=False):
+        xpath = "(//* [text()='{}'])[position()=1]".format(option)
         self.get_element().click()
-        Button(xpath='//* [contains(text(), "%s")]//parent::div' %
-               option, driver=self.driver).click()
+        Button(xpath=xpath, driver=self.driver).click()
+        if hide_options:
+            xpath = "//".join((xpath, "following::div [contains(@class, 'x-form-arrow-trigger')][position()=1]"))
+            Button(xpath=xpath, driver=self.driver).click()
 
 
 class Input(BaseElement):

@@ -38,7 +38,15 @@ class EnvironmentTopMenu(CommonTopMenu):
         Button(href="#/images", driver=self.driver).click()
         return Images(self.driver, self.base_url)
 
-
+    @property
+    def accounts_menu(self):
+        """Returns current active Scalr environment menu button.
+        """
+        for name in ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']:
+            env = Button(text=name, driver=self.driver)
+            if env.visible():
+                return env
+        raise NoSuchElementException("Can't find active Environment!")
 
 
 class EnvironmentDashboard(EnvironmentTopMenu):
@@ -53,7 +61,7 @@ class EnvironmentDashboard(EnvironmentTopMenu):
         """Switches to Account level Dashboard.
            Returns AccountDashboard page object.
         """
-        self.environment_menu.click()
+        self.accounts_menu.click()
         Button(text="Main account", driver=self.driver).click()
         from pages.account_scope import AccountDashboard
         return AccountDashboard(self.driver, self.base_url)
@@ -63,20 +71,10 @@ class EnvironmentDashboard(EnvironmentTopMenu):
         """Switches to specific Scalr environment.
            Returns EnvironmentDashboard page object.
         """
-        self.environment_menu.click()
-        if env_name not in self.environment_menu.text:
+        self.accounts_menu.click()
+        if env_name not in self.accounts_menu.text:
             Button(text=env_name, driver=self.driver).click()
         return self
-
-    @property
-    def environment_menu(self):
-        """Returns current active Scalr environment menu button.
-        """
-        for name in ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']:
-            env = Button(text=name, driver=self.driver)
-            if env.visible():
-                return env
-        raise NoSuchElementException("Can't find active Environment!")
 
 
 class Farms(EnvironmentTopMenu):
