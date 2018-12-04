@@ -8,12 +8,8 @@ from libcloud.compute.types import NodeState
 import scalarizr.lib.server as lib_server
 from revizor2 import CONF
 from revizor2.api import Cloud, Server
-<<<<<<< HEAD
 from revizor2.cloud.node import ExtendedNode
-from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES
-=======
 from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Dist
->>>>>>> master
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.helpers.parsers import get_repo_url, parser_for_os_family
 from revizor2.utils import wait_until
