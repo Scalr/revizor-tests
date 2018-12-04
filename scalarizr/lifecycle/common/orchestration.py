@@ -1,16 +1,15 @@
 import logging
+import typing as tp
+
 import chef
 
-from revizor2 import CONF
 from revizor2.api import Server
-from revizor2.cloud import Cloud
-from revizor2.consts import Platform
 from scalarizr.lib import server as lib_server
 
 LOG = logging.getLogger(__name__)
 
 
-def verify_recipes_in_runlist(server: Server, recipes: dict):
+def verify_recipes_in_runlist(server: Server, recipes: tp.List[str]):
     host_name = lib_server.get_hostname_by_server_format(server)
     chef_api = chef.autoconfigure()
 
