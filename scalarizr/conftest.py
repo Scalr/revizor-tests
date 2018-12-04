@@ -1,6 +1,8 @@
 import logging
 import time
 import uuid
+import os
+import json
 from datetime import datetime
 
 import pytest
@@ -26,6 +28,7 @@ pytest_plugins = [
 
 @pytest.fixture(scope='session', autouse=True)
 def testenv(request) -> TestEnv:
+    LOG.info('Preparing TestEnv')
     te = None
     new_te = False
     if CONF.scalr.te_id:
@@ -119,3 +122,26 @@ def farm(request: FixtureRequest) -> Farm:
                     test_farm.destroy()
                 except Exception as e:
                     LOG.warning(f'Farm cannot be deleted: {str(e)}')
+
+
+@pytest.fixture(scope="session", autouse=True)
+def upload_scripts(testenv):
+    if CONF.scalr.te_id:
+        LOG.info("Uploading scripts.")
+        existing_scripts = [script['name'] for script in IMPL.script.list()]
+        path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
+        upload_counter = 0
+        for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
+            with (path_to_scripts / script_path).open(mode='r') as f:
+                script = json.load(f)
+            if script['name'] in existing_scripts:
+                LOG.info("Script '%s' already exists." % (script['name']))
+            else:
+                IMPL.script.create(
+                    name=script['name'],
+                    description=script['description'],
+                    content=script['content']
+                )
+                LOG.info("Script '%s' successfully uploaded." % (script['name']))
+                upload_counter += 1
+        LOG.info("Total number of uploaded scripts: %s" % upload_counter)
