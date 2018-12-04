@@ -102,7 +102,6 @@ class Accounts(AdminTopMenu):
     new_account_button = Button(text="New account")
     edit_account_button = Button(href="#/admin/accounts/1/edit")
 
-
     @wait_for_page_to_load
     def go_to_account(self, account_name=None):
         """Switches to Account level Dashboard.
@@ -118,7 +117,7 @@ class Accounts(AdminTopMenu):
     def loaded(self):
         return self.new_account_button.wait_until_condition(EC.visibility_of_element_located)
 
-    def open_edit_popup(self):
+    def new_account(self):
         self.new_account_button.click()
         return AccountEditPopup(self.driver)
 
@@ -138,20 +137,15 @@ class AccountEditPopup(Accounts):
     def loaded(self):
         return self.popup_label.wait_until_condition(EC.visibility_of_element_located)
 
-    def select_account_owner(self, name=None):
-        actions = ActionChains(self.driver)
-        name = name or 'selenium'
+    def select_account_owner(self, name, use_filter=False):
         self.owner_email_field.click()
-        #search_btn = Button(driver=self.driver, xpath="(//div [text()='Search'])[position()=last()]")
-        search_input = Input(driver=self.driver, xpath="(//div [text()='Search'])[position()=last()]//following::input")
-        search_input.get_element(show_hidden=True)
-        search_input.write('sdfs')
-        #actions.click(search_btn)
-        #actions.send_keys(search_input)
-        #actions.perform()
-        import time
-        time.sleep(5)
-        Button(driver=self.driver, xpath="//div [contains(text(), '%s')]" % name).click()
+        if use_filter:
+            filter_btn = "(//div [text()='Search'])[position()=last()]"
+            Button(driver=self.driver, xpath=filter_btn).click()
+            Input(driver=self.driver, xpath="//".join((filter_btn, "following::input"))).write(name)
+        Button(
+            driver=self.driver,
+            xpath="//table [starts-with(@id, 'tableview')]//child::div [text()='%s']" % name).click()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
 
