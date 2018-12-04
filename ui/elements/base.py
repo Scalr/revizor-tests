@@ -279,3 +279,19 @@ class Label(BaseElement):
             self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
+
+
+class TableEntry(BaseElement):
+    """Any text inside the table
+    """
+    def _make_locator(self, entry=None, xpath=None):
+        if entry:
+            self.locator = locators.XpathLocator(
+                "//table [starts-with(@id, 'tableview')]//child::div [text()='%s']" % entry)
+        elif xpath:
+            self.locator = locators.XpathLocator(xpath)
+        else:
+            raise ValueError('No locator policy was provided!')
+
+    def select(self):
+        self.get_element().click()

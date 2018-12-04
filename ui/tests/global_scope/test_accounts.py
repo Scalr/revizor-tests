@@ -11,7 +11,7 @@ from selenium.common.exceptions import NoSuchElementException
 from revizor2.conf import CONF
 from pages.login import LoginPage
 from elements import locators
-from elements.base import Label, Button
+from elements.base import Label, Button, TableEntry
 
 USER = CONF.credentials.testenv.accounts.admin['username']
 PASSWORD = CONF.credentials.testenv.accounts.admin['password']
@@ -35,8 +35,10 @@ class TestAccounts(object):
     def test_create_account(self):
         accounts_page = self.admin_dashboard.go_to_accounts()
         account_edit_popup = accounts_page.new_account()
-        account_edit_popup.name_field.write("Selenium")
+        new_account_name = "Selenium"
+        account_edit_popup.name_field.write(new_account_name)
         account_edit_popup.select_account_owner("AccountSuperAdmin")
         account_edit_popup.comments_field.write("Selenium test new account")
         account_edit_popup.cost_centers_field.select(option='Default cost centre', hide_options=True)
         account_edit_popup.create_button.click()
+        assert TableEntry(driver=accounts_page.driver, entry=new_account_name).visible()

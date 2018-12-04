@@ -8,7 +8,7 @@ from pypom import Page
 from pypom.exception import UsageError
 
 from elements import locators
-from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown
+from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableEntry
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -130,8 +130,8 @@ class AccountEditPopup(Accounts):
     owner_email_field = Button(xpath="//input [@name='ownerEmail']")
     comments_field = Input(xpath="//textarea [@name='comments']")
     cost_centers_field = Dropdown(input_name="ccs")
-    create_button = Button(xpath="//span [text()='Create']//ancestor::a")
-    cancel_button = Button(xpath="//span [text()='Cancel']//ancestor::a")
+    create_button = Button(xpath="//span [text()='Create']//ancestor::a[last()]")
+    cancel_button = Button(xpath="//span [text()='Cancel']//ancestor::a[last()]")
 
     @property
     def loaded(self):
@@ -140,12 +140,10 @@ class AccountEditPopup(Accounts):
     def select_account_owner(self, name, use_filter=False):
         self.owner_email_field.click()
         if use_filter:
-            filter_btn = "(//div [text()='Search'])[position()=last()]"
-            Button(driver=self.driver, xpath=filter_btn).click()
-            Input(driver=self.driver, xpath="//".join((filter_btn, "following::input"))).write(name)
-        Button(
-            driver=self.driver,
-            xpath="//table [starts-with(@id, 'tableview')]//child::div [text()='%s']" % name).click()
+            filter_path = "(//div [text()='Search'])[position()=last()]"
+            Button(driver=self.driver, xpath=filter_path).click()
+            Input(driver=self.driver, xpath="//".join((filter_path, "following::input"))).write(name)
+        TableEntry(driver=self.driver, entry=name).select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
 
