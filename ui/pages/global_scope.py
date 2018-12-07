@@ -101,7 +101,7 @@ class Accounts(AdminTopMenu):
     URL_TEMPLATE = '/#/admin/accounts'
     new_account_button = Button(text="New account")
     edit_account_button = Button(href="#/admin/accounts/1/edit")
-    delete_account_button = Button(xpath="//a [@data-qtip='Delete']")
+    delete_account_button = Button(xpath="//a [@data-qtip='Delete'][contains(@class, 'x-btn-red')]")
 
     @wait_for_page_to_load
     def go_to_account(self, account_name=None):
@@ -109,8 +109,7 @@ class Accounts(AdminTopMenu):
            Returns AccountDashboard page object.
         """
         account_name = account_name or "Main account"
-        Button(xpath="//div [contains(text(), '%s')]//following::a[@data-qtip='Login as owner'][1]" % account_name,
-               driver=self.driver).click()
+        TableEntry(label=account_name).click_button(hint="Login as owner'")
         from pages.account_scope import AccountDashboard
         return AccountDashboard(self.driver, self.base_url)
 
@@ -131,8 +130,8 @@ class AccountEditPopup(Accounts):
     owner_email_field = Button(xpath="//input [@name='ownerEmail']")
     comments_field = Input(xpath="//textarea [@name='comments']")
     cost_centers_field = Dropdown(input_name="ccs")
-    create_button = Button(xpath="//span [text()='Create']//ancestor::a[last()]")
-    cancel_button = Button(xpath="//span [text()='Cancel']//ancestor::a[last()]")
+    create_button = Button(xpath="//span [text()='Create']/ancestor::a")
+    cancel_button = Button(xpath="//span [text()='Cancel']/ancestor::a")
 
     @property
     def loaded(self):

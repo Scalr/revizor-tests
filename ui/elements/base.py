@@ -326,6 +326,13 @@ class TableEntry(BaseElement):
         if 'x-grid-item-selected' in self._entry_property:
             self._click_entry_checkbox()
 
+    def click_button(self, hint=None, xpath=None):
+        """Click table entry button selected by button hint or xpath. Xpath must be relative path.
+        """
+        button_xpath = xpath or "./descendant::a [contains(@data-qtip, '%s')]" % hint
+        button = self.get_element().find_element_by_xpath(button_xpath)
+        button.click()
+
 
 class Filter(BaseElement):
     """Input field marked by text label. Default label Search
