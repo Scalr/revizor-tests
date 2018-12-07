@@ -21,6 +21,8 @@ TE_ID = "f95c6e105105"
 
 class TestAccounts(object):
 
+    test_account_name = "Selenium"
+
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium):
         self.driver = selenium
@@ -35,10 +37,17 @@ class TestAccounts(object):
     def test_create_account(self):
         accounts_page = self.admin_dashboard.go_to_accounts()
         account_edit_popup = accounts_page.new_account()
-        new_account_name = "Selenium"
-        account_edit_popup.name_field.write(new_account_name)
+        account_edit_popup.name_field.write(self.test_account_name)
         account_edit_popup.select_account_owner("AccountSuperAdmin")
         account_edit_popup.comments_field.write("Selenium test new account")
         account_edit_popup.cost_centers_field.select(option='Default cost centre', hide_options=True)
         account_edit_popup.create_button.click()
-        assert TableEntry(driver=accounts_page.driver, entry=new_account_name).visible()
+        table_entry = TableEntry(driver=accounts_page.driver, label=self.test_account_name)
+        assert table_entry.get_element().is_displayed()
+
+    def test_delete_account(self):
+        accounts_page = self.admin_dashboard.go_to_accounts()
+        table_entry = TableEntry(driver=accounts_page.driver, label=self.test_account_name)
+        table_entry.check()
+        accounts_page.delete_account_button.click()
+

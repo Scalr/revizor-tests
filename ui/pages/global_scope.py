@@ -8,7 +8,7 @@ from pypom import Page
 from pypom.exception import UsageError
 
 from elements import locators
-from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableEntry
+from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableEntry, Filter
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -101,6 +101,7 @@ class Accounts(AdminTopMenu):
     URL_TEMPLATE = '/#/admin/accounts'
     new_account_button = Button(text="New account")
     edit_account_button = Button(href="#/admin/accounts/1/edit")
+    delete_account_button = Button(xpath="//a [@data-qtip='Delete']")
 
     @wait_for_page_to_load
     def go_to_account(self, account_name=None):
@@ -140,18 +141,17 @@ class AccountEditPopup(Accounts):
     def select_account_owner(self, name, use_filter=False):
         self.owner_email_field.click()
         if use_filter:
-            filter_path = "(//div [text()='Search'])[position()=last()]"
-            Button(driver=self.driver, xpath=filter_path).click()
-            Input(driver=self.driver, xpath="//".join((filter_path, "following::input"))).write(name)
-        TableEntry(driver=self.driver, entry=name).select()
+            Filter().write(name)
+        TableEntry(driver=self.driver, label=name).select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
 
 class Users(AdminTopMenu):
-    """Users page from Account scope.
+    """Users page from Global scope.
     """
     URL_TEMPLATE = '/#/account/users'
     new_user_button = Button(text="New user")
+    user_filter = Filter()
     email_field = Input(name="email")
     save_button = Button(icon="save")
     admin_access_on = Button(text="On")

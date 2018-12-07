@@ -282,16 +282,67 @@ class Label(BaseElement):
 
 
 class TableEntry(BaseElement):
-    """Any text inside the table
+    """Any text label inside the table
     """
-    def _make_locator(self, entry=None, xpath=None):
-        if entry:
+    _element = None
+
+    def _make_locator(self, label=None, xpath=None):
+        if label:
             self.locator = locators.XpathLocator(
-                "//table [starts-with(@id, 'tableview')]//child::div [text()='%s']" % entry)
+                "//div [text()='%s']/ancestor::table[@class='x-grid-item']" % label)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
         else:
             raise ValueError('No locator policy was provided!')
 
+    def _click_entry_checkbox(self):
+        checkbox = self.get_element().find_element_by_xpath("./descendant::div [@class='x-grid-row-checker']")
+        if checkbox.is_displayed():
+            checkbox.click()
+
+    @property
+    def _entry_property(self):
+        return self.get_element().get_attribute('class').split(' ')
+
+    def get_element(self, show_hidden=False):
+        if not self._element:
+            self._element = super().get_element(show_hidden=show_hidden)
+        return self._element
+
     def select(self):
+        """Only highlight entry: make it active
+        """
         self.get_element().click()
+
+    def check(self):
+        """Select table entry: make it checkbox is checked
+        """
+        if 'x-grid-item-selected' not in self._entry_property:
+            self._click_entry_checkbox()
+
+    def uncheck(self):
+        """Deselect table entry: make it checkbox is unchecked
+        """
+        if 'x-grid-item-selected' in self._entry_property:
+            self._click_entry_checkbox()
+
+
+class Filter(BaseElement):
+    """Input field marked by text label. Default label Search
+    """
+
+    def _make_locator(self, label=None, xpath=None):
+        if not xpath:
+            label = label or 'Search'
+            xpath = "(//div [text()='%s'])[last()]/following::input[1]" % label
+        self.locator = locators.XpathLocator(xpath)
+
+    def write(self, text):
+        element = self.driver.find_element(self.locator)
+        actions = ActionChains(self.driver)
+        actions.move_to_element(element)
+        actions.click(element)
+        actions.send_keys(text)
+        actions.perform()
+
+
