@@ -134,6 +134,8 @@ class Teams(AccountTopMenu):
     team_name_field = Input(name="name")
     acl_combobox = Combobox(text="Default ACL")
     save_button = Button(icon="save")
+    add_members_button = Button(text="Add members")
+    select_members_button = Button(text="Select")
 
     @property
     def loaded(self):
@@ -144,8 +146,10 @@ class Teams(AccountTopMenu):
 
            :param str email: user email.
         """
-        xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::a[@data-qtip="Add to team"]' % email
-        return Button(xpath=xpath, driver=self.driver).click()
+        self.add_members_button.click()
+        xpath = '//*[contains(text(), "%s")]//ancestor::tr[@class="  x-grid-row"]//child::div[@class="x-grid-row-checker"]' % email
+        Button(xpath=xpath, driver=self.driver).click()
+        return self.select_members_button.click()
 
     def remove_user_from_team(self, email):
         """Removes specified User from currently selected Team.

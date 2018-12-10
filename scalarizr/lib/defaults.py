@@ -324,3 +324,11 @@ class Defaults(object):
             params.orchestration,
             farmrole.OrchestrationRule(event='HostInit', script='https://get.docker.com')
         )
+
+    @staticmethod
+    def set_long_variables(params: farmrole.FarmRoleParams):
+        params.global_variables.variables = [
+            *[farmrole.Variable(name='rev_long_var_%s' % i, value='a' * 4095) for i in range(6)],
+            farmrole.Variable(name='rev_very_long_var', value='a' * 8192),
+            farmrole.Variable(name='rev_nonascii_var', value='ревизор')
+        ]
