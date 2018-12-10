@@ -75,3 +75,10 @@ class LeftPopupMenu:
                 driver=self.driver).click()
         else:
             return item.click()
+
+
+class ConfirmPopup(object):
+    """Popup window opened to confirm delete element,
+    """
+    def __init__(self, driver):
+        self.driver = driver
