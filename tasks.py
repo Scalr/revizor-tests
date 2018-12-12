@@ -30,7 +30,7 @@ def grid(ctx, docs=False, port='4444'):
 
 
 @task
-def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode='', te_remove=''):
+def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode='', te_remove='', debug_mode=''):
     """Incrementally executes speicified selenium/pytest test cases with specified browsers.
 
        :param str testpath: path to specific pytest modules or folders with tests.
@@ -50,10 +50,11 @@ def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode
     processes = ' -n %s' % processes if processes else ''
     te_id = '--te-id %s' % te_id if te_id else ''
     te_remove = '--te-remove true' if te_remove else ''
+    debug_mode = '--log-cli-level %s' % debug_mode.upper() if debug_mode else ''
     for browser in browsers:
         driver = browser if localmode else 'Remote'
-        command = 'python3 -m pytest%s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s %s --disable-warnings' %\
-            (processes, driver, browser, testpath, te_id, te_remove) #FIX ME - Deals with using deprecated options in third-party libraries (mainly pluggy)
+        command = 'python3 -m pytest%s %s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s %s --disable-warnings' %\
+            (processes, debug_mode, driver, browser, testpath, te_id, te_remove) #FIX ME - Deals with using deprecated options in third-party libraries (mainly pluggy)
         print(command)
         ctx.run(command)
 
@@ -64,12 +65,12 @@ def seleniumdrivers(ctx):
     """
     if sys.platform == 'darwin':
         urls = [
-            'https://chromedriver.storage.googleapis.com/2.41/chromedriver_mac64.zip',
-            'https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-macos.tar.gz']
+            'https://chromedriver.storage.googleapis.com/2.44/chromedriver_mac64.zip',
+            'https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-macos.tar.gz']
     elif sys.platform == 'linux':
         urls = [
-            'https://chromedriver.storage.googleapis.com/2.41/chromedriver_linux64.zip',
-            'https://github.com/mozilla/geckodriver/releases/download/v0.18.0/geckodriver-v0.18.0-linux64.tar.gz']
+            'https://chromedriver.storage.googleapis.com/2.44/chromedriver_linux64.zip',
+            'https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-linux64.tar.gz']
     else:
         raise NotImplementedError('Your OS is not MacOS or Linux type. You need to install chromedriver and geckodriver manually.')
     for url in urls:
