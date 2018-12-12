@@ -27,7 +27,8 @@ class TestLifecycleWindows:
              'test_reboot_bootstrap',
              'test_reboot_script',
              'test_failed_script',
-             'test_eph_bootstrap')
+             'test_eph_bootstrap',
+             'test_scripting_gv_length')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
@@ -221,3 +222,25 @@ class TestLifecycleWindows:
         lifecycle.validate_vcpus_info(server)
         windows.validate_attached_disk_size(cloud, server, [('Z:\\', 'test_label', 4)])
         lifecycle.validate_scalarizr_version(server)
+
+    @pytest.mark.scripting
+    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    def test_scripting_gv_length(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Check agent sets long GV and script executes"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm, role_options=['long_variables'])
+        farm.launch()
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        servers['M1'] = server
+        lib_server.execute_script(context, farm, server, script_name='GV length')
+        for i in range(6):
+            lib_server.validate_last_script_result(context, cloud, server,
+                                                   name='GV length',
+                                                   log_contains='rev_long_var_%s 4095' % i)
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='GV length',
+                                               log_contains='rev_very_long_var 8192')
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='GV length',
+                                               log_contains='rev_nonascii_var 7')
