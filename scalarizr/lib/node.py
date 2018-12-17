@@ -104,12 +104,16 @@ class VerifyProcessWork:
 
 
 def reboot_scalarizr(cloud: Cloud, server: Server):
-    if CONF.feature.dist.is_systemd:
-        cmd = "systemctl restart scalarizr"
-    else:
-        cmd = "/etc/init.d/scalarizr restart"
     node = cloud.get_node(server)
-    node.run(cmd)
+
+    if CONF.feature.dist.is_windows:
+        node.run('Restart-Service Scalarizr -Force')
+    else:
+        if CONF.feature.dist.is_systemd:
+            cmd = "systemctl restart scalarizr"
+        else:
+            cmd = "/etc/init.d/scalarizr restart"
+        node.run(cmd)
     LOG.info('Scalarizr restart complete')
     time.sleep(15)
 
@@ -242,7 +246,7 @@ def run_sysprep(cloud: Cloud, node: ExtendedNode):
 
 def install_scalarizr_to_server(server: Server, cloud: Cloud,
                                 use_sysprep: bool = False,
-                                use_rv_to_branch: bool = True,
+                                use_rv_to_branch: bool = False,
                                 custom_branch: str = None) -> str:
     """
     Install scalarizr to linux or windows server from branch

@@ -5,6 +5,7 @@ import logging
 from distutils.version import LooseVersion
 
 import github
+import requests
 from libcloud.compute.base import NodeImage
 
 from revizor2.api import Server, IMPL
@@ -18,14 +19,18 @@ ORG = 'Scalr'
 SCALARIZR_REPO = 'int-scalarizr'
 GH = github.GitHub(access_token=CONF.credentials.github.access_token)
 
+
 def get_clean_image(cloud: Cloud) -> NodeImage:
     if CONF.feature.dist.is_windows or CONF.feature.dist.id == 'coreos':
         table = tables('images-clean')
         search_cond = dict(
             dist=CONF.feature.dist.id,
             platform=CONF.feature.platform.name)
-        image_id = table.filter(search_cond).first().keys()[0].encode('ascii', 'ignore')
-        image = list(filter(lambda x: x.id == str(image_id), cloud.list_images()))[0]
+        image_id = list(table.filter(search_cond).first().keys())[0]
+        image = list(filter(lambda x: x.id == str(image_id), cloud.list_images()))
+        if not image:
+            raise AssertionError(f'Image {image_id} not found in cloud {CONF.feature.platform.name}')
+        image = image[0]
     else:
         image = cloud.find_image()
     LOG.debug('Obtained clean image %s, Id: %s' % (image.name, image.id))
@@ -45,33 +50,21 @@ def assert_scalarizr_version(server: Server, cloud: Cloud, prev_version: str):
     installed_agent = installed_agent[0]
     assert LooseVersion(prev_version) != LooseVersion(installed_agent), \
         err_msg % (prev_version, installed_agent)
-    LOG.debug('Scalarizr was updated. Pre: %s, Inst: %s' %
-              (prev_version, installed_agent))
+    LOG.debug(f'Scalarizr was updated. Pre: {prev_version}, Installed: {installed_agent}')
 
 
-def updating_scalarizr_by_scalr_ui(server: Server):
-    for i in range(5):
-        try:
-            res = IMPL.server.update_scalarizr(server_id=server.id)
-            LOG.debug('Scalarizr update was fired: %s ' % res['successMessage'])
-            break
-        except Exception as e:
-            LOG.error('Scalarizr update status: {} '.format(e.message))
-            if 'errorMessage' in e.message and 'AlreadyInProgressError' in e.message:
-                LOG.warning('Scalarizr update process in progress')
-                break
-            time.sleep(24)
-    else:
-        raise Exception("Scalarizr update failed with error: {}".format(e))
+def start_scalarizr_update_via_ui(server: Server):
+    LOG.info('Update scalarizr via Scalr UI')
+    IMPL.server.update_scalarizr(server_id=server.id)
 
 
-def wait_updating_finish(server: Server, status: str):
+def wait_szrupd_status(server: Server, status: str):
     start_time = time.time()
     status = status.strip()
     LOG.info(f'Wait status "{status}" on update process')
     while int(time.time() - start_time) < 900:
         try:
-            result = server.upd_api.status(cached=True)
+            result = server.upd_api.status(cached=False)
             if result['state'].startswith(status):
                 LOG.info('Update process finished with waited status: {}'.format(result['state']))
                 return
@@ -117,7 +110,7 @@ def create_branch_copy(context: dict, branch: str = None, is_patched: bool = Fal
     base_sha = git.refs(f'heads/{branch}').get().object.sha
     # Create a new blob with the content of the file
     blob = git.blobs.post(
-        content=base64.b64encode(content),
+        content=base64.b64encode(content.encode()).decode(),
         encoding='base64')
     # Fetch the tree this base SHA belongs to
     base_commit = git.commits(base_sha).get()
@@ -152,7 +145,7 @@ def waiting_new_package(context: dict):
     for _ in range(90):
         res = GH.repos(ORG)(SCALARIZR_REPO).commits(context['build_commit_sha']).status.get()
         if res.statuses:
-            status = filter(lambda x: x['context'] == label_name, res.statuses)[0]
+            status = list(filter(lambda x: x['context'] == label_name, res.statuses))[0]
             LOG.debug(f'Patch commit build status: {status}')
             if status.state == 'success':
                 LOG.info(f'Drone status: {status.description}')

@@ -349,6 +349,7 @@ def wait_server_message(servers: tp.Union[Server, tp.List[Server]],
                                                                             [s.id for s in servers]))
 
 
+# TODO: Make farm optional
 def validate_server_message(cloud: Cloud, farm: Farm, msgtype: str, msg: str, server: Server = None,
                             failed: bool = False, unstored_message: bool = False, timeout: int = 1500):
     """Check scalr in/out message delivering"""

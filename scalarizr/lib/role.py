@@ -42,7 +42,7 @@ def get_storage_device_by_mnt_point(context: dict, farm: Farm, mnt_point: str, r
     return devices['devices'][device_config['id']]
 
 
-def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = False, has_cloudinit: bool = True) -> Role:
+def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = False, has_cloudinit: bool = True) -> dict:
     behaviors = behaviors or ['chef']
     if CONF.feature.dist.id == 'coreos':
         behaviors = ['base']
@@ -75,7 +75,7 @@ def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = F
     try:
         image_check_result = IMPL.image.check(**image_kwargs)
     except Exception as e:
-        if not ('Image has already been registered' in e.message):
+        if not ('Image has already been registered' in str(e)):
             raise
         image_registered = True
     is_scalarized = False if non_scalarized else True
@@ -104,19 +104,16 @@ def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = F
     return role
 
 
-#FIXME: Rename this
-def change_branch_in_role_for_system(branch: str = None, role_type: str = None):
+def change_branch_in_farm_role(farm_role: FarmRole, branch: str = None):
     """Change branch for selected role"""
     branch = branch or ''
-    role_type = role_type or ''
     if 'system' in branch:
         branch = CONF.feature.branch
     elif not branch.strip():
         branch = CONF.feature.to_branch
     else:
         branch = branch.strip()
-    LOG.info('Change branch to system for %s role' % role_type)
+    LOG.info(f'Change branch to {branch} for role {farm_role.name}')
     role_options = {farmrole.DevelopmentGroup.scalarizr_branch.name: branch,
                     farmrole.DevelopmentGroup.scalarizr_repo.name: CONF.feature.ci_repo}
-    role = get_role(role_type)
-    role.edit(options=role_options)
+    farm_role.edit(options=role_options)
