@@ -8,6 +8,8 @@ PYENV_PROFILE = '/etc/profile.d/pyenv.sh'
 PIP_VERSION = '10.0.1'
 PIP_TOOLS_VERSION = '1.9.0'
 PY_VERSIONS = ['3.6.5']
+CHROMEDRIVER_VERSION = '2.44'
+GECKODRIVER_VERSION = '0.23.0'
 
 
 @task
@@ -29,22 +31,17 @@ def grid(ctx, docs=False, port='4444'):
         ctx.run(grid_cmd)
 
 
-@task
+@task(help={
+    'testpath': "Path to specific pytest modules or folders with tests to run.",
+    'browsers': "List of browsers to run tests with.",
+    'processes': "Specify number of processes for parallel testing.",
+    'te-id': "Id of the specific TestEnv you want your tests to run on.",
+    'localmode': "Run tests on local machine using selenium drivers directly insted of docker containers.",
+    'te-remove': "If specified, TestEnv will be deleted at the end of test session, even if some tests will fail.",
+    'debug-mode': "Print logged messages of specified level as they appear during test run. Possible levels DEBUG, INFO, WARNING, ERROR. Default level INFO."
+})
 def webtests(ctx, testpath='', browsers='all', processes='', te_id='', localmode='', te_remove='', debug_mode=''):
     """Incrementally executes speicified selenium/pytest test cases with specified browsers.
-
-       :param str testpath: path to specific pytest modules or folders with tests.
-        Usage: '--testpath /vagrant/selenium/.../test.py'.
-       :param str browsers: list of browsers on which the test should be executed.
-        Usage: '--browsers firefox,chrome,...'.
-       :param str processes: number of processes for parallel testing.
-        Usage: '--processes 3'.
-       :param str te_id: specify id for already created TestEnv.
-        Usage: '--te-id <id>'.
-       :param localmode str: for test runs on local machine.
-        Usage '--localmode true'.
-       :param te_remove str: always destroy created TestEnv.
-        Usage '--te-remove true'.
     """
     browsers = ['firefox', 'chrome'] if browsers == 'all' else browsers.split(',')
     processes = ' -n %s' % processes if processes else ''
@@ -65,12 +62,12 @@ def seleniumdrivers(ctx):
     """
     if sys.platform == 'darwin':
         urls = [
-            'https://chromedriver.storage.googleapis.com/2.44/chromedriver_mac64.zip',
-            'https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-macos.tar.gz']
+            'https://chromedriver.storage.googleapis.com/%s/chromedriver_mac64.zip' % CHROMEDRIVER_VERSION,
+            'https://github.com/mozilla/geckodriver/releases/download/%s/geckodriver-v%s-macos.tar.gz' % GECKODRIVER_VERSION]
     elif sys.platform == 'linux':
         urls = [
-            'https://chromedriver.storage.googleapis.com/2.44/chromedriver_linux64.zip',
-            'https://github.com/mozilla/geckodriver/releases/download/v0.23.0/geckodriver-v0.23.0-linux64.tar.gz']
+            'https://chromedriver.storage.googleapis.com/%s/chromedriver_linux64.zip' % CHROMEDRIVER_VERSION,
+            'https://github.com/mozilla/geckodriver/releases/download/v%s/geckodriver-v%s-linux64.tar.gz' % GECKODRIVER_VERSION]
     else:
         raise NotImplementedError('Your OS is not MacOS or Linux type. You need to install chromedriver and geckodriver manually.')
     for url in urls:

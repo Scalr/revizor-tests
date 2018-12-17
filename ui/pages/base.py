@@ -41,7 +41,7 @@ def wait_for_page_to_load(func, *args, **kwargs):
         page = func(*args, **kwargs)
         mask = locators.ClassLocator("x-mask")
         wait = WebDriverWait(page.driver, 30)
-        LOG.debug("Waiting for x-mask to drop")
+        LOG.debug("Waiting for loading element with class='x-mask' to drop")
         try:
             wait.until(invisibility_of_all_elements_located(mask))
             if page.loaded:
