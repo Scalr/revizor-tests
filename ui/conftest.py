@@ -19,6 +19,9 @@ def pytest_addoption(parser):
     group.addoption(
         "--te-remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
     )
+    group.addoption(
+        "--debug-mode", action="store", default='INFO', help="Show log messages as they appear. Set message level (DEBUG, INFO, WARNING and so on)."
+    )
 
 
 def pytest_runtest_makereport(item, call):
