@@ -16,6 +16,7 @@ LOG = logging.getLogger(__name__)
 @step('I change branch(?: to (.+))? for(?: (\w+))? role')
 def change_branch_in_role_for_system(step, branch=None, role_type=None):
     """Change branch for selected role"""
+    # NOTE: migrated
     branch = branch or ''
     role_type = role_type or ''
     if 'system' in branch:

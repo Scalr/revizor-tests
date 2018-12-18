@@ -40,8 +40,10 @@ def validate_scalarizr_version(server: Server, branch: str = None):
         branch = CONF.feature.branch
     elif branch == 'role':
         branch = CONF.feature.to_branch
+    LOG.info(f'Check scalarizr version is last in server {server.id} from branch {branch}')
     last_version = lib_agent.get_last_version(server.role.dist, branch)
     installed_version = lib_agent.get_installed_version(server)
+    LOG.debug(f'Installed szr: {installed_version} last version: {last_version}')
     assert installed_version == last_version, \
         'Server does not have latest build of scalarizr package. ' \
         f'Actual: {installed_version}, expected: {last_version}'
