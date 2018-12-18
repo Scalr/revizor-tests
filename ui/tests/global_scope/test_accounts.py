@@ -50,4 +50,5 @@ class TestAccounts(object):
         table_entry = TableEntry(driver=accounts_page.driver, label=self.test_account_name)
         table_entry.check()
         accounts_page.delete_account_button.click()
+        accounts_page.confirm_panel.delete()
 

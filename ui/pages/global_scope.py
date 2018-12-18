@@ -9,6 +9,7 @@ from pypom.exception import UsageError
 
 from elements import locators
 from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableEntry, Filter
+from elements.page_objects import ConfirmPanel
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -98,6 +99,8 @@ class AdminDashboard(AdminTopMenu):
 class Accounts(AdminTopMenu):
     """Accounts page from Global Scope.
     """
+    _confirm_panel = None
+
     URL_TEMPLATE = '/#/admin/accounts'
     new_account_button = Button(text="New account")
     edit_account_button = Button(href="#/admin/accounts/1/edit")
@@ -120,6 +123,12 @@ class Accounts(AdminTopMenu):
     def new_account(self):
         self.new_account_button.click()
         return AccountEditPopup(self.driver)
+
+    @property
+    def confirm_panel(self):
+        if not self._confirm_panel:
+            self._confirm_panel = ConfirmPanel(driver=self.driver)
+        return self._confirm_panel
 
 
 class AccountEditPopup(Accounts):

@@ -2,6 +2,7 @@ import time
 import logging
 
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.common.exceptions import NoSuchAttributeException
 
 from elements import locators
 from elements.base import Button
@@ -82,8 +83,52 @@ class LeftPopupMenu:
             return item.click()
 
 
-class ConfirmPopup(object):
-    """Popup window opened to confirm delete element,
+class ConfirmPanel(object):
+    """Popup window used to confirm actions.
+       Delete objects, reboot, launch or terminate servers, farms.
+       Usage example:
+       confirm_panel = ConfirmPanel(driver)
+       confirm_panel.cancel()
+       confirm_panel.delete()
+       confirm_panel.launch()
+       confirm_panel.terminate.farm()
+       confirm_panel.terminate.server()
+       confirm_panel.reboot()
     """
+
+    _confirm_types = dict(
+        delete='Delete',
+        cancel='Cancel',
+        launch='Launch',
+        terminate={
+            'farm': 'OK',
+            'server': 'Terminate'
+        },
+        reboot='Reboot',
+    )
+
     def __init__(self, driver):
         self.driver = driver
+
+    def __getattr__(self, attr):
+        self.__dict__.setdefault('attrs', []).append(attr)
+        return self
+
+    def __call__(self, *args, **kwargs):
+        try:
+            confirm_types = self._confirm_types.copy()
+            for attr in self.__dict__['attrs']:
+                if isinstance(confirm_types.get(attr), str):
+                    self._click(confirm_types[attr])
+                    return
+                confirm_types = confirm_types.pop(attr, dict())
+            raise NoSuchAttributeException(
+                f"Can not be called: \"{'.'.join(self.__dict__['attrs'])}()\", element attributes does not defined.")
+        finally:
+            del self.__dict__['attrs']
+
+    def _click(self, label):
+        """Confirm or cancel action
+        """
+        xpath = f"(//div [contains(@class, 'x-panel-confirm')])[1]//following::span [text()='{label}']"
+        self.driver.find_element_by_xpath(xpath).click()

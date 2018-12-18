@@ -308,8 +308,7 @@ class TableEntry(BaseElement):
 
     def _make_locator(self, label=None, xpath=None):
         if label:
-            self.locator = locators.XpathLocator(
-                "//div [text()='%s']/ancestor::table[@class='x-grid-item']" % label)
+            self.locator = locators.XpathLocator(f"//div [text()='{label}']/ancestor::table[@class='x-grid-item']")
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
         else:
@@ -349,7 +348,7 @@ class TableEntry(BaseElement):
     def click_button(self, hint=None, xpath=None):
         """Click table entry button selected by button hint or xpath. Xpath must be relative path.
         """
-        button_xpath = xpath or "./descendant::a [contains(@data-qtip, '%s')]" % hint
+        button_xpath = xpath or f"./descendant::a [contains(@data-qtip, '{hint}')]"
         button = self.get_element().find_element_by_xpath(button_xpath)
         button.click()
 
@@ -361,7 +360,7 @@ class Filter(BaseElement):
     def _make_locator(self, label=None, xpath=None):
         if not xpath:
             label = label or 'Search'
-            xpath = "(//div [text()='%s'])[last()]/following::input[1]" % label
+            xpath = f"(//div [text()='{label}'])[last()]/following::input[1]"
         self.locator = locators.XpathLocator(xpath)
 
     def write(self, text):
@@ -371,5 +370,4 @@ class Filter(BaseElement):
         actions.click(element)
         actions.send_keys(text)
         actions.perform()
-
 

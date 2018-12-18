@@ -1,5 +1,3 @@
-from selenium.common.exceptions import NoSuchElementException
-
 from elements.base import Button, Menu
 from elements.page_objects import LeftPopupMenu
 
