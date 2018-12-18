@@ -234,7 +234,7 @@ def run_sysprep(cloud: Cloud, node: ExtendedNode):
     # Check that instance has stopped after sysprep
     end_time = time.time() + 900
     while time.time() <= end_time:
-        cloud_node = (filter(lambda n: n.uuid == node.uuid, cloud.list_nodes()) or [''])[0]
+        cloud_node = [n for n in cloud.list_nodes() if n.uuid == node.uuid][0]
         LOG.debug('Obtained node after sysprep running: %s' % cloud_node)
         LOG.debug('Obtained node status after sysprep running: %s' % cloud_node.state)
         if cloud_node.state == NodeState.STOPPED:

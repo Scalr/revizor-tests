@@ -1,4 +1,5 @@
 import logging
+import typing as tp
 from datetime import datetime
 
 from libcloud.compute.base import NodeImage
@@ -42,7 +43,10 @@ def get_storage_device_by_mnt_point(context: dict, farm: Farm, mnt_point: str, r
     return devices['devices'][device_config['id']]
 
 
-def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = False, has_cloudinit: bool = True) -> dict:
+def create_role(image: NodeImage,
+                behaviors: tp.List[str] = None,
+                non_scalarized: bool = False,
+                has_cloudinit: bool = True) -> dict:
     behaviors = behaviors or ['chef']
     if CONF.feature.dist.id == 'coreos':
         behaviors = ['base']
@@ -78,14 +82,13 @@ def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = F
         if not ('Image has already been registered' in str(e)):
             raise
         image_registered = True
-    is_scalarized = False if non_scalarized else True
     if not image_registered:
         # Register image to the Scalr
         LOG.debug('Register image %s to the Scalr' % name)
         image_kwargs.update(dict(
             software=behaviors,
             name=name,
-            is_scalarized=is_scalarized,
+            is_scalarized=not non_scalarized,
             has_cloudinit=has_cloudinit,
             image_volumes=image_check_result.get('volumes', None)))
         image = IMPL.image.create(**image_kwargs)
@@ -93,7 +96,7 @@ def create_role(image: NodeImage, behaviors: [] = None, non_scalarized: bool = F
         image = IMPL.image.get(image_id=image_id)
     role_kwargs = dict(
         name=name[:50].strip('-'),
-        is_scalarized=int(is_scalarized or has_cloudinit),
+        is_scalarized=int(not non_scalarized or has_cloudinit),
         behaviors=behaviors,
         images=[dict(
             platform=platform.name,

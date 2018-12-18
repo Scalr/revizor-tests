@@ -793,6 +793,7 @@ def creating_role(step, image_type=None, non_scalarized=None):
 
 
 def run_sysprep(node):
+    # NOTE: migrated
     cmd = dict(
         gce='gcesysprep',
         ec2=world.PS_RUN_AS.format(

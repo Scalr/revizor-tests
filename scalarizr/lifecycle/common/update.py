@@ -28,8 +28,7 @@ def get_clean_image(cloud: Cloud) -> NodeImage:
             platform=CONF.feature.platform.name)
         image_id = list(table.filter(search_cond).first().keys())[0]
         image = list(filter(lambda x: x.id == str(image_id), cloud.list_images()))
-        if not image:
-            raise AssertionError(f'Image {image_id} not found in cloud {CONF.feature.platform.name}')
+        assert image, f'Image {image_id} not found in cloud {CONF.feature.platform.name}'
         image = image[0]
     else:
         image = cloud.find_image()
