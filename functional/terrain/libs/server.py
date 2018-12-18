@@ -135,7 +135,7 @@ def verify_scalarizr_log(node, log_type='debug', windows=False, server=None):
         else:
             log_out = (node.run('grep -n "\- ERROR \|\- WARNING \|Traceback" /var/log/scalarizr_%s.log' % log_type)).std_out
             LOG.debug('Grep result: %s' % log_out)
-    except BaseException, e:
+    except BaseException as e:
         LOG.error('Can\'t connect to server: %s' % e)
         LOG.error(traceback.format_exc())
         return
@@ -656,7 +656,7 @@ def check_index_page(node, proto, revert, domain_name, name):
         try:
             resp = requests.get(url, timeout=30, verify=False)
             break
-        except Exception, e:
+        except Exception as e:
             LOG.warning("Error in openning page '%s': %s" % (url, e))
             time.sleep(15)
     else:
@@ -818,7 +818,7 @@ def is_log_rotate(server, process, rights, group=None):
                                                                                         log_file_atr['group'])})
                     if logrotate_param['compress'] and not has_gz:
                         raise AssertionError('Logrotate config file has attribute "compress", but not gz find.')
-                except IndexError, e:
+                except IndexError as e:
                     raise Exception('Error occurred at get list of log files: %s' % e)
             else:
                 raise AssertionError("Can't logrotate to force the rotation. Error message:%s" % logrotate_conf.std_err)

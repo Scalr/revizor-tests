@@ -5,15 +5,17 @@ from collections import abc
 import requests
 from libcloud.compute.types import NodeState
 
-import scalarizr.lib.server as lib_server
 from revizor2 import CONF
+from revizor2.utils import wait_until
 from revizor2.api import Cloud, Server
-from revizor2.cloud.node import ExtendedNode
+from revizor2.cloud.node import ExtendedNode, Response
 from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Dist
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.helpers.parsers import get_repo_url, parser_for_os_family
-from revizor2.utils import wait_until
+
+import scalarizr.lib.server as lib_server
 from scalarizr.lib.common import run_only_if
+
 
 LOG = logging.getLogger(__name__)
 
@@ -125,12 +127,12 @@ def validate_scalarizr_log_contains(cloud: Cloud, server: Server, message: str):
                error_text='Not see %s in debug log' % message)
 
 
-def execute_command(cloud: Cloud, server: Server, command: str):
+def execute_command(cloud: Cloud, server: Server, command: str) -> Response:
     if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
         command = '/opt/bin/' + command
     node = cloud.get_node(server)
     LOG.info('Execute command on server: %s' % command)
-    node.run(command)
+    return node.run(command)
 
 
 def get_scalaraizr_latest_version(branch: str) -> str:
