@@ -33,7 +33,7 @@ class BaseElement:
 
     def list_elements(self, show_hidden=False):
         LOG.debug("Locate element/elements %s" % str(self.locator))
-        for _ in range(5):
+        for _ in range(2):
             try:
                 if show_hidden:
                     elements = self.driver.find_elements(*self.locator)
@@ -44,7 +44,7 @@ class BaseElement:
                     return elements
             except StaleElementReferenceException:
                 continue
-            time.sleep(6)
+            time.sleep(2)
         raise NoSuchElementException(self.locator[1])
 
     def mouse_over(self):
@@ -73,6 +73,8 @@ class BaseElement:
         try:
             if value:
                 wait.until(condition(self.locator, value))
+            elif condition == EC.staleness_of:
+                wait.until(condition(self.get_element()))
             else:
                 wait.until(condition(self.locator))
             return True
@@ -80,7 +82,7 @@ class BaseElement:
             return False
 
     def scroll_into_view(self):
-        LOG.debug('Ateempt to scroll element %s into view.' % str(self.locator))
+        LOG.debug('Attempt to scroll element %s into view.' % str(self.locator))
         if self.hidden():
             self.driver.execute_script(
                 "arguments[0].scrollIntoView();", self.driver.find_elements(*self.locator)[0])
@@ -110,7 +112,6 @@ class Button(BaseElement):
 
     def click(self):
         LOG.debug('Click button %s' % str(self.locator))
-        self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
         self.get_element().click()
 
 
