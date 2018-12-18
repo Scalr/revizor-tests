@@ -49,8 +49,8 @@ def pytest_addoption(parser):
                     help='Scalr branch to instantiate test environment from.')
     group.addoption('--branch',
                     action='store',
-                    default=None,
-                    help='Scalarizr branch')
+                    default='master',
+                    help='Scalarizr branch for farmrole.')
     group.addoption('--to-branch',
                     action='store',
                     default=None,
@@ -76,10 +76,6 @@ def pytest_addoption(parser):
                     action='store_true',
                     default=False,
                     help='Destroy TestEnv even when some tests fail.')
-    group.addoption('--branch',
-                    action='store',
-                    default='master',
-                    help='Scalarizr branch for farmrole.')
 
 
 def pytest_sessionstart(session: Session):
