@@ -6,12 +6,9 @@ Created on 01.11.18
 
 import pytest
 
-from selenium.common.exceptions import NoSuchElementException
-
 from revizor2.conf import CONF
 from pages.login import LoginPage
-from elements import locators
-from elements.base import Label, Button, TableEntry
+from elements.base import TableRaw
 
 USER = CONF.credentials.testenv.accounts.admin['username']
 PASSWORD = CONF.credentials.testenv.accounts.admin['password']
@@ -42,13 +39,13 @@ class TestAccounts(object):
         account_edit_popup.comments_field.write("Selenium test new account")
         account_edit_popup.cost_centers_field.select(option='Default cost centre', hide_options=True)
         account_edit_popup.create_button.click()
-        table_entry = TableEntry(driver=accounts_page.driver, label=self.test_account_name)
+        table_entry = TableRaw(driver=accounts_page.driver, label=self.test_account_name)
         assert table_entry.get_element().is_displayed()
 
     def test_delete_account(self):
         accounts_page = self.admin_dashboard.go_to_accounts()
-        table_entry = TableEntry(driver=accounts_page.driver, label=self.test_account_name)
-        table_entry.check()
-        accounts_page.delete_account_button.click()
-        accounts_page.confirm_panel.delete()
+        table_raw = TableRaw(driver=accounts_page.driver, label=self.test_account_name)
+        table_raw.check()
+        confirm_panel = accounts_page.delete_account_button.click()
+        confirm_panel.click_by_label('Delete')
 

@@ -8,8 +8,8 @@ from pypom import Page
 from pypom.exception import UsageError
 
 from elements import locators
-from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableEntry, Filter
-from elements.page_objects import ConfirmPanel
+from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableRaw, Filter
+from elements.page_objects import ConfirmButton
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -104,7 +104,7 @@ class Accounts(AdminTopMenu):
     URL_TEMPLATE = '/#/admin/accounts'
     new_account_button = Button(text="New account")
     edit_account_button = Button(href="#/admin/accounts/1/edit")
-    delete_account_button = Button(xpath="//a [@data-qtip='Delete'][contains(@class, 'x-btn-red')]")
+    delete_account_button = ConfirmButton(xpath="//a [@data-qtip='Delete'][contains(@class, 'x-btn-red')]")
 
     @wait_for_page_to_load
     def go_to_account(self, account_name=None):
@@ -112,7 +112,7 @@ class Accounts(AdminTopMenu):
            Returns AccountDashboard page object.
         """
         account_name = account_name or "Main account"
-        TableEntry(label=account_name).click_button(hint="Login as owner'")
+        TableRaw(label=account_name).click_button(hint="Login as owner'")
         from pages.account_scope import AccountDashboard
         return AccountDashboard(self.driver, self.base_url)
 
@@ -123,12 +123,6 @@ class Accounts(AdminTopMenu):
     def new_account(self):
         self.new_account_button.click()
         return AccountEditPopup(self.driver)
-
-    @property
-    def confirm_panel(self):
-        if not self._confirm_panel:
-            self._confirm_panel = ConfirmPanel(driver=self.driver)
-        return self._confirm_panel
 
 
 class AccountEditPopup(Accounts):
@@ -150,7 +144,7 @@ class AccountEditPopup(Accounts):
         self.owner_email_field.click()
         if use_filter:
             Filter().write(name)
-        TableEntry(driver=self.driver, label=name).select()
+        TableRaw(driver=self.driver, label=name).select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
 

@@ -84,51 +84,32 @@ class LeftPopupMenu:
 
 
 class ConfirmPanel(object):
-    """Popup window used to confirm actions.
-       Delete objects, reboot, launch or terminate servers, farms.
-       Usage example:
-       confirm_panel = ConfirmPanel(driver)
-       confirm_panel.cancel()
-       confirm_panel.delete()
-       confirm_panel.launch()
-       confirm_panel.terminate.farm()
-       confirm_panel.terminate.server()
-       confirm_panel.reboot()
-    """
 
-    _confirm_types = dict(
-        delete='Delete',
-        cancel='Cancel',
-        launch='Launch',
-        terminate={
-            'farm': 'OK',
-            'server': 'Terminate'
-        },
-        reboot='Reboot',
-    )
+    _element = None
 
     def __init__(self, driver):
         self.driver = driver
 
-    def __getattr__(self, attr):
-        self.__dict__.setdefault('attrs', []).append(attr)
-        return self
+    @property
+    def _panel(self):
+        if not self._element:
+            for element in self.driver.find_elements_by_xpath("//div [contains(@class, 'x-panel-confirm')]"):
+                if 'x-panel-confirm' in element.get_attribute('class').split():
+                    self._element = element
+        return self._element
 
-    def __call__(self, *args, **kwargs):
-        try:
-            confirm_types = self._confirm_types.copy()
-            for attr in self.__dict__['attrs']:
-                if isinstance(confirm_types.get(attr), str):
-                    self._click(confirm_types[attr])
-                    return
-                confirm_types = confirm_types.pop(attr, dict())
-            raise NoSuchAttributeException(
-                f"Can not be called: \"{'.'.join(self.__dict__['attrs'])}()\", element attributes does not defined.")
-        finally:
-            del self.__dict__['attrs']
+    def click_by_label(self, label):
+        element = self._panel.find_element_by_xpath(f"./descendant::* [text()='{label}']")
+        element.click()
 
-    def _click(self, label):
-        """Confirm or cancel action
-        """
-        xpath = f"(//div [contains(@class, 'x-panel-confirm')])[1]//following::span [text()='{label}']"
-        self.driver.find_element_by_xpath(xpath).click()
+
+class ConfirmButton(Button):
+    """Implements the element click on which requires confirmation of actions. Delete object, terminate farm, servers etc...
+    """
+    def click(self):
+        LOG.debug(f'Click button  with confirmed action: {str(self.locator)}')
+        self.get_element().click()
+        return ConfirmPanel(driver=self.driver)
+
+
+

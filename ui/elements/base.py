@@ -302,7 +302,7 @@ class Label(BaseElement):
             raise ValueError('No locator policy was provided!')
 
 
-class TableEntry(BaseElement):
+class TableRaw(BaseElement):
     """Any text label inside the table
     """
     _element = None
