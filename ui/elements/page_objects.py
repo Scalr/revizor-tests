@@ -93,9 +93,8 @@ class ConfirmPanel(object):
     @property
     def _panel(self):
         if not self._element:
-            for element in self.driver.find_elements_by_xpath("//div [contains(@class, 'x-panel-confirm')]"):
-                if 'x-panel-confirm' in element.get_attribute('class').split():
-                    self._element = element
+            self._element = self.driver.find_element_by_xpath(
+                "//body/div [contains(@class, 'x-panel-confirm')][contains(@id, 'panel')]")
         return self._element
 
     def click_by_label(self, label):

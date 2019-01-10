@@ -20,6 +20,9 @@ class LoginPage(BasePage):
         xpath='//span [contains(text(), "Update my password")]')
     password_reset_alert = Label(text="Password has been reset. Please log in.")
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
     @property
     def loaded(self):
         return self.loading_blocker.wait_until_condition(EC.staleness_of)

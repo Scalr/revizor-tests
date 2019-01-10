@@ -302,7 +302,7 @@ class Label(BaseElement):
             raise ValueError('No locator policy was provided!')
 
 
-class TableRaw(BaseElement):
+class TableRow(BaseElement):
     """Any text label inside the table
     """
     _element = None
@@ -322,11 +322,11 @@ class TableRaw(BaseElement):
 
     @property
     def _entry_property(self):
-        return self.get_element().get_attribute('class').split(' ')
+        return self.get_element().get_attribute('class').split()
 
-    def get_element(self, show_hidden=False):
-        if not self._element:
-            self._element = super().get_element(show_hidden=show_hidden)
+    def get_element(self, refresh=False):
+        if not self._element or refresh:
+            self._element = self.driver.find_element(*self.locator)
         return self._element
 
     def select(self):
@@ -352,6 +352,14 @@ class TableRaw(BaseElement):
         button_xpath = xpath or f"./descendant::a [contains(@data-qtip, '{hint}')]"
         button = self.get_element().find_element_by_xpath(button_xpath)
         button.click()
+
+    @property
+    def exists(self):
+        try:
+            if self.get_element(refresh=True):
+                return True
+        except NoSuchElementException:
+            return False
 
 
 class Filter(BaseElement):

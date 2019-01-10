@@ -8,7 +8,7 @@ from pypom import Page
 from pypom.exception import UsageError
 
 from elements import locators
-from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableRaw, Filter
+from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableRow, Filter
 from elements.page_objects import ConfirmButton
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
@@ -112,7 +112,7 @@ class Accounts(AdminTopMenu):
            Returns AccountDashboard page object.
         """
         account_name = account_name or "Main account"
-        TableRaw(label=account_name).click_button(hint="Login as owner'")
+        TableRow(label=account_name).click_button(hint="Login as owner'")
         from pages.account_scope import AccountDashboard
         return AccountDashboard(self.driver, self.base_url)
 
@@ -144,7 +144,7 @@ class AccountEditPopup(Accounts):
         self.owner_email_field.click()
         if use_filter:
             Filter().write(name)
-        TableRaw(driver=self.driver, label=name).select()
+        TableRow(driver=self.driver, label=name).select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
 

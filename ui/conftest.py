@@ -12,7 +12,7 @@ from revizor2.fixtures import resources
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup("docker controller", "fatmouse", after="general")
+    group = parser.getgroup("revizor selenium", after="general")
     group.addoption(
         "--te-id", action="store", default=None, help="Use already created TestEnv."
     )
@@ -21,6 +21,10 @@ def pytest_addoption(parser):
     )
     group.addoption(
         "--debug-mode", action="store", default='INFO', help="Show log messages as they appear. Set message level (DEBUG, INFO, WARNING and so on)."
+    )
+    group.addoption(
+        "--page-load-timeout", dest="load_timeout", action="store",
+        help="Seconds to wait page load", default=30, type=int
     )
 
 
@@ -69,3 +73,4 @@ def mock_ssmtp(request):
         ssmtp_script.fp.name,
         '/opt/scalr-server/libexec/mail/ssmtp')
     ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
+
