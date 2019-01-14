@@ -324,8 +324,8 @@ class TableRow(BaseElement):
     def _entry_property(self):
         return self.get_element().get_attribute('class').split()
 
-    def get_element(self, refresh=False):
-        if not self._element or refresh:
+    def get_element(self, reload=False):
+        if not self._element or reload:
             self._element = self.driver.find_element(*self.locator)
         return self._element
 
@@ -356,7 +356,7 @@ class TableRow(BaseElement):
     @property
     def exists(self):
         try:
-            if self.get_element(refresh=True):
+            if self.get_element():
                 return True
         except NoSuchElementException:
             return False

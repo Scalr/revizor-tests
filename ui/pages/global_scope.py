@@ -99,11 +99,8 @@ class AdminDashboard(AdminTopMenu):
 class Accounts(AdminTopMenu):
     """Accounts page from Global Scope.
     """
-    _confirm_panel = None
-
     URL_TEMPLATE = '/#/admin/accounts'
     new_account_button = Button(text="New account")
-    edit_account_button = Button(href="#/admin/accounts/1/edit")
     delete_account_button = ConfirmButton(xpath="//a [@data-qtip='Delete'][contains(@class, 'x-btn-red')]")
 
     @wait_for_page_to_load
@@ -124,6 +121,11 @@ class Accounts(AdminTopMenu):
         self.new_account_button.click()
         return AccountEditPopup(self.driver)
 
+    def edit_account(self, label):
+        table_row = TableRow(driver=self.driver, label=label)
+        table_row.click_button(hint='Edit')
+        return AccountEditPopup(self.driver)
+
 
 class AccountEditPopup(Accounts):
     """Implements New Account popup window elements
@@ -134,6 +136,7 @@ class AccountEditPopup(Accounts):
     comments_field = Input(xpath="//textarea [@name='comments']")
     cost_centers_field = Dropdown(input_name="ccs")
     create_button = Button(xpath="//span [text()='Create']/ancestor::a")
+    save_button = Button(xpath="//span [text()='Save']/ancestor::a")
     cancel_button = Button(xpath="//span [text()='Cancel']/ancestor::a")
 
     @property
@@ -151,15 +154,12 @@ class AccountEditPopup(Accounts):
 class Users(AdminTopMenu):
     """Users page from Global scope.
     """
-    URL_TEMPLATE = '/#/account/users'
-    new_user_button = Button(text="New user")
+    URL_TEMPLATE = '/#/admin/users'
+    new_user_button = Button(text="New User")
     user_filter = Filter()
-    email_field = Input(name="email")
-    save_button = Button(icon="save")
-    admin_access_on = Button(text="On")
-    admin_access_off = Button(text="Off")
-    allow_to_manage_envs_checkbox = Checkbox(
-        text="Allow to manage environments")
+    activate_user_button = ConfirmButton(xpath="//a [@data-qtip='Activate selected users'][contains(@class, 'x-btn')]")
+    suspend_user_button = ConfirmButton(xpath="//a [@data-qtip='Suspend selected users'][contains(@class, 'x-btn')]")
+    delete_user_button = ConfirmButton(xpath="//a [@data-qtip='Delete selected users'][contains(@class, 'x-btn-red')]")
 
     @property
     def loaded(self):

@@ -14,10 +14,7 @@ from revizor2.fixtures import resources
 def pytest_addoption(parser):
     group = parser.getgroup("revizor selenium", after="general")
     group.addoption(
-        "--te-id", action="store", default=None, help="Use already created TestEnv."
-    )
-    group.addoption(
-        "--te-remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
+        "--te-remove", dest="te_remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
     )
     group.addoption(
         "--debug-mode", action="store", default='INFO', help="Show log messages as they appear. Set message level (DEBUG, INFO, WARNING and so on)."
@@ -25,6 +22,10 @@ def pytest_addoption(parser):
     group.addoption(
         "--page-load-timeout", dest="load_timeout", action="store",
         help="Seconds to wait page load", default=30, type=int
+    )
+    group.addoption(
+        "--te-id", "--test-environment-id", dest="te_id",
+        action="store", help="Scalr test environment id to use existing env", default=None
     )
 
 
@@ -41,8 +42,8 @@ def testenv(request):
        Destroys container after all tests in TestClass were executed,
        unless some of the tests failed.
     """
-    te_id = request.config.getoption("--te-id")
-    te_remove = request.config.getoption("--te-remove")
+    te_id = request.config.getoption("te_id")
+    te_remove = request.config.getoption("te_remove")
     if te_id:
         container = TestEnv(te_id)
     else:
