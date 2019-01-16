@@ -4,7 +4,7 @@ import time
 import typing as tp
 
 from revizor2 import CONF
-from revizor2.api import Farm, IMPL
+from revizor2.api import Farm, IMPL, Role, FarmRole
 from revizor2.consts import BEHAVIORS_ALIASES, DATABASE_BEHAVIORS, Dist
 from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
@@ -36,16 +36,20 @@ def add_role_to_farm(context: dict,
                      farm: Farm,
                      behavior: str = None,
                      dist: str = None,
+                     role: Role = None,
                      role_name: str = None,
                      role_options: tp.List[str] = None,
-                     alias: str = None):
+                     alias: str = None) -> FarmRole:
     behavior = (behavior or CONF.feature.behavior).strip()
     role_name = (role_name or '').strip()
-    role_id = CONF.feature.role_id or context.get(f'{role_name}_id', None)
+    if role:
+        role_id = role.id  #FIXME: Use Role object below
+    else:
+        role_id = CONF.feature.role_id or context.get(f'{role_name}_id', None)
     if role_options:
         LOG.debug(f'Additional role options: {role_options}')
     if role_id:
-        if not role_id.isdigit():
+        if not isinstance(role_id, int) and not role_id.isdigit():
             raise AssertionError('Role environment variable can\'t be only in digit format')
         LOG.info(f'Get role by id: {role_id}')
         role = IMPL.role.get(role_id)
@@ -77,6 +81,7 @@ def add_role_to_farm(context: dict,
     LOG.debug(f'Save role object with name {added_role[0].alias}')
     context[f'{added_role[0].alias}_role'] = added_role[0]
     context[f'role_params_{added_role[0].id}'] = role_params
+    return added_role[0]
 
 
 def get_role_by_behavior(behavior, dist: str = None) -> dict:
