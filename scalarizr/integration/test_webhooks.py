@@ -41,7 +41,7 @@ class TestWebhooks:
     def test_webhooks_without_ssl_verify(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv, webhooks=None, expected_results=None):
         server = servers.get('F1', None)
         if not server:
-            lib_farm.add_role_to_farm(context, farm)
+            lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
             farm.launch()
             server = lib_server.wait_status(
                 context, cloud, farm, status=ServerStatus.RUNNING)
