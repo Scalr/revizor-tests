@@ -23,10 +23,9 @@ def assert_check_http_get_answer(server, proto='http', revert=False):
             '%s://%s' % (proto, server.public_ip), timeout=15, verify=verify)
         msg = resp.text
     except (HTTPError, ConnectionError, SSLError) as e:
-        raise Exception(dir(e))
         if not revert:
-            LOG.error('Apache error: %s' % e.text)
-            raise AssertionError('Apache error: %s' % e.message)
+            LOG.error('Apache error: %s' % e)
+            raise AssertionError('Apache error: %s' % e)
         else:
             msg = None
 
