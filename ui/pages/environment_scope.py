@@ -38,6 +38,15 @@ class EnvironmentTopMenu(CommonTopMenu):
         Button(href="#/images", driver=self.driver).click()
         return Images(self.driver, self.base_url)
 
+    @wait_for_page_to_load
+    def go_to_roles(self):
+        """Redirects to Roles page (list of Scalr roles).
+           Returns Roles page object.
+        """
+        from pages.roles import Roles
+        Button(text="Roles", driver=self.driver).click()
+        return Roles(self.driver, self.base_url)
+
 
 class EnvironmentDashboard(EnvironmentTopMenu):
     URL_TEMPLATE = '/#/dashboard'

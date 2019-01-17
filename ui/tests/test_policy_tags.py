@@ -5,6 +5,7 @@ import base64
 import time
 
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.common.keys import Keys
 
 from revizor2.conf import CONF
 from pages.login import LoginPage
@@ -25,18 +26,16 @@ class TestPolicyTags:
         self.driver.implicitly_wait(10)
         self.container = testenv
         self.url = 'http://%s.test-env.scalr.com' % self.container.te_id
-        login_page = LoginPage(
-            self.driver,
-            self.url).open()
-        self.admin_dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD, admin=True)
+        login_page = LoginPage(self.driver, self.url).open()
+        self.dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
 
 # Admin scope> Policy tags> Create, validate and delete
 
     def goto_policy_tag_page(self):
-        self.admin_dashboard.scalr_main_menu.click()
-        main_menu_items = self.admin_dashboard.scalr_main_menu.list_items()
+        self.dashboard.scalr_main_menu.click()
+        main_menu_items = self.dashboard.scalr_main_menu.list_items()
         main_menu_items['Policy Engine'].mouse_over()
-        policy_tag_page = self.admin_dashboard.menu.go_to_admin().menu.go_to_policy_tags()
+        policy_tag_page = self.dashboard.menu.go_to_admin().menu.go_to_policy_tags()
         return policy_tag_page
 
     def test_cancel_create_policy_tag(self):
@@ -108,7 +107,7 @@ class TestPolicyTags:
         assert policy_tag_page.deletion_pop_up.hidden(), "The confirmation pop-up was not closed!"
         assert policy_tag_page.page_message.text == "Policy Tag successfully deleted", \
             "No message present about successful deletion of the Policy Tag"
-        assert policy_tag_page.created_tag(name).hidden(), " The Policy Tag was not deleted!"
+        assert policy_tag_page.created_tag(name).hidden(), "The Policy Tag was not deleted!"
 
 # Policy tags> Roles application
 
@@ -116,39 +115,96 @@ class TestPolicyTags:
         tag_names = ['tag-1', 'tag-2', 'tag-3']
         TestPolicyTags.test_create_new_policy_tag(self, tag_names)
 
-    def go_to_account_scope(self):
+    def go_to_env_scope_from_admin(self):
         # account_dashboard = self.admin_dashboard.menu.go_to_accounts().menu.log_in_to_account()
-        self.admin_dashboard.menu.logout()
+        self.dashboard.menu.logout()
         global DEFAULT_USER
         DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
         global DEFAULT_PASSWORD
-        DEFAULT_PASSWORD =  CONF.credentials.testenv.accounts.default['password']
-        login_page = LoginPage(
-            self.driver,
-            self.url).open()
-        self.env_dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
-        account_dashboard = self.env_dashboard.menu.go_to_account()
-        return account_dashboard
+        DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.default['password']
+        login_page = LoginPage(self.driver, self.url).open()
+        self.dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
 
     def go_to_roles_page_account_scope(self):
-        account_dashboard = TestPolicyTags.go_to_account_scope(self)
+        account_dashboard = self.dashboard.menu.go_to_account()
         account_dashboard.scalr_main_menu.click()
-        main_menu_items = self.admin_dashboard.scalr_main_menu.list_items()
+        main_menu_items = self.dashboard.scalr_main_menu.list_items()
         main_menu_items['Roles\nADD NEW'].mouse_over()
         roles_page = account_dashboard.go_to_roles()
         return roles_page
 
     def test_create_role_with_policy_tag_admin_scope(self):
         TestPolicyTags.preparationg_applying_to_roles(self)
-        roles_page = self.admin_dashboard.menu.go_to_roles()
+        roles_page = self.dashboard.menu.go_to_roles()
         roles_edit_page = roles_page.new_role()
         RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1')
-        assert roles_page.new_role_button.visible()
+        assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
 
-    def test_create_role_with_policy_tag_account_scope(self):
+    def create_role_with_policy_tag_account_scope(self):
+        TestPolicyTags.go_to_env_scope_from_admin(self)
         roles_page = TestPolicyTags.go_to_roles_page_account_scope(self)
         roles_edit_page = roles_page.new_role()
         roles_settings = {
-            'role_name': 'selenium-role-policy-tag-2'
+            'role_name': 'selenium-role-policy-tag-acc'
         }
-        RolesEdit.create_role(self, roles_edit_page, tag_name='tag-2', **roles_settings)
+        RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1', **roles_settings)
+        assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
+        return roles_page
+
+    def test_validation_add_second_policy_tag_to_role(self):
+        role_name = 'selenium-role-policy-tag-acc'
+        roles_page = TestPolicyTags.create_role_with_policy_tag_account_scope(self)
+        roles_page.search_role_field.write(role_name)
+        RolesEdit.created_role(self, role_name).click()
+        roles_page.roles_edit_button.click()
+        time.sleep(10)
+        RolesEdit.tags_input_field.click()
+        Button(xpath="//li[contains(.,'tag-3')]", driver=self.driver).click()
+        assert RolesEdit.tooltip_one_policy_allowed.visible(), "Tooltip message was not found!"
+
+    def search_field_trigger(self, roles_page, tag_name, *roles_names):
+        roles_page.searchfield_trigger_menu.click()
+        roles_page.searchfield_trigger_tag_list.click()
+        roles_page.searchfield_trigger_find_tag(tag_name).click()
+        roles_page.body_container.click()
+        assert roles_page.roles_table_sorted_by_tag(tag_name).visible(), "The roles table is not sorted by Tag!"
+        for name in roles_names:
+            role = Table(text=name, driver=self.driver)
+            assert role.visible(), "Role was not found!"
+
+    def test_search_field_trigger_acc(self):
+        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self)
+        tag_name = 'tag-1'
+        roles_names = ('selenium-role-policy-tag-admin', 'selenium-role-policy-tag-acc')
+        TestPolicyTags.search_field_trigger(self, roles_page, tag_name, *roles_names)
+
+    def test_policy_tag_cannot_be_used_as_script_tag(self):
+        scripts_page = self.dashboard.menu.go_to_account().go_to_scripts()
+        time.sleep(1)
+        scripts_page.new_script_button.click()
+        scripts_page.script_name_field.write('policy_tag_cannot_be_used_as_script_tag')
+        scripts_page.script_content_field_activation.click()
+        scripts_page.script_content_field.write_to_hidden('#!/bin/bash')
+        scripts_page.tags_field.write('tag-1')
+        scripts_page.tags_field.write_to_hidden(Keys.ENTER)
+        scripts_page.save_button.click()
+        scripts_page.save_button.click()
+        assert scripts_page.tooltip_policy_tag_not_allowed.visible(), "Tooltip message was not found!"
+
+    def test_create_role_with_policy_tag_env_scope(self):
+        roles_page = self.dashboard.menu.go_to_roles()
+        roles_edit_page = roles_page.new_role(env=True)
+        roles_settings = {
+            'role_name': 'selenium-role-policy-tag-env'
+        }
+        RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1', **roles_settings)
+        assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
+
+    def test_search_field_trigger_env(self):
+        roles_page = self.dashboard.menu.go_to_roles()
+        roles_names = (
+            'selenium-role-policy-tag-admin',
+            'selenium-role-policy-tag-acc',
+            'selenium-role-policy-tag-env')
+        tag_name = 'tag-1'
+        TestPolicyTags.search_field_trigger(self, roles_page, tag_name, *roles_names)

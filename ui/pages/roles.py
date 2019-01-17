@@ -17,30 +17,48 @@ from pages.admin_scope import AdminTopMenu
 class Roles(AdminTopMenu):
     """Roles page (Admin Scope)
     """
-    # URL_TEMPLATE = '/#/admin/roles'
     new_role_button = Button(text="New role")
+    new_role_button_env = Button(css="[href='\#\/roles\/edit'] [unselectable]")
     roles_info = Label(
         xpath='//div [@class="x-grid-item-container"]/child::table')
     search_role_field = SearchInput(name="searchfield")
+    search_role_field2 = Button(xpath="//input[@class='x-tagfield-input-field']")
+    searchfield_trigger_menu = Button(css=".x-searchfield-trigger-menu-default")
+    searchfield_trigger_tag_list = Button(xpath="//div[@role='presentation']/div[.='Tag']")
+    roles_edit_button = Button(icon="edit")
+    body_container = Button(xpath="//div[@id='body-container']")
 
     @property
     def loaded(self):
         return self.new_role_button.wait_until_condition(EC.visibility_of_element_located)
 
     @wait_for_page_to_load
-    def new_role(self):
+    def new_role(self, env=False):
         """Clicks on the 'New Role' button.
            Redirects to Roles Edit page.
            Returns RolesEdit page object.
         """
         self.new_role_button.click()
+        if env:
+            self.new_role_button_env.click()
         return RolesEdit(self.driver, self.base_url)
+
+    def searchfield_trigger_find_tag(self, tag_name):
+        tag_from_list = "//li[contains(.,'%s')]" % tag_name
+        finded_tag = Button(xpath=tag_from_list, driver=self.driver)
+        assert finded_tag.visible(), "The tag was not found!"
+        return finded_tag
+
+    def roles_table_sorted_by_tag(self, tag_name):
+        xpath = "//div[@class='x-tagfield-item-text x-tagfield-item-double-padding-right'][contains(.,'Tag')][contains(.,': %s')]" \
+                % tag_name
+        roles_table_sorted_by_tag = Button(xpath=xpath, driver=self.driver)
+        return roles_table_sorted_by_tag
 
 
 class RolesEdit(AdminTopMenu):
     """Roles Edit page (Admin Scope).
     """
-    # URL_TEMPLATE = '#/admin/roles/edit'
     roles_settings_label = Label(text="Bootstrap settings")
     role_name_field = Input(name="name")
     tags_dropdown = Dropdown(input_name='projectId')
@@ -48,6 +66,10 @@ class RolesEdit(AdminTopMenu):
     add_image_button = Button(xpath="//div[contains(text(),'Add image')]")
     roles_table_sorted_by_roleid = Button(
         xpath="//span[@class='x-searchfield-item-label'][contains(.,'Role ID')]")
+    tags_input_field = Button(xpath="//input[@name='tags']")
+    body_container = Button(xpath="//div[@id='body-container']")
+    tooltip_one_policy_allowed = Button(
+        xpath="//div[.='Only one Policy Tag is allowed.'][@class='x-autocontainer-innerCt']")
 
     @property
     def loaded(self):
@@ -63,9 +85,9 @@ class RolesEdit(AdminTopMenu):
         Button(xpath=version_from_list, driver=self.driver).click()
         if tag_name:
             tag_from_list = li % tag_name
-            Button(xpath="//input[@name='tags']", driver=self.driver).click()
+            RolesEdit.tags_input_field.click()
             Button(xpath=tag_from_list, driver=self.driver).click()
-            Button(xpath="//div[@id='body-container']", driver=self.driver).click()
+            RolesEdit.body_container.click()
         category_from_list = li % category
         Button(xpath="//div[starts-with(@id, 'combobox')]/input[@name='catId']", driver=self.driver).click()
         found_category = Button(xpath=category_from_list, driver=self.driver)
@@ -87,7 +109,7 @@ class RolesEdit(AdminTopMenu):
 
     def create_role(self, roles_edit_page, tag_name=None, **roles_settings):
         default_role = {
-            'role_name': 'selenium-role-policy-tag',
+            'role_name': 'selenium-role-policy-tag-admin',
             'os_name': 'Ubuntu',
             'os_version': '14.04',
             'tag_name': tag_name,

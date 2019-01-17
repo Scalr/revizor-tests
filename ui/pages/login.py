@@ -8,6 +8,8 @@ from elements import locators
 class LoginPage(BasePage):
     """Default Scalr login page.
     """
+    DEFAULT_ADMIN_USER = "admin"
+
     loading_blocker = Button(element_id='loading')
     login_field = Input(name='scalrLogin')
     password_field = Input(name='scalrPass')
@@ -22,22 +24,43 @@ class LoginPage(BasePage):
     def loaded(self):
         return self.loading_blocker.wait_until_condition(EC.invisibility_of_element_located)
 
+    # @wait_for_page_to_load
+    # def login(self, user, password, admin=None):
+    #     """Logs in with existing user.
+    #        Returns EnvironmentDashboard page obejct.
+    #
+    #        :param str user: username(email).
+    #        :param str password: user password
+    #     """
+    #     self.login_field.write(user)
+    #     self.password_field.write(password)
+    #     self.login_button.click()
+    #     if admin:
+    #         from pages.admin_scope import AdminDashboard
+    #         return AdminDashboard(self.driver, self.base_url)
+    #     from pages.environment_scope import EnvironmentDashboard
+    #     return EnvironmentDashboard(self.driver, self.base_url)
+
     @wait_for_page_to_load
-    def login(self, user, password, admin=None):
+    def login(self, user, password):
         """Logs in with existing user.
            Returns EnvironmentDashboard page obejct.
-
            :param str user: username(email).
            :param str password: user password
         """
         self.login_field.write(user)
         self.password_field.write(password)
         self.login_button.click()
-        if admin:
+        return self._get_user_dashboard(user)
+
+    def _get_user_dashboard(self, user):
+        if user != self.DEFAULT_ADMIN_USER:
+            from pages.environment_scope import EnvironmentDashboard
+            dashboard = EnvironmentDashboard(self.driver, self.base_url)
+        else:
             from pages.admin_scope import AdminDashboard
-            return AdminDashboard(self.driver, self.base_url)
-        from pages.environment_scope import EnvironmentDashboard
-        return EnvironmentDashboard(self.driver, self.base_url)
+            dashboard = AdminDashboard(self.driver, self.base_url)
+        return dashboard
 
     @wait_for_page_to_load
     def update_password_and_login(self, user, temp_password, new_password):

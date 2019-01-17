@@ -39,6 +39,14 @@ class AccountTopMenu(CommonTopMenu):
         return Teams(self.driver, self.base_url)
 
     @wait_for_page_to_load
+    def go_to_scripts(self):
+        """Redirect to Scripts page (Account scope).
+           Returns Scripts page object.
+        """
+        Button(href="#/account/scripts", driver=self.driver).click()
+        return Scripts(self.driver, self.base_url)
+
+    @wait_for_page_to_load
     def go_to_environments(self):
         """Redirects to Environments page (Account scope).
            Returns Environments page object.
@@ -209,3 +217,17 @@ class Environments(AccountTopMenu):
         """Returns list of Elements of available Scalr Environments.
         """
         return self.active_envs.list_elements()
+
+
+class Scripts(AccountTopMenu):
+    """Scripts page from Account scope.
+    """
+    URL_TEMPLATE = '/#/account/scripts'
+    new_script_button = Button(text="New Scalr script")
+    script_name_field = Input(name="name")
+    tags_field = Input(name="tags")
+    script_content_field_activation = Button(css="div.CodeMirror-scroll")
+    script_content_field = Input(css="textarea")
+    save_button = Button(icon="save")
+    tooltip_policy_tag_not_allowed = Button(
+        xpath="//div[@role='alert'][.='Policy Tags are not allowed.']")

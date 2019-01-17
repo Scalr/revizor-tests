@@ -253,6 +253,10 @@ class Input(BaseElement):
         element.clear()
         element.send_keys(text)
 
+    def write_to_hidden(self, text):
+        element = self.get_element(show_hidden=True)
+        element.send_keys(text)
+
 
 class SearchInput(Input):
     """Input field that filters contents of the page.
