@@ -77,6 +77,7 @@ def installing_new_package(step, serv_as):
 
 @step('I have a copy of the(?: (.+))? branch( with patched script)?')
 def having_branch_copy(step, branch=None, is_patched=False):
+    # NOTE: migrated
     if branch == 'system':
         # Use environ because CONF.feature replace '/' to '-'
         branch = os.environ.get('RV_BRANCH')
@@ -134,6 +135,7 @@ def having_branch_copy(step, branch=None, is_patched=False):
 @step(r'I wait for new package was built')
 def waiting_new_package(step):
     '''Get build status'''
+    # NOTE: migrated
     LOG.info('Getting build status for: %s' % world.build_commit_sha)
     label_name = 'continuous-integration/drone/push'
     for _ in range(90):
@@ -155,6 +157,7 @@ def waiting_new_package(step):
 
 @step(r'I have a clean image')
 def having_clean_image(step):
+    # NOTE: migrated
     if CONF.feature.dist.is_windows or CONF.feature.dist.id == 'coreos':
         table = tables('images-clean')
         search_cond = dict(
@@ -191,6 +194,7 @@ def setting_farm(step, use_manual_scaling=None, use_stable=None):
 
 @step(r'I trigger scalarizr update by Scalr UI on ([\w\d]+)$')
 def updating_scalarizr_by_scalr_ui(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     for i in range(5):
         try:

@@ -122,11 +122,11 @@ class TestLifecycleWindows:
                                   'Multiplatform script successfully executed', None),
                                  ('Non ascii script wrong interpreter', False, False, None,
                                   "The only supported interpreters on Windows in first shebang are "
-                                  "('powershell', 'cmd')"),
+                                  "('powershell', 'cmd', 'cscript')"),
                                  ('Exit 1 with stdout message', False, False, 'Message in stdout section', None),
                                  ('Create local script', False, False, 'Directory: C:\; local_script.ps1', None),
                                  ('Non ascii script corect execution', False, False,
-                                  'TUVWXyz; A?AA?AA?A-A?AA?AA?A', None),
+                                  'abcdefg     HIJKLMNOP     qrs     TUVWXyz', None),
                                  # ('C:\local_script.ps1', False, True, 'Local script work!', '')
                                  # ^ blocked by SCALARIZR-2470
                              ],
