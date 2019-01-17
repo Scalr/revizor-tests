@@ -34,7 +34,7 @@ class TestAccounts(object):
 
     def test_create_account(self):
         accounts_page = self.admin_dashboard.go_to_accounts()
-        account_edit_popup = accounts_page.new_account()
+        account_edit_popup = accounts_page.new_account_click()
         account_edit_popup.name_field.write(self.test_account_name)
         account_edit_popup.select_account_owner("AccountSuperAdmin")
         account_edit_popup.comments_field.write("Selenium test new account")
@@ -45,7 +45,7 @@ class TestAccounts(object):
     def test_edit_account(self):
         new_account = '-'.join((self.test_account_name, 'edited'))
         accounts_page = self.admin_dashboard.go_to_accounts()
-        account_edit_popup = accounts_page.edit_account(label=self.test_account_name)
+        account_edit_popup = accounts_page.edit_account_click(label=self.test_account_name)
         account_edit_popup.name_field.write(new_account)
         account_edit_popup.save_button.click()
         assert TableRow(driver=accounts_page.driver, label=new_account).exists
