@@ -2,6 +2,8 @@ import requests
 from requests.exceptions import HTTPError, ConnectionError, SSLError
 import logging
 
+from revizor2.api import Server
+
 
 LOG = logging.getLogger(__name__)
 
@@ -15,7 +17,7 @@ APACHE_MESSAGES = (
 )
 
 
-def assert_check_http_get_answer(server, proto='http', revert=False):
+def assert_check_http_get_answer(server: Server, proto: str='http', revert: bool=False):
     verify = False if proto == 'https' else None
     revert = False if not revert else True
     try:

@@ -2,12 +2,13 @@ import logging
 import time
 
 from revizor2.backend import IMPL
+from revizor2.api import Server, Farm
 
 
 LOG = logging.getLogger(__name__)
 
 
-def configure_webhooks(webhooks, server, farm, context):
+def configure_webhooks(webhooks: list, server: Server, farm: Farm, context: dict):
     created_webhooks = []
     created_endpoints = []
     current_endpoints = IMPL.webhooks.list_endpoints()
@@ -35,7 +36,7 @@ def configure_webhooks(webhooks, server, farm, context):
         created_endpoints, created_webhooks, context)
 
 
-def wait_webhook_result(webhook, attempts=None, expect_to_fail=False):
+def wait_webhook_result(webhook: dict, attempts: int=None, expect_to_fail: bool=False):
     for _ in range(20):
         result = IMPL.webhooks.get_webhook_results(
             webhook_ids=webhook['webhookId'])
@@ -51,7 +52,7 @@ def wait_webhook_result(webhook, attempts=None, expect_to_fail=False):
     raise AssertionError('Cant find results for webhook %s.' % webhook['name'])
 
 
-def assert_webhooks(webhooks, expected_results, server_id=None):
+def assert_webhooks(webhooks: list, expected_results: list, server_id: str=None):
     for opts in expected_results:
         if server_id:
             webhook_name = '%s-%s' % (opts['webhook_name'],
@@ -85,7 +86,7 @@ def assert_webhooks(webhooks, expected_results, server_id=None):
                     result['handleAttempts'])
 
 
-def update_saved_endpoints_and_hooks(endpoints, webhooks, context):
+def update_saved_endpoints_and_hooks(endpoints: list, webhooks: list, context: dict):
     updated_endpoints = context.get('test_endpoints', []) + endpoints
     updated_webhooks = context.get('test_webhooks', []) + webhooks
     context['test_endpoints'] = updated_endpoints

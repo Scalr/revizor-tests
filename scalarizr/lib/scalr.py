@@ -1,12 +1,14 @@
 import logging
 
 from revizor2.utils import get_dict_value
+from revizor2.testenv import TestEnv
+from revizor2.api import Server
 
 
 LOG = logging.getLogger(__name__)
 
 
-def update_scalr_config(testenv, params):
+def update_scalr_config(testenv: TestEnv, params: dict):
     config = testenv.get_config()
     for param in params.keys():
         config_group, config_name = param.rsplit('.', 1)
@@ -15,12 +17,12 @@ def update_scalr_config(testenv, params):
     testenv.put_config(config)
 
 
-def get_scalr_config_value(testenv, param):
+def get_scalr_config_value(testenv: TestEnv, param: str):
     config = testenv.get_config()
     return get_dict_value(config, param)
 
 
-def configure_scalr_proxy(testenv, server, modules):
+def configure_scalr_proxy(testenv: TestEnv, server: Server, modules: str):
     modules = [m.strip().lower() for m in modules.split(',')]
     params = {
         'scalr.connections.proxy.host': str(server.public_ip),
