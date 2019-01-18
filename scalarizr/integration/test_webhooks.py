@@ -26,6 +26,13 @@ class TestWebhooks:
         'test_webhooks_in_proxy'
         )
 
+    @pytest.fixture(scope='class', autouse=True)
+    def prepare_test_server(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
+        farm.launch()
+        server = lib_server.wait_status(
+            context, cloud, farm, status=ServerStatus.RUNNING)
+        servers['F1'] = server
 
     @pytest.mark.parametrize("ssl_verify,webhooks,expected_results", [
         (False, 
@@ -81,12 +88,6 @@ class TestWebhooks:
         lib_scalr.update_scalr_config(testenv, params)
         testenv.restart_service("workflow-engine")
         testenv.restart_service("zmq_service")
-        if not server:
-            lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
-            farm.launch()
-            server = lib_server.wait_status(
-                context, cloud, farm, status=ServerStatus.RUNNING)
-            servers['F1'] = server
         node = cloud.get_node(server)
         node.put_file("/tmp/default",
                       resources('configs/nginx_to_flask_proxy.conf').get().decode("utf-8"))
@@ -107,7 +108,7 @@ class TestWebhooks:
         assert not testenv.check_service_log("workflow-engine", "Traceback"), "Found Traceback in workflow-engine service log!"
 
     def test_scalr_mail_service(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv):
-        server = servers['F1']
+        server = servers.get('F1')
         url = "http://%s.test-env.scalr.com/webhook_mail.php" % testenv.te_id
         params = {"scalr.system.webhooks.scalr_mail_service_url": url}
         lib_scalr.update_scalr_config(testenv, params)
@@ -138,7 +139,7 @@ class TestWebhooks:
         assert not testenv.check_service_log("workflow-engine", "Traceback"), "Found Traceback in workflow-engine service log!"
 
     def test_webhooks_in_proxy(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv):
-        server = servers['F1']
+        server = servers.get('F1')
         lib_farm.add_role_to_farm(context, farm, dist='ubuntu1404')
         farm.launch()
         proxy_server = lib_server.wait_status(
