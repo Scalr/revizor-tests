@@ -13,12 +13,11 @@ def configure_webhooks(webhooks: list, server: Server, farm: Farm, context: dict
     created_endpoints = []
     current_endpoints = IMPL.webhooks.list_endpoints()
     LOG.debug('Current endpoints:%s' % current_endpoints)
-    current_endpoint_urls = [e['url']
-                             for e in current_endpoints] if current_endpoints else None
+    current_endpoint_urls = [e['url'] for e in current_endpoints] if current_endpoints else []
     for opts in webhooks:
         url = "%s://%s%s" % (opts['schema'].strip(),
                              server.public_ip, opts['endpoint'].strip())
-        if current_endpoint_urls and url in current_endpoint_urls:
+        if url in current_endpoint_urls:
             continue
         name = opts['name'].strip()
         scalr_endpoint = IMPL.webhooks.create_endpoint(name, url)
