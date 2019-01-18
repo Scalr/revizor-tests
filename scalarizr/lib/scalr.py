@@ -35,7 +35,8 @@ def configure_scalr_proxy(testenv: TestEnv, server: Server, modules: str):
     }
     for module in modules:
         params.update(
-            {'scalr.%s.use_proxy' % str(module): 'true'}
+            {'scalr.%s.use_proxy' % str(module): True,
+             'scalr.%s.ssl_verify' % str(module): False}
         )
     LOG.debug('Proxy params:\n%s' % params)
     update_scalr_config(testenv, params)
