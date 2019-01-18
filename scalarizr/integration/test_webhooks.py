@@ -21,25 +21,66 @@ class TestWebhooks:
     """
 
     order = (
-        'test_prepare_testenv_without_ssl',
-        'test_webhooks_without_ssl_verify',
+        'test_webhooks',
         'test_scalr_mail_service',
-        'test_webhooks_in_proxy',
-        'test_prepare_testenv_with_ssl',
-        'test_webhooks_with_ssl_verify')
+        'test_webhooks_in_proxy'
+        )
 
-    def test_prepare_testenv_without_ssl(self, testenv, ssl=False):
+
+    @pytest.mark.parametrize("ssl_verify,webhooks,expected_results", [
+        (False, 
+         [
+             {'schema': 'http', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'http_normal'},
+             {'schema': 'http', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'http_redirect'},
+             {'schema': 'http', 'endpoint': '/abort404', 'trigger_event': 'AccountEvent', 'name': 'http_404'},
+             {'schema': 'http', 'endpoint': '/abort500', 'trigger_event': 'AccountEvent', 'name': 'http_500'},
+             {'schema': 'http', 'endpoint': '/retry', 'trigger_event': 'AccountEvent', 'name': 'http_retry'},
+             {'schema': 'https', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'https_redirect'},
+             {'schema': 'https', 'endpoint': '/abort404', 'trigger_event': 'AccountEvent', 'name': 'https_404'},
+             {'schema': 'https', 'endpoint': '/abort500', 'trigger_event': 'AccountEvent', 'name': 'https_500'},
+             {'schema': 'https', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'https_normal'}
+         ],
+         [
+             {'webhook_name': 'http_normal', 'expected_response': 200, 'attempts': 1, 'error': None},
+             {'webhook_name': 'http_redirect', 'expected_response': 200, 'attempts': 1, 'error': None},
+             {'webhook_name': 'http_404', 'expected_response': 404, 'attempts': 1, 'error': None},
+             {'webhook_name': 'http_500', 'expected_response': 500, 'attempts': 2, 'error': None},
+             {'webhook_name': 'http_retry', 'expected_response': 200, 'attempts': 2, 'error': None},
+             {'webhook_name': 'https_redirect', 'expected_response': 200, 'attempts': 1, 'error': None},
+             {'webhook_name': 'https_404', 'expected_response': 404, 'attempts': 1, 'error': None},
+             {'webhook_name': 'https_500', 'expected_response': 500, 'attempts': 2, 'error': None},
+             {'webhook_name': 'https_normal', 'expected_response': 200, 'attempts': 1, 'error': None},
+         ]),
+        (True,
+         [
+             {'schema': 'http', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'http_normal'},
+             {'schema': 'http', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'http_redirect'},
+             {'schema': 'http', 'endpoint': '/abort404', 'trigger_event': 'AccountEvent', 'name': 'http_404'},
+             {'schema': 'http', 'endpoint': '/abort500', 'trigger_event': 'AccountEvent', 'name': 'http_500'},
+             {'schema': 'http', 'endpoint': '/retry', 'trigger_event': 'AccountEvent', 'name': 'http_retry'},
+             {'schema': 'https', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'https_normal'},
+         ],
+         [
+             {'webhook_name': 'http_normal', 'expected_response': 200, 'attempts': 1, 'error': None},
+             {'webhook_name': 'http_redirect', 'expected_response': 200, 'attempts': 1, 'error': None},
+             {'webhook_name': 'http_404', 'expected_response': 404, 'attempts': 1, 'error': None},
+             {'webhook_name': 'http_500', 'expected_response': 500, 'attempts': 2, 'error': None},
+             {'webhook_name': 'http_retry', 'expected_response': 200, 'attempts': 2, 'error': None},
+             {'webhook_name': 'https_normal', 'expected_response': None, 'attempts': 2, 'error': 'certificate verify failed'},
+         ])],
+        ids=[
+            "Verify webhooks with ssl_verify=False",
+            "Verify webhooks with ssl_verify=True"])
+    def test_webhooks(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv, ssl_verify: bool, webhooks: list, expected_results: list):
+        server = servers.get('F1')
         params = {
             "scalr.system.webhooks.scalr_labs_workflow_engine": True,
-            "scalr.system.webhooks.ssl_verify": ssl,
+            "scalr.system.webhooks.ssl_verify": ssl_verify,
             "scalr.system.webhooks.retry_interval": 5,
             "scalr.system.webhooks.use_proxy": False}
         lib_scalr.update_scalr_config(testenv, params)
         testenv.restart_service("workflow-engine")
         testenv.restart_service("zmq_service")
-
-    def test_webhooks_without_ssl_verify(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv, webhooks=None, expected_results=None):
-        server = servers.get('F1', None)
         if not server:
             lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
             farm.launch()
@@ -59,31 +100,9 @@ class TestWebhooks:
             # Run flask in background process
             conn.run("gunicorn -D -w 1 --bind localhost:5000 webhooks:app")
         lib_apache.assert_check_http_get_answer(server)
-        webhooks = webhooks or [
-            {'schema': 'http', 'endpoint': '/',  'trigger_event': 'AccountEvent', 'name': 'http_normal'},
-            {'schema': 'http', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'http_redirect'},
-            {'schema': 'http', 'endpoint': '/abort404', 'trigger_event': 'AccountEvent', 'name': 'http_404'},
-            {'schema': 'http', 'endpoint': '/abort500', 'trigger_event': 'AccountEvent', 'name': 'http_500'},
-            {'schema': 'http', 'endpoint': '/retry', 'trigger_event': 'AccountEvent', 'name': 'http_retry'},
-            {'schema': 'https', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'https_redirect'},
-            {'schema': 'https', 'endpoint': '/abort404', 'trigger_event': 'AccountEvent', 'name': 'https_404'},
-            {'schema': 'https', 'endpoint': '/abort500', 'trigger_event': 'AccountEvent', 'name': 'https_500'},
-            {'schema': 'https', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'https_normal'},
-        ]
         lib_webhooks.configure_webhooks(webhooks, server, farm, context)
         result = lib_node.execute_command(cloud, server, 'szradm --fire-event AccountEvent')
         assert not result.std_err, "Command szradm --fire-event AccountEvent failed with %s" % result.std_err
-        expected_results = expected_results or [
-            {'webhook_name': 'http_normal', 'expected_response': 200, 'attempts': 1, 'error': None},
-            {'webhook_name': 'http_redirect', 'expected_response': 200, 'attempts': 1, 'error': None},
-            {'webhook_name': 'http_404', 'expected_response': 404, 'attempts': 1, 'error': None},
-            {'webhook_name': 'http_500', 'expected_response': 500, 'attempts': 2, 'error': None},
-            {'webhook_name': 'http_retry', 'expected_response': 200, 'attempts': 2, 'error': None},
-            {'webhook_name': 'https_redirect', 'expected_response': 200, 'attempts': 1, 'error': None},
-            {'webhook_name': 'https_404', 'expected_response': 404, 'attempts': 1, 'error': None},
-            {'webhook_name': 'https_500', 'expected_response': 500, 'attempts': 2, 'error': None},
-            {'webhook_name': 'https_normal', 'expected_response': 200, 'attempts': 1, 'error': None},
-        ]
         lib_webhooks.assert_webhooks(context['test_webhooks'], expected_results, server_id=server.id)
         assert not testenv.check_service_log("workflow-engine", "Traceback"), "Found Traceback in workflow-engine service log!"
 
@@ -145,25 +164,3 @@ class TestWebhooks:
         ]
         lib_webhooks.assert_webhooks(context['test_webhooks'], expected_results, server_id=server.id)
         assert not testenv.check_service_log("workflow-engine", "Traceback"), "Found Traceback in workflow-engine service log!"
-
-    def test_prepare_testenv_with_ssl(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv):
-        self.test_prepare_testenv_without_ssl(testenv=testenv, ssl=True)
-
-    def test_webhooks_with_ssl_verify(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv):
-        webhooks = [
-            {'schema': 'http', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'http_normal'},
-            {'schema': 'http', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'http_redirect'},
-            {'schema': 'http', 'endpoint': '/abort404', 'trigger_event': 'AccountEvent', 'name': 'http_404'},
-            {'schema': 'http', 'endpoint': '/abort500', 'trigger_event': 'AccountEvent', 'name': 'http_500'},
-            {'schema': 'http', 'endpoint': '/retry', 'trigger_event': 'AccountEvent', 'name': 'http_retry'},
-            {'schema': 'https', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'https_normal'},
-        ]
-        expected_results = [
-            {'webhook_name': 'http_normal', 'expected_response': 200, 'attempts': 1, 'error': None},
-            {'webhook_name': 'http_redirect', 'expected_response': 200, 'attempts': 1, 'error': None},
-            {'webhook_name': 'http_404', 'expected_response': 404, 'attempts': 1, 'error': None},
-            {'webhook_name': 'http_500', 'expected_response': 500, 'attempts': 2, 'error': None},
-            {'webhook_name': 'http_retry', 'expected_response': 200, 'attempts': 2, 'error': None},
-            {'webhook_name': 'https_normal', 'expected_response': None, 'attempts': 2, 'error': 'certificate verify failed'},
-        ]
-        self.test_webhooks_without_ssl_verify(context=context, cloud=cloud, farm=farm, servers=servers, testenv=testenv, webhooks=webhooks, expected_results=expected_results)
