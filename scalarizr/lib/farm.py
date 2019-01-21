@@ -5,7 +5,7 @@ import typing as tp
 
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL, Role, FarmRole
-from revizor2.consts import BEHAVIORS_ALIASES, DATABASE_BEHAVIORS
+from revizor2.consts import BEHAVIORS_ALIASES, DATABASE_BEHAVIORS, Dist
 from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.helpers.roles import get_role_versions
@@ -35,6 +35,7 @@ def clear(farm: Farm):
 def add_role_to_farm(context: dict,
                      farm: Farm,
                      behavior: str = None,
+                     dist: str = None,
                      role: Role = None,
                      role_name: str = None,
                      role_options: tp.List[str] = None,
@@ -53,7 +54,7 @@ def add_role_to_farm(context: dict,
         LOG.info(f'Get role by id: {role_id}')
         role = IMPL.role.get(role_id)
     else:
-        role = get_role_by_behavior(behavior)
+        role = get_role_by_behavior(behavior, dist=dist)
     if not role:
         raise NotFound('Role with id or by mask "%s" not found in Scalr' % (
                 role_id or behavior))
@@ -83,9 +84,9 @@ def add_role_to_farm(context: dict,
     return added_role[0]
 
 
-def get_role_by_behavior(behavior) -> dict:
+def get_role_by_behavior(behavior, dist: str = None) -> dict:
     behavior = BEHAVIORS_ALIASES.get(behavior, behavior)
-    dist = CONF.feature.dist
+    dist = Dist(dist) if dist else CONF.feature.dist
     use_cloudinit_role = '-cloudinit' in behavior
     role_type = CONF.feature.role_type
 
