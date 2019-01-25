@@ -11,6 +11,8 @@ from pages.login import LoginPage
 from elements.base import TableRow
 
 from selenium.common.exceptions import NoSuchElementException
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
 
 USER = CONF.credentials.testenv.accounts.admin['username']
 PASSWORD = CONF.credentials.testenv.accounts.admin['password']
@@ -24,7 +26,7 @@ class TestAccounts(object):
     def prepare_env(self, selenium, request, testenv):
         load_timeout = request.config.getoption("load_timeout")
         self.driver = selenium
-        self.driver.implicitly_wait(10)
+        self.driver.implicitly_wait(3)
         login_page = LoginPage(
             self.driver,
             f'http://{testenv.te_id}.test-env.scalr.com',
@@ -36,7 +38,20 @@ class TestAccounts(object):
         accounts_page = self.admin_dashboard.go_to_accounts()
         account_edit_popup = accounts_page.new_account_click()
         account_edit_popup.name_field.write(self.test_account_name)
-        account_edit_popup.select_account_owner("AccountSuperAdmin")
+        # Create new account owner
+        account_owner_popup = account_edit_popup.new_account_owner_click()
+        account_owner_popup.full_name_field.write(self.test_account_name)
+        account_owner_popup.email_field.write("selenium@localhost.net")
+        account_owner_popup.comments_field.write("new account owner")
+        account_owner_popup.generate_password_button.check()
+        account_owner_popup.set_activate_button.click()
+        account_owner_popup.set_global_admin_perm_button.check()
+        owner_password_detail_panel = account_owner_popup.save_button.click(panel_type='form')
+        WebDriverWait(self.driver, 3).until(
+            EC.invisibility_of_element_located(account_owner_popup.save_button.locator))
+        owner_password_detail_panel.click_by_label('Close')
+        # Select created account owner
+        account_edit_popup.set_account_owner(self.test_account_name)
         account_edit_popup.comments_field.write("Selenium test new account")
         account_edit_popup.cost_centers_field.select(option='Default cost centre', hide_options=True)
         account_edit_popup.create_button.click()

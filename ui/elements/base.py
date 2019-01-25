@@ -1,7 +1,7 @@
 import time
 import logging
 
-from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -301,6 +301,14 @@ class Label(BaseElement):
         else:
             raise ValueError('No locator policy was provided!')
 
+    @property
+    def exists(self):
+        try:
+            self.get_element().click()
+            return True
+        except (NoSuchElementException, WebDriverException):
+            return False
+
 
 class TableRow(BaseElement):
     """Any text label inside the table
@@ -356,27 +364,27 @@ class TableRow(BaseElement):
     @property
     def exists(self):
         try:
-            if self.get_element():
+            if self.get_element(reload=True):
                 return True
         except NoSuchElementException:
             return False
 
 
 class Filter(BaseElement):
-    """Input field marked by text label. Default label Search
+    """Input field marked by text label. Default label Search used to filter records in table view elements
     """
 
     def _make_locator(self, label=None, xpath=None):
         if not xpath:
             label = label or 'Search'
-            xpath = f"(//div [text()='{label}'])[last()]/following::input[1]"
+            xpath = f"(//div [text()='{label}'])[last()]"
         self.locator = locators.XpathLocator(xpath)
 
     def write(self, text):
-        element = self.driver.find_element(self.locator)
+        element = self.get_element()
+        input_field = element.find_element_by_xpath("./following-sibling::input")
         actions = ActionChains(self.driver)
-        actions.move_to_element(element)
-        actions.click(element)
-        actions.send_keys(text)
+        actions.click(on_element=element)
+        actions.send_keys_to_element(input_field, text)
         actions.perform()
 

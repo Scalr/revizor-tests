@@ -9,7 +9,7 @@ from pypom.exception import UsageError
 
 from elements import locators
 from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableRow, Filter
-from elements.page_objects import ConfirmButton
+from elements.page_objects import ConfirmButton, GlobalScopeSwitchButton
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -130,14 +130,16 @@ class Accounts(AdminTopMenu):
 class AccountEditPopup(Accounts):
     """Implements New Account popup window elements
     """
+    # page elements xpath
     _input = "//input [@name='%s']"
     _btn = "//span [text()='%s']/ancestor::a"
 
-    popup_label = Label(xpath="//div [contains(text(), 'Admin » Accounts')]")
-    name_field = Input(xpath=_input % "name")
-    owner_email_field = Button(xpath=_input % "ownerEmail")
+    # page elements
+    popup_label = Label(xpath="//div [text()='Admin » Accounts » Create'][contains(@class, 'x-title-text')]")
     comments_field = Input(xpath="//textarea [@name='comments']")
     cost_centers_field = Dropdown(input_name="ccs")
+    name_field = Input(xpath=_input % "name")
+    owner_email_field = Button(xpath=_input % "ownerEmail")
     create_button = Button(xpath=_btn % "Create")
     save_button = Button(xpath=_btn % "Save")
     cancel_button = Button(xpath=_btn % "Cancel")
@@ -146,26 +148,34 @@ class AccountEditPopup(Accounts):
     def loaded(self):
         return self.popup_label.wait_until_condition(EC.visibility_of_element_located)
 
-    def select_account_owner(self, name, use_filter=False):
-        self.owner_email_field.click()
-        if use_filter:
-            Filter().write(name)
-        TableRow(driver=self.driver, label=name).select()
+    def set_account_owner(self, name):
+        if self.popup_label.exists:
+            self.owner_email_field.click()
+        Filter(driver=self.driver).write(name)
+        account_owner_table_row = TableRow(driver=self.driver, label=name)
+        account_owner_table_row.select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
+
+    def new_account_owner_click(self):
+        self.owner_email_field.click()
+        Button(driver=self.driver, xpath="//span [text()='New User']").click()
+        return CreateUserPanel(driver=self.driver)
 
 
 class Users(AdminTopMenu):
     """Users page from Global scope.
     """
     URL_TEMPLATE = '/#/admin/users'
+
     # page elements xpath
     _confirm_btn = "//a [@data-qtip='%s'][contains(@class, 'x-btn')]"
     _confirm_btn_red = "//a [@data-qtip='%s'][contains(@class, 'x-btn-red')]"
+
     # page elements
     new_user_button = Button(text="New User")
     user_filter = Filter()
-    activate_user_button = ConfirmButton(xpath=_confirm_btn % "Activate selected users")
-    suspend_user_button = ConfirmButton(xpath=_confirm_btn % "Suspend selected users")
+    set_activate_button = ConfirmButton(xpath=_confirm_btn % "Activate selected users")
+    set_suspended_button = ConfirmButton(xpath=_confirm_btn % "Suspend selected users")
     delete_user_button = ConfirmButton(xpath=_confirm_btn_red % "Delete selected users")
 
     @property
@@ -173,14 +183,13 @@ class Users(AdminTopMenu):
         return self.new_user_button.wait_until_condition(EC.visibility_of_element_located)
 
 
-class UserCreatePanel(Users):
+class CreateUserPanel(Users):
     """Implements global scope new user panel
     """
     top_label_text = "New user"
 
     # page elements xpath
     _btn = "//span [text()='%s']/ancestor::a"
-    _switch_btn = "//label [text()='%s']/preceding-sibling::input [@type='button'][@role='checkbox']"
     _input_field = "//input [@name='%s']"
     _icon_btn = "//span [contains(@class, 'x-btn-icon-%s')]"
 
@@ -190,13 +199,13 @@ class UserCreatePanel(Users):
     comments_field = Input(xpath="//textarea [@name='comments']")
     password_field = Input(xpath=_input_field % "password")
     confirm_password_field = Input(xpath=_input_field % "cpassword")
-    generate_password_button = Button(xpath=_switch_btn % "Automatically generate a password")
-    change_password_at_signin_button = Button(xpath=_switch_btn % "Ask for a password change at the next sign-in")
-    activate_user_button = Button(xpath=_btn % "Active")
-    suspend_user_button = Button(xpath=_btn % "Suspended")
-    set_global_admin_perm_button = Button(xpath=_switch_btn % "Global Admin")
-    set_cm_admin_perm_button = Button(xpath=_switch_btn % "Cost Manager Admin")
-    save_button = Button(xpath=_icon_btn % "save")
+    generate_password_button = GlobalScopeSwitchButton("Automatically generate a password")
+    change_password_at_signin_button = GlobalScopeSwitchButton("Ask for a password change at the next sign-in")
+    set_activate_button = Button(xpath=_btn % "Active")
+    set_suspended_button = Button(xpath=_btn % "Suspended")
+    set_global_admin_perm_button = GlobalScopeSwitchButton("Global Admin")
+    set_cm_admin_perm_button = GlobalScopeSwitchButton("Cost Manager Admin")
+    save_button = ConfirmButton(xpath=_icon_btn % "save")
     cancel_button = Button(xpath=_icon_btn % "cancel")
 
     @property
@@ -205,12 +214,12 @@ class UserCreatePanel(Users):
         return label.wait_until_condition(EC.visibility_of_element_located)
 
 
-class UserEditPanel(UserCreatePanel):
+class EditUserPanel(CreateUserPanel):
     """Implements global scope user edit panel
     """
     top_label_text = "Edit user"
-    change_user_password_button = Button(xpath=UserCreatePanel._icon_btn % "change-password")
-    delete_user_button = ConfirmButton(xpath=UserCreatePanel._icon_btn % "delete")
+    change_user_password_button = Button(xpath=CreateUserPanel._icon_btn % "change-password")
+    delete_user_button = ConfirmButton(xpath=CreateUserPanel._icon_btn % "delete")
 
 
 class Roles(AdminTopMenu):

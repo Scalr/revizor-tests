@@ -2,10 +2,9 @@ import time
 import logging
 
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.common.exceptions import NoSuchAttributeException
 
 from elements import locators
-from elements.base import Button
+from elements.base import Button, Checkbox
 
 LOG = logging.getLogger()
 
@@ -84,31 +83,81 @@ class LeftPopupMenu:
 
 
 class ConfirmPanel(object):
+    """Implements a two kinds of panels: Form or Panel
+       Panel type is set when declaring an element
+    """
 
-    _element = None
+    _panel = None
 
-    def __init__(self, driver):
+    def __init__(self, driver, panel_type=None):
+        """
+        :type panel_type: string
+        :param panel_type: 'panel' or 'form'
+        """
         self.driver = driver
+        self.panel_type = panel_type or 'panel'
 
     @property
-    def _panel(self):
-        if not self._element:
-            self._element = self.driver.find_element_by_xpath(
-                "//body/div [contains(@class, 'x-panel-confirm')][contains(@id, 'panel')]")
-        return self._element
+    def panel(self):
+        if not self._panel:
+            xpath = f"//body/div " \
+                    f"[contains(@class, 'x-panel-confirm')]" \
+                    f"[contains(@id, '{self.panel_type}')]" \
+                    f"[last()]"
+            self._panel = self.driver.find_element_by_xpath(xpath)
+        return self._panel
 
     def click_by_label(self, label):
-        element = self._panel.find_element_by_xpath(f"./descendant::* [text()='{label}']")
-        element.click()
+        xpath = f"./descendant::* [text()='{label}']"
+        button = self.panel.find_element_by_xpath(xpath)
+        button.click()
 
 
 class ConfirmButton(Button):
-    """Implements the element click on which requires confirmation of actions. Delete object, terminate farm, servers etc...
+    """An accessorial element. Implements the element click on which requires
+    confirmation of actions. Delete object, terminate farm, servers etc...
     """
-    def click(self):
+    def click(self, panel_type=None):
+        """
+        :type panel_type: string
+        :param panel_type: panel or form. default panel
+        :return:
+        """
         LOG.debug(f'Click button  with confirmed action: {str(self.locator)}')
         self.get_element().click()
-        return ConfirmPanel(driver=self.driver)
+        return ConfirmPanel(driver=self.driver, panel_type=panel_type)
+
+
+class GlobalScopeSwitchButton(Checkbox):
+
+    _element = None
+
+    def _make_locator(self, text):
+        self.locator = locators.XpathLocator(
+            f"//label [text()='{text}']/ancestor::div[contains(@id, 'togglefield')][last()]")
+
+    def get_element(self):
+        if not self._element:
+            self._element = self.driver.find_element(*self.locator)
+        return self._element
+
+    @property
+    def _checked(self):
+        element_class = self.get_element().get_attribute('class').split()
+        return 'x-form-cb-checked' in element_class
+
+    def _click(self):
+        label = self.get_element()
+        button = label.find_element_by_xpath("./descendant::input[1]")
+        button.click()
+
+    def check(self):
+        if not self._checked:
+            self._click()
+
+    def uncheck(self):
+        if self._checked:
+            self._click()
 
 
 
