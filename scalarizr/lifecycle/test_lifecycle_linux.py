@@ -87,9 +87,6 @@ class TestLifecycleLinux:
         lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
         if CONF.feature.platform == Platform.EC2:
             lifecycle.validate_path(cloud, server, '/media/partition')
-            if CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-                lifecycle.validate_path(cloud, server, '/media/raidmount')
-                lifecycle.create_files(cloud, server, count=100, directory='/media/raidmount')
 
     @pytest.mark.partition
     @pytest.mark.platform('ec2')
@@ -112,11 +109,6 @@ class TestLifecycleLinux:
         lifecycle.validate_mount_point_in_fstab(cloud, server,
                                                 mount_table=mount_table,
                                                 mount_point='/media/diskmount')
-        if CONF.feature.platform == Platform.EC2 \
-                and CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-            lifecycle.validate_mount_point_in_fstab(cloud, server,
-                                                    mount_table=mount_table,
-                                                    mount_point='/media/raidmount')
 
     @pytest.mark.reboot
     @pytest.mark.platform('ec2', 'vmware', 'cloudstack', 'gce', 'rackspaceng', 'azure')
@@ -137,11 +129,6 @@ class TestLifecycleLinux:
         lifecycle.validate_mount_point_in_fstab(cloud, server,
                                                 mount_table=mount_table,
                                                 mount_point='/media/diskmount')
-        if CONF.feature.platform == Platform.EC2 \
-                and CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-            lifecycle.validate_mount_point_in_fstab(cloud, server,
-                                                    mount_table=mount_table,
-                                                    mount_point='/media/raidmount')
 
     @pytest.mark.scripting
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -282,10 +269,6 @@ class TestLifecycleLinux:
                                           config_group='volumes', message='HostInitResponse',
                                           old_details=old_details)
         lifecycle.validate_path(cloud, server, '/media/diskmount')
-        if CONF.feature.platform == Platform.EC2 \
-                and CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-            lifecycle.validate_path(cloud, server, '/media/raidmount')
-            lifecycle.validate_files_count(cloud, server, '/media/raidmount', 100)
         device_id = context['M1_device_media_diskmount']
         lifecycle.validate_device_changed(context, farm, mount_point='/media/diskmount', old_device_id=device_id)
 
