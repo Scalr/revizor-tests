@@ -39,8 +39,7 @@ class TestLifecycleLinux:
              'test_attached_storages_restart',
              'test_reboot_bootstrap',
              'test_nonblank_volume',
-             'test_failed_hostname',
-             'test_unmanaged_storage')
+             'test_failed_hostname')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -315,16 +314,3 @@ class TestLifecycleLinux:
         lib_farm.add_role_to_farm(context, farm, role_options=['failed_hostname'])
         farm.launch()
         lib_server.wait_status(context, cloud, farm, status=ServerStatus.FAILED)
-
-    @pytest.mark.platform('azure')
-    def test_unmanaged_storage(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Check attached unmanaged storage"""
-        lib_farm.clear(farm)
-        farm.terminate()
-        lib_farm.add_role_to_farm(context, farm, role_options=['unmanaged'])
-        farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        servers['M1'] = server
-        lifecycle.validate_attached_disk_types(context, cloud, farm)
-        lifecycle.validate_path(cloud, server, '/media/diskmount')
-        lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
