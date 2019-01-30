@@ -135,7 +135,7 @@ class AccountEditPopup(Accounts):
     _btn = "//span [text()='%s']/ancestor::a"
 
     # page elements
-    popup_label = Label(xpath="//div [text()='Admin » Accounts » Create'][contains(@class, 'x-title-text')]")
+    popup_label = Label(xpath="//div [contains(text(), 'Admin » Accounts »')][contains(@class, 'x-title-text')]")
     comments_field = Input(xpath="//textarea [@name='comments']")
     cost_centers_field = Dropdown(input_name="ccs")
     name_field = Input(xpath=_input % "name")
@@ -143,6 +143,12 @@ class AccountEditPopup(Accounts):
     create_button = Button(xpath=_btn % "Create")
     save_button = Button(xpath=_btn % "Save")
     cancel_button = Button(xpath=_btn % "Cancel")
+
+    required_fields = [
+        name_field,
+        owner_email_field,
+        cost_centers_field
+    ]
 
     @property
     def loaded(self):
@@ -153,6 +159,7 @@ class AccountEditPopup(Accounts):
             self.owner_email_field.click()
         Filter(driver=self.driver).write(name)
         account_owner_table_row = TableRow(driver=self.driver, label=name)
+        account_owner_table_row.wait_until_condition(EC.visibility_of_element_located, timeout=3)
         account_owner_table_row.select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 
