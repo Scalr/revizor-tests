@@ -185,6 +185,10 @@ class Users(AdminTopMenu):
     set_suspended_button = ConfirmButton(xpath=_confirm_btn % "Suspend selected users")
     delete_user_button = ConfirmButton(xpath=_confirm_btn_red % "Delete selected users")
 
+    def new_user_click(self):
+        self.new_user_button.click()
+        return CreateUserPanel(driver=self.driver)
+
     @property
     def loaded(self):
         return self.new_user_button.wait_until_condition(EC.visibility_of_element_located)
@@ -214,6 +218,10 @@ class CreateUserPanel(Users):
     set_cm_admin_perm_button = GlobalScopeSwitchButton("Cost Manager Admin")
     save_button = ConfirmButton(xpath=_icon_btn % "save")
     cancel_button = Button(xpath=_icon_btn % "cancel")
+
+    required_fields = [
+        email_field
+    ]
 
     @property
     def loaded(self):

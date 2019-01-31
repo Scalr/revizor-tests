@@ -6,6 +6,8 @@ Created on 01.11.18
 
 import pytest
 
+from uuid import uuid4
+
 from revizor2.conf import CONF
 from pages.login import LoginPage
 from elements.base import TableRow
@@ -20,7 +22,7 @@ PASSWORD = CONF.credentials.testenv.accounts.admin['password']
 class TestAccounts(object):
 
     test_account_name = "Selenium"
-    test_account_email = "selenium@localhost.net"
+    test_account_email = f"selenium-{uuid4().hex[0:8]}@localhost.net"
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, request, testenv):

@@ -317,7 +317,8 @@ class TableRow(BaseElement):
 
     def _make_locator(self, label=None, xpath=None):
         if label:
-            self.locator = locators.XpathLocator(f"//* [text()='{label}']/ancestor::table[@class='x-grid-item']")
+            path = f"//* [text()='{label}']/ancestor::table[contains(@class, 'x-grid-item')]"
+            self.locator = locators.XpathLocator(path)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
         else:
@@ -358,8 +359,11 @@ class TableRow(BaseElement):
         """Click table entry button selected by button hint or xpath. Xpath must be relative path.
         """
         button_xpath = xpath or f"./descendant::a [contains(@data-qtip, '{hint}')]"
-        button = self.get_element().find_element_by_xpath(button_xpath)
-        button.click()
+        try:
+            button = self.get_element().find_element_by_xpath(button_xpath)
+            button.click()
+        except NoSuchElementException:
+            return False
 
     @property
     def exists(self):

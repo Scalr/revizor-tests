@@ -4,7 +4,7 @@ import logging
 from selenium.webdriver.common.action_chains import ActionChains
 
 from elements import locators
-from elements.base import Button, Checkbox
+from elements.base import Button, Checkbox, BaseElement
 
 LOG = logging.getLogger()
 
@@ -92,7 +92,9 @@ class ConfirmPanel(object):
     def __init__(self, driver, panel_type=None):
         """
         :type panel_type: string
-        :param panel_type: 'panel' or 'form'
+        :param panel_type: panel or form. default panel. parameter depends on the value of the id attribute
+        of the returned panel which can be form-{int} or panel-{in}
+        Example: <div id="form-1234"> or <div id="panel-1234">
         """
         self.driver = driver
         self.panel_type = panel_type or 'panel'
@@ -120,8 +122,10 @@ class ConfirmButton(Button):
     def click(self, panel_type=None):
         """
         :type panel_type: string
-        :param panel_type: panel or form. default panel
-        :return:
+        :param panel_type: panel or form. default panel. parameter depends on the value of the id attribute
+        of the returned panel which can be form-{int} or panel-{in}
+        Example: <div id="form-1234"> or <div id="panel-1234">
+        :return ConfirmPanel element
         """
         LOG.debug(f'Click button  with confirmed action: {str(self.locator)}')
         self.get_element().click()
