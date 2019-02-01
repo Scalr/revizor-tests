@@ -159,7 +159,7 @@ class AccountEditPopup(Accounts):
             self.owner_email_field.click()
         Filter(driver=self.driver).write(name)
         account_owner_table_row = TableRow(driver=self.driver, label=name)
-        account_owner_table_row.wait_until_condition(EC.visibility_of_element_located, timeout=3)
+        account_owner_table_row.wait_until_condition(EC.visibility_of_element_located)
         account_owner_table_row.select()
         Button(driver=self.driver, xpath="//span [text()='Select']").click()
 

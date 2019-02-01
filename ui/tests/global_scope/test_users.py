@@ -9,10 +9,10 @@ from uuid import uuid4
 
 from revizor2.conf import CONF
 from pages.login import LoginPage
+from elements import locators
 from elements.base import TableRow
 
 from selenium.common.exceptions import NoSuchElementException
-from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
@@ -37,6 +37,16 @@ class TestUsers(object):
         ).open()
         self.admin_dashboard = login_page.login(USER, PASSWORD)
 
+    def check_required_fields_validator(self, field_value, hint):
+        users_page = self.admin_dashboard.go_to_users()
+        new_user_panel = users_page.new_user_click()
+        new_user_panel.email_field.write(field_value)
+        new_user_panel.save_button.click(panel_type='form')
+        exception_hint = locators.XpathLocator(f"//div [@role='alert']//descendant::*[contains(text(), '{hint}')]")
+        WebDriverWait(new_user_panel.driver, 3).until(EC.presence_of_element_located(exception_hint))
+        alert_attrs = new_user_panel.email_field.get_element().get_attribute('class')
+        assert 'x-form-invalid-field' in alert_attrs.split()
+
     def test_create_user(self):
         users_page = self.admin_dashboard.go_to_users()
         new_user_panel = users_page.new_user_click()
@@ -48,7 +58,8 @@ class TestUsers(object):
         new_user_panel.comments_field.write(f'suspended user: {self.test_user_full_name}')
         new_user_panel.set_global_admin_perm_button.check()
         password_details_panel = new_user_panel.save_button.click(panel_type='form')
-        new_user_panel.save_button.wait_until_condition(EC.invisibility_of_element_located, timeout=3)
+        new_user_panel.save_button.wait_until_condition(
+            EC.staleness_of, timeout=3)
         password_details_panel.click_by_label('Close')
         assert TableRow(driver=users_page.driver, label=self.test_user_email).exists
 
@@ -60,13 +71,15 @@ class TestUsers(object):
         acivate_user_confirm_panel.click_by_label('OK')
 
     def test_create_duplicate_user(self):
-        users_page = self.admin_dashboard.go_to_users()
-        new_user_panel = users_page.new_user_click()
-        new_user_panel.email_field.write(self.test_user_email)
-        new_user_panel.save_button.click(panel_type='form')
-        wait = WebDriverWait(new_user_panel.driver, 3)
-        wait.until(EC.presence_of_element_located((By.XPATH, "//* [text()='User already exists']")))
-        assert 'x-form-invalid-field' in new_user_panel.email_field.get_element().get_attribute('class').split()
+        self.check_required_fields_validator(
+            field_value=self.test_user_email,
+            hint="User already exists")
+
+    def test_pass_invalid_email_value(self):
+        self.check_required_fields_validator(
+            field_value='invalid value',
+            hint='field should be an e-mail address'
+        )
 
 
 

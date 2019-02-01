@@ -49,13 +49,15 @@ class TestAccounts(object):
         account_owner_popup.set_activate_button.click()
         account_owner_popup.set_global_admin_perm_button.check()
         owner_password_detail_panel = account_owner_popup.save_button.click(panel_type='form')
-        account_owner_popup.save_button.wait_until_condition(EC.invisibility_of_element_located, timeout=3)
+        account_owner_popup.save_button.wait_until_condition(EC.staleness_of)
         owner_password_detail_panel.click_by_label('Close')
+        owner_password_detail_panel.wait_presence_of()
         # Select created account owner
-        account_edit_popup.set_account_owner(self.test_account_name)
+        account_edit_popup.set_account_owner(self.test_account_email)
         account_edit_popup.comments_field.write("Selenium test new account")
         account_edit_popup.cost_centers_field.select(option='Default cost centre', hide_options=True)
         account_edit_popup.create_button.click()
+        account_edit_popup.create_button.wait_until_condition(EC.staleness_of)
         assert TableRow(driver=accounts_page.driver, label=self.test_account_name).exists
 
     def test_cancel_edit_account_owner(self):
@@ -71,6 +73,7 @@ class TestAccounts(object):
         account_edit_popup = accounts_page.edit_account_click(label=self.test_account_name)
         account_edit_popup.name_field.write(new_account)
         account_edit_popup.save_button.click()
+        account_edit_popup.save_button.wait_until_condition(EC.staleness_of)
         assert TableRow(driver=accounts_page.driver, label=new_account).exists
 
     def test_delete_account(self):
@@ -80,6 +83,8 @@ class TestAccounts(object):
         table_row.check()
         confirm_panel = accounts_page.delete_account_button.click()
         confirm_panel.click_by_label('Delete')
+        confirm_panel.wait_staleness_off()
+        table_row.wait_until_condition(condition=EC.staleness_of)
         with pytest.raises(NoSuchElementException):
             table_row.get_element(reload=True)
 
@@ -90,4 +95,3 @@ class TestAccounts(object):
         for required_field in account_edit_popup.required_fields:
             class_attr = required_field.get_element().get_attribute('class')
             assert 'x-form-invalid-field' in class_attr.split()
-

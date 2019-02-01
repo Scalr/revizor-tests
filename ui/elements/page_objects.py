@@ -2,9 +2,12 @@ import time
 import logging
 
 from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import TimeoutException
 
 from elements import locators
-from elements.base import Button, Checkbox, BaseElement
+from elements.base import Button, Checkbox
 
 LOG = logging.getLogger()
 
@@ -97,22 +100,30 @@ class ConfirmPanel(object):
         Example: <div id="form-1234"> or <div id="panel-1234">
         """
         self.driver = driver
-        self.panel_type = panel_type or 'panel'
+        panel_type = panel_type or 'panel'
+        self.locator = locators.XpathLocator(
+            f"//body/div [contains(@class, 'x-panel-confirm')]"
+            f"[contains(@id, '{panel_type}')]"
+            f"[last()]")
 
     @property
     def panel(self):
         if not self._panel:
-            xpath = f"//body/div " \
-                    f"[contains(@class, 'x-panel-confirm')]" \
-                    f"[contains(@id, '{self.panel_type}')]" \
-                    f"[last()]"
-            self._panel = self.driver.find_element_by_xpath(xpath)
+            self._panel = self.driver.find_element(*self.locator)
         return self._panel
 
     def click_by_label(self, label):
         xpath = f"./descendant::* [text()='{label}']"
         button = self.panel.find_element_by_xpath(xpath)
         button.click()
+
+    def wait_presence_of(self, timeout=3):
+        try:
+            WebDriverWait(self.driver, timeout).until(
+                EC.presence_of_element_located(self.locator))
+            return True
+        except TimeoutException:
+            return False
 
 
 class ConfirmButton(Button):
@@ -138,7 +149,9 @@ class GlobalScopeSwitchButton(Checkbox):
 
     def _make_locator(self, text):
         self.locator = locators.XpathLocator(
-            f"//label [text()='{text}']/ancestor::div[contains(@id, 'togglefield')][last()]")
+            f"//label [text()='{text}']"
+            f"/ancestor::div[contains(@id, 'togglefield')]"
+            f"[last()]")
 
     def get_element(self):
         if not self._element:
