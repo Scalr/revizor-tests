@@ -40,10 +40,17 @@ class Defaults(object):
 
     @staticmethod
     def set_storages_linux(params):
-        if not CONF.feature.platform.is_rackspacengus:
+        if CONF.feature.platform.is_rackspacengus:
+            return
+        if CONF.feature.platform.is_ec2:
             params.storage.volumes = [
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)
+            ]
+
+        else:
+            params.storage.volumes = [
+                farmrole.Volume(size=1, mount='/media/diskmount', re_build=True)
             ]
 
     @staticmethod
