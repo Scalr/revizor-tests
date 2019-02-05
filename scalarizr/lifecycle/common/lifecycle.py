@@ -233,15 +233,22 @@ def validate_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.
         if mount_point not in fstab:
             raise AssertionError('Mount point "%s" not exist in fstab:\n%s' %
                                  (mount_point, fstab))
-        out = conn.run('ls -l "%s"' % (mount_table[mount_point]))
-        if out.std_out.startswith('l'):
-            path = Path(mount_table[mount_point], '..', fstab[mount_point]).resolve()
-            if not fstab[mount_point] in str(path):
-                raise AssertionError('Disk in fstab: "%s" is not in symlink "%s"' %
-                                     (fstab[mount_point], path))
-        else:
-            assert mount_table[mount_point] == fstab[mount_point], (
-                    'Disk from mount != disk in fstab: "%s" != "%s"' % (mount_table[mount_point], fstab[mount_point]))
+
+        fstab_real_path_disk = fstab[mount_point]
+        mount_real_path_disk = mount_table[mount_point]
+
+        LOG.debug(f'Fstab and mount table state for {mount_point}: {fstab[mount_point]} {mount_table[mount_point]}')
+
+        if 'by-uuid' in fstab[mount_point]:
+            LOG.debug(f'Fstab mount point has by-uuid, get real path for {fstab[mount_point]}')
+            fstab_real_path_disk = conn.run(f'readlink -f {fstab[mount_point]}').std_out.strip()
+            LOG.debug(f'Fstab real path for disk: {fstab_real_path_disk}')
+        elif 'by-uuid' in mount_table[mount_point]:
+            LOG.debug(f'Mount point has by-uuid, get real path for {fstab[mount_point]}')
+            mount_real_path_disk = conn.run(f'readlink -f {mount_table[mount_point]}').std_out.strip()
+            LOG.debug(f'Mount point real path for disk: {mount_real_path_disk}')
+        assert fstab_real_path_disk == mount_real_path_disk, (
+                'Disk from mount != disk in fstab: "%s" != "%s"' % (mount_real_path_disk, fstab_real_path_disk))
 
 
 def define_event(event_name: str):
