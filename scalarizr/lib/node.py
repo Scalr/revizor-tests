@@ -3,18 +3,23 @@ import time
 from collections import abc
 
 import requests
+from libcloud.compute.types import NodeState
 
-import scalarizr.lib.server as lib_server
 from revizor2 import CONF
+from revizor2.utils import wait_until
 from revizor2.api import Cloud, Server
-from revizor2.cloud.node import Response
+from revizor2.cloud.node import ExtendedNode, Response
 from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Dist
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.helpers.parsers import get_repo_url, parser_for_os_family
-from revizor2.utils import wait_until
+
+import scalarizr.lib.server as lib_server
 from scalarizr.lib.common import run_only_if
 
+
 LOG = logging.getLogger(__name__)
+
+PS_RUN_AS = '''powershell -NoProfile -ExecutionPolicy Bypass -Command "{command}"'''  # TODO: Move this to Cloud.Node??
 
 
 class VerifyProcessWork:
@@ -101,12 +106,16 @@ class VerifyProcessWork:
 
 
 def reboot_scalarizr(cloud: Cloud, server: Server):
-    if CONF.feature.dist.is_systemd:
-        cmd = "systemctl restart scalarizr"
-    else:
-        cmd = "/etc/init.d/scalarizr restart"
     node = cloud.get_node(server)
-    node.run(cmd)
+
+    if CONF.feature.dist.is_windows:
+        node.run('Restart-Service Scalarizr -Force')
+    else:
+        if CONF.feature.dist.is_systemd:
+            cmd = "systemctl restart scalarizr"
+        else:
+            cmd = "/etc/init.d/scalarizr restart"
+        node.run(cmd)
     LOG.info('Scalarizr restart complete')
     time.sleep(15)
 
@@ -210,6 +219,65 @@ def validate_service(cloud: Cloud, server: Server, service: str, closed: bool = 
         raise AssertionError("Service %s must be don't work but it work!" % service)
     if not closed and not check_result:
         raise AssertionError("Service %s must be work but it doesn't work! (results: %s)" % (service, check_result))
+
+
+def run_sysprep(cloud: Cloud, node: ExtendedNode):
+    cmd = dict(
+        gce='gcesysprep',
+        ec2=PS_RUN_AS.format(
+            command='''$doc = [xml](Get-Content 'C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml'); ''' \
+                    '''$doc.Ec2ConfigurationSettings.Plugins.Plugin[0].State = 'Enabled'; ''' \
+                    '''$doc.save('C:/Program Files/Amazon/Ec2ConfigService/Settings/config.xml')"; ''' \
+                    '''cmd /C "'C:\Program Files\Amazon\Ec2ConfigService\ec2config.exe' -sysprep'''))
+    try:
+        node.run(cmd.get(node.platform_config.name))
+    except Exception as e:
+        LOG.error('Run sysprep exception : %s' % e.message)
+    # Check that instance has stopped after sysprep
+    end_time = time.time() + 900
+    while time.time() <= end_time:
+        cloud_node = [n for n in cloud.list_nodes() if n.uuid == node.uuid][0]
+        LOG.debug('Obtained node after sysprep running: %s' % cloud_node)
+        LOG.debug('Obtained node status after sysprep running: %s' % cloud_node.state)
+        if cloud_node.state == NodeState.STOPPED:
+            break
+        time.sleep(10)
+    else:
+        raise AssertionError('Cloud instance is not in STOPPED status - sysprep failed, it state: %s' % node.state)
+
+
+def install_scalarizr_to_server(server: Server, cloud: Cloud,
+                                use_sysprep: bool = False,
+                                use_rv_to_branch: bool = False,
+                                custom_branch: str = None) -> str:
+    """
+    Install scalarizr to linux or windows server from branch
+    :param server: Server for scalarizr
+    :param cloud: Cloud object
+    :param use_sysprep: If True and windows, run sysprep
+    :param use_rv_to_branch: Get branch from RV_TO_BRANCH
+    :param custom_branch: Use custom branch
+    :return: Installed scalarizr version
+    """
+    if server:
+        server.reload()
+    LOG.debug('Cloud server not found get node from server')
+    node = wait_until(cloud.get_node, args=(server,), timeout=300, logger=LOG)
+    LOG.debug('Node get successfully: %s' % node)
+    rv_branch = CONF.feature.branch
+    rv_to_branch = CONF.feature.to_branch
+    if use_rv_to_branch:
+        branch = rv_to_branch
+    elif custom_branch:
+        branch = custom_branch
+    else:
+        branch = rv_branch
+    LOG.info('Installing scalarizr from branch %s' % branch)
+    scalarizr_ver = node.install_scalarizr(branch=branch)
+    if use_sysprep and node.os.is_windows:
+        run_sysprep(cloud, node)
+    LOG.debug('Scalarizr %s was successfully installed' % scalarizr_ver)
+    return scalarizr_ver
 
 
 def validate_process_options(cloud: Cloud, server: Server, process: str, options: str):

@@ -40,16 +40,18 @@ class Defaults(object):
 
     @staticmethod
     def set_storages_linux(params):
-        if not CONF.feature.platform.is_rackspacengus:
+        if CONF.feature.platform.is_rackspacengus:
+            return
+        if CONF.feature.platform.is_ec2:
             params.storage.volumes = [
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)
             ]
-        if CONF.feature.platform.is_ec2 and CONF.feature.dist.id in ['centos-7-x', 'centos-6-x', 'ubuntu-14-04']:
-            params.storage.volumes.append(
-                params.storage,
-                farmrole.Volume(engine='raid', size=1, level=1, volumes=2, mount='/media/raidmount')
-            )
+
+        else:
+            params.storage.volumes = [
+                farmrole.Volume(size=1, mount='/media/diskmount', re_build=True)
+            ]
 
     @staticmethod
     def set_db_storage(params):
@@ -70,14 +72,6 @@ class Defaults(object):
             params.database.storage = farmrole.DataStorage(engine='lvm', type='ephemeral0', mount='Z')
         elif CONF.feature.storage == 'eph':
             params.database.storage = farmrole.DataStorage(engine='eph', type='/dev/sda2')
-        elif CONF.feature.storage == 'raid10':
-            params.database.storage = farmrole.DataStorage(engine='raid', level=10, volumes=4)
-        elif CONF.feature.storage == 'raid5':
-            params.database.storage = farmrole.DataStorage(engine='raid', level=5, volumes=3)
-        elif CONF.feature.storage == 'raid1':
-            params.database.storage = farmrole.DataStorage(engine='raid', level=1, volumes=2)
-        elif CONF.feature.storage == 'raid0':
-            params.database.storage = farmrole.DataStorage(engine='raid', level=0, volumes=2)
 
     @staticmethod
     def set_db_storage_gce(params):
@@ -85,10 +79,6 @@ class Defaults(object):
             params.database.storage = farmrole.DataStorage()
         elif CONF.feature.storage == 'eph':
             params.database.storage = farmrole.DataStorage(engine='eph', type='ephemeral-disk-0')
-        elif CONF.feature.storage == 'raid10':
-            params.database.storage = farmrole.DataStorage(engine='raid', level=10, volumes=4)
-        elif CONF.feature.storage == 'raid5':
-            params.database.storage = farmrole.DataStorage(engine='raid', level=5, volumes=3)
 
     @staticmethod
     def set_db_storage_openstack(params):

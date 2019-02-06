@@ -125,14 +125,14 @@ class TestOrchestration:
                                  ('root', True),
                                  ('revizor', True),
                                  ('unknown', False),
-                                 ('a' * 255, False),
+                                 # ('a' * 255, False), SCALRCORE-10468
                              ],
                              ids=[
                                  'empty',
                                  'root',
                                  'revizor',
                                  'unknown',
-                                 'a * 255',
+                                 # 'a * 255', SCALRCORE-10468
                              ])
     def test_execute_scripts_user(self, context: dict, cloud: Cloud, farm: Farm, servers: dict,
                                   user, exists):

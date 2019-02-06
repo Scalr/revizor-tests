@@ -24,8 +24,7 @@ class TestLifecycleWindows:
              'test_windows_reboot',
              'test_script_execution',
              'test_restart_farm',
-             'test_reboot_bootstrap',
-             'test_reboot_script',
+             'test_restart_bootstrap',
              'test_failed_script',
              'test_eph_bootstrap',
              'test_scripting_gv_length')
@@ -122,11 +121,11 @@ class TestLifecycleWindows:
                                   'Multiplatform script successfully executed', None),
                                  ('Non ascii script wrong interpreter', False, False, None,
                                   "The only supported interpreters on Windows in first shebang are "
-                                  "('powershell', 'cmd')"),
+                                  "('powershell', 'cmd', 'cscript')"),
                                  ('Exit 1 with stdout message', False, False, 'Message in stdout section', None),
                                  ('Create local script', False, False, 'Directory: C:\; local_script.ps1', None),
                                  ('Non ascii script corect execution', False, False,
-                                  'TUVWXyz; A?AA?AA?A-A?AA?AA?A', None),
+                                  'abcdefg     HIJKLMNOP     qrs     TUVWXyz', None),
                                  # ('C:\local_script.ps1', False, True, 'Local script work!', '')
                                  # ^ blocked by SCALARIZR-2470
                              ],
@@ -168,8 +167,8 @@ class TestLifecycleWindows:
         lifecycle.validate_hostname(server)
 
     @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
-    def test_reboot_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Reboot on bootstraping"""
+    def test_restart_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Bootstraping on restart"""
         lib_farm.clear(farm)
         farm.terminate()
         lib_farm.add_role_to_farm(context, farm, role_options=['small_win_orchestration'])
@@ -177,26 +176,15 @@ class TestLifecycleWindows:
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
         lifecycle.validate_hostname(server)
-
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
-    @pytest.mark.parametrize('event, script_name, exitcode, output',
-                             [
-                                 ('HostInit', 'Windows_ping_pong_CMD', 0, 'pong'),
-                                 ('HostUp', 'Windows_ping_pong_CMD', 0, 'pong')
-                             ],
-                             ids=[
-                                 'HostInit',
-                                 'HostUp'
-                             ])
-    def test_reboot_script(self, context: dict, cloud: Cloud, servers: dict,
-                           event: str, script_name: str, exitcode: int, output: str):
-        """Verify script execution on bootstrapping"""
-        server = servers['M1']
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name=script_name,
-                                               event=event,
-                                               log_contains=output,
-                                               exitcode=exitcode)
+        scripts = [
+            {'event': 'HostInit', 'script_name': 'Windows_ping_pong_CMD', 'exitcode': 0, 'output': 'pong'},
+            {'event': 'HostUp', 'script_name': 'Windows_ping_pong_CMD', 'exitcode': 0, 'output': 'pong'}]
+        for script in scripts:
+            lib_server.validate_last_script_result(context, cloud, server,
+                                                   name=script['script_name'],
+                                                   event=script['event'],
+                                                   log_contains=script['output'],
+                                                   exitcode=script['exitcode'])
 
     @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
     def test_failed_script(self, context: dict, cloud: Cloud, farm: Farm):
