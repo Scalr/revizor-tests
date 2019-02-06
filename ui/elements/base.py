@@ -391,4 +391,5 @@ class Filter(BaseElement):
         actions.click(on_element=element)
         actions.send_keys_to_element(input_field, text)
         actions.perform()
+        time.sleep(2)
 

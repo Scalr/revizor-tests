@@ -8,8 +8,8 @@ PYENV_PROFILE = '/etc/profile.d/pyenv.sh'
 PIP_VERSION = '10.0.1'
 PIP_TOOLS_VERSION = '1.9.0'
 PY_VERSIONS = ['3.6.5']
-CHROMEDRIVER_VERSION = '2.44'
-GECKODRIVER_VERSION = '0.23.0'
+CHROMEDRIVER_VERSION = '2.46'
+GECKODRIVER_VERSION = '0.24.0'
 
 
 @task
@@ -63,12 +63,14 @@ def seleniumdrivers(ctx):
     """
     if sys.platform == 'darwin':
         urls = [
-            'https://chromedriver.storage.googleapis.com/%s/chromedriver_mac64.zip' % CHROMEDRIVER_VERSION,
-            'https://github.com/mozilla/geckodriver/releases/download/%s/geckodriver-v%s-macos.tar.gz' % GECKODRIVER_VERSION]
+            f'https://chromedriver.storage.googleapis.com/{CHROMEDRIVER_VERSION}/chromedriver_mac64.zip',
+            f'https://github.com/mozilla/geckodriver/releases/download/v{GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-macos.tar.gz',
+        ]
+
     elif sys.platform == 'linux':
         urls = [
-            'https://chromedriver.storage.googleapis.com/%s/chromedriver_linux64.zip' % CHROMEDRIVER_VERSION,
-            'https://github.com/mozilla/geckodriver/releases/download/v%s/geckodriver-v%s-linux64.tar.gz' % GECKODRIVER_VERSION]
+            f'https://chromedriver.storage.googleapis.com/{CHROMEDRIVER_VERSION}/chromedriver_linux64.zip',
+            f'https://github.com/mozilla/geckodriver/releases/download/v{GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-linux64.tar.gz']
     else:
         raise NotImplementedError('Your OS is not MacOS or Linux type. You need to install chromedriver and geckodriver manually.')
     for url in urls:

@@ -7,6 +7,8 @@ import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
 
 
+
+from revizor2.conf import CONF
 from revizor2.testenv import TestEnv
 from revizor2.fixtures import resources
 
@@ -74,4 +76,10 @@ def mock_ssmtp(request):
         ssmtp_script.fp.name,
         '/opt/scalr-server/libexec/mail/ssmtp')
     ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
+
+
+def pytest_sessionstart(session):
+    session.config.admin_login = CONF.credentials.testenv.accounts.admin['username']
+    session.config.admin_pass = CONF.credentials.testenv.accounts.admin['password']
+
 

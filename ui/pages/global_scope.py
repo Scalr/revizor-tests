@@ -1,14 +1,6 @@
-import time
-
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.webdriver.common.action_chains import ActionChains
-from pypom import Page
-from pypom.exception import UsageError
 
-from elements import locators
-from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Dropdown, TableRow, Filter
+from elements.base import Button, Label, Input, Dropdown, TableRow, Filter
 from elements.page_objects import ConfirmButton, GlobalScopeSwitchButton
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
@@ -189,6 +181,13 @@ class Users(AdminTopMenu):
         self.new_user_button.click()
         return CreateUserPanel(driver=self.driver)
 
+    def edit_user(self, label):
+        self.user_filter.write(label)
+        user_table_row = TableRow(driver=self.driver, label=label)
+        user_table_row.wait_until_condition(EC.visibility_of_element_located)
+        user_table_row.select()
+        return EditUserPanel(driver=self.driver)
+
     @property
     def loaded(self):
         return self.new_user_button.wait_until_condition(EC.visibility_of_element_located)
@@ -219,9 +218,10 @@ class CreateUserPanel(Users):
     save_button = ConfirmButton(xpath=_icon_btn % "save")
     cancel_button = Button(xpath=_icon_btn % "cancel")
 
-    required_fields = [
-        email_field
-    ]
+    required_fields = dict(
+        user_email=email_field,
+        user_password=password_field,
+        user_confirm_password=confirm_password_field)
 
     @property
     def loaded(self):
@@ -233,7 +233,7 @@ class EditUserPanel(CreateUserPanel):
     """Implements global scope user edit panel
     """
     top_label_text = "Edit user"
-    change_user_password_button = Button(xpath=CreateUserPanel._icon_btn % "change-password")
+    change_user_password_button = ConfirmButton(xpath=CreateUserPanel._icon_btn % "change-password")
     delete_user_button = ConfirmButton(xpath=CreateUserPanel._icon_btn % "delete")
 
 

@@ -106,24 +106,34 @@ class ConfirmPanel(object):
             f"[contains(@id, '{panel_type}')]"
             f"[last()]")
 
-    @property
-    def panel(self):
+    def get_element(self):
         if not self._panel:
             self._panel = self.driver.find_element(*self.locator)
         return self._panel
 
     def click_by_label(self, label):
         xpath = f"./descendant::* [text()='{label}']"
-        button = self.panel.find_element_by_xpath(xpath)
+        button = self.get_element().find_element_by_xpath(xpath)
         button.click()
 
-    def wait_presence_of(self, timeout=3):
+    def click_by_hint(self, hint):
+        xpath = f"./descendant::* [contains(@data-qtip, '{hint}')]"
+        element = self.get_element().find_element_by_xpath(xpath)
+        element.click()
+
+    def wait_presence_off(self, timeout=3):
         try:
             WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located(self.locator))
             return True
         except TimeoutException:
             return False
+
+    def find_descendant_element(self, xpath):
+        if xpath.startswith('/'):
+            ''.join(xpath.split('/', 2))
+        panel = self.get_element()
+        return panel.find_element_by_xpath(''.join(('./descendant::', xpath)))
 
 
 class ConfirmButton(Button):
@@ -145,22 +155,18 @@ class ConfirmButton(Button):
 
 class GlobalScopeSwitchButton(Checkbox):
 
-    _element = None
-
     def _make_locator(self, text):
         self.locator = locators.XpathLocator(
-            f"//label [text()='{text}']"
-            f"/ancestor::div[contains(@id, 'togglefield')]"
-            f"[last()]")
+            f"//* [text()='{text}']"
+            f"/ancestor::div[contains(@id, 'togglefield')]")
 
     def get_element(self):
-        if not self._element:
-            self._element = self.driver.find_element(*self.locator)
-        return self._element
+        return self.driver.find_element(*self.locator)
 
     @property
     def _checked(self):
-        element_class = self.get_element().get_attribute('class').split()
+        element = self.get_element()
+        element_class = element.get_attribute('class').split()
         return 'x-form-cb-checked' in element_class
 
     def _click(self):
@@ -175,6 +181,3 @@ class GlobalScopeSwitchButton(Checkbox):
     def uncheck(self):
         if self._checked:
             self._click()
-
-
-
