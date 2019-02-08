@@ -1,12 +1,9 @@
 import uuid
 import os
 import time
-from pathlib import Path
 
 import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
-
-
 
 from revizor2.conf import CONF
 from revizor2.testenv import TestEnv
@@ -16,18 +13,16 @@ from revizor2.fixtures import resources
 def pytest_addoption(parser):
     group = parser.getgroup("revizor selenium", after="general")
     group.addoption(
-        "--te-remove", dest="te_remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
+        "--te-remove", dest="te_remove", action="store_true", default=False,
+        help="Destroy TestEnv even when some tests fail."
     )
     group.addoption(
-        "--debug-mode", action="store", default='INFO', help="Show log messages as they appear. Set message level (DEBUG, INFO, WARNING and so on)."
+        "--page-load-timeout", dest="load_timeout", action="store", default=30, type=int,
+        help="Seconds to wait page load",
     )
     group.addoption(
-        "--page-load-timeout", dest="load_timeout", action="store",
-        help="Seconds to wait page load", default=30, type=int
-    )
-    group.addoption(
-        "--te-id", "--test-environment-id", dest="te_id",
-        action="store", help="Scalr test environment id to use existing env", default=None
+        "--te-id", "--test-environment-id", dest="te_id", action="store",
+        help="Scalr test environment id to use existing env", default=None
     )
 
 

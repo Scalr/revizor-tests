@@ -176,6 +176,7 @@ class Users(AdminTopMenu):
     set_activate_button = ConfirmButton(xpath=_confirm_btn % "Activate selected users")
     set_suspended_button = ConfirmButton(xpath=_confirm_btn % "Suspend selected users")
     delete_user_button = ConfirmButton(xpath=_confirm_btn_red % "Delete selected users")
+    refresh_button = Button(xpath=_confirm_btn % "Refresh")
 
     def new_user_click(self):
         self.new_user_button.click()

@@ -40,7 +40,7 @@ def grid(ctx, docs=False, port='4444'):
     'te-remove': "If specified, TestEnv will be deleted at the end of test session, even if some tests will fail.",
     'debug-mode': "Print logged messages of specified level as they appear during test run. Possible levels DEBUG, INFO, WARNING, ERROR. Default level INFO."
 })
-def webtests(ctx, testpath=None, browsers='all', processes=None, te_id=None, localmode=None, te_remove=None, debug_mode='INFO'):
+def webtests(ctx, testpath=None, browsers='all', processes=None, te_id=None, localmode=None, te_remove=None, log_level='INFO'):
     """Incrementally executes speicified selenium/pytest test cases with specified browsers.
     """
     testpath = testpath if testpath else ''
@@ -48,11 +48,11 @@ def webtests(ctx, testpath=None, browsers='all', processes=None, te_id=None, loc
     processes = ' -n %s' % processes if processes else ''
     te_id = '--te-id %s' % te_id if te_id else ''
     te_remove = '--te-remove true' if te_remove else ''
-    debug_mode = '--log-cli-level %s' % debug_mode.upper()
+    log_level = '--log-cli-level %s' % log_level.upper()
     for browser in browsers:
         driver = browser if localmode else 'Remote'
         command = 'python3 -m pytest%s %s --driver %s --host 0.0.0.0 --port 4444 --capability browserName %s %s %s %s --disable-warnings' %\
-            (processes, debug_mode, driver, browser, testpath, te_id, te_remove) #FIX ME - Deals with using deprecated options in third-party libraries (mainly pluggy)
+            (processes, log_level, driver, browser, testpath, te_id, te_remove) #FIX ME - Deals with using deprecated options in third-party libraries (mainly pluggy)
         print(command)
         ctx.run(command)
 

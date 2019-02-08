@@ -49,8 +49,8 @@ class TestAccounts(object):
         account_owner_popup.set_global_admin_perm_button.check()
         owner_password_detail_panel = account_owner_popup.save_button.click(panel_type='form')
         account_owner_popup.save_button.wait_until_condition(EC.staleness_of, timeout=3)
-        owner_password_detail_panel.click_by_label('Close')
-        owner_password_detail_panel.wait_presence_off()
+        owner_password_detail_panel.click(label='Close')
+        owner_password_detail_panel.wait_presence_of()
         # Select created account owner
         account_edit_popup.set_account_owner(self.test_account_email)
         account_edit_popup.comments_field.write("Selenium test new account")
@@ -86,8 +86,8 @@ class TestAccounts(object):
         table_row = TableRow(driver=accounts_page.driver, label=account_name)
         table_row.check()
         confirm_panel = accounts_page.delete_account_button.click()
-        confirm_panel.click_by_label('Delete')
-        confirm_panel.wait_presence_off()
+        confirm_panel.click(label='Delete')
+        confirm_panel.wait_presence_of()
         table_row.wait_until_condition(condition=EC.staleness_of, timeout=3)
         with pytest.raises(NoSuchElementException):
             table_row.get_element(reload=True)

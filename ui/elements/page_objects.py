@@ -1,3 +1,4 @@
+import re
 import time
 import logging
 
@@ -111,17 +112,17 @@ class ConfirmPanel(object):
             self._panel = self.driver.find_element(*self.locator)
         return self._panel
 
-    def click_by_label(self, label):
-        xpath = f"./descendant::* [text()='{label}']"
+    def click(self, label=None, hint=None):
+        if label:
+            xpath = f"./descendant::* [text()='{label}']"
+        elif hint:
+            xpath = f"./descendant::* [contains(@data-qtip, '{hint}')]"
+        else:
+            raise ValueError("Not enough required parameters. 'label' or 'hint' must present.")
         button = self.get_element().find_element_by_xpath(xpath)
         button.click()
 
-    def click_by_hint(self, hint):
-        xpath = f"./descendant::* [contains(@data-qtip, '{hint}')]"
-        element = self.get_element().find_element_by_xpath(xpath)
-        element.click()
-
-    def wait_presence_off(self, timeout=3):
+    def wait_presence_of(self, timeout=3):
         try:
             WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located(self.locator))
@@ -130,8 +131,12 @@ class ConfirmPanel(object):
             return False
 
     def find_descendant_element(self, xpath):
-        if xpath.startswith('/'):
-            ''.join(xpath.split('/', 2))
+        """Search for elements inside the confirm panel. The root of search is confirm panel.
+
+        Xpath example: passed xpath='input [@class=class_atr]' for finding input element on panel will be transform to
+        '{panel locator}./descendant::input [@class=class_atr]'
+        """
+        xpath = re.sub(r"^[/]+", '', xpath)
         panel = self.get_element()
         return panel.find_element_by_xpath(''.join(('./descendant::', xpath)))
 
@@ -159,9 +164,6 @@ class GlobalScopeSwitchButton(Checkbox):
         self.locator = locators.XpathLocator(
             f"//* [text()='{text}']"
             f"/ancestor::div[contains(@id, 'togglefield')]")
-
-    def get_element(self):
-        return self.driver.find_element(*self.locator)
 
     @property
     def _checked(self):

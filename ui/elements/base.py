@@ -240,12 +240,22 @@ class Dropdown(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def select(self, option, hide_options=False):
-        LOG.debug('Select option %s in dropdown %s' % (option, str(self.locator)))
-        xpath = "(//* [text()='{}'])[position()=1]".format(option)
+        """
+        :type option: str
+        :param option:
+
+        :type hide_options:  bool
+        :param hide_options: Forced hide of the dropdown list
+        """
+        LOG.debug(f'Select option {option} in dropdown {self.locator}')
+        xpath = f"(//* [text()='{option}'])[position()=1]"
         self.get_element().click()
         Button(xpath=xpath, driver=self.driver).click()
         if hide_options:
-            xpath = "//".join((xpath, "following::div [contains(@class, 'x-form-arrow-trigger')][position()=1]"))
+            xpath = "//".join((
+                xpath,
+                "following::div [contains(@class, 'x-form-arrow-trigger')]"
+                "[position()=1]"))
             Button(xpath=xpath, driver=self.driver).click()
 
 
@@ -360,10 +370,11 @@ class TableRow(BaseElement):
         """
         button_xpath = xpath or f"./descendant::a [contains(@data-qtip, '{hint}')]"
         try:
-            button = self.get_element().find_element_by_xpath(button_xpath)
+            table_raw = self.get_element()
+            button = table_raw.find_element_by_xpath(button_xpath)
             button.click()
-        except NoSuchElementException:
-            return False
+        except NoSuchElementException as e:
+            raise type(e)(f"Can't find button by hint: {hint}.\n Driver error:{e.args[0]}")
 
     @property
     def exists(self):
