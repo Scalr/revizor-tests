@@ -103,8 +103,8 @@ class ConfirmPanel(object):
         self.driver = driver
         panel_type = panel_type or 'panel'
         self.locator = locators.XpathLocator(
-            f"//body/div [contains(@class, 'x-panel-confirm')]"
-            f"[contains(@id, '{panel_type}')]"
+            f"(//body/div [contains(@class, 'x-panel-confirm')]"
+            f"[contains(@id, '{panel_type}')])"
             f"[last()]")
 
     def get_element(self):

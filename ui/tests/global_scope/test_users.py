@@ -20,8 +20,6 @@ from selenium.webdriver.support import expected_conditions as EC
 
 class TestUsers(object):
 
-    test_user_full_name = "Selenium User"
-
     required_fields_args = [
         ("email_field", "test@scalr.com", "User already exists"),
         ("email_field", "invalid value", "field should be an e-mail address"),
@@ -42,39 +40,60 @@ class TestUsers(object):
         self.admin_dashboard = login_page.login(
             request.config.admin_login,
             request.config.admin_pass)
-        self.test_user_email = f"selenium-{uuid4().hex[0:8]}@localhost.net"
+        self.user_email = f"selenium-{uuid4().hex[0:8]}@localhost.net"
+
+    def create_user(self, full_name=None, password=None, sign_in_pass=False,
+                    suspended=False, comments=None,
+                    global_admin=True, cm_admin=False, view_password=False):
+        users_page = self.admin_dashboard.go_to_users()
+        new_user_panel = users_page.new_user_click()
+        new_user_panel.email_field.write(self.user_email)
+        if full_name:
+            new_user_panel.full_name_field.write(full_name)
+        if password:
+            new_user_panel.generate_password_button.uncheck()
+            new_user_panel.password_field.write(password)
+            new_user_panel.confirm_password_field.write(password)
+        if sign_in_pass:
+            new_user_panel.change_password_at_signin_button.check()
+        if suspended:
+            new_user_panel.set_suspended_button.click()
+        if comments:
+            new_user_panel.comments_field.write(comments)
+        if global_admin:
+            new_user_panel.set_global_admin_perm_button.check()
+        if cm_admin:
+            new_user_panel.set_cm_admin_perm_button.check()
+        password_details_panel = new_user_panel.save_button.click(panel_type='form')
+        new_user_panel.save_button.wait_until_condition(
+            EC.staleness_of, timeout=3)
+        if view_password:
+            password_details_panel.click(hint="Show password")
+            password_field = password_details_panel.find_descendant_element("input")
+            user_password = password_field.get_attribute('value')
+        else:
+            user_password = None
+        password_details_panel.click(label='Close')
+        users_page.refresh_button.wait_until_condition(EC.element_to_be_clickable)
+        users_page.refresh_button.click()
+        return user_password
 
     def test_create_user(self):
+        self.create_user(
+            full_name="Selenium user",
+            sign_in_pass=True,
+            suspended=True,
+            comments='New selenium user',
+        )
         users_page = self.admin_dashboard.go_to_users()
-        new_user_panel = users_page.new_user_click()
-        new_user_panel.full_name_field.write(self.test_user_full_name)
-        new_user_panel.email_field.write(self.test_user_email)
-        new_user_panel.generate_password_button.check()
-        new_user_panel.change_password_at_signin_button.check()
-        new_user_panel.comments_field.write(f'Selenium user: {self.test_user_full_name}')
-        new_user_panel.set_global_admin_perm_button.check()
-        password_details_panel = new_user_panel.save_button.click(panel_type='form')
-        new_user_panel.save_button.wait_until_condition(
-            EC.staleness_of, timeout=3)
-        password_details_panel.click(label='Close')
-        users_page.refresh_button.wait_until_condition(EC.element_to_be_clickable)
-        users_page.refresh_button.click()
-        Filter(driver=users_page.driver).write(self.test_user_email)
-        assert TableRow(driver=users_page.driver, label=self.test_user_email).exists
+        Filter(driver=users_page.driver).write(self.user_email)
+        assert TableRow(driver=users_page.driver, label=self.user_email).exists
 
     def test_activate_suspended_user(self):
+        self.create_user(suspended=True)
         users_page = self.admin_dashboard.go_to_users()
-        new_user_panel = users_page.new_user_click()
-        new_user_panel.email_field.write(self.test_user_email)
-        new_user_panel.set_suspended_button.click()
-        password_details_panel = new_user_panel.save_button.click(panel_type='form')
-        new_user_panel.save_button.wait_until_condition(
-            EC.staleness_of, timeout=3)
-        password_details_panel.click(label='Close')
-        users_page.refresh_button.wait_until_condition(EC.element_to_be_clickable)
-        users_page.refresh_button.click()
-        Filter(driver=users_page.driver).write(self.test_user_email)
-        user_row = TableRow(driver=users_page.driver, label=self.test_user_email)
+        Filter(driver=users_page.driver).write(self.user_email)
+        user_row = TableRow(driver=users_page.driver, label=self.user_email)
         user_row.check()
         acivate_confirm_panel = users_page.set_activate_button.click()
         acivate_confirm_panel.click(label='OK')
@@ -83,17 +102,10 @@ class TestUsers(object):
             EC.presence_of_element_located(locators.XpathLocator(is_active)))
 
     def test_delete_user(self):
+        self.create_user()
         users_page = self.admin_dashboard.go_to_users()
-        new_user_panel = users_page.new_user_click()
-        new_user_panel.email_field.write(self.test_user_email)
-        password_details_panel = new_user_panel.save_button.click(panel_type='form')
-        new_user_panel.save_button.wait_until_condition(
-            EC.staleness_of, timeout=3)
-        password_details_panel.click(label='Close')
-        users_page.refresh_button.wait_until_condition(EC.element_to_be_clickable)
-        users_page.refresh_button.click()
-        Filter(driver=users_page.driver).write(self.test_user_email)
-        user_row = TableRow(driver=users_page.driver, label=self.test_user_email)
+        Filter(driver=users_page.driver).write(self.user_email)
+        user_row = TableRow(driver=users_page.driver, label=self.user_email)
         user_row.check()
         confirm_panel = users_page.delete_user_button.click()
         confirm_panel.click(label='Delete')
@@ -106,20 +118,10 @@ class TestUsers(object):
             user_row.get_element(reload=True)
 
     def test_change_auto_gen_password(self, request):
+        user_password = self.create_user(view_password=True)
         users_page = self.admin_dashboard.go_to_users()
-        new_user_panel = users_page.new_user_click()
-        new_user_panel.email_field.write(self.test_user_email)
-        new_user_panel.generate_password_button.check()
-        password_details_panel = new_user_panel.save_button.click(panel_type='form')
-        new_user_panel.save_button.wait_until_condition(EC.staleness_of, timeout=3)
-        password_details_panel.click(hint="Show password")
-        password_field = password_details_panel.find_descendant_element("input")
-        password = password_field.get_attribute('value')
-        new_password = 2*password
-        password_details_panel.click(label='Close')
-        users_page.refresh_button.wait_until_condition(EC.element_to_be_clickable)
-        users_page.refresh_button.click()
-        edit_user_panel = users_page.edit_user(self.test_user_email)
+        new_password = 2*user_password
+        edit_user_panel = users_page.edit_user(self.user_email)
         password_change_panel = edit_user_panel.change_user_password_button.click(panel_type='form')
         edit_user_panel.change_user_password_button.wait_until_condition(EC.staleness_of, timeout=3)
         password_change_panel.click(label='Automatically generate a password')
@@ -144,7 +146,7 @@ class TestUsers(object):
         assert new_password == password_field.get_attribute('value')
         password_panel.click(label='Close')
         edit_user_panel.cancel_button.click()
-        assert TableRow(driver=users_page.driver, label=self.test_user_email).exists
+        assert TableRow(driver=users_page.driver, label=self.user_email).exists
 
     @pytest.mark.parametrize("field_name, field_value, alert_hint", required_fields_args)
     def test_check_required_fields_validation(self, field_name, field_value, alert_hint):

@@ -327,7 +327,7 @@ class TableRow(BaseElement):
 
     def _make_locator(self, label=None, xpath=None):
         if label:
-            path = f"//* [text()='{label}']/ancestor::table[contains(@class, 'x-grid-item')]"
+            path = f"(//* [text()='{label}'])[last()]/ancestor::table[contains(@class, 'x-grid-item')]"
             self.locator = locators.XpathLocator(path)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
