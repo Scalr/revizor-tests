@@ -24,23 +24,6 @@ class LoginPage(BasePage):
     def loaded(self):
         return self.loading_blocker.wait_until_condition(EC.invisibility_of_element_located)
 
-    # @wait_for_page_to_load
-    # def login(self, user, password, admin=None):
-    #     """Logs in with existing user.
-    #        Returns EnvironmentDashboard page obejct.
-    #
-    #        :param str user: username(email).
-    #        :param str password: user password
-    #     """
-    #     self.login_field.write(user)
-    #     self.password_field.write(password)
-    #     self.login_button.click()
-    #     if admin:
-    #         from pages.admin_scope import AdminDashboard
-    #         return AdminDashboard(self.driver, self.base_url)
-    #     from pages.environment_scope import EnvironmentDashboard
-    #     return EnvironmentDashboard(self.driver, self.base_url)
-
     @wait_for_page_to_load
     def login(self, user, password):
         """Logs in with existing user.
@@ -58,7 +41,7 @@ class LoginPage(BasePage):
             from pages.environment_scope import EnvironmentDashboard
             dashboard = EnvironmentDashboard(self.driver, self.base_url)
         else:
-            from pages.admin_scope import AdminDashboard
+            from pages.global_scope import AdminDashboard
             dashboard = AdminDashboard(self.driver, self.base_url)
         return dashboard
 

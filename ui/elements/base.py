@@ -161,24 +161,30 @@ class Combobox(BaseElement):
     """Dropdown with multiple selectable options.
     """
 
-    def _make_locator(self, text=None, xpath=None, span=True):
+    def _make_locator(self, text=None, xpath=None, css=None, span=True, li=True):
         """
            :param bool span: identifies whether text is in child //span element
         """
         self.span = span
+        self.li = li
         if text:
             self.locator = locators.XpathLocator(
                 '//span[contains(text(), "%s")]//ancestor::div[starts-with(@id, "combobox")]' % text)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif css:
+            self.locator = locators.CSSLocator(css)
         else:
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
         self.get_element().click()
-        if self.span:
+        if self.span and self.li:
             Button(xpath='//span[contains(text(), "%s")]//parent::li' %
                    option, driver=self.driver).click()
+        elif self.span and not self.li:
+            Button(xpath='//span[contains(text(), "%s")]' %
+                         option, driver=self.driver).click()
         else:
             Button(xpath='//li[contains(text(), "%s")]' %
                    option, driver=self.driver).click()

@@ -57,7 +57,7 @@ class CommonTopMenu(BasePage):
         """Switches to Admin level Dashboard.
            Returns AdminDashboard page object.
         """
-        from pages.admin_scope import AdminDashboard
+        from pages.global_scope import AdminDashboard
         return AdminDashboard(self.driver, self.base_url)
 
     @wait_for_page_to_load

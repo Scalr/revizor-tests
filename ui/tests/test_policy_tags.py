@@ -10,7 +10,7 @@ from selenium.webdriver.common.keys import Keys
 from revizor2.conf import CONF
 from pages.login import LoginPage
 from pages.roles import RolesEdit
-from pages.admin_scope import PolicyTags
+from pages.global_scope import PolicyTags
 from elements import locators
 from elements.base import Label, Button, Table
 
@@ -115,20 +115,27 @@ class TestPolicyTags:
         tag_names = ['tag-1', 'tag-2', 'tag-3']
         TestPolicyTags.test_create_new_policy_tag(self, tag_names)
 
-    def go_to_env_scope_from_admin(self):
-        # account_dashboard = self.admin_dashboard.menu.go_to_accounts().menu.log_in_to_account()
+    def scope_switch(self, scope):
+        """
+        :param scope: can be 'default' - Environment
+         or 'admin' - Global scope
+        """
         self.dashboard.menu.logout()
         global DEFAULT_USER
-        DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
         global DEFAULT_PASSWORD
-        DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.default['password']
+        if scope == 'default':
+            DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
+            DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.default['password']
+        elif scope == 'admin':
+            DEFAULT_USER = CONF.credentials.testenv.accounts.admin['username']
+            DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.admin['password']
         login_page = LoginPage(self.driver, self.url).open()
         self.dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
 
     def go_to_roles_page_account_scope(self):
         account_dashboard = self.dashboard.menu.go_to_account()
         account_dashboard.scalr_main_menu.click()
-        main_menu_items = self.dashboard.scalr_main_menu.list_items()
+        main_menu_items = account_dashboard.scalr_main_menu.list_items()
         main_menu_items['Roles\nADD NEW'].mouse_over()
         roles_page = account_dashboard.go_to_roles()
         return roles_page
@@ -141,18 +148,18 @@ class TestPolicyTags:
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
 
     def create_role_with_policy_tag_account_scope(self):
-        TestPolicyTags.go_to_env_scope_from_admin(self)
+        TestPolicyTags.scope_switch(self, scope='default')
         roles_page = TestPolicyTags.go_to_roles_page_account_scope(self)
         roles_edit_page = roles_page.new_role()
         roles_settings = {
-            'role_name': 'selenium-role-policy-tag-acc'
+            'role_name': 'selenium-ubuntu1404-with-tag-acc'
         }
         RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1', **roles_settings)
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
         return roles_page
 
     def test_validation_add_second_policy_tag_to_role(self):
-        role_name = 'selenium-role-policy-tag-acc'
+        role_name = 'selenium-ubuntu1404-with-tag-acc'
         roles_page = TestPolicyTags.create_role_with_policy_tag_account_scope(self)
         roles_page.search_role_field.write(role_name)
         RolesEdit.created_role(self, role_name).click()
@@ -175,7 +182,7 @@ class TestPolicyTags:
     def test_search_field_trigger_acc(self):
         roles_page = TestPolicyTags.go_to_roles_page_account_scope(self)
         tag_name = 'tag-1'
-        roles_names = ('selenium-role-policy-tag-admin', 'selenium-role-policy-tag-acc')
+        roles_names = ('selenium-ubuntu1404-with-tag-admin', 'selenium-ubuntu1404-with-tag-acc')
         TestPolicyTags.search_field_trigger(self, roles_page, tag_name, *roles_names)
 
     def test_policy_tag_cannot_be_used_as_script_tag(self):
@@ -195,7 +202,7 @@ class TestPolicyTags:
         roles_page = self.dashboard.menu.go_to_roles()
         roles_edit_page = roles_page.new_role(env=True)
         roles_settings = {
-            'role_name': 'selenium-role-policy-tag-env'
+            'role_name': 'selenium-ubuntu1404-with-tag-env'
         }
         RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1', **roles_settings)
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
@@ -203,8 +210,89 @@ class TestPolicyTags:
     def test_search_field_trigger_env(self):
         roles_page = self.dashboard.menu.go_to_roles()
         roles_names = (
-            'selenium-role-policy-tag-admin',
-            'selenium-role-policy-tag-acc',
-            'selenium-role-policy-tag-env')
+            'selenium-ubuntu1404-with-tag-admin',
+            'selenium-ubuntu1404-with-tag-acc',
+            'selenium-ubuntu1404-with-tag-env')
         tag_name = 'tag-1'
         TestPolicyTags.search_field_trigger(self, roles_page, tag_name, *roles_names)
+
+# Policy tags> Application in Policy
+
+    def test_preparationg_applying_in_policy(self):
+        TestPolicyTags.scope_switch(self, scope='admin')
+        roles_page = self.dashboard.menu.go_to_roles()
+        roles_edit_page = roles_page.new_role()
+        roles_settings = {
+            'role_name': 'selenium-ubuntu1404-admin'
+        }
+        RolesEdit.create_role(self, roles_edit_page, **roles_settings)
+        assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
+
+        TestPolicyTags.scope_switch(self, scope='default')
+        roles_page = self.dashboard.menu.go_to_roles()
+        roles_edit_page = roles_page.new_role(env=True)
+        roles_settings = {
+            'role_name': 'selenium-ubuntu1404-env'
+        }
+        RolesEdit.create_role(self, roles_edit_page, **roles_settings)
+        assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
+
+        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self)
+        roles_edit_page = roles_page.new_role()
+        roles_settings = {
+            'role_name': 'selenium-ubuntu1404-acc'
+        }
+        RolesEdit.create_role(self, roles_edit_page, **roles_settings)
+        assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
+
+    def go_to_policyengine_groups(self):
+        account_dashboard = self.dashboard.menu.go_to_account()
+        account_dashboard.scalr_main_menu.click()
+        main_menu_items = account_dashboard.scalr_main_menu.list_items()
+        main_menu_items['Policy Engine'].mouse_over()
+        policy_groups_page = account_dashboard.go_to_policy_groups()
+        return policy_groups_page
+
+    def test_chef_servers_config_with_policy(self):
+        policy_groups_page = TestPolicyTags.go_to_policyengine_groups(self)
+        time.sleep(2)
+        policy_groups_page.new_policy_group_button.click()
+        policy_groups_page.name_field.write('selenium-policy-group-1')
+        policy_groups_page.group_type_combobox.select('Configuration')
+        policy_groups_page.new_policy_button.click()
+        policy_groups_page.policy_type_combobox.select('chef.servers')
+        policy_groups_page.role_tag_combobox.select('tag-1')
+        policy_groups_page.chef_servers_checkbox.click()
+        policy_groups_page.new_policy_ok_button.click()
+        policy_groups_page.save_button.click()
+        assert policy_groups_page.tooltip_policy_group_saved.visible(), \
+            "Tooltip message about successfully saved Policy Group was not found!"
+
+    def test_add_config_to_environment(self):
+        env_page = self.dashboard.menu.go_to_account().menu.go_to_environments()
+        env_page.select_environment(' acc1env1')
+        env_page.policies_tab.click()
+        env_page.link_cloud_to_environment('Configuration','selenium-policy-group-1')
+        env_page.save_button.click()
+        assert env_page.page_message.text == "Environment saved", \
+            "No message present about successfull saving of the new Environment"
+        assert env_page.linked_policy_group("selenium-policy-group-1").visible()
+
+    @pytest.mark.skip('SCALRCORE-11738')
+    def test_check_application_with_policy_tag_role(self):
+        TestPolicyTags.scope_switch(self, scope='default')
+
+        farms_page = self.dashboard.menu.go_to_environment(
+            env_name=" acc1env1").menu.go_to_farms()
+        new_farm_page = farms_page.new_farm()
+        new_farm_page.farm_name_field.write('Farm1')
+        new_farm_page.projects_dropdown.select("Default project / Default cost centre")
+        category = 'Base'
+        roles_without_tag = ['selenium-ubuntu1404-admin',
+                             'selenium-ubuntu1404-env',
+                             'selenium-ubuntu1404-acc']
+        new_farm_page.add_farm_role_button.click()
+        for role_name in roles_without_tag:
+            new_farm_page.add_farm_role(category, role_name)
+            new_farm_page.add_role_to_farm_button.click()
+        # Blocked by SCALRCORE-11738

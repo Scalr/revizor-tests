@@ -66,6 +66,13 @@ class AccountLeftMenu(CommonTopMenu):
         Button(xpath="//a[@role='menuitem']/span[.='Roles Library']", driver=self.driver).click()
         return Roles(self.driver, self.base_url)
 
+    def go_to_policy_groups(self):
+        """Redirects to Policy Groups page (list of Scalr polies).
+           Returns Policy Groups page object.
+        """
+        Button(xpath="//a[@role='menuitem']/span[.='Policy Groups']", driver=self.driver).click()
+        return PolicyGroups(self.driver, self.base_url)
+
 
 class AccountDashboard(AccountTopMenu, AccountLeftMenu):
     URL_TEMPLATE = '/#/account/dashboard'
@@ -176,6 +183,7 @@ class Environments(AccountTopMenu):
     save_button = Button(icon="save")
     active_envs = Label(
         xpath='//div[starts-with(@class, "x-dataview-tab")]')
+    policies_tab = Button(xpath="//a[.='Policies']")
 
     @property
     def loaded(self):
@@ -200,6 +208,30 @@ class Environments(AccountTopMenu):
         credentials.click()
         link_button.click()
 
+    def link_policies_to_environment(self, policy_type, policy_group):
+        """Links Policies (by policy type name) to currently selected Scalr Environment
+           with specified Scalr policy groups.
+
+           :param str policy_type: Policy type name (abbreviation) as it's displayed in Scalr UI.
+           :param str policy_group: name of the Policy groups.
+        """
+        type = Button(
+            xpath='//div [contains(text(), "%s")]//ancestor::table//child::a' % policy_type,
+            driver=self.driver)
+        group = Button(
+            xpath='//div [contains(text(), "%s")]//ancestor::table' % policy_group,
+            driver=self.driver)
+        link_button = Button(
+            text="Link to Environment", driver=self.driver)
+        type.click()
+        group.click()
+        link_button.click()
+
+    def linked_policy_group(self, policy_group_name):
+        group = Button(
+            text=policy_group_name, driver=self.driver)
+        return group
+
     def grant_access(self, team):
         """Grant access to currently selected Scalr Environment to specified Scalr team.
 
@@ -218,6 +250,13 @@ class Environments(AccountTopMenu):
         """
         return self.active_envs.list_elements()
 
+    def select_environment(self, env_name):
+        """ Switch to Scalr Environment by Env name.
+            Env names example: ' acc1env1', ' acc1env2', ' acc1env1' ...
+        """
+        env = Button(xpath="//td[.='%s']" % env_name, driver=self.driver)
+        env.click()
+
 
 class Scripts(AccountTopMenu):
     """Scripts page from Account scope.
@@ -231,3 +270,26 @@ class Scripts(AccountTopMenu):
     save_button = Button(icon="save")
     tooltip_policy_tag_not_allowed = Button(
         xpath="//div[@role='alert'][.='Policy Tags are not allowed.']")
+
+
+class PolicyGroups(AccountLeftMenu):
+    """Policy Groups page from Account Scope.
+    """
+    URL_TEMPLATE = '/#/account/policyengine/groups'
+    new_policy_group_button = Button(text="New policy group")
+    new_policy_button = Button(xpath="//span[.='New policy'][@data-ref='btnInnerEl']")
+    name_field = Input(name="name")
+    group_type_combobox = Combobox(xpath="//input[@role='combobox'][@name='type']", span=False)
+    policy_type_combobox = Combobox(
+        css=".x-picker-field.x-form-item-no-label .x-form-required-field", li=False)
+    role_tag_combobox = Combobox(
+        css=".x-anchor-form-item:nth-of-type(4) .x-form-text-default", span=False)
+    new_policy_ok_button = Button(xpath="//span[contains(text(), 'OK')]")
+    chef_servers_checkbox = Button(css=".x-grid:nth-of-type(10) [tabindex='0'] .x-column-header-text")
+    save_button = Button(icon="save")
+    tooltip_policy_group_saved = Button(
+        xpath="//div[.='Policy Group successfully saved'][@class='x-component x-box-item x-component-default']")
+
+    @property
+    def loaded(self):
+        return self.new_policy_group_button.wait_until_condition(EC.visibility_of_element_located, timeout=13)

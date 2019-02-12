@@ -11,7 +11,7 @@ from elements import locators
 from pages.base import wait_for_page_to_load, BasePage
 from pages.common import CommonTopMenu
 from pages.account_scope import AccountDashboard
-from pages.admin_scope import AdminTopMenu
+from pages.global_scope import AdminTopMenu
 
 
 class Roles(AdminTopMenu):
@@ -64,6 +64,8 @@ class RolesEdit(AdminTopMenu):
     tags_dropdown = Dropdown(input_name='projectId')
     save_button = Button(xpath="//span[contains(text(),'Save')]")
     add_image_button = Button(xpath="//div[contains(text(),'Add image')]")
+    add_automation_button = Button(css=".x-form-item-no-label:nth-of-type(3) .x-btn-icon-el-default-small")
+    configure_automation_ok_button = Button(xpath="//span[.='OK'][@data-ref='btnInnerEl']")
     roles_table_sorted_by_roleid = Button(
         xpath="//span[@class='x-searchfield-item-label'][contains(.,'Role ID')]")
     tags_input_field = Button(xpath="//input[@name='tags']")
@@ -76,6 +78,9 @@ class RolesEdit(AdminTopMenu):
         return self.roles_settings_label.wait_until_condition(EC.visibility_of_element_located)
 
     def os_settings(self, os_name, os_version, category, tag_name=None):
+        """
+        Set up OS settings in roles edit page.
+        """
         li = "//li[contains(.,'%s')]"
         os_from_list = li % os_name
         Button(xpath="//input[@placeholder='Family']", driver=self.driver).click()
@@ -95,6 +100,10 @@ class RolesEdit(AdminTopMenu):
         found_category.click()
 
     def add_image(self, image_name):
+        """
+        :param image_name:
+        In roles edit page: Finds the image in the list and adds it to which role is edited.
+        """
         Button(css='.x-form-empty-field .x-form-empty-field', driver=self.driver).click()
         Input(xpath="//input [starts-with(@class, 'x-tagfield-input-field')]", driver=self.driver).write(image_name)
         image = "//div[contains(text(),'%s')]" % image_name
@@ -104,20 +113,40 @@ class RolesEdit(AdminTopMenu):
         Button(xpath="//a[.='Add']", driver=self.driver).click()
 
     def created_role(self, role_name):
+        """
+        :param role_name:
+        :return: the found role in the roles table
+        """
         created_role = Table(text=role_name, driver=self.driver)
         return created_role
 
-    def create_role(self, roles_edit_page, tag_name=None, **roles_settings):
+    def create_role(self, roles_edit_page, tag_name=None, automation=True, **roles_settings):
+        """
+        :param roles_edit_page: Page object. This is the page for creating or editing a role
+         in a particular scope.
+        :param roles_settings: type Dict: you can use default_role settings
+        or set up settings to create roles through roles_settings variable.
+        :param automation: type boolean: you can turn on/off automation
+        and set configuration for automation through roles_settings = {'configure_automation': } variable
+        Example configuration for automation: ['Chef', 'MySQL 5', 'PostgreSQL', 'Percona 5']
+        """
         default_role = {
-            'role_name': 'selenium-role-policy-tag-admin',
+            'role_name': 'selenium-ubuntu1404-with-tag-admin',
             'os_name': 'Ubuntu',
             'os_version': '14.04',
             'tag_name': tag_name,
             'category': 'Base',
-            'image_name': 'base-ubuntu1404-global-160825-1528'
+            'image_name': 'base-ubuntu1404-global-160825-1528',
+            'configure_automation': ['Chef']
         }
         if roles_settings:
             default_role.update(roles_settings)
+        if automation:
+            RolesEdit.add_automation_button.click()
+            for behavior in default_role['configure_automation']:
+                xpath = "//span[@class='x-btn-inner x-btn-inner-simple-small'][.='%s']" % behavior
+                Button(xpath=xpath, driver=self.driver).click()
+            RolesEdit.configure_automation_ok_button.click()
         roles_edit_page.role_name_field.write(default_role['role_name'])
         os_name = default_role['os_name'],
         os_version = default_role['os_version'],
@@ -125,6 +154,7 @@ class RolesEdit(AdminTopMenu):
         roles_edit_page.os_settings(os_name, os_version, category, tag_name)
         roles_edit_page.add_image_button.click()
         roles_edit_page.add_image(default_role['image_name'])
+
         roles_edit_page.save_button.click()
         assert roles_edit_page.roles_table_sorted_by_roleid.visible(), "The roles table is not sorted by Id!"
         assert roles_edit_page.page_message.text == "Role saved", \
