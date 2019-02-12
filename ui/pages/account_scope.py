@@ -47,10 +47,6 @@ class AccountTopMenu(CommonTopMenu):
                driver=self.driver).click()
         return Environments(self.driver, self.base_url)
 
-    @property
-    def accounts_menu(self):
-        return Button(xpath="//span [contains(@class, 'x-icon-environment')]", driver=self.driver)
-
 
 class AccountDashboard(AccountTopMenu):
     URL_TEMPLATE = '/#/account/dashboard'
@@ -60,17 +56,6 @@ class AccountDashboard(AccountTopMenu):
         return Label(
             "Environments in this account",
             driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
-
-    @wait_for_page_to_load
-    def go_to_environment(self, env_name="acc1env1"):
-        """Switches to specific Scalr environment.
-           Returns EnvironmentDashboard page object.
-        """
-        self.accounts_menu.click()
-        Button(xpath="//span[text()='%s']//ancestor::a[contains(@class, 'x-menu-item')]" % env_name,
-               driver=self.driver).click()
-        from pages.environment_scope import EnvironmentDashboard
-        return EnvironmentDashboard(self.driver, self.base_url)
 
 
 class ACL(AccountTopMenu):

@@ -25,7 +25,7 @@ class CommonTopMenu(BasePage):
         return LeftPopupMenu(self.driver)
 
     @property
-    def login_as(self):
+    def current_user_name(self):
         self.scope_user_menu.click()
         return self.driver.find_element_by_xpath("//div[@class='x-username']").text
 

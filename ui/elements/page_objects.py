@@ -123,12 +123,8 @@ class ConfirmPanel(object):
         button.click()
 
     def wait_presence_of(self, timeout=3):
-        try:
-            WebDriverWait(self.driver, timeout).until(
+            return WebDriverWait(self.driver, timeout).until(
                 EC.presence_of_element_located(self.locator))
-            return True
-        except TimeoutException:
-            return False
 
     def find_descendant_element(self, xpath):
         """Search for elements inside the confirm panel. The root of search is confirm panel.

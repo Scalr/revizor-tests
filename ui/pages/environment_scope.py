@@ -1,14 +1,8 @@
-import time
-
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
-from pypom import Page
-from pypom.exception import UsageError
 
 from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu
-from elements import locators
-from pages.base import wait_for_page_to_load, BasePage
+from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
 
@@ -38,19 +32,12 @@ class EnvironmentTopMenu(CommonTopMenu):
         Button(href="#/images", driver=self.driver).click()
         return Images(self.driver, self.base_url)
 
-    @property
-    def accounts_menu(self):
-        """Returns current active Scalr environment menu button.
-        """
-        for name in ['acc1env1', 'acc1env2', 'acc1env3', 'acc1env4', 'Selenium Env']:
-            env = Button(text=name, driver=self.driver)
-            if env.visible():
-                return env
-        raise NoSuchElementException("Can't find active Environment!")
-
 
 class EnvironmentDashboard(EnvironmentTopMenu):
+
     URL_TEMPLATE = '/#/dashboard'
+    accounts_menu_btn = Button(xpath="//a [contains(@class, 'x-btn-environment')]"
+                                     "//descendant::span[contains(@class, 'x-icon-environment')]")
 
     @property
     def loaded(self):
@@ -61,19 +48,26 @@ class EnvironmentDashboard(EnvironmentTopMenu):
         """Switches to Account level Dashboard.
            Returns AccountDashboard page object.
         """
-        self.accounts_menu.click()
-        Button(text="Main account", driver=self.driver).click()
+        self.accounts_menu_btn.click()
+        acc_btn = Button(
+            xpath="//a [@href='#/account/dashboard']"
+                  "[@class='x-menu-favorite-account-link']",
+            driver=self.driver)
+        acc_btn.wait_until_condition(EC.element_to_be_clickable)
+        acc_btn.click()
         from pages.account_scope import AccountDashboard
-        return AccountDashboard(self.driver, self.base_url)
+        return AccountDashboard(self.driver, self.base_url)\
+
 
     @wait_for_page_to_load
-    def change_environment(self, env_name="acc1env1"):
+    def change_environment(self, env_name):
         """Switches to specific Scalr environment.
            Returns EnvironmentDashboard page object.
         """
-        self.accounts_menu.click()
-        if env_name not in self.accounts_menu.text:
-            Button(text=env_name, driver=self.driver).click()
+        env_btn = Button(text=env_name, driver=self.driver)
+        self.accounts_menu_btn.click()
+        env_btn.wait_until_condition(EC.element_to_be_clickable)
+        env_btn.click()
         return self
 
 
