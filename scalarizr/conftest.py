@@ -100,7 +100,7 @@ def farm(request: FixtureRequest) -> Farm:
     else:
         LOG.info(f'Farm ID is set in config, use it: {CONF.main.farm_id}')
         test_farm = Farm.get(CONF.main.farm_id)
-    lib_farm.clear(test_farm)
+        lib_farm.clear(test_farm)
     LOG.info(f'Returning test farm: {test_farm.id}')
     try:
         yield test_farm
@@ -122,6 +122,7 @@ def farm(request: FixtureRequest) -> Farm:
                     test_farm.destroy()
                 except Exception as e:
                     LOG.warning(f'Farm cannot be deleted: {str(e)}')
+        LOG.info('Farm finalize complete')
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -132,6 +133,7 @@ def upload_scripts(testenv):
         path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
         upload_counter = 0
         for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
+            LOG.debug(f'Upload script {script_path}')
             with (path_to_scripts / script_path).open(mode='r') as f:
                 script = json.load(f)
             if script['name'] in existing_scripts:

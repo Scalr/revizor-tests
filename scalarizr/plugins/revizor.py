@@ -47,6 +47,14 @@ def pytest_addoption(parser):
                     action='store',
                     default=None,
                     help='Scalr branch to instantiate test environment from.')
+    group.addoption('--branch',
+                    action='store',
+                    default='master',
+                    help='Scalarizr branch for farmrole.')
+    group.addoption('--to-branch',
+                    action='store',
+                    default=None,
+                    help='Scalarizr alternative branch for some tests') #TODO: Investigate this and remove
     group.addoption('--farm-id',
                     action='store',
                     default=None,
@@ -58,7 +66,7 @@ def pytest_addoption(parser):
                     help='Cloud platform to launch tests on')
     group.addoption('--dist',
                     action='store',
-                    default=None,
+                    default='ubuntu1604',
                     help='OS distro to be tested.')
     group.addoption('--no-stop-farm',
                     action='store_true',
@@ -76,6 +84,9 @@ def pytest_sessionstart(session: Session):
     farm_id = session.config.getoption('--farm-id')
     platform = session.config.getoption('--platform')
     dist = session.config.getoption('--dist')
+    branch = session.config.getoption('--branch')
+    to_branch = session.config.getoption('--to-branch')
+
     if te_id:
         CONF.scalr.te_id = te_id
     if scalr_branch:
@@ -86,8 +97,14 @@ def pytest_sessionstart(session: Session):
         CONF.feature.platform = Platform(driver=platform)
     if dist:
         CONF.feature.dist = Dist(dist_name=dist)
+    if branch:
+        CONF.feature.branch = branch
+    if to_branch:
+        CONF.feature.to_branch = to_branch
     if session.config.getoption('--no-stop-farm'):
         CONF.feature.stop_farm = False
+    if branch:
+        CONF.feature.branch = branch
 
 
 def pytest_collection_modifyitems(session, config: Config, items: tp.List[Function]):

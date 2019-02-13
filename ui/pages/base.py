@@ -1,4 +1,5 @@
 import time
+import logging
 
 from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException, TimeoutException, StaleElementReferenceException
@@ -9,6 +10,8 @@ from pypom.exception import UsageError
 
 from elements import locators
 from elements.base import BaseElement, Label, Button
+
+LOG = logging.getLogger()
 
 
 class invisibility_of_all_elements_located(object):
@@ -26,8 +29,8 @@ class invisibility_of_all_elements_located(object):
                 if element.is_displayed():
                     return False
             except StaleElementReferenceException:
-                pass
-        return elements
+                continue
+        return True
 
 
 def wait_for_page_to_load(func, *args, **kwargs):
@@ -35,16 +38,18 @@ def wait_for_page_to_load(func, *args, **kwargs):
        then returns the page object.
     """
     def wrapper(*args, **kwargs):
+        timeout = kwargs.pop('timeout', 30)
         page = func(*args, **kwargs)
         mask = locators.ClassLocator("x-mask")
-        wait = WebDriverWait(page.driver, 30)
+        wait = WebDriverWait(page.driver, timeout=timeout)
+        LOG.debug("Waiting for loading element with class='x-mask' to drop")
         try:
             wait.until(invisibility_of_all_elements_located(mask))
             if page.loaded:
                 return page
         except TimeoutException:
             pass
-        raise UsageError("Page did not load in 30 seconds.")
+        raise UsageError(f"Page did not load in {timeout} seconds.")
     return wrapper
 
 

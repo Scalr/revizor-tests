@@ -1,13 +1,8 @@
 import time
 
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
-from pypom import Page
-from pypom.exception import UsageError
 
 from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, Combobox, Table
-from elements import locators
 from pages.base import wait_for_page_to_load, BasePage
 from pages.common import CommonTopMenu
 from pages.account_scope import AccountDashboard

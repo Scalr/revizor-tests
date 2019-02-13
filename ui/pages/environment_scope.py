@@ -1,14 +1,8 @@
-import time
-
-from selenium.webdriver.common.by import By
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
-from pypom import Page
-from pypom.exception import UsageError
 
 from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, Combobox
-from elements import locators
-from pages.base import wait_for_page_to_load, BasePage
+from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
 
@@ -49,11 +43,41 @@ class EnvironmentTopMenu(CommonTopMenu):
 
 
 class EnvironmentDashboard(EnvironmentTopMenu):
+
     URL_TEMPLATE = '/#/dashboard'
+    accounts_menu_btn = Button(xpath="//a [contains(@class, 'x-btn-environment')]"
+                                     "//descendant::span[contains(@class, 'x-icon-environment')]")
 
     @property
     def loaded(self):
         return Button(text="Dashboard", driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
+
+    @wait_for_page_to_load
+    def go_to_account(self):
+        """Switches to Account level Dashboard.
+           Returns AccountDashboard page object.
+        """
+        self.accounts_menu_btn.click()
+        acc_btn = Button(
+            xpath="//a [@href='#/account/dashboard']"
+                  "[@class='x-menu-favorite-account-link']",
+            driver=self.driver)
+        acc_btn.wait_until_condition(EC.element_to_be_clickable)
+        acc_btn.click()
+        from pages.account_scope import AccountDashboard
+        return AccountDashboard(self.driver, self.base_url)\
+
+
+    @wait_for_page_to_load
+    def change_environment(self, env_name):
+        """Switches to specific Scalr environment.
+           Returns EnvironmentDashboard page object.
+        """
+        env_btn = Button(text=env_name, driver=self.driver)
+        self.accounts_menu_btn.click()
+        env_btn.wait_until_condition(EC.element_to_be_clickable)
+        env_btn.click()
+        return self
 
 
 class Farms(EnvironmentTopMenu):
@@ -156,8 +180,6 @@ class FarmDesigner(EnvironmentTopMenu):
         xpath = "//div[@class='x-grid-cell-inner '][.='%s']" % role_name
         time.sleep(3)
         Button(xpath=xpath, driver=self.driver).click()
-        time.sleep(3)
-
 
 
 class Images(EnvironmentTopMenu):

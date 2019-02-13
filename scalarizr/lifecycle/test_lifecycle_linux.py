@@ -39,8 +39,7 @@ class TestLifecycleLinux:
              'test_attached_storages_restart',
              'test_reboot_bootstrap',
              'test_nonblank_volume',
-             'test_failed_hostname',
-             'test_unmanaged_storage')
+             'test_failed_hostname')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -87,9 +86,6 @@ class TestLifecycleLinux:
         lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
         if CONF.feature.platform == Platform.EC2:
             lifecycle.validate_path(cloud, server, '/media/partition')
-            if CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-                lifecycle.validate_path(cloud, server, '/media/raidmount')
-                lifecycle.create_files(cloud, server, count=100, directory='/media/raidmount')
 
     @pytest.mark.partition
     @pytest.mark.platform('ec2')
@@ -112,11 +108,6 @@ class TestLifecycleLinux:
         lifecycle.validate_mount_point_in_fstab(cloud, server,
                                                 mount_table=mount_table,
                                                 mount_point='/media/diskmount')
-        if CONF.feature.platform == Platform.EC2 \
-                and CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-            lifecycle.validate_mount_point_in_fstab(cloud, server,
-                                                    mount_table=mount_table,
-                                                    mount_point='/media/raidmount')
 
     @pytest.mark.reboot
     @pytest.mark.platform('ec2', 'vmware', 'cloudstack', 'gce', 'rackspaceng', 'azure')
@@ -133,15 +124,11 @@ class TestLifecycleLinux:
     def test_storages_fstab_reboot(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab after reboot"""
         server = servers['M1']
-        mount_table = context['M1_mount_table']
+        mount_table = lifecycle.get_mount_table(cloud, server)
+        context['M1_mount_table'] = mount_table
         lifecycle.validate_mount_point_in_fstab(cloud, server,
                                                 mount_table=mount_table,
                                                 mount_point='/media/diskmount')
-        if CONF.feature.platform == Platform.EC2 \
-                and CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-            lifecycle.validate_mount_point_in_fstab(cloud, server,
-                                                    mount_table=mount_table,
-                                                    mount_point='/media/raidmount')
 
     @pytest.mark.scripting
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -177,7 +164,7 @@ class TestLifecycleLinux:
                                   script_name='Non ascii script wrong interpreter', synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='Non ascii script wrong interpreter',
-                                               log_contains="Interpreter not found '/no/ÃƒÂ§ÃƒÂ£o'",
+                                               log_contains="Interpreter not found '/no/Ã§Ã£o'",
                                                std_err=True, new_only=True)
 
     @pytest.mark.scripting
@@ -190,11 +177,11 @@ class TestLifecycleLinux:
                                   script_name='non-ascii-output', synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='non-ascii-output',
-                                               log_contains='ÃƒÂ¼',
+                                               log_contains='Ã¼',
                                                new_only=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='non-ascii-output',
-                                               log_contains='ã‚¯ãƒž',
+                                               log_contains='クマ',
                                                std_err=True, new_only=True)
 
     @pytest.mark.scripting
@@ -282,10 +269,6 @@ class TestLifecycleLinux:
                                           config_group='volumes', message='HostInitResponse',
                                           old_details=old_details)
         lifecycle.validate_path(cloud, server, '/media/diskmount')
-        if CONF.feature.platform == Platform.EC2 \
-                and CONF.feature.dist.id in ['centos-6-x', 'centos-7-x', 'ubuntu-14-04']:
-            lifecycle.validate_path(cloud, server, '/media/raidmount')
-            lifecycle.validate_files_count(cloud, server, '/media/raidmount', 100)
         device_id = context['M1_device_media_diskmount']
         lifecycle.validate_device_changed(context, farm, mount_point='/media/diskmount', old_device_id=device_id)
 
@@ -332,16 +315,3 @@ class TestLifecycleLinux:
         lib_farm.add_role_to_farm(context, farm, role_options=['failed_hostname'])
         farm.launch()
         lib_server.wait_status(context, cloud, farm, status=ServerStatus.FAILED)
-
-    @pytest.mark.platform('azure')
-    def test_unmanaged_storage(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Check attached unmanaged storage"""
-        lib_farm.clear(farm)
-        farm.terminate()
-        lib_farm.add_role_to_farm(context, farm, role_options=['unmanaged'])
-        farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        servers['M1'] = server
-        lifecycle.validate_attached_disk_types(context, cloud, farm)
-        lifecycle.validate_path(cloud, server, '/media/diskmount')
-        lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')

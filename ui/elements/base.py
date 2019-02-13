@@ -1,11 +1,14 @@
 import time
+import logging
 
-from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException
+from selenium.common.exceptions import StaleElementReferenceException, NoSuchElementException, TimeoutException, WebDriverException
 from selenium.webdriver.common.action_chains import ActionChains
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 
 from elements import locators
+
+LOG = logging.getLogger()
 
 
 class BaseElement:
@@ -22,13 +25,15 @@ class BaseElement:
 
     @property
     def text(self):
+        LOG.debug('Get element %s text.' % str(self.locator))
         return self.get_element().text
 
     def get_element(self, show_hidden=False):
         return self.list_elements(show_hidden=show_hidden)[0]
 
     def list_elements(self, show_hidden=False):
-        for _ in range(5):
+        LOG.debug("Locate element/elements %s" % str(self.locator))
+        for _ in range(2):
             try:
                 if show_hidden:
                     elements = self.driver.find_elements(*self.locator)
@@ -39,10 +44,11 @@ class BaseElement:
                     return elements
             except StaleElementReferenceException:
                 continue
-            time.sleep(6)
+            time.sleep(2)
         raise NoSuchElementException(self.locator[1])
 
     def mouse_over(self):
+        LOG.debug('Mouse over element %s' % str(self.locator))
         self.scroll_into_view()
         element = self.get_element()
         chain = ActionChains(self.driver)
@@ -50,20 +56,25 @@ class BaseElement:
         chain.perform()
 
     def visible(self):
+        LOG.debug('Check visibily status of the element %s' % str(self.locator))
         elements = self.driver.find_elements(*self.locator)
         if elements:
             return elements[0].is_displayed()
         else:
+            LOG.debug('Element %s was not found.' % str(self.locator))
             return False
 
     def hidden(self):
         return not self.visible()
 
     def wait_until_condition(self, condition, value=None, timeout=10):
+        LOG.debug("Wait until element %s is in condition %s." % (str(self.locator), condition))
         wait = WebDriverWait(self.driver, timeout)
         try:
             if value:
                 wait.until(condition(self.locator, value))
+            elif condition == EC.staleness_of:
+                wait.until(condition(self.get_element()))
             else:
                 wait.until(condition(self.locator))
             return True
@@ -71,6 +82,7 @@ class BaseElement:
             return False
 
     def scroll_into_view(self):
+        LOG.debug('Attempt to scroll element %s into view.' % str(self.locator))
         if self.hidden():
             self.driver.execute_script(
                 "arguments[0].scrollIntoView();", self.driver.find_elements(*self.locator)[0])
@@ -102,7 +114,7 @@ class Button(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def click(self):
-        # self.wait_until_condition(EC.element_to_be_clickable, timeout=3)
+        LOG.debug('Click button %s' % str(self.locator))
         self.get_element().click()
 
 
@@ -123,6 +135,7 @@ class SplitButton(BaseElement):
 
            :param str option: text in option element.
         """
+        LOG.debug('Click option %s in split button %s' % (str(self.locator), option))
         main_button = self.get_element()
         chain = ActionChains(self.driver)
         chain.move_to_element(main_button)
@@ -147,11 +160,13 @@ class Checkbox(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def check(self):
+        LOG.debug('Check checkbox %s' % str(self.locator))
         element = self.get_element()
         if 'x-cb-checked' not in element.get_attribute("class"):
             element.click()
 
     def uncheck(self):
+        LOG.debug('Uncheck checkbox %s' % str(self.locator))
         element = self.get_element()
         if 'x-cb-checked' in element.get_attribute("class"):
             element.click()
@@ -178,6 +193,7 @@ class Combobox(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
+        LOG.debug('Select option %s in combobox %s' % (option, str(self.locator)))
         self.get_element().click()
         if self.span and self.li:
             Button(xpath='//span[contains(text(), "%s")]//parent::li' %
@@ -207,12 +223,14 @@ class Menu(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
+        LOG.debug("Select option %s in menu %s" % (option, str(self.locator)))
         self.get_element().click()
         Button(
             xpath='//* [contains(text(), "%s")]//ancestor::a[starts-with(@id, "menuitem")]' % option,
             driver=self.driver).click()
 
     def click(self):
+        LOG.debug("Click on menu %s" % str(self.locator))
         self.get_element().click()
 
 
@@ -230,10 +248,24 @@ class Dropdown(BaseElement):
         else:
             raise ValueError('No locator policy was provided!')
 
-    def select(self, option):
+    def select(self, option, hide_options=False):
+        """
+        :type option: str
+        :param option:
+
+        :type hide_options:  bool
+        :param hide_options: Forced hide of the dropdown list
+        """
+        LOG.debug(f'Select option {option} in dropdown {self.locator}')
+        xpath = f"(//* [text()='{option}'])[position()=1]"
         self.get_element().click()
-        Button(xpath='//* [contains(text(), "%s")]//parent::div' %
-               option, driver=self.driver).click()
+        Button(xpath=xpath, driver=self.driver).click()
+        if hide_options:
+            xpath = "//".join((
+                xpath,
+                "following::div [contains(@class, 'x-form-arrow-trigger')]"
+                "[position()=1]"))
+            Button(xpath=xpath, driver=self.driver).click()
 
 
 class Input(BaseElement):
@@ -255,11 +287,15 @@ class Input(BaseElement):
             raise ValueError('No locator policy was provided!')
 
     def write(self, text):
+        LOG.debug('Write "%s" in input field %s' % (text, str(self.locator)))
         element = self.get_element()
         element.clear()
         element.send_keys(text)
 
     def write_to_hidden(self, text):
+        """If the field is hidden,
+           but in the UI it is possible to write
+        """
         element = self.get_element(show_hidden=True)
         element.send_keys(text)
 
@@ -270,6 +306,7 @@ class SearchInput(Input):
     """
 
     def write(self, text):
+        LOG.debug('Write text "%s" in search field %s' % (text, str(self.locator)))
         element = self.get_element()
         element.clear()
         Button(xpath='//div [contains(@id, "trigger-cancelButton")]',
@@ -292,6 +329,13 @@ class Label(BaseElement):
         else:
             raise ValueError('No locator policy was provided!')
 
+    @property
+    def exists(self):
+        try:
+            self.get_element().click()
+            return True
+        except (NoSuchElementException, WebDriverException):
+            return
 
 class Table(BaseElement):
     """Any clickable element in table with text
@@ -311,8 +355,93 @@ class Table(BaseElement):
 
 
 class GetURL(BaseElement):
-    """Go to the page without using menu
+    """Go to the any page by url without using menu
     """
 
     def go_to_page(self, container, page):
         self.driver.get(container + page)
+
+
+class TableRow(BaseElement):
+    """Any text label inside the table
+    """
+    _element = None
+
+    def _make_locator(self, label=None, xpath=None):
+        if label:
+            path = f"(//* [text()='{label}'])[last()]/ancestor::table[contains(@class, 'x-grid-item')]"
+            self.locator = locators.XpathLocator(path)
+        elif xpath:
+            self.locator = locators.XpathLocator(xpath)
+        else:
+            raise ValueError('No locator policy was provided!')
+
+    def _click_entry_checkbox(self):
+        checkbox = self.get_element().find_element_by_xpath("./descendant::div [@class='x-grid-row-checker']")
+        if checkbox.is_displayed():
+            checkbox.click()
+
+    @property
+    def _entry_property(self):
+        return self.get_element().get_attribute('class').split()
+
+    def get_element(self, reload=False):
+        if not self._element or reload:
+            self._element = self.driver.find_element(*self.locator)
+        return self._element
+
+    def select(self):
+        """Only highlight entry: make it active
+        """
+        self.get_element().click()
+
+    def check(self):
+        """Select table entry: make it checkbox is checked
+        """
+        if 'x-grid-item-selected' not in self._entry_property:
+            self._click_entry_checkbox()
+
+    def uncheck(self):
+        """Deselect table entry: make it checkbox is unchecked
+        """
+        if 'x-grid-item-selected' in self._entry_property:
+            self._click_entry_checkbox()
+
+    def click_button(self, hint=None, xpath=None):
+        """Click table entry button selected by button hint or xpath. Xpath must be relative path.
+        """
+        button_xpath = xpath or f"./descendant::a [contains(@data-qtip, '{hint}')]"
+        try:
+            table_raw = self.get_element()
+            button = table_raw.find_element_by_xpath(button_xpath)
+            button.click()
+        except NoSuchElementException as e:
+            raise type(e)(f"Can't find button by hint: {hint}.\n Driver error:{e.args[0]}")
+
+    @property
+    def exists(self):
+        try:
+            if self.get_element(reload=True):
+                return True
+        except NoSuchElementException:
+            return False
+
+
+class Filter(BaseElement):
+    """Input field marked by text label. Default label Search used to filter records in table view elements
+    """
+
+    def _make_locator(self, label=None, xpath=None):
+        if not xpath:
+            label = label or 'Search'
+            xpath = f"(//div [text()='{label}'])[last()]"
+        self.locator = locators.XpathLocator(xpath)
+
+    def write(self, text):
+        element = self.get_element()
+        input_field = element.find_element_by_xpath("./following-sibling::input")
+        actions = ActionChains(self.driver)
+        actions.click(on_element=element)
+        actions.send_keys_to_element(input_field, text)
+        actions.perform()
+        time.sleep(2)
