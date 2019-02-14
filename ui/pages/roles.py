@@ -2,7 +2,7 @@ import time
 
 from selenium.webdriver.support import expected_conditions as EC
 
-from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, Combobox, Table
+from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, Combobox, TableRow
 from pages.base import wait_for_page_to_load, BasePage
 from pages.common import CommonTopMenu
 from pages.account_scope import AccountDashboard
@@ -50,6 +50,11 @@ class Roles(AdminTopMenu):
         roles_table_sorted_by_tag = Button(xpath=xpath, driver=self.driver)
         return roles_table_sorted_by_tag
 
+    def edit_role(self):
+        from pages.roles import RolesEdit
+        Button(icon="edit", driver=self.driver).click()
+        return RolesEdit(self.driver, self.base_url)
+
 
 class RolesEdit(AdminTopMenu):
     """Roles Edit page (Admin Scope).
@@ -63,7 +68,7 @@ class RolesEdit(AdminTopMenu):
     configure_automation_ok_button = Button(xpath="//span[.='OK'][@data-ref='btnInnerEl']")
     roles_table_sorted_by_roleid = Button(
         xpath="//span[@class='x-searchfield-item-label'][contains(.,'Role ID')]")
-    tags_input_field = Button(xpath="//input[@name='tags']")
+    #tags_input_field = Button(xpath="//input[@name='tags']")
     body_container = Button(xpath="//div[@id='body-container']")
     tooltip_one_policy_allowed = Button(
         xpath="//div[.='Only one Policy Tag is allowed.'][@class='x-autocontainer-innerCt']")
@@ -71,6 +76,15 @@ class RolesEdit(AdminTopMenu):
     @property
     def loaded(self):
         return self.roles_settings_label.wait_until_condition(EC.visibility_of_element_located)
+
+    def add_tag_to_role(self, tag_name):
+        """
+        Adds a tag to the role that is being edited.
+        """
+        Button(xpath="//input[@name='tags']", driver=self.driver).click()
+        xpath = "//li[contains(.,'%s')]" % tag_name
+        Button(xpath=xpath, driver=self.driver).click()
+
 
     def os_settings(self, os_name, os_version, category, tag_name=None):
         """
@@ -84,9 +98,7 @@ class RolesEdit(AdminTopMenu):
         Button(xpath="//input[@placeholder='Version']", driver=self.driver).click()
         Button(xpath=version_from_list, driver=self.driver).click()
         if tag_name:
-            tag_from_list = li % tag_name
-            RolesEdit.tags_input_field.click()
-            Button(xpath=tag_from_list, driver=self.driver).click()
+            RolesEdit.add_tag_to_role(self, tag_name)
             RolesEdit.body_container.click()
         category_from_list = li % category
         Button(xpath="//div[starts-with(@id, 'combobox')]/input[@name='catId']", driver=self.driver).click()
@@ -112,7 +124,7 @@ class RolesEdit(AdminTopMenu):
         :param role_name:
         :return: the found role in the roles table
         """
-        created_role = Table(text=role_name, driver=self.driver)
+        created_role = TableRow(text=role_name, driver=self.driver)
         return created_role
 
     def create_role(self, roles_edit_page, tag_name=None, automation=True, **roles_settings):

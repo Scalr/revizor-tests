@@ -337,22 +337,6 @@ class Label(BaseElement):
         except (NoSuchElementException, WebDriverException):
             return
 
-class Table(BaseElement):
-    """Any clickable element in table with text
-    """
-
-    def _make_locator(self, text=None, xpath=None):
-        if text:
-            self.locator = locators.XpathLocator(
-                "//table[contains(.,'%s')]" % text)
-        elif xpath:
-            self.locator = locators.XpathLocator(xpath)
-        else:
-            raise ValueError('No locator policy was provided!')
-
-    def click(self):
-        self.get_element().click()
-
 
 class GetURL(BaseElement):
     """Go to the any page by url without using menu
@@ -367,12 +351,15 @@ class TableRow(BaseElement):
     """
     _element = None
 
-    def _make_locator(self, label=None, xpath=None):
+    def _make_locator(self, text=None, label=None, xpath=None):
         if label:
             path = f"(//* [text()='{label}'])[last()]/ancestor::table[contains(@class, 'x-grid-item')]"
             self.locator = locators.XpathLocator(path)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif text:
+            self.locator = locators.XpathLocator(
+                "//table[contains(.,'%s')]" % text)
         else:
             raise ValueError('No locator policy was provided!')
 

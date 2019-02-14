@@ -250,10 +250,37 @@ class EditUserPanel(CreateUserPanel):
     delete_user_button = ConfirmButton(xpath=CreateUserPanel._icon_btn % "delete")
 
 
-class Roles(AdminTopMenu):
-    """Roles page from Global scope.
+class PolicyTags(AdminLeftMenu):
+    """Policy Tags page (Admin Scope).
     """
-    pass
+    URL_TEMPLATE = '#/admin/policyengine/tags'
+    new_policy_tag_button = Button(text="New policy tag")
+    name_field = Input(name="name")
+    save_button = Button(icon="save")
+    cancel_button = Button(icon="cancel")
+    delete_button_before_pop_up = Button(icon="delete")
+    deletion_pop_up = Button(xpath="//div[contains(.,'Delete Policy Tag ')][@class='message']")
+
+    @property
+    def loaded(self):
+        return self.new_policy_tag_button.wait_until_condition(
+            EC.visibility_of_element_located)
+
+    def created_tag(self, name):
+        created_tag = TableRow(text=name, driver=self.driver)
+        return created_tag
+
+    def input_alert(self, text):
+        xpath = '//div[@role="alert"][.="%s"]' % text
+        alert = Button(xpath=xpath, driver=self.driver)
+        return alert.visible()
+
+    def deletion_pop_up_buttons(self, action):
+        """
+        :param action: can be 'Cancel' or 'Delete'
+        """
+        xpath = "//*[.='%s']" % action
+        Button(xpath=xpath, driver=self.driver).click()
 
 
 class Images(AdminTopMenu):
@@ -284,36 +311,3 @@ class WebhooksEndpoints(AdminTopMenu):
     """WebhooksEndpoints page from Global scope.
     """
     pass
-
-
-class PolicyTags(AdminLeftMenu):
-    """Policy Tags page (Admin Scope).
-    """
-    URL_TEMPLATE = '#/admin/policyengine/tags'
-    new_policy_tag_button = Button(text="New policy tag")
-    name_field = Input(name="name")
-    save_button = Button(icon="save")
-    cancel_button = Button(icon="cancel")
-    delete_button_before_pop_up = Button(icon="delete")
-    deletion_pop_up = Button(xpath="//div[contains(.,'Delete Policy Tag ')][@class='message']")
-
-    @property
-    def loaded(self):
-        return self.new_policy_tag_button.wait_until_condition(
-            EC.visibility_of_element_located)
-
-    def created_tag(self, name):
-        created_tag = Table(text=name, driver=self.driver)
-        return created_tag
-
-    def input_alert(self, text):
-        xpath = '//div[@role="alert"][.="%s"]' % text
-        alert = Button(xpath=xpath, driver=self.driver)
-        return alert.visible()
-
-    def deletion_pop_up_buttons(self, action):
-        """
-        :param action: can be 'Cancel' or 'Delete'
-        """
-        xpath = "//*[.='%s']" % action
-        Button(xpath=xpath, driver=self.driver).click()
