@@ -1,11 +1,7 @@
-import time
-
 from selenium.webdriver.support import expected_conditions as EC
 
-from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, Combobox, TableRow
-from pages.base import wait_for_page_to_load, BasePage
-from pages.common import CommonTopMenu
-from pages.account_scope import AccountDashboard
+from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, TableRow
+from pages.base import wait_for_page_to_load
 from pages.global_scope import AdminTopMenu
 
 
@@ -68,7 +64,6 @@ class RolesEdit(AdminTopMenu):
     configure_automation_ok_button = Button(xpath="//span[.='OK'][@data-ref='btnInnerEl']")
     roles_table_sorted_by_roleid = Button(
         xpath="//span[@class='x-searchfield-item-label'][contains(.,'Role ID')]")
-    #tags_input_field = Button(xpath="//input[@name='tags']")
     body_container = Button(xpath="//div[@id='body-container']")
     tooltip_one_policy_allowed = Button(
         xpath="//div[.='Only one Policy Tag is allowed.'][@class='x-autocontainer-innerCt']")

@@ -254,7 +254,7 @@ class Environments(AccountTopMenu):
         """
         return self.active_envs.list_elements()
 
-    def select_environment(self, env_name):
+    def select_active_environment(self, env_name):
         """ Switch to Scalr Environment by Env name.
             Env names example: ' acc1env1', ' acc1env2', ' acc1env1' ...
         """

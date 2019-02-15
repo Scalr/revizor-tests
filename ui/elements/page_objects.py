@@ -33,7 +33,7 @@ class LeftPopupMenu:
     def click(self):
         return self.main_button.click()
 
-    def search_field(self):
+    def search_field_left_menu(self):
         return self.search_field
 
     def scroll(self, direction):

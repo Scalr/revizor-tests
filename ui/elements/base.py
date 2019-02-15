@@ -286,17 +286,14 @@ class Input(BaseElement):
         else:
             raise ValueError('No locator policy was provided!')
 
-    def write(self, text):
-        LOG.debug('Write "%s" in input field %s' % (text, str(self.locator)))
-        element = self.get_element()
-        element.clear()
-        element.send_keys(text)
-
-    def write_to_hidden(self, text):
-        """If the field is hidden,
+    def write(self, text, hidden=False, clear=True):
+        """:param hidden: is used if the field is hidden,
            but in the UI it is possible to write
         """
-        element = self.get_element(show_hidden=True)
+        LOG.debug('Write "%s" in input field %s' % (text, str(self.locator)))
+        element = self.get_element() if not hidden else self.get_element(show_hidden=True)
+        if clear:
+            element.clear()
         element.send_keys(text)
 
 
@@ -335,7 +332,7 @@ class Label(BaseElement):
             self.get_element().click()
             return True
         except (NoSuchElementException, WebDriverException):
-            return
+            return False
 
 
 class GetURL(BaseElement):

@@ -46,7 +46,7 @@ class CommonTopMenu(BasePage):
 
     @wait_for_page_to_load
     def go_to_admin(self):
-        """Switches to Admin level Dashboard.
+        """Switches to Admin level Dashboard (Global scope).
            Returns AdminDashboard page object.
         """
         from pages.global_scope import AdminDashboard

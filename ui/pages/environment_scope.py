@@ -172,6 +172,7 @@ class FarmDesigner(EnvironmentTopMenu):
         return Farms(self.driver, self.base_url)
 
     def add_farm_role(self, category, role_name):
+        #  Works, but needs to be improved, Blocked by SCALRCORE-11738
         role_category = self.combobox_select_reles_type
         time.sleep(3)
         role_category.select(category)

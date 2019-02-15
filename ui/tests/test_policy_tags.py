@@ -1,18 +1,12 @@
 import pytest
-import re
-import os
-import base64
 import time
 
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.keys import Keys
 
 from revizor2.conf import CONF
 from pages.login import LoginPage
 from pages.roles import RolesEdit
-from pages.global_scope import PolicyTags
-from elements import locators
-from elements.base import Label, Button, TableRow
+from elements.base import TableRow
 
 DEFAULT_USER = CONF.credentials.testenv.accounts.admin['username']
 DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.admin['password']
@@ -190,9 +184,9 @@ class TestPolicyTags:
         scripts_page.new_script_button.click()
         scripts_page.script_name_field.write('policy_tag_cannot_be_used_as_script_tag')
         scripts_page.script_content_field_activation.click()
-        scripts_page.script_content_field.write_to_hidden('#!/bin/bash')
+        scripts_page.script_content_field.write('#!/bin/bash', hidden=True, clear=False)
         scripts_page.tags_field.write('tag-1')
-        scripts_page.tags_field.write_to_hidden(Keys.ENTER)
+        scripts_page.tags_field.write(Keys.ENTER, hidden=True, clear=False)
         scripts_page.save_button.click()
         scripts_page.save_button.click()
         assert scripts_page.tooltip_policy_tag_not_allowed.visible(), "Tooltip message was not found!"
@@ -269,7 +263,7 @@ class TestPolicyTags:
 
     def test_add_config_to_environment(self):
         env_page = self.dashboard.menu.go_to_account().menu.go_to_environments()
-        env_page.select_environment(' acc1env1')
+        env_page.select_active_environment(' acc1env1')
         env_page.policies_tab.click()
         env_page.link_cloud_to_environment('Configuration','selenium-policy-group-1')
         env_page.save_button.click()
