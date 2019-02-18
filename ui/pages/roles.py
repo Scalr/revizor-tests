@@ -1,6 +1,6 @@
 from selenium.webdriver.support import expected_conditions as EC
 
-from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, TableRow
+from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, TableRow
 from pages.base import wait_for_page_to_load
 from pages.global_scope import AdminTopMenu
 
