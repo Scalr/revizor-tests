@@ -5,6 +5,8 @@ import requests
 import semver
 
 from revizor2 import CONF
+from revizor2.consts import Platform
+from revizor2.backend import IMPL
 
 LOG = logging.getLogger(__name__)
 
@@ -81,3 +83,11 @@ def get_external_local_ip():
         raise requests.ConnectionError("Can't get external IP from all sites in list")
     LOG.info('Current external IP address is %s' % my_ip)
     return my_ip
+
+
+def get_platform_backend_tools():
+    platform_backend_tools = {
+        Platform.AZURE: 'azure_tools',
+        Platform.EC2: 'aws_tools',
+        Platform.GCE: 'gce_tools'}
+    return getattr(IMPL, platform_backend_tools.get(CONF.feature.platform.name))
