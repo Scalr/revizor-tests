@@ -67,16 +67,21 @@ class BaseElement:
     def hidden(self):
         return not self.visible()
 
-    def wait_until_condition(self, condition, value=None, timeout=10):
-        LOG.debug("Wait until element %s is in condition %s." % (str(self.locator), condition))
+    def wait_until_condition(self, condition, value=None, timeout=10, inverse=False):
+        LOG.debug("Wait until element %s is%s in condition %s." %
+                  (str(self.locator),
+                   ' not' if inverse else '',
+                   condition))
+        if value:
+            condition = condition(self.locator, value)
+        elif condition == EC.staleness_of:
+            condition = condition(self.get_element())
+        else:
+            condition = condition(self.locator)
+
         wait = WebDriverWait(self.driver, timeout)
         try:
-            if value:
-                wait.until(condition(self.locator, value))
-            elif condition == EC.staleness_of:
-                wait.until(condition(self.get_element()))
-            else:
-                wait.until(condition(self.locator))
+            wait.until(lambda driver: bool(condition(driver)) ^ inverse)
             return True
         except TimeoutException:
             return False
