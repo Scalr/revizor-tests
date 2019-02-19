@@ -8,8 +8,8 @@ from pages.login import LoginPage
 from pages.roles import RolesEdit
 from elements.base import TableRow
 
-DEFAULT_USER = CONF.credentials.testenv.accounts.admin['username']
-DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.admin['password']
+DEFAULT_USER = CONF.credentials.testenv.accounts.super_admin['username']
+DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.super_admin['password']
 
 
 class TestPolicyTags:
@@ -121,8 +121,8 @@ class TestPolicyTags:
             DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
             DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.default['password']
         elif scope == 'admin':
-            DEFAULT_USER = CONF.credentials.testenv.accounts.admin['username']
-            DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.admin['password']
+            DEFAULT_USER = CONF.credentials.testenv.accounts.super_admin['username']
+            DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.super_admin['password']
         login_page = LoginPage(self.driver, self.url).open()
         self.dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
 
