@@ -86,6 +86,10 @@ def get_external_local_ip():
 
 
 def get_platform_backend_tools():
+    """
+    Find platform backed by current platform name
+    :return: backend object (IMPL.platform_name_tools)
+    """
     platform_backend_tools = {
         Platform.AZURE: 'azure_tools',
         Platform.EC2: 'aws_tools',
