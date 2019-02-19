@@ -253,7 +253,7 @@ class Dropdown(BaseElement):
         :param hide_options: Forced hide of the dropdown list
         """
         LOG.debug(f'Select option {option} in dropdown {self.locator}')
-        xpath = f"(//* [text()='{option}'])[position()=1]"
+        xpath = f"//*[normalize-space(translate(text(), '\u00A0', ' '))='{option}'][1]"
         self.get_element().click()
         Button(xpath=xpath, driver=self.driver).click()
         if hide_options:
