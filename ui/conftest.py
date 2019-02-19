@@ -1,26 +1,28 @@
 import uuid
 import os
 import time
-from pathlib import Path
 
 import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
 
-
+from revizor2.conf import CONF
 from revizor2.testenv import TestEnv
 from revizor2.fixtures import resources
 
 
 def pytest_addoption(parser):
-    group = parser.getgroup("docker controller", "fatmouse", after="general")
+    group = parser.getgroup("revizor selenium", after="general")
     group.addoption(
-        "--te-id", action="store", default=None, help="Use already created TestEnv."
+        "--te-remove", dest="te_remove", action="store_true", default=False,
+        help="Destroy TestEnv even when some tests fail."
     )
     group.addoption(
-        "--te-remove", action="store", default=None, help="Destroy TestEnv even when some tests fail."
+        "--page-load-timeout", dest="load_timeout", action="store", default=30, type=int,
+        help="Seconds to wait page load",
     )
     group.addoption(
-        "--debug-mode", action="store", default='INFO', help="Show log messages as they appear. Set message level (DEBUG, INFO, WARNING and so on)."
+        "--te-id", "--test-environment-id", dest="te_id", action="store",
+        help="Scalr test environment id to use existing env", default=None
     )
 
 
@@ -37,8 +39,8 @@ def testenv(request):
        Destroys container after all tests in TestClass were executed,
        unless some of the tests failed.
     """
-    te_id = request.config.getoption("--te-id")
-    te_remove = request.config.getoption("--te-remove")
+    te_id = request.config.getoption("te_id")
+    te_remove = request.config.getoption("te_remove")
     if te_id:
         container = TestEnv(te_id)
     else:
@@ -69,3 +71,10 @@ def mock_ssmtp(request):
         ssmtp_script.fp.name,
         '/opt/scalr-server/libexec/mail/ssmtp')
     ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
+
+
+def pytest_sessionstart(session):
+    session.config.admin_login = CONF.credentials.testenv.accounts.admin['username']
+    session.config.admin_pass = CONF.credentials.testenv.accounts.admin['password']
+
+

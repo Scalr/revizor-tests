@@ -66,7 +66,7 @@ def pytest_addoption(parser):
                     help='Cloud platform to launch tests on')
     group.addoption('--dist',
                     action='store',
-                    default=None,
+                    default='ubuntu1604',
                     help='OS distro to be tested.')
     group.addoption('--no-stop-farm',
                     action='store_true',

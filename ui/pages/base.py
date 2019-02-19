@@ -38,9 +38,10 @@ def wait_for_page_to_load(func, *args, **kwargs):
        then returns the page object.
     """
     def wrapper(*args, **kwargs):
+        timeout = kwargs.pop('timeout', 30)
         page = func(*args, **kwargs)
         mask = locators.ClassLocator("x-mask")
-        wait = WebDriverWait(page.driver, 30)
+        wait = WebDriverWait(page.driver, timeout=timeout)
         LOG.debug("Waiting for loading element with class='x-mask' to drop")
         try:
             wait.until(invisibility_of_all_elements_located(mask))
@@ -48,7 +49,7 @@ def wait_for_page_to_load(func, *args, **kwargs):
                 return page
         except TimeoutException:
             pass
-        raise UsageError("Page did not load in 30 seconds.")
+        raise UsageError(f"Page did not load in {timeout} seconds.")
     return wrapper
 
 

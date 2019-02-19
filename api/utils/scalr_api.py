@@ -29,11 +29,10 @@ LOG = logging.getLogger(__name__)
 
 class ScalrApiSession(requests.Session):
 
-    def __init__(self, host, secret_key_id, secret_key, schema="http"):
-        self.base_path = host
+    def __init__(self, secret_key_id, secret_key):
         self.secret_key_id = secret_key_id
         self.secret_key = secret_key
-        self.schema = schema
+
         super().__init__()
 
     def prepare_request(self, request):
@@ -73,13 +72,19 @@ class ScalrApiSession(requests.Session):
 
         return request
 
-    def request(self, method, endpoint, params, body=None, filters=None,  serializer=None, *args, **kwargs):
+    def request(self, method, url, params=None, body=None, filters=None,  serializer=None, *args, **kwargs):
         # Set uri
-        uri = endpoint.format(**params)
+        uri = url.format(**params)
+        parsed_url = urlparse(uri)
         # Set string to sign
-        query_string = urlencode(sorted(filters.items())) if filters else ""
+        query_filters = urlencode(sorted(filters.items())) if filters else ""
         # Set url
-        url = urlunparse((self.schema, self.base_path, uri, '', query_string, ''))
+        url = urlunparse((parsed_url[0],
+                          parsed_url[1],
+                          parsed_url[2],
+                          '',
+                          query_filters,
+                          ''))
         body = json.dumps(body, default=serializer) if body else body
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
         try:

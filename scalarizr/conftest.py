@@ -122,6 +122,7 @@ def farm(request: FixtureRequest) -> Farm:
                     test_farm.destroy()
                 except Exception as e:
                     LOG.warning(f'Farm cannot be deleted: {str(e)}')
+        LOG.info('Farm finalize complete')
 
 
 @pytest.fixture(scope="session", autouse=True)

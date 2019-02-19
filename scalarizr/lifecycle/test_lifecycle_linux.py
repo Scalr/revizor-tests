@@ -124,7 +124,8 @@ class TestLifecycleLinux:
     def test_storages_fstab_reboot(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab after reboot"""
         server = servers['M1']
-        mount_table = context['M1_mount_table']
+        mount_table = lifecycle.get_mount_table(cloud, server)
+        context['M1_mount_table'] = mount_table
         lifecycle.validate_mount_point_in_fstab(cloud, server,
                                                 mount_table=mount_table,
                                                 mount_point='/media/diskmount')
