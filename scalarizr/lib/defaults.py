@@ -42,7 +42,7 @@ class Defaults(object):
     def set_storages_linux(params):
         if CONF.feature.platform.is_rackspacengus:
             return
-        if CONF.feature.platform.is_ec2:
+        if CONF.feature.platform in [Platform.AZURE, Platform.EC2]:
             params.storage.volumes = [
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)

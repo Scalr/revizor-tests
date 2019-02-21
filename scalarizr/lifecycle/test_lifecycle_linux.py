@@ -80,16 +80,17 @@ class TestLifecycleLinux:
         lifecycle.validate_attached_disk_types(context, cloud, farm)
         lifecycle.validate_path(cloud, server, '/media/diskmount')
         lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
-        if CONF.feature.platform == Platform.EC2:
+        if CONF.feature.platform in [Platform.EC2, Platform.AZURE]:
             lifecycle.validate_path(cloud, server, '/media/partition')
 
     @pytest.mark.partition
-    @pytest.mark.platform('ec2')
+    @pytest.mark.platform('ec2', 'azure')
     def test_create_volume_snapshot(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Create volume snapshot"""
         server = servers['M1']
-        lifecycle.create_partitions_on_volume(cloud, server, mnt_point='/media/partition')
-        snapshot_id = lifecycle.create_volume_snapshot(context, farm, '/media/partition')
+        mnt_point = '/media/partition'
+        lifecycle.create_partitions_on_volume(cloud, server, mnt_point=mnt_point)
+        snapshot_id = lifecycle.create_volume_snapshot(context, farm, mnt_point=mnt_point)
         context['volume_snapshot_id'] = snapshot_id
         lifecycle.validate_volume_snapshot(snapshot_id)
 

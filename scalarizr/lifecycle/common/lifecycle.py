@@ -16,7 +16,7 @@ from revizor2.cloud import Cloud
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
-from scalarizr.lib.common import run_only_if
+from scalarizr.lib.common import run_only_if, get_platform_backend_tools
 
 LOG = logging.getLogger(__name__)
 
@@ -181,7 +181,7 @@ def create_volume_snapshot(context: dict, farm: Farm, mnt_point: str) -> str:
         cloud_location=CONF.feature.platform.location,
         volume_id=device['storageId']
     )
-    volume_snapshot_id = IMPL.aws_tools.create_volume_snapshot(**kwargs)
+    volume_snapshot_id = get_platform_backend_tools().create_volume_snapshot(**kwargs)
     assert volume_snapshot_id, 'Volume snapshot creation failed'
     LOG.info('Volume snapshot create was started. Snapshot: %s' % volume_snapshot_id)
     return volume_snapshot_id
@@ -189,15 +189,18 @@ def create_volume_snapshot(context: dict, farm: Farm, mnt_point: str) -> str:
 
 def validate_volume_snapshot(volume_snapshot_id: str):
     def is_snapshot_completed(**kwargs):
-        status = IMPL.aws_tools.snapshots_list(**kwargs)[0]['status']
+        status = get_platform_backend_tools().list_snapshots(**kwargs)[0]['status']
         LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)
-        return status == "completed"
+        return status.lower() in ["completed", "succeeded"]
 
+    if CONF.feature.platform.is_azure:
+        snapshot_kwargs = dict(query=volume_snapshot_id)
+    elif CONF.feature.platform.is_ec2:
+        snapshot_kwargs = dict(snapshot_id=volume_snapshot_id)
+    snapshot_kwargs.update({'cloud_location': CONF.feature.platform.location})
     assert wait_until(
         is_snapshot_completed,
-        kwargs=dict(
-            location=CONF.feature.platform.location,
-            snapshot_id=volume_snapshot_id),
+        kwargs=snapshot_kwargs,
         timeout=600,
         logger=LOG,
         return_bool=True), 'Volume snapshot creation failed'
