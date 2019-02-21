@@ -64,9 +64,10 @@ Feature: Windows server provision with chef and ansible tower
     @ec2 @gce @openstack @azure
     Scenario: Setup Ansible Tower Bootstrap Configurations
         Given I get Ansible Tower server id
+        And I create a copy of the inventory 'Revizor_linux_33'
         And I create a New AT 'regular' group 'G1' for Inventory 'Revizor_windows_33'
-        And AT group 'G1' exists in inventory 'Revizor_windows_33' in AT server
-        And I add a new link with os 'windows' and Inventory 'Revizor_windows_33' and create credentials 'Revizor-windows-cred'
+        And AT group 'G1' exists in inventory in AT server
+        And I add a new link with os 'windows' and create credentials 'Revizor-windows-cred'
         And credential 'Revizor-windows-cred' exists in ansible-tower credentials list
         And I get and save AT job template id for 'Windows_Show_Env'
 
@@ -76,7 +77,7 @@ Feature: Windows server provision with chef and ansible tower
         When I add role to this farm with ansible-tower,ansible_orchestration
         When I start farm
         Then I expect server bootstrapping as M1
-        And scalarizr version is last in M1
+        #And scalarizr version is last in M1
         And server M1 exists in ansible-tower hosts list
         And user 'scalr-ansible' has been created in M1
 
