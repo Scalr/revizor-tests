@@ -174,13 +174,33 @@ def get_at_server_id(step):
     setattr(world, 'at_server_id', at_server_id)
 
 
-@step("I create a New AT '([\w-]+)' group '([\w-]+)' for Inventory '([\w-]+)'")
-def create_at_group(step, group_type, group_name, inv_name):
+@step("I create a copy of the inventory '([\w-]+)'")
+def create_copy_at_inventory(step, inv_name):
+    """
+    I create a copy of the inventory for each run of the test.
+    This is required to parallel the execution of jobs in running tests.
+    """
+    inventory_id = re.search('(\d.*)', inv_name).group(0)
+    new_name = CONF.feature.dist.id + time.strftime("-%H:%M:%S:%MS")
+    kwargs = {'description': new_name}
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('inventory')
+        create_copy = res.copy(pk=inventory_id, new_name=new_name, **kwargs)
+        setattr(world, 'at_inventory_id', create_copy['id'])
+        setattr(world, 'at_inventory_name', create_copy['name'])
+        if not new_name in create_copy['description']:
+            raise AssertionError(
+                'Inventory was not found in Ansible Tower. Response from server: %s.' % (
+                    create_copy))
+
+
+@step("I create a New AT '([\w-]+)' group '([\w-]+)'")
+def create_at_group(step, group_type, group_name):
     """
     :param group_type: You can set 'regular' or 'template' type.
     """
     at_server_id = getattr(world, 'at_server_id')
-    inventory_id = re.search('(\d.*)', inv_name).group(0)
+    inventory_id = getattr(world, 'at_inventory_id')
     group_name = group_name + time.strftime("-%a-%d-%b-%Y-%H:%M:%S:%MS")
     at_group = IMPL.ansible_tower.create_inventory_groups(
         group_name, group_type, at_server_id, inventory_id)
@@ -190,8 +210,8 @@ def create_at_group(step, group_type, group_name, inv_name):
     setattr(world, 'at_group_type', group_type)
 
 
-@step("AT group '([\w-]+)' exists in inventory '([\w-]+)' in AT server")
-def check_at_group_exists_in_inventory(step, group_name, inv_name):
+@step("AT group '([\w-]+)' exists in inventory in AT server")
+def check_at_group_exists_in_inventory(step, group_name):
     group_name = getattr(world, 'at_group_name')
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('group')
@@ -203,8 +223,8 @@ def check_at_group_exists_in_inventory(step, group_name, inv_name):
                     group_name, pk, find_group))
 
 
-@step("I add a new link with os '([\w-]+)' and Inventory '([\w-]+)' and create credentials '([\w-]+)'")
-def create_credential(step, os, inv_name, credentials_name):
+@step("I add a new link with os '([\w-]+)' and create credentials '([\w-]+)'")
+def create_credential(step, os, credentials_name):
     at_server_id = getattr(world, 'at_server_id')
     os = 1 if os == 'linux' else 2
     credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
@@ -213,8 +233,7 @@ def create_credential(step, os, inv_name, credentials_name):
     if os == 1: # "linux"
         publickey = credentials['machineCredentials']['publicKey']
     pk = credentials['machineCredentials']['id']
-    inventory_id = re.search('(\d.*)', inv_name).group(0)
-    setattr(world, 'at_inventory_id', inventory_id)
+    inventory_id = getattr(world, 'at_inventory_id')
     setattr(world, 'at_cred_primary_key_%s' % credentials_name, pk)
     at_group_id = getattr(world, 'at_group_id')
     at_group_type = getattr(world, 'at_group_type')
@@ -304,6 +323,8 @@ def check_at_user_on_server(step, expected_user, serv_as):
 
 @step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
 def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_as):
+    inventory_id = getattr(world, 'at_inventory_id')
+
     pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
     at_python_path = ''
     if not CONF.feature.dist.is_windows:
@@ -313,7 +334,8 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_
         job_settings = {
             "credential_id": pk,
             "extra_credentials": [],
-            "extra_vars": [at_python_path]
+            "extra_vars": [at_python_path],
+            "inventory": inventory_id
         }
         my_job = res.launch(job_template=job_name,
                             monitor=False,
@@ -343,6 +365,10 @@ def check_deployment_work(step, serv_as, expected_output):
 
 @after.each_feature
 def delete_ansible_tower_group_credential(feature):
+    """
+    Cleaning on the AT server after passing tests.
+    Removal: group, credential, inventory.
+    """
     provision_feature_list = [
         'Linux server provision with chef and ansible tower',
         'Windows server provision with chef and ansible tower'
@@ -362,3 +388,8 @@ def delete_ansible_tower_group_credential(feature):
             result = res.delete(pk=at_group_id)
             assert result['changed'], ('Group with id: %s is not deleted from the AT server' % at_group_id)
             LOG.error('Group with id: %s is not deleted from the AT server' % at_group_id)
+            res = at_get_resource('inventory')
+            inventory_id = getattr(world, 'at_inventory_id')
+            result = res.delete(pk=inventory_id)
+            assert result['changed'], ('Inventory with id: %s is not deleted from the AT server' % inventory_id)
+            LOG.error('Inventory with id: %s is not deleted from the AT server' % inventory_id)
