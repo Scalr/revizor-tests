@@ -179,9 +179,10 @@ class Combobox(BaseElement):
     def _make_locator(self, text=None, xpath=None, css=None, span=True, li=True):
         """
            :param bool span: identifies whether text is in child //span element
+           :param bool li: identifies whether text is in child //span element and has parent element is 'li'
         """
         self.span = span
-        self.li = li
+        self.parent_li = li
         if text:
             self.locator = locators.XpathLocator(
                 '//span[contains(text(), "%s")]//ancestor::div[starts-with(@id, "combobox")]' % text)
@@ -195,10 +196,10 @@ class Combobox(BaseElement):
     def select(self, option):
         LOG.debug('Select option %s in combobox %s' % (option, str(self.locator)))
         self.get_element().click()
-        if self.span and self.li:
+        if self.span and self.parent_li:
             Button(xpath='//span[contains(text(), "%s")]//parent::li' %
                    option, driver=self.driver).click()
-        elif self.span and not self.li:
+        elif self.span and not self.parent_li:
             Button(xpath='//span[contains(text(), "%s")]' %
                          option, driver=self.driver).click()
         else:
@@ -333,14 +334,6 @@ class Label(BaseElement):
             return True
         except (NoSuchElementException, WebDriverException):
             return False
-
-
-class GetURL(BaseElement):
-    """Go to the any page by url without using menu
-    """
-
-    def go_to_page(self, container, page):
-        self.driver.get(container + page)
 
 
 class TableRow(BaseElement):

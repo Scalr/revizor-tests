@@ -1,12 +1,5 @@
-import time
-
-from selenium.webdriver.common.by import By
-from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
-from pypom import Page
-from pypom.exception import UsageError
 
-from elements import locators
 from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
@@ -76,12 +69,26 @@ class AccountLeftMenu(CommonTopMenu):
 
 class AccountDashboard(AccountTopMenu, AccountLeftMenu):
     URL_TEMPLATE = '/#/account/dashboard'
+    accounts_menu_btn = Button(xpath="//a [contains(@class, 'x-btn-environment')]"
+                                     "//descendant::span[contains(@class, 'x-icon-environment')]")
 
     @property
     def loaded(self):
         return Label(
             "Environments in this account",
             driver=self.driver).wait_until_condition(EC.visibility_of_element_located)
+
+    @wait_for_page_to_load
+    def change_environment(self, env_name):
+        """Switches to specific Scalr environment.
+           Returns EnvironmentDashboard page object.
+        """
+        env_btn = Button(text=env_name, driver=self.driver)
+        self.accounts_menu_btn.click()
+        env_btn.wait_until_condition(EC.element_to_be_clickable)
+        env_btn.click()
+        from pages.environment_scope import EnvironmentDashboard
+        return EnvironmentDashboard(self.driver, self.base_url)
 
 
 class ACL(AccountTopMenu):
@@ -219,7 +226,7 @@ class Environments(AccountTopMenu):
            :param str policy_type: Policy type name (abbreviation) as it's displayed in Scalr UI.
            :param str policy_group: name of the Policy groups.
         """
-        type = Button(
+        policy_type_button = Button(
             xpath='//div [contains(text(), "%s")]//ancestor::table//child::a' % policy_type,
             driver=self.driver)
         group = Button(
@@ -227,7 +234,7 @@ class Environments(AccountTopMenu):
             driver=self.driver)
         link_button = Button(
             text="Link to Environment", driver=self.driver)
-        type.click()
+        policy_type_button.click()
         group.click()
         link_button.click()
 
@@ -271,6 +278,7 @@ class Scripts(AccountTopMenu):
     tags_field = Input(name="tags")
     script_content_field_activation = Button(css="div.CodeMirror-scroll")
     script_content_field = Input(css="textarea")
+    body_container = Button(xpath="//div[@id='body-container']")
     save_button = Button(icon="save")
     tooltip_policy_tag_not_allowed = Button(
         xpath="//div[@role='alert'][.='Policy Tags are not allowed.']")

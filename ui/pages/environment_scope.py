@@ -99,6 +99,7 @@ class Farms(EnvironmentTopMenu):
            Redirects to Farm Designer page.
            Returns FarmDesigner page object.
         """
+        self.new_farm_button.wait_until_condition(EC.visibility_of_element_located)
         self.new_farm_button.click()
         return FarmDesigner(self.driver, self.base_url)
 
@@ -172,15 +173,17 @@ class FarmDesigner(EnvironmentTopMenu):
         return Farms(self.driver, self.base_url)
 
     def add_farm_role(self, category, role_name):
-        #  Works, but needs to be improved, Blocked by SCALRCORE-11738
+        #  Works, but not finished, Blocked by SCALRCORE-11738
         role_category = self.combobox_select_reles_type
-        time.sleep(3)
+        role_category.wait_until_condition(EC.staleness_of, timeout=3)
         role_category.select(category)
-        time.sleep(3)
+        self.search_role_input.wait_until_condition(EC.staleness_of, timeout=3)
         self.search_role_input.write(role_name)
         xpath = "//div[@class='x-grid-cell-inner '][.='%s']" % role_name
-        time.sleep(3)
-        Button(xpath=xpath, driver=self.driver).click()
+        role = Button(xpath=xpath, driver=self.driver)
+        role.wait_until_condition(EC.staleness_of, timeout=3)
+        role.click()
+        self.search_role_input.wait_until_condition(EC.staleness_of, timeout=3)
 
 
 class Images(EnvironmentTopMenu):

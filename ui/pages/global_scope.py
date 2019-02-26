@@ -112,8 +112,9 @@ class Accounts(AdminTopMenu):
         """Switches to Account level Dashboard.
            Returns AccountDashboard page object.
         """
-        account_name = account_name or "Main account"
-        TableRow(label=account_name).click_button(hint="Login as owner'")
+        account_name = account_name or 'Main account'
+        xpath = "//tr[contains(.,'%s')]/td/div/a[@data-qtip='Login as owner']" % account_name
+        Button(xpath=xpath, driver=self.driver).click()
         from pages.account_scope import AccountDashboard
         return AccountDashboard(self.driver, self.base_url)
 
@@ -254,7 +255,7 @@ class PolicyTags(AdminLeftMenu):
     """Policy Tags page (Admin Scope).
     """
     URL_TEMPLATE = '#/admin/policyengine/tags'
-    new_policy_tag_button = Button(text="New policy tag")
+    new_policy_button = Button(text="New policy tag")
     name_field = Input(name="name")
     save_button = Button(icon="save")
     cancel_button = Button(icon="cancel")
@@ -263,14 +264,19 @@ class PolicyTags(AdminLeftMenu):
 
     @property
     def loaded(self):
-        return self.new_policy_tag_button.wait_until_condition(
+        return self.new_policy_button.wait_until_condition(
             EC.visibility_of_element_located)
+
+    def new_policy_tag_button(self):
+        new_policy_button = Button(text="New policy tag", driver=self.driver)
+        new_policy_button.wait_until_condition(EC.staleness_of, timeout=1)
+        return new_policy_button
 
     def created_tag(self, name):
         created_tag = TableRow(text=name, driver=self.driver)
         return created_tag
 
-    def input_alert(self, text):
+    def alert_visible(self, text):
         xpath = '//div[@role="alert"][.="%s"]' % text
         alert = Button(xpath=xpath, driver=self.driver)
         return alert.visible()
