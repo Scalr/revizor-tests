@@ -244,16 +244,21 @@ class Dropdown(BaseElement):
         else:
             raise ValueError('No locator policy was provided!')
 
-    def select(self, option, hide_options=False):
+    def select(self, option, hide_options=False, exact_match=True):
         """
         :type option: str
         :param option:
 
         :type hide_options:  bool
         :param hide_options: Forced hide of the dropdown list
+        :type exact_match: bool
+        :param exact_match: Match exact option text
         """
         LOG.debug(f'Select option {option} in dropdown {self.locator}')
-        xpath = f"//*[normalize-space(translate(text(), '\u00A0', ' '))='{option}'][1]"
+        if exact_match:
+            xpath = f"(//*[normalize-space(translate(text(), '\u00A0', ' '))='{option}'])[1]"
+        else:
+            xpath = f"(//*[contains(normalize-space(translate(text(), '\u00A0', ' ')), '{option}')])[1]"
         self.get_element().click()
         Button(xpath=xpath, driver=self.driver).click()
         if hide_options:
