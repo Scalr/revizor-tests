@@ -261,6 +261,8 @@ class PolicyTags(AdminLeftMenu):
     cancel_button = Button(icon="cancel")
     delete_button_before_pop_up = Button(icon="delete")
     deletion_pop_up = Button(xpath="//div[contains(.,'Delete Policy Tag ')][@class='message']")
+    deletion_message = Button(
+            xpath="//div[.='Policy Tag successfully deleted'][@class='x-component x-box-item x-component-default']")
 
     @property
     def loaded(self):
@@ -274,11 +276,13 @@ class PolicyTags(AdminLeftMenu):
 
     def created_tag(self, name):
         created_tag = TableRow(text=name, driver=self.driver)
+        created_tag.wait_until_condition(EC.visibility_of_element_located)
         return created_tag
 
     def alert_visible(self, text):
         xpath = '//div[@role="alert"][.="%s"]' % text
         alert = Button(xpath=xpath, driver=self.driver)
+        alert.wait_until_condition(EC.staleness_of, timeout=1)
         return alert.visible()
 
     def deletion_pop_up_buttons(self, action):

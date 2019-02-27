@@ -37,6 +37,7 @@ class Roles(AdminTopMenu):
     def searchfield_trigger_find_tag(self, tag_name):
         tag_from_list = "//li[contains(.,'%s')]" % tag_name
         finded_tag = Button(xpath=tag_from_list, driver=self.driver)
+        finded_tag.wait_until_condition(EC.visibility_of_element_located)
         assert finded_tag.visible(), "The tag was not found!"
         return finded_tag
 
@@ -44,6 +45,7 @@ class Roles(AdminTopMenu):
         xpath = "//div[@class='x-tagfield-item-text x-tagfield-item-double-padding-right'][contains(.,'Tag')][contains(.,': %s')]" \
                 % tag_name
         roles_table_sorted_by_tag = Button(xpath=xpath, driver=self.driver)
+        roles_table_sorted_by_tag.wait_until_condition(EC.visibility_of_element_located)
         return roles_table_sorted_by_tag
 
     def edit_role(self):
@@ -93,8 +95,8 @@ class RolesEdit(AdminTopMenu):
         Button(xpath="//input[@placeholder='Version']", driver=self.driver).click()
         Button(xpath=version_from_list, driver=self.driver).click()
         if tag_name:
-            RolesEdit.add_tag_to_role(self, tag_name)
-            RolesEdit.body_container.click()
+            self.add_tag_to_role(tag_name)
+            self.body_container.click()
         category_from_list = li % category
         Button(xpath="//div[starts-with(@id, 'combobox')]/input[@name='catId']", driver=self.driver).click()
         found_category = Button(xpath=category_from_list, driver=self.driver)
@@ -110,6 +112,7 @@ class RolesEdit(AdminTopMenu):
         Input(xpath="//input [starts-with(@class, 'x-tagfield-input-field')]", driver=self.driver).write(image_name)
         image = "//div[contains(text(),'%s')]" % image_name
         found_image = Button(xpath=image, driver=self.driver)
+        found_image.wait_until_condition(EC.visibility_of_element_located)
         assert found_image.visible(), "Can't find image in list"
         found_image.click()
         Button(xpath="//a[.='Add']", driver=self.driver).click()
@@ -120,6 +123,7 @@ class RolesEdit(AdminTopMenu):
         :return: the found role in the roles table
         """
         created_role = TableRow(text=role_name, driver=self.driver)
+        created_role.wait_until_condition(EC.visibility_of_element_located)
         return created_role
 
     def create_role(self, roles_edit_page, tag_name=None, automation=True, **roles_settings):
@@ -158,6 +162,8 @@ class RolesEdit(AdminTopMenu):
         roles_edit_page.add_image(default_role['image_name'])
 
         roles_edit_page.save_button.click()
+        roles_edit_page.roles_table_sorted_by_roleid.wait_until_condition(
+            EC.visibility_of_element_located)
         assert roles_edit_page.roles_table_sorted_by_roleid.visible(), "The roles table is not sorted by Id!"
         assert roles_edit_page.page_message.text == "Role saved", \
             "No message present about successful saving of the Role"

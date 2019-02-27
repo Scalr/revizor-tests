@@ -1,5 +1,4 @@
 import pytest
-import time
 
 from selenium.webdriver.common.keys import Keys
 
@@ -26,10 +25,9 @@ class TestPolicyTags:
     @pytest.fixture(autouse=True)
     def prepare_env(self, selenium, testenv):
         self.driver = selenium
-        self.driver.implicitly_wait(10)
-        self.container = testenv
-        self.url = 'http://%s.test-env.scalr.com' % self.container.te_id
-        login_page = LoginPage(self.driver, self.url).open()
+        login_page = LoginPage(
+            self.driver,
+            'http://%s.test-env.scalr.com' % testenv.te_id).open()
         self.dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD)
 
     def go_to_acc_scope(self, switch_to_env=False):
@@ -48,7 +46,9 @@ class TestPolicyTags:
 
     def preparationg_applying_to_roles(self):
         tag_names = 'tag-1', 'tag-2', 'tag-3'
-        TestPolicyTags.create_new_policy_tag(self, *tag_names)
+        policy_tag_page = self.create_new_policy_tag(*tag_names)
+        for name in tag_names:
+            assert policy_tag_page.created_tag(name).visible(), "Policy Tag was not found!"
 
     def goto_policy_tag_page(self):
         """
@@ -68,7 +68,7 @@ class TestPolicyTags:
         return roles_page
 
     def go_to_policyengine_groups(self):
-        account_dashboard = TestPolicyTags.go_to_acc_scope(self)
+        account_dashboard = self.go_to_acc_scope()
         account_dashboard.scope_main_menu.click()
         main_menu_items = account_dashboard.scope_main_menu.list_items()
         main_menu_items['Policy Engine'].mouse_over()
@@ -76,7 +76,7 @@ class TestPolicyTags:
         return policy_groups_page
 
     def create_new_policy_tag(self, *tag_names, aserts=True):
-        policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
+        policy_tag_page = self.goto_policy_tag_page()
         for name in tag_names:
             policy_tag_page.new_policy_tag_button().click()
             policy_tag_page.name_field.write(name)
@@ -85,10 +85,9 @@ class TestPolicyTags:
                 assert policy_tag_page.page_message.text == "Policy Tag successfully saved", \
                     "No message present about successful saving of the new Policy Tag"
                 policy_tag_page.created_tag(name).wait_until_condition(EC.staleness_of, timeout=2)
-                assert policy_tag_page.created_tag(name).visible(), "Policy Tag was not found!"
         return policy_tag_page
 
-    def search_field_trigger(self, roles_page, tag_name, *roles_names):
+    def search_field_trigger(self, roles_page, tag_name):
         """
         Used by acc & env scopes.
         """
@@ -96,15 +95,14 @@ class TestPolicyTags:
         roles_page.searchfield_trigger_tag_list.click()
         roles_page.searchfield_trigger_find_tag(tag_name).click()
         roles_page.body_container.click()
+        roles_page.roles_table_sorted_by_tag(tag_name).wait_until_condition(
+            EC.visibility_of_element_located)
         assert roles_page.roles_table_sorted_by_tag(tag_name).visible(), "The roles table is not sorted by Tag!"
-        for name in roles_names:
-            role = TableRow(text=name, driver=self.driver)
-            assert role.visible(), "Role was not found!"
 
 # Admin scope> Policy tags> Create, validate and delete
 
     def test_cancel_create_policy_tag(self):
-        policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
+        policy_tag_page = self.goto_policy_tag_page()
         policy_tag_page.new_policy_tag_button().click()
         policy_tag_page.cancel_button.click()
         assert policy_tag_page.name_field.hidden(), 'Name field is present in Create Policy Tags submenu!'
@@ -113,10 +111,11 @@ class TestPolicyTags:
 
     def test_create_new_policy_tag(self):
         tag_names = 'test1',
-        TestPolicyTags.create_new_policy_tag(self, *tag_names)
+        create_tag = self.create_new_policy_tag(*tag_names)
+        assert create_tag.created_tag(tag_names).visible(), "Policy Tag was not found!"
 
     def test_create_tag_with_empty_field(self):
-        policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
+        policy_tag_page = self.goto_policy_tag_page()
         policy_tag_page.new_policy_tag_button().click()
         policy_tag_page.save_button.click()
         assert policy_tag_page.alert_visible(
@@ -126,7 +125,7 @@ class TestPolicyTags:
         invalid_tag_names = [
             '!#$%&()*+,-./:;<=>?@[\]^_`{|}~', 'qw',
             'QWER', '-qwer', 'qwer-', ',qwer', 'qwer,']
-        policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
+        policy_tag_page = self.goto_policy_tag_page()
         policy_tag_page.new_policy_tag_button().click()
         for name in invalid_tag_names:
             policy_tag_page.name_field.write(name)
@@ -137,7 +136,7 @@ class TestPolicyTags:
                 "Alert message was not found!"
 
     def test_create_tag_with_duplicate_name(self):
-        policy_tag_page = TestPolicyTags.goto_policy_tag_page(self)
+        policy_tag_page = self.goto_policy_tag_page()
         for _ in range(2):
             policy_tag_page.new_policy_tag_button().click()
             policy_tag_page.name_field.write('test2')
@@ -147,7 +146,8 @@ class TestPolicyTags:
 
     def test_cancel_deletion_policy_tag(self):
         tag_names = 'test3',
-        policy_tag_page = TestPolicyTags.create_new_policy_tag(self, *tag_names)
+        policy_tag_page = self.create_new_policy_tag(*tag_names)
+        assert policy_tag_page.created_tag(tag_names).visible(), "Policy Tag was not found!"
         policy_tag_page.created_tag(tag_names).select()
         policy_tag_page.delete_button_before_pop_up.click()
         policy_tag_page.deletion_pop_up_buttons('Cancel')
@@ -156,29 +156,30 @@ class TestPolicyTags:
         assert policy_tag_page.created_tag(tag_names).visible(), "Policy Tag was not found!"
 
     def test_delete_policy_tag(self):
-        tag_names = 'test4',
-        policy_tag_page = TestPolicyTags.create_new_policy_tag(self, *tag_names)
+        tag_names = 'test44',
+        policy_tag_page = self.create_new_policy_tag(*tag_names)
+        assert policy_tag_page.created_tag(tag_names).visible(), "Policy Tag was not found!"
         policy_tag_page.created_tag(tag_names).select()
         policy_tag_page.delete_button_before_pop_up.click()
         policy_tag_page.deletion_pop_up_buttons('Delete')
-        policy_tag_page.delete_button_before_pop_up.wait_until_condition(EC.staleness_of, timeout=1)
+
         assert policy_tag_page.deletion_pop_up.hidden(), "The confirmation pop-up was not closed!"
-        assert policy_tag_page.page_message.text == "Policy Tag successfully deleted", \
+        assert policy_tag_page.deletion_message.visible, \
             "No message present about successful deletion of the Policy Tag"
         assert policy_tag_page.created_tag(tag_names).hidden(), "The Policy Tag was not deleted!"
 
 # Policy tags> Roles application
 
     def test_create_role_with_policy_tag_admin_scope(self):
-        TestPolicyTags.preparationg_applying_to_roles(self)
+        self.preparationg_applying_to_roles()
         roles_page = self.dashboard.menu.go_to_roles()
         roles_edit_page = roles_page.new_role()
         RolesEdit.create_role(self, roles_edit_page, tag_name='tag-1')
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
 
     def test_create_role_with_policy_tag_account_scope(self):
-        account_dashboard = TestPolicyTags.go_to_acc_scope(self)
-        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self, account_dashboard)
+        account_dashboard = self.go_to_acc_scope()
+        roles_page = self.go_to_roles_page_account_scope(account_dashboard)
         roles_edit_page = roles_page.new_role()
         roles_settings = {
             'role_name': 'selenium-ubuntu1404-with-tag-acc'
@@ -189,8 +190,8 @@ class TestPolicyTags:
 
     def test_validation_add_second_policy_tag_to_role(self):
         role_name = 'selenium-ubuntu1404-with-tag-acc'
-        account_dashboard = TestPolicyTags.go_to_acc_scope(self)
-        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self, account_dashboard)
+        account_dashboard = self.go_to_acc_scope()
+        roles_page = self.go_to_roles_page_account_scope(account_dashboard)
         roles_page.search_role_field.write(role_name)
         RolesEdit.created_role(self, role_name).select()
         edit_role_page = roles_page.edit_role()
@@ -199,16 +200,20 @@ class TestPolicyTags:
 
     def test_search_field_trigger_acc(self):
         roles_names = ('selenium-ubuntu1404-with-tag-admin', 'selenium-ubuntu1404-with-tag-acc')
-        account_dashboard = TestPolicyTags.go_to_acc_scope(self)
-        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self, account_dashboard)
+        account_dashboard = self.go_to_acc_scope()
+        roles_page = self.go_to_roles_page_account_scope(account_dashboard)
         tag_name = 'tag-1'
-        TestPolicyTags.search_field_trigger(self, roles_page, tag_name, *roles_names)
+        self.search_field_trigger(roles_page, tag_name)
+        for name in roles_names:
+            role = TableRow(text=name, driver=self.driver)
+            assert role.visible(), "Role was not found!"
 
     def test_policy_tag_cannot_be_used_as_script_tag(self):
-        acc_dashboard = TestPolicyTags.go_to_acc_scope(self)
+        acc_dashboard = self.go_to_acc_scope()
         scripts_page = acc_dashboard.go_to_scripts()
+        scripts_page.new_script_button.wait_until_condition(EC.staleness_of, timeout=2)
         scripts_page.new_script_button.click()
-        scripts_page.script_name_field.wait_until_condition(EC.staleness_of, timeout=1)
+        scripts_page.script_name_field.wait_until_condition(EC.staleness_of, timeout=2)
         scripts_page.script_name_field.write('policy_tag_cannot_be_used_as_script_tag')
         scripts_page.script_content_field_activation.click()
         scripts_page.script_content_field.write('#!/bin/bash', hidden=True, clear=False)
@@ -216,10 +221,11 @@ class TestPolicyTags:
         scripts_page.tags_field.write(Keys.ENTER, hidden=True, clear=False)
         scripts_page.body_container.click()
         scripts_page.save_button.click()
+        scripts_page.tooltip_policy_tag_not_allowed.wait_until_condition(EC.visibility_of_element_located)
         assert scripts_page.tooltip_policy_tag_not_allowed.visible(), "Tooltip message was not found!"
 
     def test_create_role_with_policy_tag_env_scope(self):
-        env_dashboard = TestPolicyTags.go_to_acc_scope(self, switch_to_env=True)
+        env_dashboard = self.go_to_acc_scope(switch_to_env=True)
         roles_page = env_dashboard.menu.go_to_roles()
         roles_edit_page = roles_page.new_role(env=True)
         roles_settings = {
@@ -229,11 +235,14 @@ class TestPolicyTags:
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
 
     def test_search_field_trigger_env(self):
-        env_dashboard = TestPolicyTags.go_to_acc_scope(self, switch_to_env=True)
+        env_dashboard = self.go_to_acc_scope(switch_to_env=True)
         roles_page = env_dashboard.menu.go_to_roles()
-        roles_names = tuple(TestPolicyTags.roles_with_tag)
+        roles_names = tuple(self.roles_with_tag)
         tag_name = 'tag-1'
-        TestPolicyTags.search_field_trigger(self, roles_page, tag_name, *roles_names)
+        self.search_field_trigger(roles_page, tag_name)
+        for name in roles_names:
+            role = TableRow(text=name, driver=self.driver)
+            assert role.visible(), "Role was not found!"
 
 # Policy tags> Application in Policy
 
@@ -246,8 +255,8 @@ class TestPolicyTags:
         RolesEdit.create_role(self, roles_edit_page, **roles_settings)
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
 
-        account_dashboard = TestPolicyTags.go_to_acc_scope(self)
-        roles_page = TestPolicyTags.go_to_roles_page_account_scope(self, account_dashboard)
+        account_dashboard = self.go_to_acc_scope()
+        roles_page = self.go_to_roles_page_account_scope(account_dashboard)
         roles_edit_page = roles_page.new_role()
         roles_settings = {
             'role_name': 'selenium-ubuntu1404-acc'
@@ -265,7 +274,7 @@ class TestPolicyTags:
         assert roles_page.new_role_button.visible(), "We did not go to the Roles page"
 
     def test_chef_servers_config_with_policy(self):
-        policy_groups_page = TestPolicyTags.go_to_policyengine_groups(self)
+        policy_groups_page = self.go_to_policyengine_groups()
         policy_groups_page.new_policy_group_button.wait_until_condition(EC.staleness_of, timeout=2)
         policy_groups_page.new_policy_group_button.click()
         policy_groups_page.name_field.write('selenium-policy-group-1')
@@ -276,11 +285,13 @@ class TestPolicyTags:
         policy_groups_page.chef_servers_checkbox.click()
         policy_groups_page.new_policy_ok_button.click()
         policy_groups_page.save_button.click()
+        policy_groups_page.tooltip_policy_group_saved.wait_until_condition(
+            EC.visibility_of_element_located)
         assert policy_groups_page.tooltip_policy_group_saved.visible(), \
             "Tooltip message about successfully saved Policy Group was not found!"
 
     def test_add_config_to_environment(self):
-        acc_dashboard = TestPolicyTags.go_to_acc_scope(self)
+        acc_dashboard = self.go_to_acc_scope()
         env_page = acc_dashboard.menu.go_to_environments()
         env_page.select_active_environment(' acc1env1')
         env_page.policies_tab.click()
@@ -292,14 +303,14 @@ class TestPolicyTags:
 
     @pytest.mark.skip('SCALRCORE-11738')
     def test_check_application_with_policy_tag_role(self):
-        env_dashboard = TestPolicyTags.go_to_acc_scope(self, switch_to_env=True)
+        env_dashboard = self.go_to_acc_scope(switch_to_env=True)
         farms_page = env_dashboard.menu.go_to_farms()
         new_farm_page = farms_page.new_farm()
         new_farm_page.farm_name_field.write('Farm1')
         new_farm_page.projects_dropdown.select("Default project / Default cost centre")
         category = 'Base'
         new_farm_page.add_farm_role_button.click()
-        for role_name in TestPolicyTags.roles_without_tag:
+        for role_name in self.roles_without_tag:
             new_farm_page.add_farm_role(category, role_name)
             new_farm_page.add_role_to_farm_button.click()
         # Blocked by SCALRCORE-11738
