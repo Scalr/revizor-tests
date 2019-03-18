@@ -26,10 +26,11 @@ class AdminTopMenu(CommonTopMenu):
 
     @wait_for_page_to_load
     def go_to_roles(self):
-        """Redirect to Roles page (Global scope).
+        """Redirects to Roles page (Global scope).
            Returns Roles page object.
         """
-        Button(href="#/admin/roles", driver=self.driver).click()
+        from pages.roles import Roles
+        Button(text="Roles", driver=self.driver).click()
         return Roles(self.driver, self.base_url)
 
     @wait_for_page_to_load
@@ -78,7 +79,18 @@ class AdminTopMenu(CommonTopMenu):
         return WebhooksEndpoints(self.driver, self.base_url)
 
 
-class AdminDashboard(AdminTopMenu):
+class AdminLeftMenu(CommonTopMenu):
+
+    @wait_for_page_to_load
+    def go_to_policy_tags(self):
+        """ Redirects to Policy Tags Page.
+            Returns Policy Tags page object (Global scope).
+        """
+        Button(href="#/admin/policyengine/tags", driver=self.driver).click()
+        return PolicyTags(self.driver, self.base_url)
+
+
+class AdminDashboard(AdminTopMenu, AdminLeftMenu):
     URL_TEMPLATE = '/#/admin/dashboard'
 
     @property
@@ -100,8 +112,9 @@ class Accounts(AdminTopMenu):
         """Switches to Account level Dashboard.
            Returns AccountDashboard page object.
         """
-        account_name = account_name or "Main account"
-        TableRow(label=account_name).click_button(hint="Login as owner'")
+        account_name = account_name or 'Main account'
+        xpath = "//tr[contains(.,'%s')]/td/div/a[@data-qtip='Login as owner']" % account_name
+        Button(xpath=xpath, driver=self.driver).click()
         from pages.account_scope import AccountDashboard
         return AccountDashboard(self.driver, self.base_url)
 
@@ -238,10 +251,46 @@ class EditUserPanel(CreateUserPanel):
     delete_user_button = ConfirmButton(xpath=CreateUserPanel._icon_btn % "delete")
 
 
-class Roles(AdminTopMenu):
-    """Roles page from Global scope.
+class PolicyTags(AdminLeftMenu):
+    """Policy Tags page (Admin Scope).
     """
-    pass
+    URL_TEMPLATE = '#/admin/policyengine/tags'
+    new_policy_button = Button(text="New policy tag")
+    name_field = Input(name="name")
+    save_button = Button(icon="save")
+    cancel_button = Button(icon="cancel")
+    delete_button_before_pop_up = Button(icon="delete")
+    deletion_pop_up = Button(xpath="//div[contains(.,'Delete Policy Tag ')][@class='message']")
+    deletion_message = Button(
+            xpath="//div[.='Policy Tag successfully deleted'][@class='x-component x-box-item x-component-default']")
+
+    @property
+    def loaded(self):
+        return self.new_policy_button.wait_until_condition(
+            EC.visibility_of_element_located)
+
+    def new_policy_tag_button(self):
+        new_policy_button = Button(text="New policy tag", driver=self.driver)
+        new_policy_button.wait_until_condition(EC.staleness_of, timeout=1)
+        return new_policy_button
+
+    def created_tag(self, name):
+        created_tag = TableRow(text=name, driver=self.driver)
+        created_tag.wait_until_condition(EC.visibility_of_element_located)
+        return created_tag
+
+    def alert_visible(self, text):
+        xpath = '//div[@role="alert"][.="%s"]' % text
+        alert = Button(xpath=xpath, driver=self.driver)
+        alert.wait_until_condition(EC.staleness_of, timeout=1)
+        return alert.visible()
+
+    def deletion_pop_up_buttons(self, action):
+        """
+        :param action: can be 'Cancel' or 'Delete'
+        """
+        xpath = "//*[.='%s']" % action
+        Button(xpath=xpath, driver=self.driver).click()
 
 
 class Images(AdminTopMenu):

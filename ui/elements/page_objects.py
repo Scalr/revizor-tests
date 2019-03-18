@@ -8,7 +8,7 @@ from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 
 from elements import locators
-from elements.base import Button, Checkbox
+from elements.base import Button, Checkbox, Input
 
 LOG = logging.getLogger()
 
@@ -19,6 +19,8 @@ class LeftPopupMenu:
         self.driver = driver
         self.main_button = Button(
             icon='el-default-toolbar-small x-scalr-icon', driver=self.driver)
+        self.search_field = Input(
+            xpath=".//*[@placeholder='Menu filter']", driver=self.driver)
 
     def _convert_elements(self, elements):
         items = {}
@@ -30,6 +32,9 @@ class LeftPopupMenu:
 
     def click(self):
         return self.main_button.click()
+
+    def search_field_left_menu(self):
+        return self.search_field
 
     def scroll(self, direction):
         chain = ActionChains(self.driver)

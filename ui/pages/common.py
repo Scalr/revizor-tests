@@ -43,3 +43,11 @@ class CommonTopMenu(BasePage):
         """
         self.scope_user_menu.select('Logout')
         return LoginPage(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_admin(self):
+        """Switches to Admin level Dashboard (Global scope).
+           Returns AdminDashboard page object.
+        """
+        from pages.global_scope import AdminDashboard
+        return AdminDashboard(self.driver, self.base_url)
