@@ -8,7 +8,7 @@ import time
 import json
 
 import pytest
-
+import requests
 from paramiko import ssh_exception
 
 from revizor2.testenv import TestEnv
@@ -25,10 +25,25 @@ pytest_plugins = [
 ]
 
 
+def download_specs(working_dir, te_id):
+    specs = ['user.v1beta0.yml', 'account.v1beta0.yml', 'global.v1beta0.yml', 'openapi.v1beta0.yml']
+
+    spec_dir = working_dir / 'specs'
+    if not spec_dir.is_dir():
+        spec_dir.mkdir()
+
+    for spec in specs:
+        resp = requests.get(f'http://{te_id}.test-env.scalr.com/api/{spec}')
+        if resp.status_code != 200:
+            continue
+        with open(spec_dir/f'{spec}', 'w+') as fp:
+            fp.write(resp.text)
+
+
 def pytest_addoption(parser):
     group = parser.getgroup("revizor api testing", after="general")
     group.addoption(
-        "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=False,
+        "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=True,
         help="Set default behavior of validation util, if 'False' api response not validate by flex"
     )
     group.addoption(
@@ -110,6 +125,9 @@ def pytest_sessionstart(session):
         host=TE_HOST_TPL.format(test_env.te_id),
         config=te_config
     )
+
+    download_specs(working_dir, test_env.te_id)
+
     ColorPrint.print_pass("Test will run in this test environment: %s" % TE_HOST_TPL.format(test_env.te_id))
 
 

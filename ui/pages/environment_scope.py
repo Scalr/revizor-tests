@@ -1,7 +1,7 @@
 from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.support import expected_conditions as EC
 
-from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu
+from elements.base import Label, Button, Input, SearchInput, Dropdown, SplitButton, Checkbox, Menu, Combobox
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
 
@@ -31,6 +31,15 @@ class EnvironmentTopMenu(CommonTopMenu):
         """
         Button(href="#/images", driver=self.driver).click()
         return Images(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_roles(self):
+        """Redirects to Roles page (list of Scalr roles).
+           Returns Roles page object.
+        """
+        from pages.roles import Roles
+        Button(text="Roles", driver=self.driver).click()
+        return Roles(self.driver, self.base_url)
 
 
 class EnvironmentDashboard(EnvironmentTopMenu):
@@ -90,6 +99,7 @@ class Farms(EnvironmentTopMenu):
            Redirects to Farm Designer page.
            Returns FarmDesigner page object.
         """
+        self.new_farm_button.wait_until_condition(EC.visibility_of_element_located)
         self.new_farm_button.click()
         return FarmDesigner(self.driver, self.base_url)
 
@@ -138,6 +148,11 @@ class FarmDesigner(EnvironmentTopMenu):
     projects_dropdown = Dropdown(input_name='projectId')
     teams_dropdown = Dropdown(xpath='//ul [@data-ref="itemList"]')
     save_splitbutton = SplitButton()
+    add_farm_role_button = Button(text="Add farm role")
+    combobox_select_reles_type = Combobox(
+        xpath="//div[@class='x-tagfield-item-arrow x-tagfield-item-arrow-no-right']", span=False)
+    search_role_input = Input(css=".x-panel-column-left-with-tabs.x-box-item .x-tagfield-input-field")
+    add_role_to_farm_button = Button(xpath="//span[.='Add to farm'][@data-ref='btnInnerEl']")
 
     @property
     def loaded(self):
@@ -156,6 +171,19 @@ class FarmDesigner(EnvironmentTopMenu):
         else:
             self.save_splitbutton.click("Save farm")
         return Farms(self.driver, self.base_url)
+
+    def add_farm_role(self, category, role_name):
+        #  Works, but not finished, Blocked by SCALRCORE-11738
+        role_category = self.combobox_select_reles_type
+        role_category.wait_until_condition(EC.staleness_of, timeout=3)
+        role_category.select(category)
+        self.search_role_input.wait_until_condition(EC.staleness_of, timeout=3)
+        self.search_role_input.write(role_name)
+        xpath = "//div[@class='x-grid-cell-inner '][.='%s']" % role_name
+        role = Button(xpath=xpath, driver=self.driver)
+        role.wait_until_condition(EC.staleness_of, timeout=3)
+        role.click()
+        self.search_role_input.wait_until_condition(EC.staleness_of, timeout=3)
 
 
 class Images(EnvironmentTopMenu):

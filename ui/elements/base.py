@@ -101,7 +101,8 @@ class BaseElement:
 
 class Button(BaseElement):
 
-    def _make_locator(self, element_id=None, name=None, text=None, href=None, icon=None, class_name=None, xpath=None):
+    def _make_locator(self, element_id=None, name=None, text=None, href=None, icon=None,
+                      class_name=None, xpath=None, css=None):
         if element_id:
             self.locator = locators.IdLocator(element_id)
         elif name:
@@ -118,6 +119,8 @@ class Button(BaseElement):
             self.locator = locators.ClassLocator(class_name)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif css:
+            self.locator = locators.CSSLocator(css)
         else:
             raise ValueError('No locator policy was provided!')
 
@@ -196,24 +199,31 @@ class Combobox(BaseElement):
     """Dropdown with multiple selectable options.
     """
 
-    def _make_locator(self, text=None, xpath=None, span=True):
+    def _make_locator(self, text=None, xpath=None, css=None, span=True, li=True):
         """
            :param bool span: identifies whether text is in child //span element
+           :param bool li: identifies whether text is in child //span element and has parent element is 'li'
         """
         self.span = span
+        self.parent_li = li
         if text:
             self.locator = locators.XpathLocator(
                 '//span[contains(text(), "%s")]//ancestor::div[starts-with(@id, "combobox")]' % text)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif css:
+            self.locator = locators.CSSLocator(css)
         else:
             raise ValueError('No locator policy was provided!')
 
     def select(self, option):
         LOG.debug('Select option %s in combobox %s' % (option, str(self.locator)))
         self.get_element().click()
-        if self.span:
+        if self.span and self.parent_li:
             Button(xpath='//span[contains(text(), "%s")]//parent::li' %
+                   option, driver=self.driver).click()
+        elif self.span and not self.parent_li:
+            Button(xpath='//span[contains(text(), "%s")]' %
                          option, driver=self.driver).click()
         else:
             Button(xpath='//li[contains(text(), "%s")]' %
@@ -291,7 +301,7 @@ class Input(BaseElement):
     """Any writable field element.
     """
 
-    def _make_locator(self, name=None, label=None, xpath=None):
+    def _make_locator(self, name=None, label=None, xpath=None, css=None):
         if name:
             self.locator = locators.XpathLocator(
                 '//input [contains(@name, "%s")]' % name)
@@ -300,13 +310,19 @@ class Input(BaseElement):
                 '//* [contains(text(),"%s")]//following::input' % label)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif css:
+            self.locator = locators.CSSLocator(css)
         else:
             raise ValueError('No locator policy was provided!')
 
-    def write(self, text):
+    def write(self, text, hidden=False, clear=True):
+        """:param hidden: is used if the field is hidden,
+           but in the UI it is possible to write
+        """
         LOG.debug('Write "%s" in input field %s' % (text, str(self.locator)))
-        element = self.get_element()
-        element.clear()
+        element = self.get_element() if not hidden else self.get_element(show_hidden=True)
+        if clear:
+            element.clear()
         element.send_keys(text)
 
     @property
@@ -386,13 +402,16 @@ class TableRow(BaseElement):
     """
     _element = None
 
-    def _make_locator(self, label=None, xpath=None):
+    def _make_locator(self, text=None, label=None, xpath=None):
         if label:
             path = f"(//* [normalize-space(translate(text(), '\u00A0', ' '))='{label}'])[last()]" \
                 f"/ancestor::table[contains(@class, 'x-grid-item')]"
             self.locator = locators.XpathLocator(path)
         elif xpath:
             self.locator = locators.XpathLocator(xpath)
+        elif text:
+            self.locator = locators.XpathLocator(
+                "//table[contains(.,'%s')]" % text)
         else:
             raise ValueError('No locator policy was provided!')
 

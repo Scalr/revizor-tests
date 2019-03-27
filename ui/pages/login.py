@@ -31,7 +31,6 @@ class LoginPage(BasePage):
     def login(self, user, password):
         """Logs in with existing user.
            Returns EnvironmentDashboard page obejct.
-
            :param str user: username(email).
            :param str password: user password
         """

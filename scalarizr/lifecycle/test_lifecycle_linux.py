@@ -26,10 +26,6 @@ class TestLifecycleLinux:
              'test_linux_reboot',
              'test_storages_fstab_reboot',
              'test_execute_script',
-             'test_execute_nonascii_script',
-             'test_execute_nonascii_script_wrong',
-             'test_nonascii_script_out',
-             'test_hidden_variable',
              'test_restart_scalarizr',
              'test_custom_event',
              'test_custom_event_caching',
@@ -84,16 +80,17 @@ class TestLifecycleLinux:
         lifecycle.validate_attached_disk_types(context, cloud, farm)
         lifecycle.validate_path(cloud, server, '/media/diskmount')
         lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
-        if CONF.feature.platform == Platform.EC2:
+        if CONF.feature.platform in [Platform.EC2, Platform.AZURE]:
             lifecycle.validate_path(cloud, server, '/media/partition')
 
     @pytest.mark.partition
-    @pytest.mark.platform('ec2')
+    @pytest.mark.platform('ec2', 'azure')
     def test_create_volume_snapshot(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Create volume snapshot"""
         server = servers['M1']
-        lifecycle.create_partitions_on_volume(cloud, server, mnt_point='/media/partition')
-        snapshot_id = lifecycle.create_volume_snapshot(context, farm, '/media/partition')
+        mnt_point = '/media/partition'
+        lifecycle.create_partitions_on_volume(cloud, server, mnt_point=mnt_point)
+        snapshot_id = lifecycle.create_volume_snapshot(context, farm, mnt_point=mnt_point)
         context['volume_snapshot_id'] = snapshot_id
         lifecycle.validate_volume_snapshot(snapshot_id)
 
@@ -140,63 +137,6 @@ class TestLifecycleLinux:
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='Linux ping-pong',
                                                log_contains='pong',
-                                               new_only=True)
-
-    @pytest.mark.scripting
-    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
-    def test_execute_nonascii_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Execute non-ascii script on Linux"""
-        server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
-        lib_server.execute_script(context, farm, server, script_name='Non ascii script', synchronous=True)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='Non ascii script',
-                                               log_contains='Non_ascii_script',
-                                               new_only=True)
-
-    @pytest.mark.scripting
-    @pytest.mark.platform('ec2', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
-    def test_execute_nonascii_script_wrong(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Execute non-ascii script with wrong interpreter on Linux"""
-        server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
-        lib_server.execute_script(context, farm, server,
-                                  script_name='Non ascii script wrong interpreter', synchronous=True)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='Non ascii script wrong interpreter',
-                                               log_contains="Interpreter not found '/no/Ã§Ã£o'",
-                                               std_err=True, new_only=True)
-
-    @pytest.mark.scripting
-    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
-    def test_nonascii_script_out(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Check non-ascii script output on Linux"""
-        server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
-        lib_server.execute_script(context, farm, server,
-                                  script_name='non-ascii-output', synchronous=True)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='non-ascii-output',
-                                               log_contains='Ã¼',
-                                               new_only=True)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='non-ascii-output',
-                                               log_contains='クマ',
-                                               std_err=True, new_only=True)
-
-    @pytest.mark.scripting
-    @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
-    def test_hidden_variable(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Verify hidden global variable"""
-        server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
-        lib_server.validate_string_in_file(cloud, server, file_path='/etc/profile.d/scalr_globals.sh',
-                                           value='revizor_hidden_var', invert=True)
-        lib_server.execute_script(context, farm, server,
-                                  script_name='Verify hidden variable', synchronous=True)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='Verify hidden variable',
-                                               log_contains='REVIZOR_HIDDEN_VARIABLE',
                                                new_only=True)
 
     @pytest.mark.restart
