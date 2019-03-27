@@ -1,13 +1,14 @@
-import uuid
 import os
 import time
+import uuid
+from contextlib import contextmanager
 
 import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
 
 from revizor2.conf import CONF
-from revizor2.testenv import TestEnv
 from revizor2.fixtures import resources
+from revizor2.testenv import TestEnv
 
 
 def pytest_addoption(parser):
@@ -73,8 +74,50 @@ def mock_ssmtp(request):
     ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
 
 
+@pytest.fixture
+def selenium_driver(driver):
+    """Provides patched Selenium driver instance.
+
+    Changed:
+        ``implicitly_wait``       -- added wrapper that saves last used ``time_to_wait`` value
+                                     to ``implicit_time_to_wait`` instance attribute
+
+    Added:
+        ``implicit_time_to_wait`` -- instance attribute that holds last set ``time_to_wait`` value
+
+        ``implicitly_wait_time``  -- context manager that allows to temporary change implicit wait time
+                                     for a code block
+
+    Usage::
+
+        driver.implicitly_wait(10)
+        LOG.debug('outer implicit_time_to_wait is %s' % driver.implicit_time_to_wait)
+        with driver.implicitly_wait_time(3):
+            LOG.debug('inner implicit_time_to_wait is %s' % driver.implicit_time_to_wait)
+
+        > outer implicit_time_to_wait is 10
+        > outer implicit_time_to_wait is 3
+    """
+    implicitly_wait_inner = driver.implicitly_wait
+
+    def implicitly_wait_wrapper(self, time_to_wait):
+        self.implicit_time_to_wait = time_to_wait
+        implicitly_wait_inner(time_to_wait)
+
+    @contextmanager
+    def implicitly_wait_time(self, time_to_wait: int):
+        prev_wait_time = getattr(self, 'implicit_time_to_wait', 0)
+        self.implicitly_wait(time_to_wait)
+        try:
+            yield
+        finally:
+            self.implicitly_wait(prev_wait_time)
+
+    driver.implicitly_wait = implicitly_wait_wrapper.__get__(driver, None)
+    driver.implicitly_wait_time = implicitly_wait_time.__get__(driver, None)
+    return driver
+
+
 def pytest_sessionstart(session):
     session.config.admin_login = CONF.credentials.testenv.accounts.admin['username']
     session.config.admin_pass = CONF.credentials.testenv.accounts.admin['password']
-
-
