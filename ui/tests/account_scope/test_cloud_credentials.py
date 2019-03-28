@@ -8,10 +8,17 @@ from pages.login import LoginPage
 from revizor2.conf import CONF
 from revizor2.helpers.cloud_credentials import CloudCredential
 
+DEFAULT_USER = CONF.credentials.testenv.accounts.default['username']
+DEFAULT_PASSWORD = CONF.credentials.testenv.accounts.default['password']
 ADMIN_USER = CONF.credentials.testenv.accounts.admin['username']
 ADMIN_PASSWORD = CONF.credentials.testenv.accounts.admin['password']
 
 LOG = logging.getLogger(__name__)
+
+
+@pytest.fixture(scope='class')
+def default_credentials(testenv):
+    return CloudCredential.load(testenv)
 
 
 class TestCloudCredentials:
@@ -22,11 +29,7 @@ class TestCloudCredentials:
         login_page = LoginPage(
             self.driver,
             'http://%s.test-env.scalr.com' % testenv.te_id).open()
-        self.admin_dashboard = login_page.login(ADMIN_USER, ADMIN_PASSWORD)
-
-    @pytest.fixture(scope='class')
-    def default_credentials(self, testenv):
-        return CloudCredential.load(testenv)
+        self.acc_dashboard = login_page.login(DEFAULT_USER, DEFAULT_PASSWORD).go_to_account()
 
     def validate_required_fields(self, cc_editor: EditCcPanelBase):
         cc_editor.save()
@@ -35,7 +38,7 @@ class TestCloudCredentials:
             assert 'This field is required' in field.errors
 
     def test_aws_required_fields(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_ccs_panel = ccs_page.add('AWS')
 
         self.validate_required_fields(edit_ccs_panel)
@@ -45,7 +48,7 @@ class TestCloudCredentials:
                                       if cc.name == 'global-ec2 (PAID)'
                                       and cc.cloud == 'ec2'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('AWS')
         edit_cc_panel.fill(name='test_aws_add_valid',
                            access_key_id=aws_creds.properties['access_key'].value,
@@ -60,7 +63,7 @@ class TestCloudCredentials:
                     and cc['Credentials'] == 'test_aws_add_valid'])
 
     def test_aws_add_invalid(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('AWS')
         edit_cc_panel.fill(name='test_aws_add_invalid',
                            access_key_id='key_id',
@@ -79,7 +82,7 @@ class TestCloudCredentials:
                                       if cc.name == 'global-ec2 (PAID)'
                                       and cc.cloud == 'ec2'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('AWS')
         edit_cc_panel.fill(name='test_aws_add_detailed',
                            access_key_id=aws_creds.properties['access_key'].value,
@@ -101,7 +104,7 @@ class TestCloudCredentials:
                                       if cc.name == 'global-ec2 (PAID)'
                                       and cc.cloud == 'ec2'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('AWS')
         edit_cc_panel.fill(name='test_aws_edit',
                            access_key_id=aws_creds.properties['access_key'].value,
@@ -121,7 +124,7 @@ class TestCloudCredentials:
                                       if cc.name == 'global-ec2 (PAID)'
                                       and cc.cloud == 'ec2'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         add_ccs_panel = ccs_page.add('AWS')
         add_ccs_panel.fill(name='test_aws_delete',
                            access_key_id=aws_creds.properties['access_key'].value,
@@ -135,7 +138,7 @@ class TestCloudCredentials:
                         if cc['Credentials'] == 'test_aws_delete'])
 
     def test_cloudstack_required_fields(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Cloudstack')
 
         self.validate_required_fields(edit_cc_panel)
@@ -145,7 +148,7 @@ class TestCloudCredentials:
                                              if cc.name == 'cloudstack-leaseweb (FREE)'
                                              and cc.cloud == 'cloudstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Cloudstack')
         edit_cc_panel.fill(name='test_cloudstack_add_valid',
                            api_url=cloudstack_creds.properties['api_url'].value,
@@ -164,7 +167,7 @@ class TestCloudCredentials:
                                              if cc.name == 'cloudstack-leaseweb (FREE)'
                                              and cc.cloud == 'cloudstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Cloudstack')
         edit_cc_panel.fill(name='test_cloudstack_add_invalid',
                            api_url=cloudstack_creds.properties['api_url'].value,
@@ -181,7 +184,7 @@ class TestCloudCredentials:
                                              if cc.name == 'cloudstack-leaseweb (FREE)'
                                              and cc.cloud == 'cloudstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Cloudstack')
         edit_cc_panel.fill(name='test_cloudstack_edit',
                            api_url=cloudstack_creds.properties['api_url'].value,
@@ -202,7 +205,7 @@ class TestCloudCredentials:
                                              if cc.name == 'cloudstack-leaseweb (FREE)'
                                              and cc.cloud == 'cloudstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Cloudstack')
         edit_cc_panel.fill(name='test_cloudstack_delete',
                            api_url=cloudstack_creds.properties['api_url'].value,
@@ -217,7 +220,7 @@ class TestCloudCredentials:
                         if cc['Credentials'] == 'test_cloudstack_delete'])
 
     def test_openstack_required_fields(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Openstack')
 
         self.validate_required_fields(edit_cc_panel)
@@ -227,7 +230,7 @@ class TestCloudCredentials:
                                             if cc.name == 'openstack-labs-v3 (FREE)'
                                             and cc.cloud == 'openstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Openstack')
         edit_cc_panel.fill(name='test_openstack_add_v3_valid',
                            keystone_url=openstack_creds.properties['keystone_url'].value,
@@ -250,7 +253,7 @@ class TestCloudCredentials:
                                             if cc.name == 'openstack-labs-v3 (FREE)'
                                             and cc.cloud == 'openstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Openstack')
         edit_cc_panel.fill(name='test_openstack_add_v3_invalid',
                            keystone_url=openstack_creds.properties['keystone_url'].value,
@@ -271,7 +274,7 @@ class TestCloudCredentials:
                                             if cc.name == 'openstack-labs-v3 (FREE)'
                                             and cc.cloud == 'openstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Openstack')
         edit_cc_panel.fill(name='test_openstack_edit',
                            keystone_url=openstack_creds.properties['keystone_url'].value,
@@ -296,7 +299,7 @@ class TestCloudCredentials:
                                             if cc.name == 'openstack-labs-v3 (FREE)'
                                             and cc.cloud == 'openstack'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Openstack')
         edit_cc_panel.fill(name='test_openstack_delete',
                            keystone_url=openstack_creds.properties['keystone_url'].value,
@@ -315,7 +318,7 @@ class TestCloudCredentials:
                         if cc['Credentials'] == 'test_openstack_delete'])
 
     def test_vmware_required_fields(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('VMware vSphere')
         self.validate_required_fields(edit_cc_panel)
 
@@ -324,7 +327,7 @@ class TestCloudCredentials:
                                          if cc.name == 'vmware-labs-vcenter1 (FREE)'
                                          and cc.cloud == 'vmware'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('VMware vSphere')
         edit_cc_panel.fill(name='test_vmware_add_valid',
                            url=vmware_creds.properties['url'].value,
@@ -345,7 +348,7 @@ class TestCloudCredentials:
                                          if cc.name == 'vmware-labs-vcenter1 (FREE)'
                                          and cc.cloud == 'vmware'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('VMware vSphere')
         edit_cc_panel.fill(name='test_vmware_add_invalid',
                            url=vmware_creds.properties['url'].value,
@@ -364,7 +367,7 @@ class TestCloudCredentials:
                                          if cc.name == 'vmware-labs-vcenter1 (FREE)'
                                          and cc.cloud == 'vmware'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('VMware vSphere')
         edit_cc_panel.fill(name='test_vmware_add_detailed',
                            url=vmware_creds.properties['url'].value,
@@ -388,7 +391,7 @@ class TestCloudCredentials:
                                          if cc.name == 'vmware-labs-vcenter1 (FREE)'
                                          and cc.cloud == 'vmware'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('VMware vSphere')
         edit_cc_panel.fill(name='test_vmware_edit',
                            url=vmware_creds.properties['url'].value,
@@ -411,7 +414,7 @@ class TestCloudCredentials:
                                          if cc.name == 'vmware-labs-vcenter1 (FREE)'
                                          and cc.cloud == 'vmware'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('VMware vSphere')
         edit_cc_panel.fill(name='test_vmware_delete',
                            url=vmware_creds.properties['url'].value,
@@ -428,7 +431,7 @@ class TestCloudCredentials:
                         if cc['Credentials'] == 'test_vmware_delete'])
 
     def test_gce_required_fields(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Google Compute Engine')
         self.validate_required_fields(edit_cc_panel)
 
@@ -439,7 +442,7 @@ class TestCloudCredentials:
         json_key_file = Path(tmpdir) / 'key.json'
         json_key_file.write_text(gce_creds.properties['json_key'].value)
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Google Compute Engine')
         edit_cc_panel.fill(name='test_gce_add_valid',
                            config_type='Upload JSON key',
@@ -460,7 +463,7 @@ class TestCloudCredentials:
         json_key_file = Path(tmpdir) / 'key.json'
         json_key_file.write_text('json_key')
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Google Compute Engine')
         edit_cc_panel.fill(name='test_gce_add_invalid',
                            config_type='Upload JSON key',
@@ -481,7 +484,7 @@ class TestCloudCredentials:
         json_key_file = Path(tmpdir) / 'key.json'
         json_key_file.write_text(gce_creds.properties['json_key'].value)
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Google Compute Engine')
         edit_cc_panel.fill(name='test_gce_add_detailed',
                            config_type='Upload JSON key',
@@ -506,7 +509,7 @@ class TestCloudCredentials:
         json_key_file = Path(tmpdir) / 'key.json'
         json_key_file.write_text(gce_creds.properties['json_key'].value)
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Google Compute Engine')
         edit_cc_panel.fill(name='test_gce_edit',
                            config_type='Upload JSON key',
@@ -529,7 +532,7 @@ class TestCloudCredentials:
         json_key_file = Path(tmpdir) / 'key.json'
         json_key_file.write_text(gce_creds.properties['json_key'].value)
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Google Compute Engine')
         edit_cc_panel.fill(name='test_gce_delete',
                            config_type='Upload JSON key',
@@ -544,7 +547,7 @@ class TestCloudCredentials:
                         if cc['Credentials'] == 'test_gce_delete'])
 
     def test_azure_required_fields(self):
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Azure')
         edit_cc_panel.app_client_id_field.write('')
         edit_cc_panel.app_secret_key_field.write('')
@@ -559,7 +562,7 @@ class TestCloudCredentials:
                                         if cc.name == 'azure (Paid)'
                                         and cc.cloud == 'azure'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Azure')
         edit_cc_panel.fill(name='test_azure_add_valid',
                            account_type='Public',
@@ -581,7 +584,7 @@ class TestCloudCredentials:
                                         if cc.name == 'azure (Paid)'
                                         and cc.cloud == 'azure'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Azure')
         edit_cc_panel.fill(name='test_azure_add_invalid',
                            account_type='Public',
@@ -599,7 +602,7 @@ class TestCloudCredentials:
                                         if cc.name == 'azure (Paid)'
                                         and cc.cloud == 'azure'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Azure')
         edit_cc_panel.fill(name='test_azure_add_detailed',
                            account_type='Public',
@@ -624,7 +627,7 @@ class TestCloudCredentials:
                                         if cc.name == 'azure (Paid)'
                                         and cc.cloud == 'azure'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Azure')
         edit_cc_panel.fill(name='test_azure_edit',
                            account_type='Public',
@@ -648,7 +651,7 @@ class TestCloudCredentials:
                                         if cc.name == 'azure (Paid)'
                                         and cc.cloud == 'azure'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         edit_cc_panel = ccs_page.add('Azure')
         edit_cc_panel.fill(name='test_azure_delete',
                            account_type='Public',
@@ -671,7 +674,7 @@ class TestCloudCredentials:
                                       if cc.name == 'global-ec2 (PAID)'
                                       and cc.cloud == 'ec2'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         for name in cc_names:
             add_ccs_panel = ccs_page.add('AWS')
             add_ccs_panel.fill(name=name,
@@ -695,7 +698,7 @@ class TestCloudCredentials:
                                       if cc.name == 'global-ec2 (PAID)'
                                       and cc.cloud == 'ec2'][0]
 
-        ccs_page = self.admin_dashboard.go_to_cloud_credentials()
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
         for name in cc_names:
             add_ccs_panel = ccs_page.add('AWS')
             add_ccs_panel.fill(name=name,
@@ -709,3 +712,63 @@ class TestCloudCredentials:
 
         assert not any([cc for cc in ccs_page.list()
                         if cc['Credentials'] in unused_names])
+
+    def test_cloud_credentials_visibility(self, testenv, default_credentials):
+        aws_creds: CloudCredential = [cc for cc in default_credentials.values()
+                                      if cc.name == 'global-ec2 (PAID)'
+                                      and cc.cloud == 'ec2'][0]
+
+        # Add account scope ccs
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
+        edit_cc_panel = ccs_page.add('AWS')
+        edit_cc_panel.fill(name='test_cc_account',
+                           access_key_id=aws_creds.properties['access_key'].value,
+                           access_key_secret=aws_creds.properties['secret_key'].value,
+                           account_type='Regular')
+        edit_cc_panel.save()
+        ccs_page.logout()
+
+        login_page = LoginPage(
+            self.driver,
+            'http://%s.test-env.scalr.com' % testenv.te_id).open()
+        admin_dashboard = login_page.login(ADMIN_USER, ADMIN_PASSWORD)
+
+        # Add global scope ccs
+        ccs_page = admin_dashboard.go_to_cloud_credentials()
+        edit_cc_panel = ccs_page.add('AWS')
+        edit_cc_panel.fill(name='test_cc_global',
+                           access_key_id=aws_creds.properties['access_key'].value,
+                           access_key_secret=aws_creds.properties['secret_key'].value,
+                           account_type='Regular')
+        edit_cc_panel.save()
+
+        assert any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_global'])
+        assert not any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_account'])
+
+        ccs_page.logout()
+        self.prepare_env(self.driver, testenv)
+        ccs_page = self.acc_dashboard.go_to_cloud_credentials()
+
+        assert any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_global'])
+        assert any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_account'])
+
+        ccs_page.switch_scope('Scalr scope')
+
+        assert any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_global'])
+        assert not any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_account'])
+
+        ccs_page.switch_scope('Account scope')
+
+        assert not any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_global'])
+        assert any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_account'])
+
+        ccs_page.switch_scope('All scopes')
+        edit_cc_panel = ccs_page.select('test_cc_global')
+
+        assert not edit_cc_panel.save_button.enabled
+        assert not edit_cc_panel.delete_button.enabled
+
+        ccs_page.check_all().delete()
+
+        assert any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_global'])
+        assert not any([cc for cc in ccs_page.list() if cc['Credentials'] == 'test_cc_account'])

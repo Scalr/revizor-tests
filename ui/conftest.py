@@ -96,7 +96,7 @@ def selenium_driver(driver):
             LOG.debug('inner implicit_time_to_wait is %s' % driver.implicit_time_to_wait)
 
         > outer implicit_time_to_wait is 10
-        > outer implicit_time_to_wait is 3
+        > inner implicit_time_to_wait is 3
     """
     implicitly_wait_inner = driver.implicitly_wait
 

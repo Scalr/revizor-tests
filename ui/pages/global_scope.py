@@ -81,15 +81,6 @@ class AdminTopMenu(CommonTopMenu):
                driver=self.driver).click()
         return WebhooksEndpoints(self.driver, self.base_url)
 
-    @wait_for_page_to_load
-    def go_to_cloud_credentials(self) -> 'CloudCredentials':
-        """Redirects to Cloud Credentials page (Global scope).
-           Returns CloudCredentials page object.
-        """
-        self.scope_main_menu.click()
-        self.scope_main_menu.select("Cloud Credentials")
-        return CloudCredentials(self.driver, self.base_url)
-
 
 class AdminLeftMenu(CommonTopMenu):
 
@@ -100,6 +91,15 @@ class AdminLeftMenu(CommonTopMenu):
         """
         Button(href="#/admin/policyengine/tags", driver=self.driver).click()
         return PolicyTags(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_cloud_credentials(self) -> 'CloudCredentials':
+        """Redirects to Cloud Credentials page (Global scope).
+           Returns CloudCredentials page object.
+        """
+        self.scope_main_menu.click()
+        self.scope_main_menu.select("Cloud Credentials")
+        return CloudCredentials(self.driver, self.base_url)
 
 
 class AdminDashboard(AdminTopMenu, AdminLeftMenu):
@@ -435,7 +435,7 @@ class EditCcPanelBase(CloudCredentials):
 
 class EditCcPanelAWS(EditCcPanelBase):
     access_key_id_field = Input(xpath="//input[@name='accessKey']")
-    access_key_secret_field = Input(xpath="//input[@name='secretKey']")
+    access_key_secret_field = Input(xpath="//input[@name='secretKey']", secret=True)
     account_type_button_xpath = "//a[contains(@class, 'x-btn')]" \
                                 "//span[contains(@class, 'x-btn-button')]" \
                                 "/span[text()='%s']"
@@ -491,7 +491,7 @@ class EditCcPanelAzure(EditCcPanelBase):
                                 "//span[contains(@class, 'x-btn-button')]" \
                                 "/span[text()='%s']"
     app_client_id_field = Input(xpath="//input[@name='appClientId']")
-    app_secret_key_field = Input(xpath="//input[@name='appSecretKey']")
+    app_secret_key_field = Input(xpath="//input[@name='appSecretKey']", secret=True)
     continue_button = Button(xpath="//span[contains(@class, 'x-btn-icon-next')]")
     tenant_id_field = Input(xpath="//input[@name='tenantId']")
     advanced_options_section = CollapsibleFieldset(header='Advanced options')
@@ -546,7 +546,7 @@ class EditCcPanelAzure(EditCcPanelBase):
 class EditCcPanelCloudstack(EditCcPanelBase):
     api_url_field = Input(xpath="//input[@name='apiUrl']")
     api_key_field = Input(xpath="//input[@name='apiKey']")
-    secret_key_field = Input(xpath="//input[@name='secretKey']")
+    secret_key_field = Input(xpath="//input[@name='secretKey']", secret=True)
 
     # Edit mode
     version_field = Label(xpath="//span[text()='Version']/parent::label/following-sibling::div/div")
@@ -575,7 +575,7 @@ class EditCcPanelOpenstack(EditCcPanelBase):
     keystone_url_field = Input(xpath="//input[@name='keystoneUrl']")
     domain_name_field = Input(xpath="//input[@name='domainName']")
     username_field = Input(xpath="//input[@name='username']")
-    password_field = Input(xpath="//input[@name='password']")
+    password_field = Input(xpath="//input[@name='password']", secret=True)
     tenant_name_field = Input(xpath="//input[@name='tenantName']")
     ssl_verification_checkbox = Checkbox(text='Enable SSL')
 
@@ -618,7 +618,7 @@ class EditCcPanelOpenstack(EditCcPanelBase):
 class EditCcPanelVMware(EditCcPanelBase):
     url_field = Input(xpath="//input[@name='url']")
     username_field = Input(xpath="//input[@name='username']")
-    password_field = Input(xpath="//input[@name='password']")
+    password_field = Input(xpath="//input[@name='password']", secret=True)
     ssl_verification_checkbox = Checkbox(text='Enable SSL')
 
     api_version_field = Label(xpath="//span[text()='API Version']/parent::label/following-sibling::div/div")

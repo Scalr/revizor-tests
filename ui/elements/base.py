@@ -128,6 +128,11 @@ class Button(BaseElement):
         LOG.debug('Click button %s' % str(self.locator))
         self.get_element().click()
 
+    @property
+    def enabled(self):
+        el = self.get_element().find_element_by_xpath("./ancestor-or-self::a[contains(@class,'x-btn')]")
+        return 'x-btn-disabled' not in el.get_attribute('class')
+
 
 class SplitButton(BaseElement):
     """Button with dropdown that has different options.
@@ -301,6 +306,10 @@ class Input(BaseElement):
     """Any writable field element.
     """
 
+    def __init__(self, secret: bool = False, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self._secret = secret
+
     def _make_locator(self, name=None, label=None, xpath=None, css=None):
         if name:
             self.locator = locators.XpathLocator(
@@ -319,7 +328,7 @@ class Input(BaseElement):
         """:param hidden: is used if the field is hidden,
            but in the UI it is possible to write
         """
-        LOG.debug('Write "%s" in input field %s' % (text, str(self.locator)))
+        LOG.debug('Write "%s" in input field %s' % (text if not self._secret else '*****', str(self.locator)))
         element = self.get_element() if not hidden else self.get_element(show_hidden=True)
         if clear:
             element.clear()
