@@ -17,6 +17,7 @@ LOG = logging.getLogger(__name__)
 
 @step(r'I get an image from the server running in the cloud')
 def get_node_image(step):
+    # Moved to discovery.py
     node = getattr(world, 'cloud_server')
     if node.platform_config.is_gce:
         image = node.driver.ex_get_image(node.extra['image'])
@@ -52,6 +53,7 @@ def launch_import_server(step):
 
 @step(r'I trigger the deploy and run scalr agent on the ([\w\d]+) server')
 def deploy_agent(step, serv_as):
+    # migrated
     server = getattr(world, serv_as)
     deploy_cmd = IMPL.discovery_manager.triggering_agent_deployment(server.id)['deploy_cmd']
     node = world.cloud.get_node(server)
