@@ -1,14 +1,14 @@
+import logging
 import re
 import time
-import logging
 
+from selenium.common.exceptions import NoSuchElementException
 from selenium.webdriver.common.action_chains import ActionChains
-from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.support.ui import WebDriverWait
 
 from elements import locators
-from elements.base import Button, Checkbox, Input
+from elements.base import Button, Checkbox, Input, Container, Label
 
 LOG = logging.getLogger()
 
@@ -128,8 +128,8 @@ class ConfirmPanel(object):
         button.click()
 
     def wait_presence_of(self, timeout=3):
-            return WebDriverWait(self.driver, timeout).until(
-                EC.presence_of_element_located(self.locator))
+        return WebDriverWait(self.driver, timeout).until(
+            EC.presence_of_element_located(self.locator))
 
     def find_descendant_element(self, xpath):
         """Search for elements inside the confirm panel. The root of search is confirm panel.
@@ -146,6 +146,7 @@ class ConfirmButton(Button):
     """An accessorial element. Implements the element click on which requires
     confirmation of actions. Delete object, terminate farm, servers etc...
     """
+
     def click(self, panel_type=None):
         """
         :type panel_type: string
@@ -161,13 +162,15 @@ class ConfirmButton(Button):
 
 class GlobalScopeSwitchButton(Checkbox):
 
-    def _make_locator(self, text):
+    def _make_locator(self, text=None, **kwargs):
+        if not text:
+            raise ValueError('No toggle text was provided')
         self.locator = locators.XpathLocator(
             f"//* [text()='{text}']"
             f"/ancestor::div[contains(@id, 'togglefield')]")
 
     @property
-    def _checked(self):
+    def checked(self):
         element = self.get_element()
         element_class = element.get_attribute('class').split()
         return 'x-form-cb-checked' in element_class
@@ -178,9 +181,65 @@ class GlobalScopeSwitchButton(Checkbox):
         button.click()
 
     def check(self):
-        if not self._checked:
+        if not self.checked:
             self._click()
 
     def uncheck(self):
-        if self._checked:
+        if self.checked:
             self._click()
+
+
+class CostManagerTagsGrid(Container):
+    toggle_path = './/table[@class="x-grid-item"]//tr/td[2]/div[text()="%s"]' \
+                  '/ancestor::tr/td[1]//div[contains(@class, "x-togglestatuscolumn")]'
+
+    def _make_locator(self, xpath=None):
+        if xpath:
+            self.locator = locators.XpathLocator(xpath)
+        else:
+            raise ValueError('No locator policy was provided!')
+
+    @property
+    def header(self):
+        path = self.locator[1] + "/div[contains(@class, 'x-toolbar-docked-top')]" \
+                                 "//div[contains(@class, 'x-fieldset-subheader')]"
+        return Label(driver=self.driver,
+                     xpath=path)
+
+    @property
+    def _refresh_tags_button(self):
+        path = self.locator[1] + "/div[contains(@class, 'x-toolbar-docked-top')]" \
+                                 "//a[@data-qtip='Refresh tag list']"
+        return Button(driver=self.driver,
+                      xpath=path)
+
+    def refresh(self):
+        self._refresh_tags_button.click()
+        return self
+
+    @property
+    def tags(self):
+        path = './/table[@class="x-grid-item"]//tr/td[2]/div'
+        tags = self.get_element().find_elements_by_xpath(path)
+        return [t.get_attribute('textContent') for t in tags]
+
+    def checked(self, tagname):
+        tag = self.get_element().find_element_by_xpath(self.toggle_path % tagname)
+        return 'x-inactive' not in tag.get_attribute('class')
+
+    def check(self, tagname):
+        if not self.checked(tagname):
+            self.get_element().find_element_by_xpath(self.toggle_path % tagname).click()
+
+    def uncheck(self, tagname):
+        if self.checked(tagname):
+            self.get_element().find_element_by_xpath(self.toggle_path % tagname).click()
+
+    @property
+    def is_empty(self):
+        try:
+            with self.driver.implicitly_wait_time(0):
+                el = self.get_element().find_element_by_xpath('.//div[@class="x-grid-empty"]')
+                return el.is_displayed()
+        except NoSuchElementException:
+            return False

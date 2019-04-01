@@ -45,6 +45,7 @@ def wait_for_page_to_load(func, *args, **kwargs):
         LOG.debug("Waiting for loading element with class='x-mask' to drop")
         try:
             wait.until(invisibility_of_all_elements_located(mask))
+            time.sleep(1)
             if page.loaded:
                 return page
         except TimeoutException:
@@ -60,9 +61,15 @@ class BasePage(Page):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        for el in self.__class__.__dict__.values():
-            if isinstance(el, BaseElement):
-                el.driver = self.driver
+
+        def apply_driver(element):
+            if isinstance(element, BaseElement):
+                element.driver = self.driver
+
+        for cls in self.__class__.mro():
+            if issubclass(cls, BasePage):
+                for el in cls.__dict__.values():
+                    apply_driver(el)
 
     @property
     def page_message(self):

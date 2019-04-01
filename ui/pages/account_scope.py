@@ -1,8 +1,12 @@
+import typing as tp
+
 from selenium.webdriver.support import expected_conditions as EC
 
-from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox
+from elements.base import Button, Label, Input, SearchInput, Menu, Checkbox, Combobox, Table, TableRow, SplitButton
+from elements.page_objects import ConfirmButton
 from pages.base import wait_for_page_to_load
 from pages.common import CommonTopMenu
+from pages.global_scope import EditCcPanelBase, CC_EDITOR
 
 
 class AccountTopMenu(CommonTopMenu):
@@ -65,6 +69,15 @@ class AccountLeftMenu(CommonTopMenu):
         """
         Button(xpath="//a[@role='menuitem']/span[.='Policy Groups']", driver=self.driver).click()
         return PolicyGroups(self.driver, self.base_url)
+
+    @wait_for_page_to_load
+    def go_to_cloud_credentials(self) -> 'CloudCredentials':
+        """Redirects to Cloud Credentials page (Account scope).
+           Returns CloudCredentials page object.
+        """
+        self.scope_main_menu.click()
+        self.scope_main_menu.select("Cloud Credentials")
+        return CloudCredentials(self.driver, self.base_url)
 
 
 class AccountDashboard(AccountTopMenu, AccountLeftMenu):
@@ -305,3 +318,70 @@ class PolicyGroups(AccountLeftMenu):
     @property
     def loaded(self):
         return self.new_policy_group_button.wait_until_condition(EC.visibility_of_element_located, timeout=13)
+
+
+class CloudCredentials(AccountTopMenu):
+    """Cloud Credentials page from Account scope
+    """
+    URL_TEMPLATE = '/#/account/credentials'
+    TITLE = 'Cloud Credentials'
+
+    add_ccs_button = Button(xpath="//div[contains(@class, 'x-docked-top')]"
+                                  "//*[text()='Add Credentials']/ancestor::a")
+    refresh_button = Button(xpath="//*[text()='Add Credentials']/ancestor::div[contains(@class, 'x-docked-top')]"
+                                  "//span[contains(@class, 'x-btn-icon-refresh')]")
+    delete_button = ConfirmButton(xpath="//*[text()='Add Credentials']/ancestor::div[contains(@class, 'x-docked-top')]"
+                                        "//span[contains(@class, 'x-btn-icon-delete')]")
+    ccs_table = Table(xpath="//div[contains(@class, 'x-abs-layout-item') and not(contains(@style,'display: none'))]"
+                            "//div[contains(@class, 'x-grid-view')]")
+    check_all_checkbox = Button(xpath="//div[contains(@class, 'x-column-header-checkbox')]")
+    select_scope_button = SplitButton(xpath="//a[starts-with(@id, 'cyclealt')]")
+
+    def add(self, cloud: str):
+        self.add_ccs_button.click()
+        EditCcPanelBase(driver=self.driver).cloud_field.select(cloud)
+        return CC_EDITOR[cloud](driver=self.driver)
+
+    @wait_for_page_to_load
+    def refresh(self):
+        self.refresh_button.click()
+        return self
+
+    @wait_for_page_to_load
+    def select(self, name: str):
+        row = TableRow(driver=self.driver, label=name)
+        row.select()
+        return CC_EDITOR[row.data['Cloud']](driver=self.driver)
+
+    def check(self, name: tp.Union[str, tp.List[str]]):
+        if isinstance(name, str):
+            name = [name]
+        for n in name:
+            row = TableRow(driver=self.driver, label=n)
+            row.check()
+        return self
+
+    def check_all(self):
+        if 'x-grid-hd-checker-on' not in self.check_all_checkbox.classes:
+            self.check_all_checkbox.click()
+        return self
+
+    def uncheck_all(self):
+        if 'x-grid-hd-checker-on' in self.check_all_checkbox.classes:
+            self.check_all_checkbox.click()
+        return self
+
+    def list(self):
+        return [row.data for row in self.ccs_table.rows]
+
+    @wait_for_page_to_load
+    def delete(self):
+        self.delete_button.click().click(label='Delete')
+        return self
+
+    def switch_scope(self, scope: str):
+        self.select_scope_button.click(scope)
+
+    @property
+    def loaded(self):
+        return self.add_ccs_button.wait_until_condition(EC.visibility_of_element_located)
