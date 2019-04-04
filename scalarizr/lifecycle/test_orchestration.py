@@ -2,12 +2,11 @@ import pytest
 
 from revizor2.api import Farm, CONF
 from revizor2.cloud import Cloud
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import lifecycle, orchestration, windows
-from scalarizr.lib.common import run_only_if
 
 
 WINDOWS_BOOTSTRAP_SCRIPTS = [
@@ -129,8 +128,8 @@ class TestOrchestration:
                                                std_err=stderr,
                                                exitcode=exitcode)
 
-    @run_only_if(family=['!windows'])
     @pytest.mark.chef
+    @pytest.mark.run_only_if(family=['!windows'])
     def test_verify_chef_execution(self, cloud: Cloud, servers: dict):
         """Verify chef executed normally"""
         server = servers['M1']
@@ -139,7 +138,6 @@ class TestOrchestration:
         lib_node.validate_process_options(cloud, server, process='memcached', options='-m 1024')
         orchestration.verify_recipes_in_runlist(server, recipes=['memcached', 'revizorenv'])
 
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
     def test_execute_scripts(self, context: dict, cloud: Cloud, farm: Farm, servers: dict,
                              script_name: str, synchronous: bool, is_local: bool, output: str, stderr: bool):
         """Verify script execution on running instance"""
@@ -153,7 +151,7 @@ class TestOrchestration:
                                                std_err=stderr,
                                                new_only=True)
 
-    @run_only_if(family=['!windows'])
+    @pytest.mark.run_only_if(family=['!windows'])
     @pytest.mark.parametrize('user, exists',
                              [
                                  ('', True),
@@ -184,9 +182,8 @@ class TestOrchestration:
                                                std_err=not exists,
                                                new_only=True)
 
-    @run_only_if(family=['windows'])
     @pytest.mark.restart
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(family=['windows'])
     def test_restart_scalarizr_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Restart scalarizr during script execution"""
         server = servers['M1']
@@ -217,8 +214,7 @@ class TestOrchestration:
         assert all(map(lambda x: x in fail_message, lookup_substrings)),\
             "Unexpected Failed status message: %s" % fail_message
 
-    @run_only_if(family=['windows'])
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(family=['windows'])
     def test_scripting_gv_length(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Check agent sets long GV and script executes"""
         lib_farm.clear(farm)

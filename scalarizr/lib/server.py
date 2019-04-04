@@ -633,7 +633,7 @@ def expect_server_bootstraping_for_role(context: dict, cloud: Cloud, farm: Farm,
     platform = CONF.feature.platform
     if platform.is_cloudstack or platform.is_openstack or platform.is_azure:
         timeout = 3000
-    LOG.info('Expect server bootstrapping for %s role' % role_type)
+    LOG.info(f'Expect server bootstrapping for {role_type} role')
     return wait_status(context, cloud, farm, role=role, status=ServerStatus.RUNNING, timeout=timeout)
 
 
@@ -652,9 +652,47 @@ def set_iptables_rule(cloud: Cloud, server: Server, port: tp.Union[int, tuple, l
 
 
 def validate_failed_status_message(server: Server, phase: str, msg: str):
+    """Check if server in failed state with expected message"""
     patterns = (phase, msg)
     failed_status_msg = server.get_failed_status_message()
     msg_head = failed_status_msg.split("\n")[0].replace("&quot;", "")
-    LOG.debug('Initialization status message: %s' % msg_head)
+    LOG.debug(f'Initialization status message: {msg_head}')
     assert all(pattern in msg_head for pattern in patterns), \
         "Initialization was not failed on %s with message %s" % patterns
+
+
+def is_events_fired(server: Server, events_type: list) -> bool:
+    """Check if events fired in server"""
+    events_fired = False
+    server.events.reload()
+    server_events = [e.type.lower() for e in reversed(server.events)]
+    LOG.debug('Server {server.id} events list: {server_events}')
+    if all(e.lower() in server_events for e in events_type):
+        LOG.debug('"%s" events were fired by %s.' % (events_type, server.id))
+        events_fired = True
+    return events_fired
+
+
+def assert_server_event(server: Server, events_type: list):
+    """Assert server events"""
+    LOG.info('Check "%s" events were fired  by %s' % (events_type, server.id))
+    err_msg = '"%s" events were not fired by %s' % (events_type, server.id)
+    wait_until(
+        is_events_fired,
+        args=(server, events_type),
+        timeout=300,
+        logger=LOG,
+        error_text=err_msg)
+
+
+def assert_server_event_again_fired(server: Server, events: list):
+    """Assert server events if this events already was"""
+    #FIXME: delete this and use only assert_server_event
+    server.events.reload()
+    LOG.info('Check "%s" events were not again fired by %s' % (events, server.id))
+    server_events = [e.type.lower() for e in reversed(server.events)]
+    LOG.debug('Server %s events list: %s' % (server.id, server_events))
+    duplicated_server_events = set([e for e in server_events if server_events.count(e) > 1])
+    LOG.debug('Server %s duplicated events list: %s' % (server.id, duplicated_server_events))
+    assert not any(e.lower() in duplicated_server_events for e in events), \
+        'Some events from %s were fired by %s more than one time' % (events, server.id)

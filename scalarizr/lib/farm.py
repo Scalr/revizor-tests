@@ -185,3 +185,11 @@ def farm_launch_delayed(farm: Farm):
         time.sleep(1800)
     farm.launch()
     LOG.info('Launch farm \'%s\' (%s)' % (farm.id, farm.name))
+
+
+def get_farm_state(farm: Farm, state: str):
+    farm = Farm.get(farm.id)
+    if farm.status == state:
+        return True
+    else:
+        raise AssertionError('Farm is Not in %s state' % state)
