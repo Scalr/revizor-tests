@@ -22,7 +22,8 @@ LOG = logging.getLogger(__name__)
 pytest_plugins = [
     'scalarizr.plugins.revizor',
     'scalarizr.plugins.reporter',
-    'scalarizr.plugins.ordering'
+    'scalarizr.plugins.ordering',
+    'scalarizr.plugins.cloud_resources'
 ]
 
 
@@ -111,6 +112,9 @@ def farm(request: FixtureRequest) -> Farm:
             LOG.info('Clear and stop farm...')
             test_farm.terminate()
             IMPL.farm.clear_roles(test_farm.id)
+            # Remove from cloud linked to farm resources
+            if not request.session.config.getoption("store_linked_resources"):
+                lib_farm.remove_cloud_resources_linked_to_farm(test_farm)
             if test_farm.name.startswith('tmprev'):
                 LOG.info('Delete working temporary farm')
                 try:

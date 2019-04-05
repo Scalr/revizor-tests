@@ -10,6 +10,7 @@ from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.helpers.roles import get_role_versions
 from scalarizr.lib.defaults import Defaults
+from scalarizr.lib import cloud_recources as lib_resources
 
 LOG = logging.getLogger(__name__)
 
@@ -185,3 +186,44 @@ def farm_launch_delayed(farm: Farm):
         time.sleep(1800)
     farm.launch()
     LOG.info('Launch farm \'%s\' (%s)' % (farm.id, farm.name))
+
+
+def link_efs_cloud_service_to_farm(farm: Farm, efs: dict) -> bool:
+    """Link an Amazon efs to farm
+
+    @type farm: Farm
+    @param farm:
+
+    @type efs: dict
+    @param efs: cloud object details
+    """
+    if not CONF.feature.platform.is_ec2:
+        return
+    service_params = dict(
+        service_type='efs',
+        cloud_id=efs['fileSystemId'],
+        name=efs['name']
+    )
+    res = IMPL.farm.link_cloud_service(farm_id=farm.id, **service_params)
+    LOG.info(f'Link an Amazon efs {efs["name"]}:[{efs["fileSystemId"]}] to farm [{farm.id}]. {res["successMessage"]}')
+    return res['success']
+
+
+def remove_cloud_resources_linked_to_farm(farm: Farm):
+    """Remove cloud resources linked to Farm
+
+    @type farm: Farm
+    @param farm:
+    """
+    linked_services = IMPL.farm.get_settings(farm.id)['farm']['services']
+    LOG.info(f"Linked to farm [{farm.id}] cloud services: {linked_services}")
+    for service in linked_services:
+        method = getattr(lib_resources, f"delete_{service['type']}", None)
+        if method:
+            LOG.info(f"Remove {service['type']} service {service['cloudObjectId']} from {service['platform']} cloud")
+            IMPL.farm.unlink_cloud_service(farm.id, service['cloudObjectId'])
+            method(
+                cloud_id=service['cloudObjectId'],
+                cloud_location=service['cloudLocation'],
+                cloud_name=service['name']
+            )

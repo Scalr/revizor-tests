@@ -35,7 +35,8 @@ class TestLifecycleLinux:
              'test_attached_storages_restart',
              'test_reboot_bootstrap',
              'test_nonblank_volume',
-             'test_failed_hostname')
+             'test_failed_hostname',
+             'test_efs_bootstrapping')
 
     @pytest.mark.boot
     @pytest.mark.platform('ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure')
@@ -255,3 +256,13 @@ class TestLifecycleLinux:
         lib_farm.add_role_to_farm(context, farm, role_options=['failed_hostname'])
         farm.launch()
         lib_server.wait_status(context, cloud, farm, status=ServerStatus.FAILED)
+
+    @pytest.mark.efs
+    @pytest.mark.storages
+    @pytest.mark.platform('ec2')
+    def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm):
+        """EFS"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.link_efs_cloud_service_to_farm(farm, efs)
+        #lib_farm.add_role_to_farm(context, farm, role_options=['efs'])
