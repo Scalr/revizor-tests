@@ -146,7 +146,9 @@ def setup_farmrole_params(context: dict,
             LOG.info(f'Setup {redis_count} redis processes')
             role_params.database.redis_processes = int(redis_count)
         elif 'chef-solo' in opt:
-            Defaults.set_chef_solo(role_params, opt)
+            Defaults.set_chef_solo(role_params)
+        elif 'efs' in opt:
+            Defaults.set_efs_storages(role_params, context.get('linked_services'))
         else:
             Defaults.apply_option(role_params, opt)
 

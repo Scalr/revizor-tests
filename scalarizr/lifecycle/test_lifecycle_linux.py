@@ -261,8 +261,9 @@ class TestLifecycleLinux:
     @pytest.mark.storages
     @pytest.mark.platform('ec2')
     def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm):
-        """EFS"""
+        """Check attached EFS storages"""
         lib_farm.clear(farm)
         farm.terminate()
+        context['linked_services'] = {'efs': {'cloud_id': efs['fileSystemId']}}
         lib_farm.link_efs_cloud_service_to_farm(farm, efs)
-        #lib_farm.add_role_to_farm(context, farm, role_options=['efs'])
+        lib_farm.add_role_to_farm(context, farm, role_options=['efs'])
