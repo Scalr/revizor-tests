@@ -18,7 +18,7 @@ class TestDiscoveryManager:
         'test_deploy_agent'
     )
 
-    @pytest.mark.platform('ec2', 'gce')
+    @pytest.mark.run_only_if(platform=['ec2', 'gce'])
     def test_import_server(self, context: dict, cloud: Cloud, farm: Farm):
         """Import cloud server to Scalr"""
         farm.launch()
@@ -45,7 +45,7 @@ class TestDiscoveryManager:
         assert farm.roles[0].servers[0].cloud_server_id == instance_id
         lifecycle.validate_server_status(farm.roles[0].servers[0], ServerStatus.RUNNING)
 
-    @pytest.mark.platform('ec2', 'gce')
+    @pytest.mark.run_only_if(platform=['ec2', 'gce'])
     def test_deploy_agent(self, context: dict, cloud: Cloud, farm: Farm):
         """Deploy Agent to imported server"""
         server = farm.roles[0].servers[0]

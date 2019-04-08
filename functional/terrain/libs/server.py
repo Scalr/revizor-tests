@@ -484,6 +484,7 @@ def wait_server_message(server, message_name, message_type='out', find_in_all=Fa
 
 @world.absorb
 def is_events_fired(server, events_type):
+    # NOTE: migrated
     events_fired = False
     server.events.reload()
     server_events = [e.type.lower() for e in reversed(server.events)]
@@ -618,6 +619,7 @@ def get_hostname(server):
 
 @world.absorb
 def get_hostname_by_server_format(server):
+    # NOTE: migrated
     return 'r%s-%s-%s' % (
         world.farm.id,
         server.farm_role_id,

@@ -8,7 +8,6 @@ from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import docker, lifecycle
 
 
-# WARNING! Does NOT support CentOS/RHEL 6 or lower!
 class TestDocker:
     """Docker compatibility"""
 
@@ -16,8 +15,7 @@ class TestDocker:
              'test_delete_containers',
              'test_stopresume_containers')
 
-    @pytest.mark.boot
-    @pytest.mark.platform('ec2', 'gce')
+    @pytest.mark.run_only_if(platform=['ec2', 'gce'], dist=['!centos-6-x'])
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstraping"""
         lib_farm.add_role_to_farm(context, farm)
@@ -29,7 +27,7 @@ class TestDocker:
         docker.start_containers(docker_client)
         docker.validate_containers(server, docker_client)
 
-    @pytest.mark.platform('ec2', 'gce')
+    @pytest.mark.run_only_if(platform=['ec2', 'gce'], dist=['!centos-6-x'])
     def test_delete_containers(self, context: dict, servers: dict):
         """Delete docker containers"""
         server = servers['M1']
@@ -38,7 +36,7 @@ class TestDocker:
         docker.modify_random_containers(docker_client, amount=10, action='delete')
         docker.validate_containers(server, docker_client)
 
-    @pytest.mark.platform('ec2', 'gce')
+    @pytest.mark.run_only_if(platform=['ec2', 'gce'], dist=['!centos-6-x'])
     def test_stopresume_containers(self, context: dict, servers: dict):
         """Stop/resume docker containers"""
         server = servers['M1']
