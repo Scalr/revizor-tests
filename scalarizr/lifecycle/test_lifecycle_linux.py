@@ -269,12 +269,12 @@ class TestLifecycleLinux:
         lib_farm.add_role_to_farm(context, farm, role_options=['efs'])
         farm.launch()
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        config = lifecycle.get_config_from_message(
+        servers['M1'] = server
+        context['M1_hostup_volumes'] = lifecycle.get_config_from_message(
             cloud,
             server,
             config_group='volumes',
             message='HostUp')
-        servers['M1'] = servercontext['M1_hostup_volumes'] = config
         lifecycle.validate_attached_disk_types(context, cloud, farm)
         lifecycle.validate_path(cloud, server, '/media/diskmount')
         lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
@@ -285,11 +285,11 @@ class TestLifecycleLinux:
             server,
             mount_table=mount_table,
             mount_point='/media/diskmount')
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_state_action(server, 'reboot')
         lib_server.validate_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
         mount_table_after_reboot = lifecycle.get_mount_table(cloud, server)
-        context['M1_mount_table'] = mount_table_after_reboot
-        lifecycle.validate_mount_point_in_fstab(cloud, server,
-                                                mount_table=mount_table_after_reboot,
-                                                mount_point='/media/diskmount')
+        lifecycle.validate_mount_point_in_fstab(
+            cloud,
+            server,
+            mount_table=mount_table_after_reboot,
+            mount_point='/media/diskmount')
