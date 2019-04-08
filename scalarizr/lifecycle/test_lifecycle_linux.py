@@ -260,8 +260,8 @@ class TestLifecycleLinux:
     @pytest.mark.efs
     @pytest.mark.storages
     @pytest.mark.platform('ec2')
-    def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm, cloud: Cloud, servers: dict):
-        """Check attached EFS storages (mount, file create, server reboot)"""
+    def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm, cloud: Cloud):
+        """Check attached EFS storage (mount points, file create, check after server reboot)"""
         lib_farm.clear(farm)
         farm.terminate()
         context['linked_services'] = {'efs': {'cloud_id': efs['fileSystemId']}}
