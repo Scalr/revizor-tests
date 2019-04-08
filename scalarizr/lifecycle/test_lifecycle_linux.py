@@ -1,4 +1,9 @@
+import json
 import pytest
+import logging
+
+from random import randint
+from _pytest.fixtures import FixtureRequest
 
 from revizor2 import CONF
 from revizor2.api import Farm
@@ -8,6 +13,37 @@ from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import lifecycle, szradm
+from scalarizr.lib import scalr
+from scalarizr.lib import cloud_resources as lib_resources
+
+LOG = logging.getLogger(__name__)
+
+
+@pytest.fixture
+def efs(request: FixtureRequest, farm: Farm) -> dict:
+    platform = CONF.feature.platform
+    user = scalr.get_scalr_user_by_email_local_part("test")
+    # New efs
+    LOG.info('Create new Amazon elastic file system')
+    efs = lib_resources.efs_create(
+        f"revizor-{randint(9000, 9999)}",
+        platform.location,
+        platform.vpc_id,
+        user[0]['id']
+    )
+    # Add mount target to efs
+    mount_target = lib_resources.create_efs_mount_target(
+        efs['fileSystemId'],
+        platform.vpc_id,
+        json.loads(platform.vpc_subnet_id)[0],
+        platform.zone,
+        platform.location)
+    LOG.debug(f'Added new EFS [{efs["fileSystemId"]}] with mounts target [{mount_target}].')
+    yield efs
+    # Remove from cloud linked to farm resources
+    get_opt = request.session.config.getoption
+    if not get_opt("--no-stop-farm"):
+        lib_farm.remove_cloud_resources_linked_to_farm(farm)
 
 
 class TestLifecycleLinux:
@@ -265,23 +301,24 @@ class TestLifecycleLinux:
         lib_farm.clear(farm)
         farm.terminate()
         context['linked_services'] = {'efs': {'cloud_id': efs['fileSystemId']}}
+        efs_mount_point = "/media/efsmount"
         lib_farm.link_efs_cloud_service_to_farm(farm, efs)
         lib_farm.add_role_to_farm(context, farm, role_options=['efs'])
         farm.launch()
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
         lifecycle.validate_attached_disk_types(context, cloud, farm)
-        lifecycle.validate_path(cloud, server, '/media/diskmount')
-        lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
+        lifecycle.validate_path(cloud, server, efs_mount_point)
+        lifecycle.create_files(cloud, server, count=100, directory=efs_mount_point)
         mount_table = lifecycle.get_mount_table(cloud, server)
         lifecycle.validate_mount_point_in_fstab(
             cloud,
             server,
             mount_table=mount_table,
-            mount_point='/media/diskmount')
+            mount_point=efs_mount_point)
         # Reboot server
         lib_server.execute_state_action(server, 'reboot')
         lib_server.validate_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
         # Check after reboot
         lifecycle.validate_attached_disk_types(context, cloud, farm)
-        lifecycle.validate_path(cloud, server, '/media/diskmount')
-        lifecycle.validate_files_count(cloud, server, count=100, directory='/media/diskmount')
+        lifecycle.validate_path(cloud, server, efs_mount_point)
+        lifecycle.validate_files_count(cloud, server, count=100, directory=efs_mount_point)

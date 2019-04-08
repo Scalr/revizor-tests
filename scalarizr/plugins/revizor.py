@@ -78,11 +78,6 @@ def pytest_addoption(parser):
                     action='store_true',
                     default=False,
                     help='Destroy TestEnv even when some tests fail.')
-    group.addoption('--store-linked-resources',
-                    dest='store_linked_resources',
-                    action='store_true',
-                    default=False,
-                    help="Don't remove from cloud linked resources after farm termination.")
 
 
 def pytest_sessionstart(session: Session):

@@ -10,7 +10,7 @@ from revizor2.exceptions import NotFound
 from revizor2.helpers import farmrole
 from revizor2.helpers.roles import get_role_versions
 from scalarizr.lib.defaults import Defaults
-from scalarizr.lib import cloud_recources as lib_resources
+from scalarizr.lib import cloud_resources as lib_resources
 
 LOG = logging.getLogger(__name__)
 
@@ -199,8 +199,6 @@ def link_efs_cloud_service_to_farm(farm: Farm, efs: dict) -> bool:
     @type efs: dict
     @param efs: cloud object details
     """
-    if not CONF.feature.platform.is_ec2:
-        return
     service_params = dict(
         service_type='efs',
         cloud_id=efs['fileSystemId'],

@@ -18,7 +18,7 @@ class Defaults(object):
     def set_efs_storages(params, linked_services):
         params.storage.volumes = [
                 farmrole.Volume(
-                    mount='/media/diskmount',
+                    mount='/media/efsmount',
                     fs='nfs',
                     re_build=False,
                     re_use=False,
