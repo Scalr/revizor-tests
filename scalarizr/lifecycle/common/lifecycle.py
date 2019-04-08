@@ -157,6 +157,13 @@ def create_files(cloud: Cloud, server: Server, count: int, directory: str):
     node.run('cd %s && for (( i=0;i<%s;i++ )) do touch "file$i"; done' % (directory, count))
 
 
+def validate_files_count(cloud: Cloud, server: Server, count: int, directory: str):
+    node = cloud.get_node(server)
+    LOG.info(f'Validate files count in directory {directory}')
+    res = node.run(f'ls {directory} | wc -l').std_out
+    assert str(count) in res, f"Files count mismatch on {directory}. {count} != {res}"
+
+
 def create_partitions_on_volume(cloud: Cloud, server: Server, mnt_point: str):
     script_name = 'create_partitions.sh'
     script_src = resources(Path('scripts', script_name)).get().decode()
@@ -228,7 +235,7 @@ def validate_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.
                 continue
             break
         fstab = fstab.splitlines()
-        fstab = {x.split()[1]: x.split()[0] for x in fstab if x and x.startswith('/')}
+        fstab = {x.split()[1]: x.split()[0] for x in fstab if x if re.match(r"^[\/\d]", x)}
         LOG.debug('Fstab on server "%s" contains:\n %s' % (server.id, fstab))
         if mount_point not in mount_table:
             raise AssertionError('Mount point "%s" not exist in mount table:\n%s' %
@@ -315,17 +322,6 @@ def delete_volume(cloud: Cloud, device_id: str):
             if 'attached' in e.message:
                 LOG.warning('Volume %s currently attached to server' % device_id)
                 time.sleep(60)
-
-
-def validate_files_count(cloud: Cloud, server: Server, directory: str, file_count: int):
-    node = cloud.get_node(server)
-    LOG.info('Check count of files in directory %s' % directory)
-    out = node.run('cd %s && ls' % directory).std_out.split()
-    for i in ['..', '.', '...', 'lost+found']:
-        if i in out:
-            out.remove(i)
-    if not file_count == len(out):
-        raise AssertionError('Count of files in directory is not %s, is %s' % (file_count, out))
 
 
 def validate_device_changed(context: dict, farm: Farm, mount_point: str, old_device_id: str):
