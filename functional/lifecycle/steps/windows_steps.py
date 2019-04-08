@@ -111,6 +111,7 @@ def remove_file(step, file_name, serv_as):
 
 @step(r"I check file '([\w\W]+)' ([\w\W]+)*exist on ([\w\d]+) windows")
 def check_file_exist(step, file_name, negation, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     cmd = "if {negation}exist {file_name} ( echo succeeded ) else echo failed 1>&2".format(
