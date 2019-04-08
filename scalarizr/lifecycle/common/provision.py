@@ -42,7 +42,7 @@ def check_process_options(node: ExtendedNode, process: str, options: str):
 
 
 def check_process_status(node: ExtendedNode, process: str, work: bool = False):
-    LOG.info("Check running process %s on server" % process)
+    LOG.info(f"Check running process {process} on server")
     list_proc = node.run('ps aux | grep %s' % process).std_out.split('\n')
     processes = filter(lambda x: 'grep' not in x and x, list_proc)
     msg = f"Process {process} on server {node.id} not in valid state"
@@ -65,7 +65,7 @@ def check_node_exists_on_chef_server(server: api.Server, exist: bool = True):
     LOG.debug(f'Chef node name: {hostname}')
 
     chef_api = chef.autoconfigure()
-    LOG.debug('Chef api instance: %s' % chef_api)
+
     if not isinstance(chef_api, chef.api.ChefAPI):
         raise AssertionError("Can't initialize ChefAPI instance.")
 
