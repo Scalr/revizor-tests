@@ -7,7 +7,7 @@ from libcloud.compute.types import NodeState
 
 from revizor2 import CONF
 from revizor2.utils import wait_until
-from revizor2.api import Cloud, Server
+from revizor2.api import Cloud, Server, IMPL
 from revizor2.cloud.node import ExtendedNode, Response
 from revizor2.consts import SERVICES_PORTS_MAP, BEHAVIORS_ALIASES, Dist
 from revizor2.defaults import DEFAULT_SERVICES_CONFIG
@@ -298,3 +298,29 @@ def validate_process_options(cloud: Cloud, server: Server, process: str, options
                 else:
                     return True
         raise AssertionError('Process %s not found.' % process)
+
+
+def deploy_agent(server: Server, cloud: Cloud):
+    """Get install and deploy scripts from 'Deploy agent' page. Install and deploy agent"""
+    #TODO: Add support for custom branch from drone
+    scripts = IMPL.discovery_manager.triggering_agent_deployment(server.id)
+    node = cloud.get_node(server)
+    LOG.info(f'Install scalarizr to server {server.id}')
+    node.run(scripts['install_cmd'])
+    assert 'not found' not in node.run('scalarizr -v').std_out
+    LOG.info(f'Run scalarizr: [{scripts["deploy_cmd"]}] on the imported server: {server.id}')
+    assert not bool(node.run(scripts['deploy_cmd']).status_code)
+
+
+def handle_agent_status(server: Server):
+    timeout = 300
+    time_until = time.time() + timeout
+    while time.time() <= time_until:
+        LOG.info('Check agent deploy status')
+        agent_status = IMPL.discovery_manager.get_deployment_action_status(act='check', server_id=server.id)
+        LOG.info(f'Agent deploy status: {agent_status}')
+        if agent_status.get('status') == 'ready':
+            break
+        time.sleep(5)
+    else:
+        raise TimeoutError(f'Timeout: {timeout} seconds reached')

@@ -110,17 +110,38 @@ def pytest_sessionstart(session: Session):
 
 
 def pytest_collection_modifyitems(session, config: Config, items: tp.List[Function]):
-    """Filter out tests according to @pytest.mark.platform marker"""
+    """Filter out tests according to @pytest.mark.run_only_if marker"""
     remaining = []
     deselected = []
+    env = {
+        'platform': CONF.feature.platform.name,
+        'dist': CONF.feature.dist.id,
+        'family': CONF.feature.dist.family
+    }
     for item in items:
-        platforms_mark = item.get_closest_marker(name='platform')
-        if platforms_mark:
-            platforms = platforms_mark.args
-            if CONF.feature.platform.name not in platforms:
-                deselected.append(item)
-                continue
-        remaining.append(item)
+        conditions = item.get_closest_marker(name='run_only_if')
+        if not conditions:
+            continue
+        for cond_name, cond_values in conditions.kwargs.items():
+            pass_list, break_list = [], []
+            if isinstance(cond_values, str):
+                cond_values = [cond_values]
+
+            for v in cond_values:
+                if v.startswith('!'):
+                    break_list.append(v.strip('!'))
+                else:
+                    pass_list.append(v)
+            if (pass_list and env[cond_name] not in pass_list) or (break_list and env[cond_name] in break_list):
+                if item not in deselected:
+                    deselected.append(item)
+                if item in remaining:
+                    remaining.remove(item)
+                break
+            else:
+                if item not in remaining:
+                    remaining.append(item)
+
     if deselected:
         config.hook.pytest_deselected(items=deselected)
         items[:] = remaining

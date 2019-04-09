@@ -5,6 +5,7 @@ from _pytest.python import Function
 
 
 def pytest_collection_modifyitems(session, config, items: tp.List[Function]):
+    """Ordering tests"""
     sorted_items = []
     groups = itertools.groupby(items, key=lambda i: i.cls.__name__)
     for group_name, group_items in groups:

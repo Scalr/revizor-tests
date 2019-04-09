@@ -138,6 +138,7 @@ def validate_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
 
 
 def validate_path(cloud: Cloud, server: Server, path: str):
+    """Validate path exist in server"""
     LOG.info('Check directory %s' % path)
     node = cloud.get_node(server)
     with node.remote_connection() as conn:

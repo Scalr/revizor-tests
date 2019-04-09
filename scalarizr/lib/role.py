@@ -45,7 +45,7 @@ def get_storage_device_by_mnt_point(context: dict, farm: Farm, mnt_point: str, r
 
 def create_role(image: NodeImage,
                 behaviors: tp.List[str] = None,
-                non_scalarized: bool = False,
+                non_scalarized: bool = False,  # TODO: Rename to scalarized, cloudinit
                 has_cloudinit: bool = True) -> dict:
     behaviors = behaviors or ['chef']
     if CONF.feature.dist.id == 'coreos':

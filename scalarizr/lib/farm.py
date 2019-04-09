@@ -1,6 +1,6 @@
-import logging
 import re
 import time
+import logging
 import typing as tp
 
 from revizor2 import CONF
@@ -82,7 +82,7 @@ def add_role_to_farm(context: dict,
     LOG.debug(f'Save role object with name {added_role[0].alias}')
     context[f'{added_role[0].alias}_role'] = added_role[0]
     context[f'role_params_{added_role[0].id}'] = role_params
-    return added_role[0]
+    return added_role[0]  #TODO: Scalr return addedFarmRoleIds
 
 
 def get_role_by_behavior(behavior, dist: str = None) -> dict:
@@ -227,3 +227,11 @@ def remove_cloud_resources_linked_to_farm(farm: Farm):
                 cloud_location=service['cloudLocation'],
                 cloud_name=service['name']
             )
+
+
+def get_farm_state(farm: Farm, state: str):
+    farm = Farm.get(farm.id)
+    if farm.status == state:
+        return True
+    else:
+        raise AssertionError('Farm is Not in %s state' % state)

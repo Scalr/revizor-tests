@@ -166,6 +166,7 @@ def assert_server_message(step, msgtype, msg, serv_as, failed=False, unstored_me
 
 @step(r'(?:\s)([\w\W]+) event was fired by ([\w\d]+)')
 def assert_server_event(step, events_type, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     LOG.info('Check "%s" events were fired  by %s' % (events_type, server.id))
     err_msg = '"%s" events were not fired by %s' % (events_type, server.id)

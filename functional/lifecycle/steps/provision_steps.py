@@ -17,6 +17,7 @@ at_config = CONF.credentials.ansible_tower
 
 @step("process '([\w-]+)' has options '(.+)' in (.+)")
 def check_process_options(step, process, options, serv_as):
+    # NOTE: migrated
     #TODO: Add systemd support
     server = getattr(world, serv_as)
     LOG.debug('Want check process %s and options %s' % (process, options))
@@ -38,6 +39,7 @@ def check_process_options(step, process, options, serv_as):
 
 @step("chef node_name in ([\w\d]+) set by global hostname")
 def verify_chef_hostname(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     cmd = 'findstr node_name c:\chef\client.rb' if CONF.feature.dist.is_windows else 'cat /etc/chef/client.rb | grep node_name'
@@ -61,7 +63,7 @@ def verify_chef_log(step, serv_as, text):
 
 @step("I ([\w\d]+) chef bootstrap stats on ([\w\d]+)")
 def step_impl(step, action, serv_as):
-
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
 

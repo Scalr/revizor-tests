@@ -2,7 +2,7 @@ import pytest
 
 from revizor2.api import Farm
 from revizor2.cloud import Cloud
-from revizor2.consts import ServerStatus
+from revizor2.consts import ServerStatus, Platform
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
@@ -27,7 +27,7 @@ class TestLifecycleWindows:
              'test_eph_bootstrap')
 
     @pytest.mark.boot
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstrapping"""
         lib_farm.add_role_to_farm(context, farm, role_options=['storages'])
@@ -44,7 +44,7 @@ class TestLifecycleWindows:
         lifecycle.validate_hostname(server)
 
     @pytest.mark.scripting
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_execute_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Basic script execution"""
         server = servers['M1']
@@ -57,7 +57,7 @@ class TestLifecycleWindows:
                                                new_only=True)
 
     @pytest.mark.szradm
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_szradm_listroles(self, cloud: Cloud, servers: dict):
         """Verify szradm list-roles"""
         server = servers['M1']
@@ -73,7 +73,7 @@ class TestLifecycleWindows:
                                     record='HostUp')
 
     @pytest.mark.restart
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_restart_scalarizr(self, cloud: Cloud, servers: dict):
         """Restart scalarizr"""
         server = servers['M1']
@@ -84,7 +84,7 @@ class TestLifecycleWindows:
         windows.validate_errors_in_log(cloud, server)
 
     @pytest.mark.reboot
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_windows_reboot(self, cloud: Cloud, farm: Farm, servers: dict):
         """Windows reboot"""
         server = servers['M1']
@@ -96,7 +96,7 @@ class TestLifecycleWindows:
         lib_node.validate_service(cloud, server, 'scalr-upd-client')
 
     @pytest.mark.restartfarm
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_restart_farm(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Restart farm"""
         farm.terminate()
@@ -106,7 +106,7 @@ class TestLifecycleWindows:
         servers['M1'] = server
         lifecycle.validate_hostname(server)
 
-    @pytest.mark.platform('ec2', 'gce', 'openstack', 'azure')
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
     def test_restart_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstraping on restart"""
         lib_farm.clear(farm)
@@ -117,7 +117,7 @@ class TestLifecycleWindows:
         servers['M1'] = server
         lifecycle.validate_hostname(server)
 
-    @pytest.mark.platform('ec2')
+    @pytest.mark.run_only_if(platform=[Platform.EC2])
     def test_eph_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstraping with ephemeral"""
         lib_farm.clear(farm)

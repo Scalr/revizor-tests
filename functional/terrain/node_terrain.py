@@ -904,6 +904,7 @@ def installing_scalarizr(step, custom_version=None, use_sysprep=None, serv_as=No
 
 @step('I have a server([\w ]+)? running in cloud$')
 def given_server_in_cloud(step, user_data):
+    # Moved to lifecycle/common/discovery
     #TODO: Add install behaviors
     LOG.info('Create node in cloud. User_data:%s' % user_data)
     #Convert dict to formatted str
