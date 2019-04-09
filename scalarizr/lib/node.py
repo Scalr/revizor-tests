@@ -14,7 +14,6 @@ from revizor2.defaults import DEFAULT_SERVICES_CONFIG
 from revizor2.helpers.parsers import get_repo_url, parser_for_os_family
 
 import scalarizr.lib.server as lib_server
-from scalarizr.lib.common import run_only_if
 
 
 LOG = logging.getLogger(__name__)
@@ -186,7 +185,6 @@ def validate_scalarizr_version(server: Server, branch: str = None):
         (installed_version, last_version)
 
 
-@run_only_if(dist=['!coreos'])
 def validate_service(cloud: Cloud, server: Server, service: str, closed: bool = False):
     # FIXME: Rewrite this ugly logic
     port = SERVICES_PORTS_MAP[service]
