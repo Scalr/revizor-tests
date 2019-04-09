@@ -677,6 +677,7 @@ def change_service_pid_by_api(step, service_api, command, serv_as, isset_args=No
 
 @step(r'I create ([\w]+-?[\w]+?\s)?image from deployed server')
 def creating_image(step, image_type=None):
+    # NOTE: migrated
     image_type = image_type or 'base'
     cloud_server = getattr(world, 'cloud_server')
     # Create an image

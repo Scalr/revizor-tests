@@ -6,13 +6,10 @@ from datetime import datetime
 from revizor2 import CONF
 from revizor2.api import Server
 from revizor2.cloud import Cloud
-from revizor2.consts import Platform
-from scalarizr.lib.common import run_only_if
 
 LOG = logging.getLogger(__name__)
 
 
-@run_only_if(platform=(Platform.EC2, Platform.GCE, Platform.AZURE))
 def validate_attached_disk_size(cloud: Cloud, server: Server, disks: tp.List[tp.Tuple[str, str, int]]):
     node = cloud.get_node(server)
     out = node.run('wmic volume get Caption,Capacity,Label').std_out

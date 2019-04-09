@@ -22,6 +22,7 @@ def remove_unsupported_behaviors(scenario):
 
 @step(r"I check that cloudinit is installed")
 def check_cloudinit(step):
+    # NOTE: migrated
     node = getattr(world, 'cloud_server')
     cmd = 'coreos-cloudinit --version' if CONF.feature.dist.id == 'coreos' else 'cloud-init -v'
     with node.remote_connection() as conn:
