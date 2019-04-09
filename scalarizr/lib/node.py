@@ -1,8 +1,10 @@
-import logging
 import time
+import logging
 from collections import abc
+from datetime import datetime
 
 import requests
+from libcloud.compute.base import NodeImage
 from libcloud.compute.types import NodeState
 
 from revizor2 import CONF
@@ -322,3 +324,34 @@ def handle_agent_status(server: Server):
         time.sleep(5)
     else:
         raise TimeoutError(f'Timeout: {timeout} seconds reached')
+
+
+def create_image_from_node(node: ExtendedNode, cloud: Cloud) -> NodeImage:
+    # Create an image
+    platform = CONF.feature.platform
+    image_name = 'tmp-base-{}-{:%d%m%Y-%H%M%S}'.format(
+        CONF.feature.dist.id,
+        datetime.now()
+    )
+    # Set credentials to image creation
+    kwargs = {
+        'node': node,
+        'name': image_name
+    }
+    no_mapping = True if CONF.feature.dist.id == 'coreos' else False
+    if platform.is_ec2:
+        kwargs.update({'reboot': True})
+    node.run('sync')
+    image = cloud.create_template(no_mapping=no_mapping, **kwargs)
+    assert getattr(image, 'id', False), f'An image from a node object {node.name} was not created'
+    # Remove cloud server
+    LOG.info(f'An image: {image.id} from a node object: {node.name} was created')
+    # if platform.is_cloudstack:
+    #     forwarded_port = world.forwarded_port
+    #     ip = world.ip
+    #     assert world.cloud.close_port(cloud_server, forwarded_port, ip=ip), "Can't delete a port forwarding rule."
+    # LOG.info('Port forwarding rule was successfully removed.')
+    if not platform.is_gce:
+        assert node.destroy(), f"Can't destroy node: {node.id}."
+    LOG.info(f'Cloud server {node.id} was successfully destroyed.')
+    return image

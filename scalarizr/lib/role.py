@@ -103,7 +103,7 @@ def create_role(image: NodeImage,
             cloudLocation=cloud_location,
             hash=image['hash'])])
     LOG.debug('Create new role {name}. Role options: {behaviors} {images}'.format(**role_kwargs))
-    role = IMPL.role.create(**role_kwargs)
+    role = IMPL.role.create(**role_kwargs)  # FIXME: Return object Role instead dict
     return role
 
 

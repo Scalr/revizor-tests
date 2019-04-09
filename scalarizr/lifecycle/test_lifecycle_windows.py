@@ -1,5 +1,6 @@
 import pytest
 
+from revizor2.conf import CONF
 from revizor2.api import Farm
 from revizor2.cloud import Cloud
 from revizor2.consts import ServerStatus, Platform
@@ -35,11 +36,12 @@ class TestLifecycleWindows:
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
         lifecycle.validate_vcpus_info(server)
-        windows.validate_attached_disk_size(cloud, server, [
-            ('E:\\', 'test_label', 1),
-            ('F:\\', '', 2),
-            ('C:\\diskmount\\', '', 3)
-        ])
+        if CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE]:
+            windows.validate_attached_disk_size(cloud, server, [
+                ('E:\\', 'test_label', 1),
+                ('F:\\', '', 2),
+                ('C:\\diskmount\\', '', 3)
+            ])
         lifecycle.validate_scalarizr_version(server)
         lifecycle.validate_hostname(server)
 

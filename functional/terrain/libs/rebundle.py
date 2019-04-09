@@ -12,6 +12,7 @@ LOG = logging.getLogger(__name__)
 
 @world.absorb
 def bundle_task_created(server, bundle_id):
+    # NOTE: migrated
     contents = None
     for bundlelog in server.bundlelogs:
         if bundlelog.id == bundle_id:
@@ -31,6 +32,7 @@ def bundle_task_created(server, bundle_id):
 
 @world.absorb
 def bundle_task_completed(server, bundle_id, *args, **kwargs):
+    # NOTE: migrated
     server.bundlelogs.reload()
     for bundlelog in server.bundlelogs:
         if bundlelog.id == bundle_id:
