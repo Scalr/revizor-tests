@@ -295,7 +295,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.efs
     @pytest.mark.storages
-    @pytest.mark.platform('ec2')
+    @pytest.mark.run_only_if(platform=['ec2'])
     def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm, cloud: Cloud):
         """Check attached EFS storage (mount points, file create, check after server reboot)"""
         lib_farm.clear(farm)
