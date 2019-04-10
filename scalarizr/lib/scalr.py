@@ -1,8 +1,10 @@
+import re
 import logging
 
 from revizor2.utils import get_dict_value
 from revizor2.testenv import TestEnv
 from revizor2.api import Server
+from revizor2.backend import IMPL
 
 
 LOG = logging.getLogger(__name__)
@@ -40,3 +42,9 @@ def configure_scalr_proxy(testenv: TestEnv, server: Server, modules: str):
         )
     LOG.debug('Proxy params:\n%s' % params)
     update_scalr_config(testenv, params)
+
+
+def get_scalr_user_by_email_local_part(pattern):
+    users = IMPL.account.list_users()
+    return list(filter(lambda user: pattern in re.split(r"([\w\W]+)@", user['email']), users))
+

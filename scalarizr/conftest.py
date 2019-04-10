@@ -22,7 +22,7 @@ LOG = logging.getLogger(__name__)
 pytest_plugins = [
     'scalarizr.plugins.revizor',
     'scalarizr.plugins.reporter',
-    'scalarizr.plugins.ordering'
+    'scalarizr.plugins.ordering',
 ]
 
 

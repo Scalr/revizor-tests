@@ -35,6 +35,8 @@ def pytest_configure(config):
                             'failedbootstrap: server fails on bootstrap in test.')
     config.addinivalue_line('markers',
                             'chef: test verifies Chef orchestration.')
+    config.addinivalue_line('markers',
+                            'efs:  mark test as related to storages with elastic file system.')
 
 
 def pytest_addoption(parser):

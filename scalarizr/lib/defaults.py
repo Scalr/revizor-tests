@@ -15,6 +15,19 @@ class Defaults(object):
         getattr(Defaults, method)(params)
 
     @staticmethod
+    def set_efs_storages(params, linked_services):
+        params.storage.volumes = [
+                farmrole.Volume(
+                    mount='/media/efsmount',
+                    fs='nfs',
+                    re_build=False,
+                    re_use=False,
+                    category='Persistent storage',
+                    engine='efs',
+                    linked_services=linked_services)
+            ]
+
+    @staticmethod
     def set_storages(params):
         if CONF.feature.dist.is_windows:
             Defaults.set_storages_windows(params)
