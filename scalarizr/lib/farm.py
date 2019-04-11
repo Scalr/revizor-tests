@@ -74,6 +74,7 @@ def add_role_to_farm(context: dict,
         behaviors=behavior)
 
     farm.add_role(role['id'], options=role_params.to_json())
+    time.sleep(5)
     farm.roles.reload()
     added_role = [r for r in farm.roles if r.id not in previously_added_roles]
 
