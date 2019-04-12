@@ -135,15 +135,17 @@ def upload_scripts(testenv):
         for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
             LOG.debug(f'Upload script {script_path}')
             with (path_to_scripts / script_path).open(mode='r') as f:
-                script = json.load(f)
-            if script['name'] in existing_scripts:
-                LOG.info("Script '%s' already exists." % (script['name']))
+                script_params = json.load(f)
+            if script_params['name'] in existing_scripts:
+                LOG.info("Script '%s' already exists." % (script_params['name']))
             else:
-                IMPL.script.create(
-                    name=script['name'],
-                    description=script['description'],
-                    content=script['content']
-                )
-                LOG.info("Script '%s' successfully uploaded." % (script['name']))
+                script_type = script_params.get('type', 'scalr')
+                if script_type == 'git':
+                    repo_kwargs = script_params.pop('repository')
+                    if repo_kwargs['auth_type'] == 'ssh':
+                        repo_kwargs['ssh_key'] = CONF.credentials.github.ssh_key_path
+                    script_params['repo_id'] = IMPL.services.git.create_repository(**repo_kwargs)['id']
+                getattr(IMPL.script, f"create_{script_type}_script")(**script_params)
+                LOG.info("Script '%s' successfully uploaded." % (script_params['name']))
                 upload_counter += 1
         LOG.info("Total number of uploaded scripts: %s" % upload_counter)
