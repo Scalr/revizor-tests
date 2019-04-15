@@ -138,14 +138,15 @@ def upload_scripts(testenv):
                 script_params = json.load(f)
             if script_params['name'] in existing_scripts:
                 LOG.info("Script '%s' already exists." % (script_params['name']))
-            else:
-                script_type = script_params.get('type', 'scalr')
-                if script_type == 'git':
-                    repo_kwargs = script_params.pop('repository')
-                    if repo_kwargs['auth_type'] == 'ssh':
-                        repo_kwargs['ssh_key'] = CONF.credentials.github.ssh_key_path
-                    script_params['repo_id'] = IMPL.services.git.create_repository(**repo_kwargs)['id']
-                getattr(IMPL.script, f"create_{script_type}_script")(**script_params)
-                LOG.info("Script '%s' successfully uploaded." % (script_params['name']))
-                upload_counter += 1
+                continue
+            script_type = script_params.get('type', 'scalr')
+            if script_type == 'git':
+                LOG.debug(f'Git script params: {script_params}')
+                repo_params = script_params['credentials']
+                if repo_params['auth_type'] == 'ssh' and 'ssh_key' not in repo_params.keys():
+                    repo_params['ssh_key'] = CONF.credentials.github.ssh_key_path
+                script_params['repo_id'] = IMPL.services.git.create_repository(**repo_params)['id']
+            getattr(IMPL.script, f"create_{script_type}_script")(**script_params)
+            LOG.info("Script '%s' successfully uploaded." % (script_params['name']))
+            upload_counter += 1
         LOG.info("Total number of uploaded scripts: %s" % upload_counter)
