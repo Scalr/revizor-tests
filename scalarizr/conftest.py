@@ -141,7 +141,6 @@ def upload_scripts(testenv):
                 continue
             script_type = script_params.get('type', 'scalr')
             if script_type == 'git':
-                LOG.debug(f'Git script params: {script_params}')
                 repo_params = script_params['credentials']
                 if repo_params['auth_type'] == 'ssh' and 'ssh_key' not in repo_params.keys():
                     repo_params['ssh_key'] = CONF.credentials.github.ssh_key_path
