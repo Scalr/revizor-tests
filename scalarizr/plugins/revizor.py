@@ -121,6 +121,7 @@ def pytest_collection_modifyitems(session, config: Config, items: tp.List[Functi
     for item in items:
         conditions = item.get_closest_marker(name='run_only_if')
         if not conditions:
+            remaining.append(item)
             continue
         for cond_name, cond_values in conditions.kwargs.items():
             pass_list, break_list = [], []
