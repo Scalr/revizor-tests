@@ -324,3 +324,12 @@ class TestLifecycleLinux:
         lifecycle.validate_attached_disk_types(context, cloud, farm)
         lifecycle.validate_path(cloud, server, efs_mount_point)
         lifecycle.validate_files_count(cloud, server, count=100, directory=efs_mount_point)
+
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
+    def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm)
+        farm.launch()
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server.create_and_attach_volume(cloud, size=1)
