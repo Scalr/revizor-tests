@@ -10,7 +10,7 @@ from distutils.util import strtobool
 import scalarizr.lib.role as lib_role
 from scalarizr.lib.common import get_external_local_ip
 from revizor2 import CONF
-from revizor2.api import Farm, Role, Server, Message, Script
+from revizor2.api import Farm, FarmRole, Server, Message, Script
 from revizor2.cloud import Cloud, ExtendedNode
 from revizor2.consts import ServerStatus, Dist, Platform, MessageStatus
 from revizor2.exceptions import ServerTerminated, \
@@ -33,7 +33,7 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 def wait_status(context: dict,
                 cloud: Cloud,
                 farm: Farm,
-                role: Role = None,
+                role: FarmRole = None,
                 status: str = ServerStatus.RUNNING,
                 timeout: int = 2100,
                 server: Server = None) -> Server:

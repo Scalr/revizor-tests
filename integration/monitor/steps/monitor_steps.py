@@ -49,6 +49,7 @@ def multiple_servers_log_check(step, servers):
 
 @step(r'agent stat for ([\w\d,]+) is collected via (Pulling|Pushing)$')
 def check_pulling_or_pushing(step, serv_as, method):
+    # NOTE: migrated
     serv_as = serv_as.split(',')
     servers = [getattr(world, s) for s in serv_as]
     LOG.debug("Servers: %s" % servers)
@@ -80,6 +81,7 @@ def check_pulling_or_pushing(step, serv_as, method):
 
 @step(r'data for ([\w\d,]+) is present in influx')
 def verify_influx(step, servers):
+    # NOTE: migrated
     ssh = world.testenv.get_ssh()
     influx_command = re.search("alias influx='(.+)'", ssh.run('cat ~/.bashrc')[0]).group(1)
     LOG.debug("Influx command %s" % influx_command)

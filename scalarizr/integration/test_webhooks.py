@@ -15,6 +15,7 @@ from scalarizr.lib import apache as lib_apache
 from scalarizr.integration.common import webhooks as lib_webhooks
 
 
+#TODO: SCALRCORE-12265
 class TestWebhooks:
     """
     Check fatmouse/workflow_engine webhooks implementation
@@ -35,7 +36,7 @@ class TestWebhooks:
         servers['F1'] = server
 
     @pytest.mark.parametrize("ssl_verify,webhooks,expected_results", [
-        (False, 
+        (False,
          [
              {'schema': 'http', 'endpoint': '/', 'trigger_event': 'AccountEvent', 'name': 'http_normal'},
              {'schema': 'http', 'endpoint': '/redirect', 'trigger_event': 'AccountEvent', 'name': 'http_redirect'},
@@ -148,7 +149,7 @@ class TestWebhooks:
         lib_server.execute_script(context, farm, proxy_server,
                                   script_name='https://git.io/vA52O',
                                   is_local=True,
-                                  synchronous=True)       
+                                  synchronous=True)
         lib_scalr.configure_scalr_proxy(testenv, proxy_server, 'system.webhooks')
         testenv.restart_service("workflow-engine")
         testenv.restart_service("zmq_service")

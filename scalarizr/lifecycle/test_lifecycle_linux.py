@@ -9,11 +9,12 @@ from revizor2 import CONF
 from revizor2.api import Farm
 from revizor2.cloud import Cloud
 from revizor2.consts import ServerStatus, Platform
+
+from scalarizr.lib import scalr
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import lifecycle, szradm
-from scalarizr.lib import scalr
 from scalarizr.lib import cloud_resources as lib_resources
 
 LOG = logging.getLogger(__name__)
@@ -88,6 +89,7 @@ class TestLifecycleLinux:
         lifecycle.validate_hostname(server)
         lifecycle.validate_iptables_ports(cloud, server, [8008, 8010, 8012, 8013, 8014], invert=True)
         lifecycle.validate_server_message_count(context, server, 'BlockDeviceMounted')
+        lib_server.check_scalarizr_log_errors(cloud, server)
 
     @pytest.mark.szradm
     @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
