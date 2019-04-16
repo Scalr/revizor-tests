@@ -53,7 +53,7 @@ class TestLifecycleWindows:
         server = servers['M1']
         lifecycle.validate_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_script(context, farm, server, script_name="Windows ping-pong. CMD",
-                                  synchronous=True, is_local=False)
+                                  synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='Windows ping-pong. CMD',
                                                log_contains='pong',
@@ -66,7 +66,7 @@ class TestLifecycleWindows:
         server = servers['M1']
         lifecycle.validate_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_script(context, farm, server, script_name="Git_scripting_lifecycle",
-                                  synchronous=True, is_local=False)
+                                  synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='Git_scripting_lifecycle',
                                                log_contains='Multiplatform script successfully executed')

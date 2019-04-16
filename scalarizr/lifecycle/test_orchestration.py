@@ -2,7 +2,7 @@ import pytest
 
 from revizor2.api import Farm, CONF
 from revizor2.cloud import Cloud
-from revizor2.consts import ServerStatus, Platform
+from revizor2.consts import ServerStatus
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
@@ -11,7 +11,8 @@ from scalarizr.lifecycle.common import lifecycle, orchestration, windows
 
 WINDOWS_BOOTSTRAP_SCRIPTS = [
     ("HostInit", "Windows_ping_pong_CMD", None, 0, "pong", False),
-    ("HostUp", "Windows_ping_pong_CMD", None, 0, "pong", False)]
+    ("HostUp", "Windows_ping_pong_CMD", None, 0, "pong", False),
+    ("HostUp", "Git_scripting_orchestration", None, 0, "Multiplatform script successfully executed", False)]
 
 LINUX_BOOTSTRAP_SCRIPTS = [
     ("HostInit", "Revizor orchestration init", "root", 0, "", False),
@@ -25,7 +26,8 @@ LINUX_BOOTSTRAP_SCRIPTS = [
     ("HostUp", "chef", "root", 0, "", False),
     ("HostUp", "/bin/uname", "root", 0, "Linux", False),
     ("HostUp", "https://gist.githubusercontent.com", "root", 0, "Multiplatform script successfully executed", False),
-    ("HostUp", "Sleep 10", "root", 130, "printing dot each second; .....", False)]
+    ("HostUp", "Sleep 10", "root", 130, "printing dot each second; .....", False),
+    ("HostUp", "Git_scripting_orchestration", "root", 0, "Multiplatform script successfully executed", False)]
 
 WINDOWS_SCRIPTS = [
     ('Windows ping-pong. CMD', True, False, 'pong', False),
