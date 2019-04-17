@@ -362,3 +362,22 @@ def add_storage_to_role(context: dict, farm: Farm, volume_snapshot_id: str):
         }
     ]}
     role.edit(storages=storage_settings)
+
+
+def create_and_attach_volume(server: Server, size: int) -> str:
+    if CONF.feature.platform == Platform.EC2:
+        volume_id = IMPL.aws_tools.volume_create(
+            cloud_location=server.details['cloudLocation'],
+            zone=server.details['properties']['placement.availabilityZone'],
+            size=size,
+            server_id=server.id
+        )
+    elif CONF.feature.platform == Platform.AZURE:
+        volume_id = IMPL.azure_tools.volume_create(
+            cloud_location=server.details['cloudLocation'],
+            resource_group=CONF.feature.platform.resource_group.split('/')[-1],
+            name=f'rev-vol-{server.id.split("-")[0]}',
+            size=size,
+            server_id=server.id
+        ).split('/')[-1]
+    return volume_id

@@ -1,4 +1,5 @@
 import json
+import time
 import pytest
 import logging
 
@@ -74,7 +75,8 @@ class TestLifecycleLinux:
              'test_reboot_bootstrap',
              'test_nonblank_volume',
              'test_failed_hostname',
-             'test_efs_bootstrapping')
+             'test_efs_bootstrapping',
+             'test_attach_disk_to_running_server')
 
     @pytest.mark.boot
     @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
@@ -311,7 +313,7 @@ class TestLifecycleLinux:
     @pytest.mark.storages
     @pytest.mark.run_only_if(platform=['ec2'])
     def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm, cloud: Cloud):
-        """Check attached EFS storage (mount points, file create, check after server reboot)"""
+        """Attach EFS storage"""
         lib_farm.clear(farm)
         farm.terminate()
         context['linked_services'] = {'efs': {'cloud_id': efs['fileSystemId']}}
@@ -336,3 +338,23 @@ class TestLifecycleLinux:
         lifecycle.validate_attached_disk_types(context, cloud, farm)
         lifecycle.validate_path(cloud, server, efs_mount_point)
         lifecycle.validate_files_count(cloud, server, count=100, directory=efs_mount_point)
+
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
+    def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
+        """Attach disk to running server"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm)
+        farm.launch()
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        volume_id = lifecycle.create_and_attach_volume(server, size=1)
+        assert volume_id
+        for _ in range(6):
+            server.details.reload()
+            volume_ids = [vol['id'] for vol in server.details['volumes']]
+            if len(volume_ids) > 1:
+                break
+            time.sleep(5)
+        else:
+            raise AssertionError(f'Servers {server.id} has only 1 volume after 30 seconds')
+        assert volume_id in volume_ids, f'Server {server.id} not have volume {volume_id}'
