@@ -64,6 +64,7 @@ class TestLifecycleLinux:
              'test_linux_reboot',
              'test_storages_fstab_reboot',
              'test_execute_script',
+             'test_execute_git_script',
              'test_restart_scalarizr',
              'test_custom_event',
              'test_custom_event_caching',
@@ -179,6 +180,17 @@ class TestLifecycleLinux:
                                                name='Linux ping-pong',
                                                log_contains='pong',
                                                new_only=True)
+
+    @pytest.mark.scripting
+    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    def test_execute_git_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Execute Git script on Linux"""
+        server = servers['M1']
+        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.execute_script(context, farm, server, script_name='Git_scripting_lifecycle', synchronous=True)
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='Git_scripting_lifecycle',
+                                               log_contains='Multiplatform script successfully executed')
 
     @pytest.mark.restart
     @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])

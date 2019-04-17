@@ -45,3 +45,5 @@ def get_platform_backend_tools():
         Platform.EC2: 'aws_tools',
         Platform.GCE: 'gce_tools'}
     return getattr(IMPL, platform_backend_tools.get(CONF.feature.platform.name))
+
+

@@ -264,7 +264,8 @@ class Defaults(object):
             farmrole.OrchestrationRule(event='HostUp', runlist='["recipe[create_file::default]"]',
                                        attributes='{"create_file":{"path":"/root/chef_hostup_result"}}'),
             farmrole.OrchestrationRule(event='HostUp', script='/bin/uname'),
-            farmrole.OrchestrationRule(event='HostUp', script='Sleep 10', timeout=5)
+            farmrole.OrchestrationRule(event='HostUp', script='Sleep 10', timeout=5),
+            farmrole.OrchestrationRule(event='HostUp', script='Git_scripting_orchestration')
         ]
 
     @staticmethod
@@ -278,7 +279,8 @@ class Defaults(object):
     def set_small_win_orchestration(params):
         params.orchestration.rules = [
             farmrole.OrchestrationRule(event='HostInit', script='Windows ping-pong. CMD'),
-            farmrole.OrchestrationRule(event='HostUp', script='Windows ping-pong. CMD')
+            farmrole.OrchestrationRule(event='HostUp', script='Windows ping-pong. CMD'),
+            farmrole.OrchestrationRule(event='HostUp', script='Git_scripting_orchestration')
         ]
 
     @staticmethod
