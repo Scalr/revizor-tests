@@ -121,9 +121,10 @@ class TestLifecycleLinux:
                                                                          message='HostUp')
         lifecycle.validate_attached_disk_types(context, cloud, farm)
         lifecycle.validate_path(cloud, server, '/media/diskmount')
-        lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')  #TODO: this files not check below?
+        lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
         if CONF.feature.platform in [Platform.EC2, Platform.AZURE]:
             lifecycle.validate_path(cloud, server, '/media/partition')
+        lifecycle.validate_files_count(cloud, server, count=100, directory='/media/diskmount')
 
     @pytest.mark.partition
     @pytest.mark.run_only_if(platform=['ec2', 'azure'])
@@ -159,7 +160,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2', 'cloudstack', 'azure'])
+    @pytest.mark.run_only_if(platform=['ec2', 'cloudstack', 'azure', 'gce'])
     def test_storages_fstab_reboot(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab after reboot"""
         server = servers['M1']
@@ -168,6 +169,7 @@ class TestLifecycleLinux:
         lifecycle.validate_mount_point_in_fstab(cloud, server,
                                                 mount_table=mount_table,
                                                 mount_point='/media/diskmount')
+        lifecycle.validate_files_count(cloud, server, count=100, directory='/media/diskmount')
 
     @pytest.mark.scripting
     @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
