@@ -73,7 +73,8 @@ class TestLifecycleLinux:
              'test_reboot_bootstrap',
              'test_nonblank_volume',
              'test_failed_hostname',
-             'test_efs_bootstrapping')
+             'test_efs_bootstrapping',
+             'test_attach_disk_to_running_server')
 
     @pytest.mark.boot
     @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
@@ -332,4 +333,8 @@ class TestLifecycleLinux:
         lib_farm.add_role_to_farm(context, farm)
         farm.launch()
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        server.create_and_attach_volume(cloud, size=1)
+        volume_id = lifecycle.create_and_attach_volume(server, size=1)
+        assert volume_id
+        server.details.reload()
+        volume_ids = [vol['id'] for vol in server.details['volumes'] if vol['attachmentStatus'] == 'attached']
+        assert volume_id in volume_ids
