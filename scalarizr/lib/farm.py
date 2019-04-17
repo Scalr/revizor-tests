@@ -156,9 +156,9 @@ def setup_farmrole_params(context: dict,
     if not setup_bundled_role:
         if dist.is_windows:
             role_params.advanced.reboot_after_hostinit = True
-        elif dist.id == 'scientific-6-x' or \
-                (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
-            role_params.advanced.disable_iptables_mgmt = False
+        # elif dist.id == 'scientific-6-x' or \
+        #         (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
+        #     role_params.advanced.disable_iptables_mgmt = False
 
         if platform.is_ec2:
             role_params.global_variables.variables.append(

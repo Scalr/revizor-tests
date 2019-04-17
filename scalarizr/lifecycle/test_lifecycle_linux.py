@@ -1,4 +1,5 @@
 import json
+import time
 import pytest
 import logging
 
@@ -300,7 +301,7 @@ class TestLifecycleLinux:
     @pytest.mark.storages
     @pytest.mark.run_only_if(platform=['ec2'])
     def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm, cloud: Cloud):
-        """Check attached EFS storage (mount points, file create, check after server reboot)"""
+        """Attach EFS storage"""
         lib_farm.clear(farm)
         farm.terminate()
         context['linked_services'] = {'efs': {'cloud_id': efs['fileSystemId']}}
@@ -328,6 +329,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
     def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
+        """Attach disk to running server"""
         lib_farm.clear(farm)
         farm.terminate()
         lib_farm.add_role_to_farm(context, farm)
@@ -335,6 +337,12 @@ class TestLifecycleLinux:
         server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
         volume_id = lifecycle.create_and_attach_volume(server, size=1)
         assert volume_id
-        server.details.reload()
-        volume_ids = [vol['id'] for vol in server.details['volumes'] if vol['attachmentStatus'] == 'attached']
-        assert volume_id in volume_ids
+        for _ in range(6):
+            server.details.reload()
+            volume_ids = [vol['id'] for vol in server.details['volumes']]
+            if len(volume_ids) > 1:
+                break
+            time.sleep(5)
+        else:
+            raise AssertionError(f'Servers {server.id} has only 1 volume after 30 seconds')
+        assert volume_id in volume_ids, f'Server {server.id} not have volume {volume_id}'

@@ -1,3 +1,4 @@
+import time
 import pytest
 
 from revizor2.conf import CONF
@@ -25,7 +26,8 @@ class TestLifecycleWindows:
              'test_windows_reboot',
              'test_restart_farm',
              'test_restart_bootstrap',
-             'test_eph_bootstrap')
+             'test_eph_bootstrap',
+             'test_attach_disk_to_running_server')
 
     @pytest.mark.boot
     @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
@@ -131,3 +133,23 @@ class TestLifecycleWindows:
         lifecycle.validate_vcpus_info(server)
         windows.validate_attached_disk_size(cloud, server, [('Z:\\', 'test_label', 4)])
         lifecycle.validate_scalarizr_version(server)
+
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
+    def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
+        """Attach disk to running server"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm)
+        farm.launch()
+        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        volume_id = lifecycle.create_and_attach_volume(server, size=1)
+        assert volume_id
+        for _ in range(6):
+            server.details.reload()
+            volume_ids = [vol['id'] for vol in server.details['volumes']]
+            if len(volume_ids) > 1:
+                break
+            time.sleep(5)
+        else:
+            raise AssertionError(f'Servers {server.id} has only 1 volume after 30 seconds')
+        assert volume_id in volume_ids, f'Server {server.id} not have volume {volume_id}'
