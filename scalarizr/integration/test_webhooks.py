@@ -1,9 +1,7 @@
 import pytest
 
-from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
-from revizor2.consts import Dist, Platform
 from revizor2.consts import ServerStatus
 from revizor2.fixtures import resources
 
@@ -15,7 +13,6 @@ from scalarizr.lib import apache as lib_apache
 from scalarizr.integration.common import webhooks as lib_webhooks
 
 
-#TODO: SCALRCORE-12265
 class TestWebhooks:
     """
     Check fatmouse/workflow_engine webhooks implementation
