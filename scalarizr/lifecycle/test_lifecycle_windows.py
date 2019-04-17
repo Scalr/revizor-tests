@@ -20,6 +20,7 @@ class TestLifecycleWindows:
 
     order = ('test_bootstrapping',
              'test_execute_script',
+             'test_execute_git_script',
              'test_szradm_listroles',
              'test_restart_scalarizr',
              'test_windows_reboot',
@@ -52,11 +53,23 @@ class TestLifecycleWindows:
         server = servers['M1']
         lifecycle.validate_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_script(context, farm, server, script_name="Windows ping-pong. CMD",
-                                  synchronous=True, is_local=False)
+                                  synchronous=True)
         lib_server.validate_last_script_result(context, cloud, server,
                                                name='Windows ping-pong. CMD',
                                                log_contains='pong',
                                                new_only=True)
+
+    @pytest.mark.scripting
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    def test_execute_git_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+        """Git script execution on windows"""
+        server = servers['M1']
+        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.execute_script(context, farm, server, script_name="Git_scripting_lifecycle",
+                                  synchronous=True)
+        lib_server.validate_last_script_result(context, cloud, server,
+                                               name='Git_scripting_lifecycle',
+                                               log_contains='Multiplatform script successfully executed')
 
     @pytest.mark.szradm
     @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
