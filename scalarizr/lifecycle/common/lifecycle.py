@@ -157,7 +157,8 @@ def create_files(cloud: Cloud, server: Server, count: int, directory: str):
 def validate_files_count(cloud: Cloud, server: Server, count: int, directory: str):
     node = cloud.get_node(server)
     LOG.info(f'Validate files count in directory {directory}')
-    res = node.run(f'ls {directory} | wc -l').std_out
+
+    res = node.run(f'ls {directory} --ignore=lost+found | wc -l').std_out
     assert str(count) in res, f"Files count mismatch on {directory}. {count} != {res}"
 
 
