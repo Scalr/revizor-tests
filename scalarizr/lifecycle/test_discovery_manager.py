@@ -43,20 +43,20 @@ class TestDiscoveryManager:
         assert len(farm.roles) == 1
         assert len(farm.roles[0].servers) == 1
         assert farm.roles[0].servers[0].cloud_server_id == instance_id
-        lifecycle.validate_server_status(farm.roles[0].servers[0], ServerStatus.RUNNING)
+        lifecycle.assert_server_status(farm.roles[0].servers[0], ServerStatus.RUNNING)
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce'])
     def test_deploy_agent(self, context: dict, cloud: Cloud, farm: Farm):
         """Deploy Agent to imported server"""
         server = farm.roles[0].servers[0]
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         lib_node.deploy_agent(server, cloud)
         lib_node.handle_agent_status(server)
-        lifecycle.validate_scalarizr_version(server, 'latest')
-        lib_server.execute_state_action(server, 'reboot')
-        lib_server.validate_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
+        lifecycle.assert_szr_version_last(server, 'latest')
+        lib_server.execute_server_action(server, 'reboot')
+        lib_server.assert_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
         lib_server.execute_script(context, farm, server, script_name='Linux ping-pong', synchronous=True)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='Linux ping-pong',
-                                               log_contains='pong',
-                                               new_only=True)
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name='Linux ping-pong',
+                                             log_contains='pong',
+                                             new_only=True)

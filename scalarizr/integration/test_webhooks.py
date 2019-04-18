@@ -28,7 +28,7 @@ class TestWebhooks:
     def prepare_test_server(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
         farm.launch()
-        server = lib_server.wait_status(
+        server = lib_server.wait_server_status(
             context, cloud, farm, status=ServerStatus.RUNNING)
         servers['F1'] = server
 
@@ -140,7 +140,7 @@ class TestWebhooks:
         server = servers.get('F1')
         lib_farm.add_role_to_farm(context, farm, dist='ubuntu1404')
         farm.launch()
-        proxy_server = lib_server.wait_status(
+        proxy_server = lib_server.wait_server_status(
             context, cloud, farm, status=ServerStatus.RUNNING)
         servers['P1'] = proxy_server
         lib_server.execute_script(context, farm, proxy_server,

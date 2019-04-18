@@ -31,9 +31,9 @@ class TestStopResume:
             options = ['winchef', 'termination_preferences']
         lib_farm.add_role_to_farm(context, farm, role_options=options)
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
-        lifecycle.validate_scalarizr_version(server)
+        lifecycle.assert_szr_version_last(server)
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'], family=['!windows'])
     def test_chef_deployment_linux(self, context: dict, cloud: Cloud, servers: dict):
@@ -56,18 +56,18 @@ class TestStopResume:
     def test_stop_resume(self, context: dict, cloud: Cloud, servers: dict, farm: Farm):
         """Verify server stop/resume work"""
         server = servers['M1']
-        lib_server.execute_state_action(server, 'suspend')
+        lib_server.execute_server_action(server, 'suspend')
         lib_server.assert_server_event(server, ['BeforeHostTerminate (Suspend)'])
-        lib_server.validate_server_message(cloud, farm, msgtype='out', msg='BeforeHostTerminate', server=server)
-        lib_server.wait_status(context, cloud, farm, server=server, status=ServerStatus.SUSPENDED)
+        lib_server.assert_server_message(cloud, farm, msgtype='out', msg='BeforeHostTerminate', server=server)
+        lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.SUSPENDED)
         lib_server.assert_server_event(server, ['HostDown (Suspend)'])
         provision.check_node_exists_on_chef_server(server)
-        servers['M2'] = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        lib_server.execute_state_action(server, 'resume')
-        lib_server.wait_status(context, cloud, farm, server=server, status=ServerStatus.RESUMING)
-        lib_server.validate_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
+        servers['M2'] = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        lib_server.execute_server_action(server, 'resume')
+        lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.RESUMING)
+        lib_server.assert_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
         lib_server.assert_server_event(server, ['ResumeComplete'])
-        lib_server.wait_status(context, cloud, farm, server=server, status=ServerStatus.RUNNING)
+        lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.RUNNING)
         lib_server.assert_server_event_again_fired(server, ['HostInit', 'BeforeHostUp'])
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'], family=['!windows'])
@@ -91,16 +91,16 @@ class TestStopResume:
     def test_attached_storages_after_resume(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Check attached storages after resume"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
-        lifecycle.validate_attached_disk_types(context, cloud, farm)
-        lifecycle.validate_path(cloud, server, '/media/diskmount')
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_attached_disk_types(context, cloud, farm)
+        lifecycle.assert_path_exist(cloud, server, '/media/diskmount')
         if CONF.feature.platform in [Platform.EC2, Platform.AZURE]:
-            lifecycle.validate_path(cloud, server, '/media/partition')
+            lifecycle.assert_path_exist(cloud, server, '/media/partition')
 
         mount_table = lifecycle.get_mount_table(cloud, server)
-        lifecycle.validate_mount_point_in_fstab(cloud, server,
-                                                mount_table=mount_table,
-                                                mount_point='/media/diskmount')
+        lifecycle.assert_mount_point_in_fstab(cloud, server,
+                                              mount_table=mount_table,
+                                              mount_point='/media/diskmount')
 
     @pytest.mark.farm_resume
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'])
@@ -110,12 +110,12 @@ class TestStopResume:
         farm.suspend()
         provision.wait_for_farm_state(farm, FarmStatus.SUSPENDED)
         for server in farm.servers:
-            lib_server.wait_status(context, cloud, farm, server=server, status=ServerStatus.SUSPENDED)
+            lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.SUSPENDED)
         farm.resume()
         for server in farm.servers:
-            lib_server.wait_status(context, cloud, farm, server=server, status=ServerStatus.RESUMING)
+            lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.RESUMING)
         for server in farm.servers:
-            lib_server.validate_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
+            lib_server.assert_server_message(cloud, farm, msgtype='in', msg='RebootFinish', server=server)
             lib_server.assert_server_event(server, ['ResumeComplete'])
         for server in farm.servers:
-            lib_server.wait_status(context, cloud, farm, server=server, status=ServerStatus.RUNNING)
+            lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.RUNNING)

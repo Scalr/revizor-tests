@@ -20,7 +20,7 @@ class TestDocker:
         """Bootstraping"""
         lib_farm.add_role_to_farm(context, farm)
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
         docker_client = docker.install_docker(cloud, server)
         context['M1_docker_client'] = docker_client
@@ -31,7 +31,7 @@ class TestDocker:
     def test_delete_containers(self, context: dict, servers: dict):
         """Delete docker containers"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         docker_client = context['M1_docker_client']
         docker.modify_random_containers(docker_client, amount=10, action='delete')
         docker.validate_containers(server, docker_client)
@@ -40,7 +40,7 @@ class TestDocker:
     def test_stopresume_containers(self, context: dict, servers: dict):
         """Stop/resume docker containers"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         docker_client = context['M1_docker_client']
         stopped_containers = docker.modify_random_containers(docker_client, amount=10, action='stop')
         docker.validate_containers(server, docker_client)

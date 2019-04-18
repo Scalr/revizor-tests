@@ -28,10 +28,10 @@ class TestCloudinit:
         role = lib_role.create_role(image, non_scalarized=True, has_cloudinit=True)
         lib_farm.add_role_to_farm(context, farm, role=Role.get(role['role']['id']))
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
-        lifecycle.validate_vcpus_info(server)
-        lifecycle.validate_scalarizr_version(server)
+        lifecycle.assert_vcpu_count(server)
+        lifecycle.assert_szr_version_last(server)
 
     @pytest.mark.run_only_if(platform=[Platform.EC2])
     def test_rebundle_cloudinit_server(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
@@ -41,6 +41,6 @@ class TestCloudinit:
         role_id = rebundle.wait_bundle_complete(servers['M1'], bundle_id)
         farm.clear_roles()
         lib_farm.add_role_to_farm(context, farm, role=Role.get(role_id))
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        lifecycle.validate_scalarizr_version(server)
-        lib_server.check_scalarizr_log_errors(cloud, server)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        lifecycle.assert_szr_version_last(server)
+        lib_server.assert_scalarizr_log_errors(cloud, server)

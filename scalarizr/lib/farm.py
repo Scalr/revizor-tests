@@ -183,14 +183,6 @@ def setup_farmrole_params(context: dict,
     return role_params
 
 
-def farm_launch_delayed(farm: Farm):
-    """Start farm with delay for cloudstack"""
-    if CONF.feature.platform.is_cloudstack:  # Maybe use on all cloudstack
-        time.sleep(1800)
-    farm.launch()
-    LOG.info('Launch farm \'%s\' (%s)' % (farm.id, farm.name))
-
-
 def link_efs_cloud_service_to_farm(farm: Farm, efs: dict) -> bool:
     """Link an Amazon efs to farm
 
