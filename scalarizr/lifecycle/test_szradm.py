@@ -28,16 +28,15 @@ class TestSzrAdm:
         """Bootstrapping"""
         lib_farm.add_role_to_farm(context, farm)
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
-        lifecycle.validate_scalarizr_version(server)
 
     @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
     def test_queryenv_latest_version(self, cloud: Cloud, servers: dict):
         """Verify szradm queryenv get-latest-version"""
         szradm_latest_version = "2015-04-10"
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.wait_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command="szradm queryenv get-latest-version",
             cloud=cloud,
@@ -49,7 +48,7 @@ class TestSzrAdm:
     def test_queryenv_list_roles(self, cloud: Cloud, farm: Farm, servers: dict):
         """Verify szradm queryenv list-roles"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.wait_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command="szradm queryenv list-roles",
             cloud=cloud,
@@ -60,7 +59,7 @@ class TestSzrAdm:
     def test_queryenv_farm_role_params(self, farm: Farm, cloud: Cloud, servers: dict):
         """Verify szradm queryenv list-roles farm-role-id=farm_role_id"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.wait_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command=f"szradm queryenv list-roles farm-role-id={farm.roles[0].id}",
             cloud=cloud,
@@ -71,7 +70,7 @@ class TestSzrAdm:
     def test_queryenv_list_virtualhosts(self, cloud: Cloud, servers: dict):
         """Verify szradm queryenv list-virtualhosts"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.wait_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command="szradm queryenv list-virtualhosts",
             cloud=cloud,
@@ -89,14 +88,14 @@ class TestSzrAdm:
             two='two',
             three='three'
         )
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lib_server.wait_server_status(server, ServerStatus.RUNNING)
         lifecycle.szradm_execute_command(
             command="szradm --fire-event event one={one} two={two} three={three}".format(**event_params),
             cloud=cloud,
             server=server,
             format_output=False
         )
-        lib_server.validate_server_message(cloud, farm, msgtype='in', msg=message_name, server=server)
+        lib_server.assert_server_message(cloud, farm, msgtype='in', msg=message_name, server=server)
         server_messages = list(filter(lambda m: m.name == message_name, server.messages))
         result = json.loads(lifecycle.szradm_execute_command(
             command=f"szradm md {server_messages[0].id} --json",
