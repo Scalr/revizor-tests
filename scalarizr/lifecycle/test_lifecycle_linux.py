@@ -7,15 +7,15 @@ from random import randint
 from _pytest.fixtures import FixtureRequest
 
 from revizor2 import CONF
-from revizor2.api import Farm
 from revizor2.cloud import Cloud
+from revizor2.api import Farm, Role
 from revizor2.consts import ServerStatus, Platform
 
 from scalarizr.lib import scalr
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
-from scalarizr.lifecycle.common import lifecycle, szradm
+from scalarizr.lifecycle.common import lifecycle, szradm, rebundle
 from scalarizr.lib import cloud_resources as lib_resources
 
 LOG = logging.getLogger(__name__)
@@ -43,8 +43,7 @@ def efs(request: FixtureRequest, farm: Farm) -> dict:
     LOG.debug(f'Added new EFS [{efs["fileSystemId"]}] with mounts target [{mount_target}].')
     yield efs
     # Remove from cloud linked to farm resources
-    get_opt = request.session.config.getoption
-    if not get_opt("--no-stop-farm"):
+    if not request.session.config.getoption("--no-stop-farm"):
         lib_farm.remove_cloud_resources_linked_to_farm(farm)
 
 
@@ -76,10 +75,13 @@ class TestLifecycleLinux:
              'test_nonblank_volume',
              'test_failed_hostname',
              'test_efs_bootstrapping',
-             'test_attach_disk_to_running_server')
+             'test_attach_disk_to_running_server',
+             'test_server_rebundle'
+             )
 
     @pytest.mark.boot
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstrapping"""
         lib_farm.add_role_to_farm(context, farm, role_options=['storages', 'noiptables'])
@@ -94,7 +96,8 @@ class TestLifecycleLinux:
         lib_server.assert_scalarizr_log_errors(cloud, server)
 
     @pytest.mark.szradm
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_szradm_listroles(self, cloud: Cloud, servers: dict):
         """Verify szradm list-roles"""
         server = servers['M1']
@@ -110,7 +113,7 @@ class TestLifecycleLinux:
                                            record='HostUp')
 
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2', 'cloudstack', 'gce', 'azure'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
     def test_attached_storages(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Check attached storages"""
         server = servers['M1']
@@ -119,7 +122,8 @@ class TestLifecycleLinux:
                                                                          server,
                                                                          config_group='volumes',
                                                                          message='HostUp')
-        lifecycle.assert_attached_disk_types(context, cloud, farm)
+        if CONF.feature.platform.is_gce:
+            lifecycle.assert_attached_disk_types(context, cloud, farm)
         lifecycle.assert_path_exist(cloud, server, '/media/diskmount')
         lifecycle.create_files(cloud, server, count=100, directory='/media/diskmount')
         if CONF.feature.platform in [Platform.EC2, Platform.AZURE]:
@@ -127,7 +131,7 @@ class TestLifecycleLinux:
         lifecycle.assert_file_count(cloud, server, count=100, directory='/media/diskmount')
 
     @pytest.mark.partition
-    @pytest.mark.run_only_if(platform=['ec2', 'azure'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.AZURE])
     def test_create_volume_snapshot(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Create volume snapshot"""
         server = servers['M1']
@@ -139,7 +143,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2', 'cloudstack', 'gce', 'azure'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
     def test_storages_fstab(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab"""
         server = servers['M1']
@@ -150,7 +154,8 @@ class TestLifecycleLinux:
                                               mount_point='/media/diskmount')
 
     @pytest.mark.reboot
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'cloudstack', 'gce', 'rackspaceng', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_linux_reboot(self, cloud: Cloud, farm: Farm, servers: dict):
         """Linux reboot"""
         server = servers['M1']
@@ -160,7 +165,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2', 'cloudstack', 'azure', 'gce'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
     def test_storages_fstab_reboot(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab after reboot"""
         server = servers['M1']
@@ -172,7 +177,8 @@ class TestLifecycleLinux:
         lifecycle.assert_file_count(cloud, server, count=100, directory='/media/diskmount')
 
     @pytest.mark.scripting
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_execute_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Execute script on Linux"""
         server = servers['M1']
@@ -184,7 +190,8 @@ class TestLifecycleLinux:
                                              new_only=True)
 
     @pytest.mark.scripting
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_execute_git_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Execute Git script on Linux"""
         server = servers['M1']
@@ -195,7 +202,8 @@ class TestLifecycleLinux:
                                              log_contains='Multiplatform script successfully executed')
 
     @pytest.mark.restart
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_restart_scalarizr(self, cloud: Cloud, servers: dict):
         """Restart scalarizr"""
         server = servers['M1']
@@ -205,7 +213,8 @@ class TestLifecycleLinux:
         lib_server.assert_scalarizr_log_errors(cloud, server)
 
     @pytest.mark.event
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_custom_event(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Custom event"""
         server = servers['M1']
@@ -217,7 +226,8 @@ class TestLifecycleLinux:
         lifecycle.assert_path_exist(cloud, server, path='/tmp/f2')
 
     @pytest.mark.event
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_custom_event_caching(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Caching custom event parameters"""
         server = servers['M1']
@@ -230,14 +240,15 @@ class TestLifecycleLinux:
         lifecycle.assert_path_exist(cloud, server, path='/tmp/nocache2')
 
     @pytest.mark.restartfarm
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_stop_farm(self, farm: Farm):
         """Stop farm"""
         farm.terminate()
         lib_server.wait_servers_state(farm, 'terminated')
 
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2', 'gce', 'cloudstack'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE])
     def test_delete_attached_storage(self, context: dict, cloud: Cloud, farm: Farm):
         """Delete attached storage"""
         device_id = lifecycle.get_device_for_additional_storage(context, farm, mount_point='/media/diskmount')
@@ -245,7 +256,8 @@ class TestLifecycleLinux:
         lifecycle.delete_volume(cloud, device_id)
 
     @pytest.mark.restartfarm
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_start_farm(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Start farm"""
         if CONF.feature.platform.is_cloudstack:
@@ -256,7 +268,7 @@ class TestLifecycleLinux:
         lib_node.assert_scalarizr_version(server, 'system')
 
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2', 'cloudstack', 'gce'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE])
     def test_attached_storages_restart(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Check attached storages after farm restart"""
         server = servers['M1']
@@ -269,7 +281,8 @@ class TestLifecycleLinux:
         device_id = context['M1_device_media_diskmount']
         lifecycle.assert_volume_device_changed(context, farm, mount_point='/media/diskmount', old_device_id=device_id)
 
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'rackspaceng', 'openstack', 'azure'])
+    @pytest.mark.run_only_if(
+        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_reboot_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Reboot on bootstraping"""
         lib_farm.clear(farm)
@@ -292,7 +305,7 @@ class TestLifecycleLinux:
         lifecycle.assert_hostname(server)
 
     @pytest.mark.partition
-    @pytest.mark.run_only_if(platform=['ec2'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2])
     def test_nonblank_volume(self, context: dict, cloud: Cloud, farm: Farm):
         """Check partition table recognized as a non-blank volume"""
         lib_farm.clear(farm)
@@ -304,7 +317,7 @@ class TestLifecycleLinux:
         lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.FAILED)
 
     @pytest.mark.failedbootstrap
-    @pytest.mark.run_only_if(platform=['ec2', 'vmware', 'gce', 'cloudstack', 'openstack'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK])
     def test_failed_hostname(self, context: dict, cloud: Cloud, farm: Farm):
         """Failed bootstrap by hostname"""
         lib_farm.clear(farm)
@@ -315,7 +328,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.efs
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=['ec2'])
+    @pytest.mark.run_only_if(platform=[Platform.EC2])
     def test_efs_bootstrapping(self, efs: dict, context: dict, farm: Farm, cloud: Cloud):
         """Attach EFS storage"""
         lib_farm.clear(farm)
@@ -362,3 +375,20 @@ class TestLifecycleLinux:
         else:
             raise AssertionError(f'Servers {server.id} has only 1 volume after 30 seconds')
         assert volume_id in volume_ids, f'Server {server.id} not have volume {volume_id}'
+
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.GCE])
+    def test_server_rebundle(self, context: dict, cloud: Cloud, farm: Farm):
+        """Verify server rebundle work"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm)
+        farm.launch()
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        bundle_id = rebundle.start_server_rebundle(server)
+        rebundle.assert_bundle_task_created(server, bundle_id)
+        new_role_id = rebundle.wait_bundle_complete(server, bundle_id)
+        farm.clear_roles()
+        lib_farm.add_role_to_farm(context, farm, role=Role.get(new_role_id))
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        lifecycle.assert_szr_version_last(server)
+        lib_server.assert_scalarizr_log_errors(cloud, server)

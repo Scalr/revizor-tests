@@ -85,27 +85,27 @@ def assert_server_message_count(context: dict, server: Server, msg: str):
 
 def get_config_from_message(cloud: Cloud, server: Server, config_group: str, message: str) -> dict:
     node = cloud.get_node(server)
-    LOG.info('Get messages from server %s' % server.id)
+    LOG.info(f'Get messages from server {server.id}')
     messages = lib_server.get_szr_messages(node)
     msg_id = next(filter(lambda x: x['name'] == message, messages))['id']
-    LOG.info('Message id for %s is %s' % (message, msg_id))
-    cmd = 'szradm message-details %s --json' % msg_id
+    LOG.info(f'Message id for {message} is {msg_id}')
+    cmd = f'szradm message-details {msg_id} --json'
     if CONF.feature.dist.id == 'coreos':
         cmd = "/opt/bin/" + cmd
     message_details = json.loads(node.run(cmd).std_out)['body']
-    LOG.info('Message details is %s' % message_details)
-    LOG.info('Returning message part %s' % config_group)
+    LOG.info(f'Message details is {message_details}')
+    LOG.info(f'Returning message part {config_group}')
     return message_details[config_group]
 
 
 def assert_server_message_body(cloud: Cloud, server: Server, config_group: str, message: str, old_details: dict):
     message_details = get_config_from_message(cloud, server, config_group, message)
-    if old_details == message_details:
-        LOG.error('New and old details is not equal: %s\n %s' % (old_details, message_details))
-        raise AssertionError('New and old details is not equal')
+    LOG.debug(f'New message details: {message_details}')
+    assert old_details == message_details, f'Message details old and new not equal!'
 
 
 def assert_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
+    #TODO: Add support for maximum clouds
     LOG.info('Verify type of attached disks')
     role = lib_role.get_role(context, farm)
     storage_config = IMPL.farm.get_role_settings(farm.id, role.role.id)['storages']
@@ -118,15 +118,11 @@ def assert_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
     volumes = list(filter(lambda x: x.id in ids, cloud.list_volumes()))
     for mount_point in volume_ids:
         attached_volumes[mount_point] = filter(lambda x: x.id in volume_ids[mount_point], volumes)
-    LOG.debug('Volumes in mount points: %s' % attached_volumes)
-    if platform.is_ec2:
-        LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
-        return
-    elif platform.is_gce:
+    LOG.debug(f'Volumes in mount points: {attached_volumes}')
+    if platform.is_gce:
         diskmount = next(attached_volumes['/media/diskmount'])
-        if not diskmount.extra['type'] == 'pd-standard':
-            raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
-                                 diskmount.extra['type'])
+        assert diskmount.extra['type'] == 'pd-standard', f"Volume attached to /media/diskmount must be pd-standard " \
+            f"but it: {diskmount.extra['type']}"
         # if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
         #     raise AssertionError(
         #         'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
@@ -135,7 +131,7 @@ def assert_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
 
 def assert_path_exist(cloud: Cloud, server: Server, path: str):
     """Validate path exist in server"""
-    LOG.info('Check directory %s' % path)
+    LOG.info(f'Verify path {path} exist in server {server.id}')
     node = cloud.get_node(server)
     with node.remote_connection() as conn:
         for attempt in range(5):
@@ -144,13 +140,13 @@ def assert_path_exist(cloud: Cloud, server: Server, path: str):
                 break
             time.sleep(15)
         else:
-            LOG.error('Path %s does not exist' % path)
-            raise AssertionError("'%s' does not exist on server %s" % (path, server.id))
+            LOG.error(f'Path {path} does not exist in server {server.id}')
+            raise AssertionError(f'Path {path} does not exist in server {server.id}')
 
 
 def create_files(cloud: Cloud, server: Server, count: int, directory: str):
     node = cloud.get_node(server)
-    LOG.info('Create %s files in directory %s' % (count, directory))
+    LOG.info(f'Create {count} files in directory {directory}')
     node.run('cd %s && for (( i=0;i<%s;i++ )) do touch "file$i"; done' % (directory, count))
 
 
@@ -170,7 +166,7 @@ def create_partitions_on_volume(cloud: Cloud, server: Server, mnt_point: str):
 
     LOG.info('Creating partitions table for volume on %s' % mnt_point)
     node.put_file(str(path), script_src % mnt_point)
-    out = node.run('source %s' % path)
+    out = node.run(f'source {path}')
 
     partition_table = out.std_out.strip('\n').splitlines()[-4:]
     LOG.debug('Created partitions table for volume:\n%s' % '\n'.join(partition_table))
@@ -181,14 +177,14 @@ def create_partitions_on_volume(cloud: Cloud, server: Server, mnt_point: str):
 
 def create_volume_snapshot(context: dict, farm: Farm, mnt_point: str) -> str:
     device = lib_role.get_storage_device_by_mnt_point(context, farm, mnt_point)[0]
-    LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
+    LOG.info(f"Launch volume: {device['storageId']} snapshot creation")
     kwargs = dict(
         cloud_location=CONF.feature.platform.location,
         volume_id=device['storageId']
     )
     volume_snapshot_id = get_platform_backend_tools().create_volume_snapshot(**kwargs)
     assert volume_snapshot_id, 'Volume snapshot creation failed'
-    LOG.info('Volume snapshot create was started. Snapshot: %s' % volume_snapshot_id)
+    LOG.info(f'Volume snapshot create was started. Snapshot: {volume_snapshot_id}')
     return volume_snapshot_id
 
 
