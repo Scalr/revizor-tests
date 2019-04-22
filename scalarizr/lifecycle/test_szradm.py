@@ -36,7 +36,7 @@ class TestSzrAdm:
         """Verify szradm queryenv get-latest-version"""
         szradm_latest_version = "2015-04-10"
         server = servers['M1']
-        lib_server.wait_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command="szradm queryenv get-latest-version",
             cloud=cloud,
@@ -48,7 +48,7 @@ class TestSzrAdm:
     def test_queryenv_list_roles(self, cloud: Cloud, farm: Farm, servers: dict):
         """Verify szradm queryenv list-roles"""
         server = servers['M1']
-        lib_server.wait_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command="szradm queryenv list-roles",
             cloud=cloud,
@@ -59,7 +59,7 @@ class TestSzrAdm:
     def test_queryenv_farm_role_params(self, farm: Farm, cloud: Cloud, servers: dict):
         """Verify szradm queryenv list-roles farm-role-id=farm_role_id"""
         server = servers['M1']
-        lib_server.wait_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command=f"szradm queryenv list-roles farm-role-id={farm.roles[0].id}",
             cloud=cloud,
@@ -70,7 +70,7 @@ class TestSzrAdm:
     def test_queryenv_list_virtualhosts(self, cloud: Cloud, servers: dict):
         """Verify szradm queryenv list-virtualhosts"""
         server = servers['M1']
-        lib_server.wait_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         result = lifecycle.szradm_execute_command(
             command="szradm queryenv list-virtualhosts",
             cloud=cloud,
@@ -88,7 +88,7 @@ class TestSzrAdm:
             two='two',
             three='three'
         )
-        lib_server.wait_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         lifecycle.szradm_execute_command(
             command="szradm --fire-event event one={one} two={two} three={three}".format(**event_params),
             cloud=cloud,
