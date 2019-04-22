@@ -112,46 +112,46 @@ class TestOrchestration:
         else:
             lib_farm.add_role_to_farm(context, farm, role_options=['orchestration', 'chef'])
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
-        lifecycle.validate_scalarizr_version(server)
+        lifecycle.assert_szr_version_last(server)
 
     def test_verify_script_execution_on_bootstrap(self, context: dict, cloud: Cloud, servers: dict,
                                                   event: str, script_name: str, user: str, exitcode: int,
                                                   output: str, stderr: bool):
         """Verify script execution on bootstrapping"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name=script_name,
-                                               event=event,
-                                               user=user,
-                                               log_contains=output,
-                                               std_err=stderr,
-                                               exitcode=exitcode)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name=script_name,
+                                             event=event,
+                                             user=user,
+                                             log_contains=output,
+                                             std_err=stderr,
+                                             exitcode=exitcode)
 
     @pytest.mark.chef
     @pytest.mark.run_only_if(family=['!windows'])
     def test_verify_chef_execution(self, cloud: Cloud, servers: dict):
         """Verify chef executed normally"""
         server = servers['M1']
-        lib_server.validate_file_exists(cloud, server, file_path='/root/chef_solo_result')
-        lib_server.validate_file_exists(cloud, server, file_path='/root/chef_hostup_result')
-        lib_node.validate_process_options(cloud, server, process='memcached', options='-m 1024')
-        orchestration.verify_recipes_in_runlist(server, recipes=['memcached', 'revizorenv'])
+        lib_server.assert_file_exist(cloud, server, file_path='/root/chef_solo_result')
+        lib_server.assert_file_exist(cloud, server, file_path='/root/chef_hostup_result')
+        lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
+        orchestration.assert_recipes_in_runlist(server, recipes=['memcached', 'revizorenv'])
 
     def test_execute_scripts(self, context: dict, cloud: Cloud, farm: Farm, servers: dict,
                              script_name: str, synchronous: bool, is_local: bool, output: str, stderr: bool):
         """Verify script execution on running instance"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_script(context, farm, server, script_name=script_name,
                                   synchronous=synchronous, is_local=is_local)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name=script_name,
-                                               log_contains=output,
-                                               std_err=stderr,
-                                               new_only=True)
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name=script_name,
+                                             log_contains=output,
+                                             std_err=stderr,
+                                             new_only=True)
 
     @pytest.mark.run_only_if(family=['!windows'])
     @pytest.mark.parametrize('user, exists',
@@ -173,33 +173,33 @@ class TestOrchestration:
                                   user, exists):
         """Check script execution as user"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_script(context, farm, server, script_name='env', user=user)
         user = user if user else 'root'
         contains = ("USER=%s" if exists else "no such user: '%s'") % user
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='env',
-                                               log_contains=contains,
-                                               user=user,
-                                               std_err=not exists,
-                                               new_only=True)
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name='env',
+                                             log_contains=contains,
+                                             user=user,
+                                             std_err=not exists,
+                                             new_only=True)
 
     @pytest.mark.restart
     @pytest.mark.run_only_if(family=['windows'])
     def test_restart_scalarizr_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Restart scalarizr during script execution"""
         server = servers['M1']
-        lifecycle.validate_server_status(server, ServerStatus.RUNNING)
+        lifecycle.assert_server_status(server, ServerStatus.RUNNING)
         lib_server.execute_script(context, farm, server,
                                   script_name='windows sleep 60',
                                   synchronous=True)
         windows.agent_restart(cloud, server)
-        windows.validate_terminated_in_log(cloud, server)
-        lib_node.validate_service(cloud, server, 'scalarizr')
-        windows.validate_errors_in_log(cloud, server)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='windows sleep 60',
-                                               new_only=True)
+        windows.assert_szr_terminated_in_log(cloud, server)
+        lib_node.assert_service_work(cloud, server, 'scalarizr')
+        windows.assert_errors_in_szr_logs(cloud, server)
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name='windows sleep 60',
+                                             new_only=True)
 
     def test_bootstrap_with_fail_script(self, context: dict, cloud: Cloud, farm: Farm):
         """Bootstrapping with broken script"""
@@ -207,7 +207,7 @@ class TestOrchestration:
         farm.terminate()
         lib_farm.add_role_to_farm(context, farm, role_options=['failed_script'])
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.FAILED)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.FAILED)
         assert server.is_init_failed, "Server %s failed not on Initializing" % server.id
         lookup_substrings = ['BeforeHostUp',
                              'Multiplatform_exit_1.ps1&quot; exited with code 1' if CONF.feature.dist.is_windows
@@ -223,16 +223,16 @@ class TestOrchestration:
         farm.terminate()
         lib_farm.add_role_to_farm(context, farm, role_options=['long_variables'])
         farm.launch()
-        server = lib_server.wait_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
         lib_server.execute_script(context, farm, server, script_name='GV length')
         for i in range(6):
-            lib_server.validate_last_script_result(context, cloud, server,
-                                                   name='GV length',
-                                                   log_contains='rev_long_var_%s 4095' % i)
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='GV length',
-                                               log_contains='rev_very_long_var 8192')
-        lib_server.validate_last_script_result(context, cloud, server,
-                                               name='GV length',
-                                               log_contains='rev_nonascii_var 7')
+            lib_server.assert_last_script_result(context, cloud, server,
+                                                 name='GV length',
+                                                 log_contains='rev_long_var_%s 4095' % i)
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name='GV length',
+                                             log_contains='rev_very_long_var 8192')
+        lib_server.assert_last_script_result(context, cloud, server,
+                                             name='GV length',
+                                             log_contains='rev_nonascii_var 7')

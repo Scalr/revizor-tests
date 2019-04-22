@@ -90,7 +90,7 @@ class RevizorTerminalReporter(TerminalReporter):
                            newline: bool = False,
                            **markup):
         w = self._tw.fullwidth
-        loc = location[2]
+        loc = location[2].replace('.', '::')
         if len(loc) > w // 2 - 8:
             loc = textwrap.shorten(loc, w // 2 - 8)
         right = loc + ' [100%]'

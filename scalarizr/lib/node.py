@@ -121,7 +121,7 @@ def reboot_scalarizr(cloud: Cloud, server: Server):
     time.sleep(15)
 
 
-def validate_scalarizr_log_contains(cloud: Cloud, server: Server, message: str):
+def assert_scalarizr_log_contains(cloud: Cloud, server: Server, message: str):
     node = cloud.get_node(server)
     LOG.info('Check scalarizr log')
     wait_until(lib_server.check_text_in_scalarizr_log, timeout=300, args=(node, message),
@@ -129,6 +129,7 @@ def validate_scalarizr_log_contains(cloud: Cloud, server: Server, message: str):
 
 
 def execute_command(cloud: Cloud, server: Server, command: str) -> Response:
+    #FIXME: Remove this in all tests and use node.run
     if (command.startswith('scalarizr') or command.startswith('szradm')) and CONF.feature.dist.id == 'coreos':
         command = '/opt/bin/' + command
     node = cloud.get_node(server)
@@ -147,7 +148,8 @@ def get_scalaraizr_latest_version(branch: str) -> str:
     return versions[0]
 
 
-def validate_scalarizr_version(server: Server, branch: str = None):
+def assert_scalarizr_version(server: Server, branch: str = None):
+    #FIXME: Find other methods like this and leave only one
     """
     Argument branch can be system or role.
     System branch - CONF.feature.branch
@@ -187,7 +189,7 @@ def validate_scalarizr_version(server: Server, branch: str = None):
         (installed_version, last_version)
 
 
-def validate_service(cloud: Cloud, server: Server, service: str, closed: bool = False):
+def assert_service_work(cloud: Cloud, server: Server, service: str, closed: bool = False):
     # FIXME: Rewrite this ugly logic
     port = SERVICES_PORTS_MAP[service]
     if isinstance(port, abc.Sequence):
@@ -280,7 +282,7 @@ def install_scalarizr_to_server(server: Server, cloud: Cloud,
     return scalarizr_ver
 
 
-def validate_process_options(cloud: Cloud, server: Server, process: str, options: str):
+def assert_process_has_options(cloud: Cloud, server: Server, process: str, options: str):
     #TODO: Add systemd support
     LOG.debug('Checking options %s for process %s.' % (options, process))
     node = cloud.get_node(server)

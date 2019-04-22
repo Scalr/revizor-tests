@@ -156,9 +156,9 @@ def setup_farmrole_params(context: dict,
     if not setup_bundled_role:
         if dist.is_windows:
             role_params.advanced.reboot_after_hostinit = True
-        elif dist.id == 'scientific-6-x' or \
-                (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
-            role_params.advanced.disable_iptables_mgmt = False
+        # elif dist.id == 'scientific-6-x' or \
+        #         (dist.id in ['centos-6-x', 'centos-7-x'] and platform.is_ec2):
+        #     role_params.advanced.disable_iptables_mgmt = False
 
         if platform.is_ec2:
             role_params.global_variables.variables.append(
@@ -181,14 +181,6 @@ def setup_farmrole_params(context: dict,
             role_params.database.redis_use_password = True
 
     return role_params
-
-
-def farm_launch_delayed(farm: Farm):
-    """Start farm with delay for cloudstack"""
-    if CONF.feature.platform.is_cloudstack:  # Maybe use on all cloudstack
-        time.sleep(1800)
-    farm.launch()
-    LOG.info('Launch farm \'%s\' (%s)' % (farm.id, farm.name))
 
 
 def link_efs_cloud_service_to_farm(farm: Farm, efs: dict) -> bool:

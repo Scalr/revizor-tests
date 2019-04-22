@@ -9,7 +9,7 @@ from scalarizr.lib import server as lib_server
 LOG = logging.getLogger(__name__)
 
 
-def verify_recipes_in_runlist(server: Server, recipes: tp.List[str]):
+def assert_recipes_in_runlist(server: Server, recipes: tp.List[str]):
     host_name = lib_server.get_hostname_by_server_format(server)
     chef_api = chef.autoconfigure()
 

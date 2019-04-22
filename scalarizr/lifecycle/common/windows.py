@@ -10,7 +10,7 @@ from revizor2.cloud import Cloud
 LOG = logging.getLogger(__name__)
 
 
-def validate_attached_disk_size(cloud: Cloud, server: Server, disks: tp.List[tp.Tuple[str, str, int]]):
+def assert_attached_disks_size(cloud: Cloud, server: Server, disks: tp.List[tp.Tuple[str, str, int]]):
     node = cloud.get_node(server)
     out = node.run('wmic volume get Caption,Capacity,Label').std_out
     server_disks = [line.split() for line in out.splitlines() if line.strip()][1:]
@@ -42,7 +42,7 @@ def agent_restart(cloud: Cloud, server: Server):
         time.sleep(15)
 
 
-def validate_terminated_in_log(cloud: Cloud, server: Server):
+def assert_szr_terminated_in_log(cloud: Cloud, server: Server):
     # TODO: PP > consolidate win/linux methods
     node = cloud.get_node(server)
     if CONF.feature.ci_repo == 'buildbot':
@@ -54,7 +54,7 @@ def validate_terminated_in_log(cloud: Cloud, server: Server):
     raise AssertionError("Not see 'Scalarizr terminated' in debug log")
 
 
-def validate_errors_in_log(cloud: Cloud, server: Server):
+def assert_errors_in_szr_logs(cloud: Cloud, server: Server):
     node = cloud.get_node(server)
     out = node.run("findstr /c:\"ERROR\" \"C:\\opt\\scalarizr\\var\\log\\scalarizr_debug.log\"").std_out
     errors = []

@@ -30,13 +30,13 @@ SCALARIZR_LOG_IGNORE_ERRORS = [
 ]
 
 
-def wait_status(context: dict,
-                cloud: Cloud,
-                farm: Farm,
-                role: FarmRole = None,
-                status: str = ServerStatus.RUNNING,
-                timeout: int = 2100,
-                server: Server = None) -> Server:
+def wait_server_status(context: dict,
+                       cloud: Cloud,
+                       farm: Farm,
+                       role: FarmRole = None,
+                       status: str = ServerStatus.RUNNING,
+                       timeout: int = 2100,
+                       server: Server = None) -> Server:
     platform = CONF.feature.platform
     status = ServerStatus.from_code(status)
 
@@ -227,14 +227,14 @@ def get_szr_messages(node: ExtendedNode, convert: bool = False):
     return messages
 
 
-def execute_state_action(server: Server, action: str, hard: bool = False):
-    LOG.info('%s server %s' % (action.capitalize(), server.id))
+def execute_server_action(server: Server, action: str, hard: bool = False):
+    LOG.info(f'{action.capitalize()} server {server.id}')
     args = {'method': 'hard' if hard else 'soft'}
     meth = getattr(server, action)
     res = meth(**args) if action == 'reboot' else meth()
     error_message = None
     if isinstance(res, bool) and not res:
-        error_message = "% success: %s" % (action, res)
+        error_message = f"{action} success: {res}"
     elif isinstance(res, dict):
         error_message = res.get('errorMessage', None)
     # Workaround for SCALRCORE-1576
@@ -242,7 +242,7 @@ def execute_state_action(server: Server, action: str, hard: bool = False):
                          '  Please contact the administrator. (500)']:
         error_message = None
     assert not error_message, error_message
-    LOG.info('Server %s was %sed' % (server.id, action))
+    LOG.info(f'Server {server.id} was {action}ed')
 
 
 def wait_unstored_message(cloud: Cloud, servers: tp.Union[Server, tp.List[Server]],
@@ -350,8 +350,8 @@ def wait_server_message(servers: tp.Union[Server, tp.List[Server]],
 
 
 # TODO: Make farm optional
-def validate_server_message(cloud: Cloud, farm: Farm, msgtype: str, msg: str, server: Server = None,
-                            failed: bool = False, unstored_message: bool = False, timeout: int = 1500):
+def assert_server_message(cloud: Cloud, farm: Farm, msgtype: str, msg: str, server: Server = None,
+                          failed: bool = False, unstored_message: bool = False, timeout: int = 1500):
     """Check scalr in/out message delivering"""
     if not server:  # Check messages for all running servers
         LOG.info('Check message %s %s in all servers' % (msg, msgtype))
@@ -395,17 +395,17 @@ def execute_script(context: dict, farm: Farm, server: Server, script_name: str,
     LOG.info('Script executed success')
 
 
-def validate_last_script_result(context: dict,
-                                cloud: Cloud,
-                                server: Server,
-                                name: str = None,
-                                event: str = None,
-                                user: str = None,
-                                log_contains: str = None,
-                                std_err: bool = False,
-                                exitcode: int = None,
-                                new_only: bool = False,
-                                timeout: int = 600):
+def assert_last_script_result(context: dict,
+                              cloud: Cloud,
+                              server: Server,
+                              name: str = None,
+                              event: str = None,
+                              user: str = None,
+                              log_contains: str = None,
+                              std_err: bool = False,
+                              exitcode: int = None,
+                              new_only: bool = False,
+                              timeout: int = 600):
     """Verifies that server scripting log contains info about script execution."""
     out_name = 'STDERR' if std_err else 'STDOUT'
     LOG.debug('Checking scripting %s logs on %s by parameters:\n'
@@ -506,7 +506,7 @@ def validate_string_in_file(cloud: Cloud, server: Server, file_path: str, value:
                                                 value, out)
 
 
-def validate_file_exists(cloud: Cloud, server: Server, file_path: str, invert: bool = False):
+def assert_file_exist(cloud: Cloud, server: Server, file_path: str, invert: bool = False):
     LOG.info('Verify file "%s" in %s %sexist.' % (file_path, server.id,
                                                   'does not ' if invert else ""))
     node = cloud.get_node(server)
@@ -524,7 +524,7 @@ def check_text_in_scalarizr_log(node: ExtendedNode, text: str):
     return False
 
 
-def check_scalarizr_log_errors(cloud: Cloud, server: Server, log_type: str = None):
+def assert_scalarizr_log_errors(cloud: Cloud, server: Server, log_type: str = None):
     """Check scalarizr log for errors"""
     log_type = log_type or 'debug'
     node = cloud.get_node(server)
@@ -634,7 +634,7 @@ def expect_server_bootstraping_for_role(context: dict, cloud: Cloud, farm: Farm,
     if platform.is_cloudstack or platform.is_openstack or platform.is_azure:
         timeout = 3000
     LOG.info(f'Expect server bootstrapping for {role_type} role')
-    return wait_status(context, cloud, farm, role=role, status=ServerStatus.RUNNING, timeout=timeout)
+    return wait_server_status(context, cloud, farm, role=role, status=ServerStatus.RUNNING, timeout=timeout)
 
 
 def set_iptables_rule(cloud: Cloud, server: Server, port: tp.Union[int, tuple, list]):

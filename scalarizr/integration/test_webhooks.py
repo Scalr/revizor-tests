@@ -1,9 +1,7 @@
 import pytest
 
-from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
-from revizor2.consts import Dist, Platform
 from revizor2.consts import ServerStatus
 from revizor2.fixtures import resources
 
@@ -15,7 +13,6 @@ from scalarizr.lib import apache as lib_apache
 from scalarizr.integration.common import webhooks as lib_webhooks
 
 
-#TODO: SCALRCORE-12265
 class TestWebhooks:
     """
     Check fatmouse/workflow_engine webhooks implementation
@@ -31,7 +28,7 @@ class TestWebhooks:
     def prepare_test_server(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
         farm.launch()
-        server = lib_server.wait_status(
+        server = lib_server.wait_server_status(
             context, cloud, farm, status=ServerStatus.RUNNING)
         servers['F1'] = server
 
@@ -143,7 +140,7 @@ class TestWebhooks:
         server = servers.get('F1')
         lib_farm.add_role_to_farm(context, farm, dist='ubuntu1404')
         farm.launch()
-        proxy_server = lib_server.wait_status(
+        proxy_server = lib_server.wait_server_status(
             context, cloud, farm, status=ServerStatus.RUNNING)
         servers['P1'] = proxy_server
         lib_server.execute_script(context, farm, proxy_server,

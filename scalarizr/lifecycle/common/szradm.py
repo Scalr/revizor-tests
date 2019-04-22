@@ -15,13 +15,13 @@ def get_key(szradm_response: dict, pattern: str) -> tp.Tuple[list, int]:
     return key_value, key_count
 
 
-def validate_external_ip(cloud: Cloud, server: Server):
+def assert_szradm_public_ip(cloud: Cloud, server: Server):
     result = lib_agent.run_szradm_command(cloud, server, command='szradm -q list-roles')
     assert result['response']['roles']['role']['hosts']['host']['external-ip'] == server.public_ip, \
         f'Not see server public ip in szradm response: {result}'
 
 
-def validate_key_records(cloud: Cloud, server: Server, command: str, key: str, count: int = None, record: str = None):
+def assert_szradm_records_count(cloud: Cloud, server: Server, command: str, key: str, count: int = None, record: str = None):
     result = lib_agent.run_szradm_command(cloud, server, command)
     if count is not None:
         _, actual_count = get_key(result, key)

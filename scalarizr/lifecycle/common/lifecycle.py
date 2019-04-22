@@ -21,20 +21,20 @@ from scalarizr.lib.common import get_platform_backend_tools
 LOG = logging.getLogger(__name__)
 
 
-def validate_server_status(server: Server, status: str):
+def assert_server_status(server: Server, status: str):
     expected_status = ServerStatus.from_code(status)
     assert server.status == expected_status, \
         f'Server {server.id}: invalid status. ' \
         f'Actual: {server.status}, expected: {expected_status}'
 
 
-def validate_vcpus_info(server: Server):
+def assert_vcpu_count(server: Server):
     vcpus = int(server.details['info.instance_vcpus'])
     LOG.info(f'Server {server.id} vcpus info: {vcpus}')
     assert vcpus > 0, f'info.instance_vcpus not valid for {server.id}'
 
 
-def validate_scalarizr_version(server: Server, branch: str = None):
+def assert_szr_version_last(server: Server, branch: str = None):
     if branch == 'system' or not branch:
         branch = CONF.feature.branch
     elif branch == 'role':
@@ -48,7 +48,7 @@ def validate_scalarizr_version(server: Server, branch: str = None):
         f'Actual: {installed_version}, expected: {last_version}'
 
 
-def validate_hostname(server: Server):
+def assert_hostname(server: Server):
     hostname = server.api.system.get_hostname().lower()
     valid_hostname = lib_server.get_hostname_by_server_format(server).lower()
     assert hostname == valid_hostname, \
@@ -56,7 +56,7 @@ def validate_hostname(server: Server):
         f'Actual: {hostname}, expected: {valid_hostname}'
 
 
-def validate_iptables_ports(cloud: Cloud, server: Server, ports: tp.List[int], invert: bool = False):
+def assert_iptables_ports_status(cloud: Cloud, server: Server, ports: tp.List[int], invert: bool = False):
     LOG.info(f'Verify ports {ports} in iptables')
     if CONF.feature.platform.is_cloudstack:
         LOG.info('Skip iptables check for Cloudstack')
@@ -71,7 +71,7 @@ def validate_iptables_ports(cloud: Cloud, server: Server, ports: tp.List[int], i
             raise AssertionError(f'Port "{port}" is NOT in iptables rules')
 
 
-def validate_server_message_count(context: dict, server: Server, msg: str):
+def assert_server_message_count(context: dict, server: Server, msg: str):
     """Assert messages count with Mounted Storages count"""
     messages = lib_server.get_incoming_messages(server, msg)
     messages_count = len(messages)
@@ -85,27 +85,27 @@ def validate_server_message_count(context: dict, server: Server, msg: str):
 
 def get_config_from_message(cloud: Cloud, server: Server, config_group: str, message: str) -> dict:
     node = cloud.get_node(server)
-    LOG.info('Get messages from server %s' % server.id)
+    LOG.info(f'Get messages from server {server.id}')
     messages = lib_server.get_szr_messages(node)
     msg_id = next(filter(lambda x: x['name'] == message, messages))['id']
-    LOG.info('Message id for %s is %s' % (message, msg_id))
-    cmd = 'szradm message-details %s --json' % msg_id
+    LOG.info(f'Message id for {message} is {msg_id}')
+    cmd = f'szradm message-details {msg_id} --json'
     if CONF.feature.dist.id == 'coreos':
         cmd = "/opt/bin/" + cmd
     message_details = json.loads(node.run(cmd).std_out)['body']
-    LOG.info('Message details is %s' % message_details)
-    LOG.info('Returning message part %s' % config_group)
+    LOG.info(f'Message details is {message_details}')
+    LOG.info(f'Returning message part {config_group}')
     return message_details[config_group]
 
 
-def validate_message_config(cloud: Cloud, server: Server, config_group: str, message: str, old_details: dict):
+def assert_server_message_body(cloud: Cloud, server: Server, config_group: str, message: str, old_details: dict):
     message_details = get_config_from_message(cloud, server, config_group, message)
-    if old_details == message_details:
-        LOG.error('New and old details is not equal: %s\n %s' % (old_details, message_details))
-        raise AssertionError('New and old details is not equal')
+    LOG.debug(f'New message details: {message_details}')
+    assert old_details == message_details, f'Message details old and new not equal!'
 
 
-def validate_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
+def assert_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
+    #TODO: Add support for maximum clouds
     LOG.info('Verify type of attached disks')
     role = lib_role.get_role(context, farm)
     storage_config = IMPL.farm.get_role_settings(farm.id, role.role.id)['storages']
@@ -118,24 +118,20 @@ def validate_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):
     volumes = list(filter(lambda x: x.id in ids, cloud.list_volumes()))
     for mount_point in volume_ids:
         attached_volumes[mount_point] = filter(lambda x: x.id in volume_ids[mount_point], volumes)
-    LOG.debug('Volumes in mount points: %s' % attached_volumes)
-    if platform.is_ec2:
-        LOG.warning('In EC2 platform we can\'t get volume type (libcloud limits)')
-        return
-    elif platform.is_gce:
+    LOG.debug(f'Volumes in mount points: {attached_volumes}')
+    if platform.is_gce:
         diskmount = next(attached_volumes['/media/diskmount'])
-        if not diskmount.extra['type'] == 'pd-standard':
-            raise AssertionError('Volume attached to /media/diskmount must be "pd-standard" but it: %s' %
-                                 diskmount.extra['type'])
+        assert diskmount.extra['type'] == 'pd-standard', f"Volume attached to /media/diskmount must be pd-standard " \
+            f"but it: {diskmount.extra['type']}"
         # if not volume_ids['/media/raidmount'][0].extra['type'] == 'pd-ssd':
         #     raise AssertionError(
         #         'Volume attached to /media/raidmount must be "pd-ssd" but it: %s' %
         #         volume_ids['/media/diskmount'][0].extra['type'])
 
 
-def validate_path(cloud: Cloud, server: Server, path: str):
+def assert_path_exist(cloud: Cloud, server: Server, path: str):
     """Validate path exist in server"""
-    LOG.info('Check directory %s' % path)
+    LOG.info(f'Verify path {path} exist in server {server.id}')
     node = cloud.get_node(server)
     with node.remote_connection() as conn:
         for attempt in range(5):
@@ -144,20 +140,21 @@ def validate_path(cloud: Cloud, server: Server, path: str):
                 break
             time.sleep(15)
         else:
-            LOG.error('Path %s does not exist' % path)
-            raise AssertionError("'%s' does not exist on server %s" % (path, server.id))
+            LOG.error(f'Path {path} does not exist in server {server.id}')
+            raise AssertionError(f'Path {path} does not exist in server {server.id}')
 
 
 def create_files(cloud: Cloud, server: Server, count: int, directory: str):
     node = cloud.get_node(server)
-    LOG.info('Create %s files in directory %s' % (count, directory))
+    LOG.info(f'Create {count} files in directory {directory}')
     node.run('cd %s && for (( i=0;i<%s;i++ )) do touch "file$i"; done' % (directory, count))
 
 
-def validate_files_count(cloud: Cloud, server: Server, count: int, directory: str):
+def assert_file_count(cloud: Cloud, server: Server, count: int, directory: str):
     node = cloud.get_node(server)
     LOG.info(f'Validate files count in directory {directory}')
-    res = node.run(f'ls {directory} | wc -l').std_out
+
+    res = node.run(f'ls {directory} --ignore=lost+found | wc -l').std_out
     assert str(count) in res, f"Files count mismatch on {directory}. {count} != {res}"
 
 
@@ -169,7 +166,7 @@ def create_partitions_on_volume(cloud: Cloud, server: Server, mnt_point: str):
 
     LOG.info('Creating partitions table for volume on %s' % mnt_point)
     node.put_file(str(path), script_src % mnt_point)
-    out = node.run('source %s' % path)
+    out = node.run(f'source {path}')
 
     partition_table = out.std_out.strip('\n').splitlines()[-4:]
     LOG.debug('Created partitions table for volume:\n%s' % '\n'.join(partition_table))
@@ -180,18 +177,18 @@ def create_partitions_on_volume(cloud: Cloud, server: Server, mnt_point: str):
 
 def create_volume_snapshot(context: dict, farm: Farm, mnt_point: str) -> str:
     device = lib_role.get_storage_device_by_mnt_point(context, farm, mnt_point)[0]
-    LOG.info('Launch volume: "%s" snapshot creation' % device['storageId'])
+    LOG.info(f"Launch volume: {device['storageId']} snapshot creation")
     kwargs = dict(
         cloud_location=CONF.feature.platform.location,
         volume_id=device['storageId']
     )
     volume_snapshot_id = get_platform_backend_tools().create_volume_snapshot(**kwargs)
     assert volume_snapshot_id, 'Volume snapshot creation failed'
-    LOG.info('Volume snapshot create was started. Snapshot: %s' % volume_snapshot_id)
+    LOG.info(f'Volume snapshot create was started. Snapshot: {volume_snapshot_id}')
     return volume_snapshot_id
 
 
-def validate_volume_snapshot(volume_snapshot_id: str):
+def assert_volume_snapshot_created(volume_snapshot_id: str):
     def is_snapshot_completed(**kwargs):
         status = get_platform_backend_tools().list_snapshots(**kwargs)[0]['status']
         LOG.info('Wait for volume snapshot completed, actual state is: %s ' % status)
@@ -219,7 +216,7 @@ def get_mount_table(cloud: Cloud, server: Server) -> tp.Dict[str, str]:
     return mount_table
 
 
-def validate_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.Dict[str, str], mount_point: str):
+def assert_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.Dict[str, str], mount_point: str):
     LOG.info('Verify disk from mount point "%s" exist in fstab on server "%s"' %
              (mount_point, server.id))
     node = cloud.get_node(server)
@@ -321,7 +318,7 @@ def delete_volume(cloud: Cloud, device_id: str):
                 time.sleep(60)
 
 
-def validate_device_changed(context: dict, farm: Farm, mount_point: str, old_device_id: str):
+def assert_volume_device_changed(context: dict, farm: Farm, mount_point: str, old_device_id: str):
     device = lib_role.get_storage_device_by_mnt_point(context, farm, mount_point)[0]
     if device['storageId'] == old_device_id:
         raise AssertionError('Old and new Volume Id for mount point "%s" is equally (%s)' % (mount_point, device))
@@ -375,3 +372,22 @@ def szradm_execute_command(command: str, cloud: Cloud, server: Server, format_ou
         if result.status_code:
             raise AssertionError(f"An error has occurred while execute szradm:\n {out.std_err}")
         return format_output and json.loads(result.std_out) or result.std_out
+
+
+def create_and_attach_volume(server: Server, size: int) -> str:
+    if CONF.feature.platform == Platform.EC2:
+        volume_id = IMPL.aws_tools.volume_create(
+            cloud_location=server.details['cloudLocation'],
+            zone=server.details['properties']['placement.availabilityZone'],
+            size=size,
+            server_id=server.id
+        )
+    elif CONF.feature.platform == Platform.AZURE:
+        volume_id = IMPL.azure_tools.volume_create(
+            cloud_location=server.details['cloudLocation'],
+            resource_group=CONF.feature.platform.resource_group.split('/')[-1],
+            name=f'rev-vol-{server.id.split("-")[0]}',
+            size=size,
+            server_id=server.id
+        ).split('/')[-1]
+    return volume_id

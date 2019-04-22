@@ -4,7 +4,6 @@ import time
 from revizor2.backend import IMPL
 from revizor2.api import Server, Farm
 
-
 LOG = logging.getLogger(__name__)
 
 
@@ -12,30 +11,28 @@ def configure_webhooks(webhooks: list, server: Server, farm: Farm, context: dict
     created_webhooks = []
     created_endpoints = []
     current_endpoints = IMPL.webhooks.list_endpoints()
-    LOG.debug('Current endpoints:%s' % current_endpoints)
+    LOG.debug(f'Current endpoints: {current_endpoints}')
     current_endpoint_urls = [e['url'] for e in current_endpoints] if current_endpoints else []
     for opts in webhooks:
-        url = "%s://%s%s" % (opts['schema'].strip(),
-                             server.public_ip, opts['endpoint'].strip())
+        url = f"{opts['schema'].strip()}://{server.public_ip}{opts['endpoint'].strip()}"
         if url in current_endpoint_urls:
             continue
         name = opts['name'].strip()
         scalr_endpoint = IMPL.webhooks.create_endpoint(name, url)
         created_endpoints.append(scalr_endpoint)
         webhook = IMPL.webhooks.create_webhook(
-            '%s-%s' % (opts['name'].strip(), server.id.split('-')[0]),
+            f"{opts['name'].strip()}-{server.id.split('-')[0]}",
             scalr_endpoint['endpointId'],
             opts['trigger_event'].strip(),
             farm.id,
             attempts=2)
         created_webhooks.append(webhook)
-    LOG.debug('Created test endpoints: %s' % created_endpoints)
-    LOG.debug('Created test webhooks: %s' % created_webhooks)
+
     update_saved_endpoints_and_hooks(
         created_endpoints, created_webhooks, context)
 
 
-def wait_webhook_result(webhook: dict, attempts: int=None, expect_to_fail: bool=False):
+def wait_webhook_result(webhook: dict, attempts: int = None, expect_to_fail: bool = False):
     for _ in range(20):
         result = IMPL.webhooks.get_webhook_results(
             webhook_ids=webhook['webhookId'])
@@ -51,7 +48,7 @@ def wait_webhook_result(webhook: dict, attempts: int=None, expect_to_fail: bool=
     raise AssertionError('Cant find results for webhook %s.' % webhook['name'])
 
 
-def assert_webhooks(webhooks: list, expected_results: list, server_id: str=None):
+def assert_webhooks(webhooks: list, expected_results: list, server_id: str = None):
     for opts in expected_results:
         if server_id:
             webhook_name = '%s-%s' % (opts['webhook_name'],
@@ -66,19 +63,19 @@ def assert_webhooks(webhooks: list, expected_results: list, server_id: str=None)
         LOG.debug("Found result for webhook %s.\n%s" %
                   (webhook['name'], result))
         if fail:
-            assert opts['error'].strip() in result['errorMsg'],\
+            assert opts['error'].strip() in result['errorMsg'], \
                 "Wrong error message and/or ResponceCode for webhook %s! Message - %s, code - %s" % (
                     opts['webhook_name'],
                     result['errorMsg'],
                     result['responceCode'])
         else:
-            assert result['responseCode'] == opts['expected_response'],\
+            assert result['responseCode'] == opts['expected_response'], \
                 "Wrong response code for webhook %s! Expected - %s, actual - %s" % (
                     opts['webhook_name'],
                     opts['expected_response'],
                     result['responseCode'])
         if opts['attempts']:
-            assert result['handleAttempts'] == opts['attempts'],\
+            assert result['handleAttempts'] == opts['attempts'], \
                 "Wrong number of attempts for webhook %s! Expected %s, actual %s" % (
                     opts['webhook_name'],
                     opts['attempts'],
