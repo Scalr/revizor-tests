@@ -12,7 +12,7 @@ import scalarizr.lib.server as lib_server
 from revizor2 import CONF
 from revizor2.api import Server, Farm
 from revizor2.backend import IMPL
-from revizor2.cloud import Cloud
+from revizor2.cloud import Cloud, ExtendedNode
 from revizor2.consts import ServerStatus, Platform
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
@@ -359,6 +359,19 @@ def add_storage_to_role(context: dict, farm: Farm, volume_snapshot_id: str):
         }
     ]}
     role.edit(storages=storage_settings)
+
+
+def szradm_execute_command(command: str, cloud: Cloud, server: Server, format_output: bool=True):
+    command = format_output and f"{command} --format=json" or command
+    if CONF.feature.dist.id == 'coreos':
+        command = f'PATH=$PATH:/opt/bin; {command}'
+    LOG.info(f'Execute the command: {command} a remote host: {server.id}')
+    node = cloud.get_node(server)
+    with node.remote_connection() as conn:
+        result = conn.run(command)
+        if result.status_code:
+            raise AssertionError(f"An error has occurred while execute szradm:\n {out.std_err}")
+        return format_output and json.loads(result.std_out) or result.std_out
 
 
 def create_and_attach_volume(server: Server, size: int) -> str:
