@@ -135,8 +135,9 @@ class TestOrchestration:
     def test_verify_chef_execution(self, cloud: Cloud, servers: dict):
         """Verify chef executed normally"""
         server = servers['M1']
-        lib_server.assert_file_exist(cloud, server, file_path='/root/chef_solo_result')
-        lib_server.assert_file_exist(cloud, server, file_path='/root/chef_hostup_result')
+        node = cloud.get_node(server)
+        lib_server.assert_file_exist(node, filename='/root/chef_solo_result')
+        lib_server.assert_file_exist(node, filename='/root/chef_hostup_result')
         lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
         orchestration.assert_recipes_in_runlist(server, recipes=['memcached', 'revizorenv'])
 

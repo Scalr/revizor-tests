@@ -506,15 +506,14 @@ def validate_string_in_file(cloud: Cloud, server: Server, file_path: str, value:
                                                 value, out)
 
 
-def assert_file_exist(cloud: Cloud, server: Server, file_path: str, invert: bool = False):
-    LOG.info('Verify file "%s" in %s %sexist.' % (file_path, server.id,
-                                                  'does not ' if invert else ""))
-    node = cloud.get_node(server)
-    out = node.run(
-        'test -e %s && echo file exists || echo file not found' % file_path).std_out.strip()
-    result = True if out == 'file exists' else False
-    assert bool(result) ^ invert, \
-        'File %s %sexist!' % (file_path, "" if invert else "does not ")
+def assert_file_exist(node: ExtendedNode, filename: str, exist: bool = True):
+    command = CONF.feature.dist.is_windows \
+        and f"if exist {filename} ( echo True ) else echo False" \
+        or f"test -f {filename} && echo True || echo False"
+    with node.remote_connection() as conn:
+        result = conn.run(command).std_out
+        file_exists = bool(strtobool(result.strip())) == exist
+        assert file_exists, f"File {filename} exist status: {file_exists} instead {exist}"
 
 
 def check_text_in_scalarizr_log(node: ExtendedNode, text: str):

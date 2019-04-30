@@ -52,6 +52,7 @@ def verify_chef_hostname(step, serv_as):
 
 @step('chef log in ([\w\d]+) contains "(.+)"')
 def verify_chef_log(step, serv_as, text):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     server.scriptlogs.reload()
     for log in server.scriptlogs:
@@ -115,6 +116,7 @@ def exclude_scenario_without_systemd(feature):
 
 @step('I change chef-client INTERVAL to (\d+) sec on (\w+)')
 def change_chef_interval(step, interval, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.run('echo -e "INTERVAL={}" >> /etc/default/chef-client'.format(interval))
@@ -122,6 +124,7 @@ def change_chef_interval(step, interval, serv_as):
 
 @step('restart chef-client process on (\w+)')
 def restart_chef_client(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     node.run("systemctl restart chef-client")
@@ -129,6 +132,7 @@ def restart_chef_client(step, serv_as):
 
 @step('I verify that this INTERVAL (\d+) appears in the startup line on (\w+)')
 def verify_interval_value(step, interval, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     out = node.run("systemctl status chef-client")
@@ -139,6 +143,7 @@ def verify_interval_value(step, interval, serv_as):
 
 @step('I wait and see that chef-client runs more than INTERVAL (\d+) on (\w+)')
 def chef_runs_time(step, interval, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     intervalx3 = int(interval) * 3
