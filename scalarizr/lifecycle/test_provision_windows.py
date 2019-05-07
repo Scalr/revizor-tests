@@ -108,7 +108,7 @@ class TestAnsibleTowerProvisionWindows:
              'test_bootstrapping_role_with_at',
              'test_launch_at_job',
              'test_verify_at_job_execution',
-             'Verify Scalr delete node from AT server'
+             'test_verify_node_deletion_from_at'
              )
 
     @pytest.mark.boot
