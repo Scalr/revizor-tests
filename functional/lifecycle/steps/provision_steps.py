@@ -165,6 +165,7 @@ def save_chef_cookbook_hostname(step, chef_host_name):
 
 @step("server hostname in ([\w\d]+) is the same '(.+)'")
 def verify_chef_cookbook_hostname(step, serv_as, chef_hostname):
+    # NOTE: Migrated
     server = getattr(world, serv_as)
     server.reload()
     if not server.hostname == chef_hostname:
@@ -175,6 +176,7 @@ def verify_chef_cookbook_hostname(step, serv_as, chef_hostname):
 
 @step("I get Ansible Tower server id")
 def get_at_server_id(step):
+    # NOTE: Migrated
     at_servers_list = IMPL.ansible_tower.list_servers()
     at_server_id = at_servers_list['servers'][0]['id']
     assert at_server_id, 'The Ansible-Tower server Id was not found'
@@ -183,6 +185,7 @@ def get_at_server_id(step):
 
 @step("I create a copy of the inventory '([\w-]+)'")
 def create_copy_at_inventory(step, inv_name):
+    # NOTE: Migrated
     """
     I create a copy of the inventory for each run of the test.
     This is required to parallel the execution of jobs in running tests.
@@ -203,6 +206,7 @@ def create_copy_at_inventory(step, inv_name):
 
 @step("I create a New AT '([\w-]+)' group '([\w-]+)'")
 def create_at_group(step, group_type, group_name):
+    # NOTE: Migrated
     """
     :param group_type: You can set 'regular' or 'template' type.
     """
@@ -219,6 +223,7 @@ def create_at_group(step, group_type, group_name):
 
 @step("AT group '([\w-]+)' exists in inventory in AT server")
 def check_at_group_exists_in_inventory(step, group_name):
+    # NOTE: Migrated
     group_name = getattr(world, 'at_group_name')
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('group')
@@ -232,6 +237,7 @@ def check_at_group_exists_in_inventory(step, group_name):
 
 @step("I add a new link with os '([\w-]+)' and create credentials '([\w-]+)'")
 def create_credential(step, os, credentials_name):
+    # NOTE: Migrated
     at_server_id = getattr(world, 'at_server_id')
     os = 1 if os == 'linux' else 2
     credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
@@ -256,6 +262,7 @@ def create_credential(step, os, credentials_name):
 
 @step("credential '([\w-]+)' exists in ansible-tower credentials list")
 def check_credential_exists_on_at_server(step, credentials_name):
+    # NOTE: Migrated
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('credential')
         pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
@@ -270,6 +277,7 @@ def check_credential_exists_on_at_server(step, credentials_name):
 
 @step("I get and save AT job template id for '([\w-]+)'")
 def get_at_job_template_id(step, job_template_name):
+    # NOTE: Migrated
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job_template')
         job_template_info = res.get(name=job_template_name)
@@ -282,6 +290,7 @@ def get_at_job_template_id(step, job_template_name):
 
 @step("I check dist and set ansible python interpreter as extra var for AT jobs")
 def set_ansible_py_interpreter(step):
+    # NOTE: Migrated
     at_python_path = 'at_python_path: null'
     if CONF.feature.dist.id in ['ubuntu-16-04', 'ubuntu-18-04']:
         at_python_path = 'at_python_path: 3'
@@ -290,6 +299,7 @@ def set_ansible_py_interpreter(step):
 
 @step(r"server ([\w\d]+) ([\w]+\s)*exists in ansible-tower hosts list")
 def check_hostname_exists_on_at_server(step, serv_as, negation):
+    # NOTE: Migrated
     """
     You can search server name by: Public IP or Private IP or Hostname.
     Check what value is in defaults!
@@ -320,6 +330,7 @@ def check_hostname_exists_on_at_server(step, serv_as, negation):
 
 @step("user '([\w-]+)' has been created in ([\w\d]+)")
 def check_at_user_on_server(step, expected_user, serv_as):
+    # NOTE: Migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     cmd = 'net user' if CONF.feature.dist.is_windows else 'cut -d : -f 1 /etc/passwd'
@@ -330,6 +341,7 @@ def check_at_user_on_server(step, expected_user, serv_as):
 
 @step("I launch job '(.+)' with credential '([\w-]+)' and expected result '([\w-]+)' in (.+)")
 def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_as):
+    # NOTE: Migrated
     inventory_id = getattr(world, 'at_inventory_id')
 
     pk = getattr(world, 'at_cred_primary_key_%s' % credentials_name)
@@ -362,6 +374,7 @@ def launch_ansible_tower_job(step, job_name, credentials_name, job_result, serv_
 
 @step("I checked that deployment through AT was performed in (.+) and the output is '([\w-]+)'")
 def check_deployment_work(step, serv_as, expected_output):
+    # NOTE: Migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     cmd = 'dir /B C:\scalr-ansible' if CONF.feature.dist.is_windows else 'ls /home/scalr-ansible/'

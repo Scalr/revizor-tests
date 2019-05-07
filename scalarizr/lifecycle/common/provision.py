@@ -3,16 +3,22 @@ import time
 import logging
 
 import chef
+from tower_cli import get_resource as at_get_resource
+from tower_cli.conf import settings as at_settings
+
 from revizor2 import api
 from revizor2.conf import CONF
 from revizor2.utils import wait_until
 from revizor2.cloud import Cloud, ExtendedNode
+from revizor2.backend import IMPL
 
 from scalarizr.lib import server as lib_server
 from scalarizr.lib import farm as lib_farm
 
 
 LOG = logging.getLogger(__name__)
+
+at_config = CONF.credentials.ansible_tower
 
 
 def get_chef_bootstrap_stat(node: ExtendedNode):
@@ -134,3 +140,158 @@ def assert_chef_bootstrap_failed(cloud: Cloud, server: api.Server):
             'Command /usr/bin/chef-client exited with code 1']
         assert any(node.run(f'grep {m} /var/log/scalarizr_debug.log').std_out.strip() for m in failure_markers), \
             assertion_msg
+
+
+def get_at_server_id():
+    at_servers_list = IMPL.ansible_tower.list_servers()
+    at_server_id = at_servers_list['servers'][0]['id']
+    assert at_server_id, 'The Ansible-Tower server Id was not found'
+    return at_server_id
+
+
+def create_copy_at_inventory(inventory_name: str):
+    """
+    I create a copy of the inventory for each run of the test.
+    This is required to parallel the execution of jobs in running tests.
+    """
+    inventory_id = re.search('(\d.*)', inventory_name).group(0)
+    new_name = CONF.feature.dist.id + time.strftime("-%H:%M:%S:%MS")
+    kwargs = {'description': new_name}
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('inventory')
+        at_res_copy = res.copy(pk=inventory_id, new_name=new_name, **kwargs)
+        assert new_name in at_res_copy['description'], \
+            f'Inventory was not found in Ansible Tower. Response from server: {at_res_copy}.'
+        return at_res_copy
+
+
+def create_at_group(context: dict, group_type: str, group_name: str):
+    """
+    :param group_type: You can set 'regular' or 'template' type.
+    """
+    group_name = group_name + time.strftime("-%a-%d-%b-%Y-%H:%M:%S:%MS")
+    at_group = IMPL.ansible_tower.create_inventory_groups(
+        group_name,
+        group_type,
+        context['at_server_id'],
+        context['at_inventory_id'])
+    return at_group['group']['id']
+
+
+def assert_at_group_exists_in_inventory(group_id: str):
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('group')
+        pk = group_id
+        find_group = res.get(pk=pk)
+        assert find_group['id'] == pk, \
+            f'Group with id: {pk} not found in Ansible Tower. Response from server: {find_group}.'
+
+
+def create_credential(context: dict, os: str):
+    at_server_id = context['at_server_id']
+    credentials_name = context['credentials_name']
+    os = 1 if os == 'linux' else 2
+    credentials = IMPL.ansible_tower.create_credentials(os, credentials_name, at_server_id)
+    publickey = credentials['machineCredentials']['publicKey'] if os == 1 else None
+    pk = credentials['machineCredentials']['id']
+    inventory_id = context['at_inventory_id']
+    bootstrap_configurations = IMPL.ansible_tower.add_bootstrap_configurations(
+        os, pk, credentials_name,
+        at_server_id, publickey,
+        inventory_id, context['at_group_id'],
+        context['at_group_type'], context['at_group_name'])
+    assert bootstrap_configurations['success'], f'The credentials: {credentials_name} have not been saved!'
+    configuration_id = bootstrap_configurations['bootstrapconfig']['machineCredentials'][0]['configurationId']
+    context['at_configuration_id'] = configuration_id
+    context[f'at_cred_primary_key_{credentials_name}'] = pk
+
+
+def assert_credential_exists_on_at_server(credentials_name: str, key: str):
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('credential')
+        cred_list = res.list(all_pages=True)
+        assert any(credentials_name in c['name'] and c['id'] == key for c in cred_list['results']), \
+            f'Credential: {credentials_name} with id: {key} not found in Ansible Tower server.'
+
+
+def get_at_job_template_id(job_template_name: str):
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('job_template')
+        job_template_info = res.get(name=job_template_name)
+        assert job_template_name in job_template_info['name'], \
+            f'Job template {job_template_name}: not found in Ansible Tower.\nResponse from server: {job_template_info}.'
+        return job_template_info['id']
+
+
+def assert_hostname_exists_on_at_server(server: api.Server, negation: bool=False):
+    """
+    You can search server name by: Public IP or Private IP or Hostname.
+    Check what value is in defaults!
+    """
+    hostname = server.public_ip
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('host')
+        hosts_list = res.list(group=None, host_filter=None)
+        for m in hosts_list['results']:
+            if negation:
+                if hostname not in m['name']:
+                    break
+                raise AssertionError(
+                    f'Hostname: {hostname} was not removed from Ansible Tower server.')
+            elif hostname in m['name']:
+                break
+        else:
+            if len(hosts_list['results']) == 10:
+                raise AssertionError(
+                    f"License count of 10 instances has been reached. Number of hosts: {len(hosts_list['results'])}.")
+            raise AssertionError(
+                f'Hostname: {hostname} not found in Ansible Tower server.')
+
+
+def assert_at_user_on_server(cloud: Cloud, server: api.Server, expected_user: str):
+    node = cloud.get_node(server)
+    cmd = 'net user' if CONF.feature.dist.is_windows else 'cut -d : -f 1 /etc/passwd'
+    with node.remote_connection() as conn:
+        user_list = conn.run(cmd).std_out.split()
+        assert expected_user in user_list, \
+            f'User {expected_user} was not found on the server! User list output: {user_list}'
+
+
+def launch_ansible_tower_job(context: dict, job_name: str, job_result: str):
+    inventory_id = context['at_inventory_id']
+    credentials_name = context['credentials_name']
+    pk = context[f'at_cred_primary_key_{credentials_name}']
+    at_python_path = ''
+    if not CONF.feature.dist.is_windows:
+        at_python_path = context['at_python_path']
+    with at_settings.runtime_values(**at_config):
+        res = at_get_resource('job')
+        job_settings = {
+            "credential_id": pk,
+            "extra_credentials": [],
+            "extra_vars": [at_python_path],
+            "inventory": inventory_id
+        }
+        my_job = res.launch(job_template=job_name,
+                            monitor=False,
+                            wait=True,
+                            timeout=None,
+                            no_input=True,
+                            **job_settings)
+        for _ in range(10):
+            job_info = res.get(pk=my_job['id'])
+            if job_info['status'] not in ['waiting', 'running', 'pending']:
+                break
+            time.sleep(5)
+        else:
+            raise AssertionError(f"Job #{my_job['id']} has not finished in 50s")
+        assert job_info['status'] == job_result, (my_job['id'], job_info['status'])
+
+
+def assert_deployment_work(cloud: Cloud, server: api.Server, expected_output: str):
+    node = cloud.get_node(server)
+    cmd = CONF.feature.dist.is_windows and 'dir /B C:\scalr-ansible' or 'ls /home/scalr-ansible/'
+    with node.remote_connection() as conn:
+        actual_output = conn.run(cmd).std_out.split()
+        assert expected_output in actual_output, f'Deployment does not work! Output: {actual_output}'
+
