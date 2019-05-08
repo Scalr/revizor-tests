@@ -1,3 +1,4 @@
+import time
 import pytest
 import logging
 
@@ -79,7 +80,7 @@ class TestChefProvisionWindows:
         lib_server.validate_failed_status_message(
             server,
             "beforeHostUp",
-            "C:\opscode\chef\bin\chef-client exited with code 1")
+            "C:\opscode\chef\\bin\chef-client exited with code 1")
         provision.assert_chef_log_contains_text(server, "NoMethodError: undefined method `fatal!'")
         provision.assert_chef_bootstrap_failed(cloud, server)
 
@@ -118,26 +119,22 @@ class TestAnsibleTowerProvisionWindows:
         """Setup Ansible Tower bootstrap configurations"""
         at_group_type = 'regular'
         at_group_name = 'G1'
-        at_credentials_name = 'Revizor-windows-cred'
         at_template_name = 'Windows_Show_Env'
+        at_credentials_name = f'windows-cred-{time.strftime("%a-%d-%b-%Y-%H:%M:%S:%MS")}'
+        context['credentials_name'] = at_credentials_name
 
-        context['at_server_id'] = provision.get_at_server_id()
-        at_res_copy = provision.create_copy_at_inventory('Revizor_linux_33')
-        context['at_inventory_id'] = at_res_copy['id']
-        context['at_inventory_name'] = at_res_copy['name']
-        context['at_group_id'] = provision.create_at_group(
+        provision.set_at_server_id(context)
+        provision.create_copy_at_inventory(context, 'Revizor_windows')
+        provision.create_at_group(
             context,
             group_type=at_group_type,
             group_name=at_group_name)
-        context['at_group_type'] = at_group_type
-        context['at_group_name'] = at_group_name
         provision.assert_at_group_exists_in_inventory(context['at_group_id'])
-        context['credentials_name'] = at_credentials_name
         provision.create_credential(context, 'windows')
         provision.assert_credential_exists_on_at_server(
             credentials_name=at_credentials_name,
             key=context[f'at_cred_primary_key_{at_credentials_name}'])
-        context['job_template_id'] = provision.get_at_job_template_id(at_template_name)
+        provision.set_at_job_template_id(context, at_template_name)
 
     @pytest.mark.boot
     @pytest.mark.run_only_if(
@@ -200,9 +197,4 @@ class TestAnsibleTowerProvisionWindows:
         lib_server.wait_servers_state(farm, 'terminated')
         server = servers['M1']
         provision.assert_hostname_exists_on_at_server(server, negation=True)
-
-
-
-
-
 

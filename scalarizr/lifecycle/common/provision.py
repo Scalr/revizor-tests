@@ -121,7 +121,7 @@ def assert_script_data_deleted(cloud: Cloud, server: api.Server):
         or f'find /var/lib/scalarizr/tasks/{task_dir} -type d -regex ".*/\\(bin\\|data\\)"'
     with node.remote_connection() as conn:
         result = conn.run(cmd)
-        assert not result.status_code, f"Command: {cmd} execution error:\n {result.std_err}"
+        assert not result.std_err, f"Command: {cmd} execution error:\n {result.std_err}"
         folders = [l for l in result.std_out.splitlines() if l.strip()]
         assert not folders,  f"Find script data {folders} on {server.id}"
 
@@ -142,40 +142,47 @@ def assert_chef_bootstrap_failed(cloud: Cloud, server: api.Server):
             assertion_msg
 
 
-def get_at_server_id():
+def set_at_server_id(context: dict):
     at_servers_list = IMPL.ansible_tower.list_servers()
     at_server_id = at_servers_list['servers'][0]['id']
     assert at_server_id, 'The Ansible-Tower server Id was not found'
-    return at_server_id
+    context['at_server_id'] = at_server_id
 
 
-def create_copy_at_inventory(inventory_name: str):
+def create_copy_at_inventory(context: dict, inventory_name: str):
     """
     I create a copy of the inventory for each run of the test.
     This is required to parallel the execution of jobs in running tests.
     """
-    inventory_id = re.search('(\d.*)', inventory_name).group(0)
-    new_name = CONF.feature.dist.id + time.strftime("-%H:%M:%S:%MS")
+    new_name = f'{CONF.feature.dist.id}-{time.strftime("%H:%M:%S:%MS")}'
     kwargs = {'description': new_name}
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('inventory')
-        at_res_copy = res.copy(pk=inventory_id, new_name=new_name, **kwargs)
+        inventory = list(filter(
+            lambda i: i['name'] == inventory_name,
+            res.list(all_pages=True)['results']))
+        assert inventory, f'Inventory: {inventory_name} not found on AT server'
+        at_res_copy = res.copy(pk=inventory[0]['id'], new_name=new_name, **kwargs)
         assert new_name in at_res_copy['description'], \
             f'Inventory was not found in Ansible Tower. Response from server: {at_res_copy}.'
-        return at_res_copy
+        context['at_inventory_id'] = at_res_copy['id']
+        context['at_inventory_name'] = at_res_copy['name']
 
 
 def create_at_group(context: dict, group_type: str, group_name: str):
     """
     :param group_type: You can set 'regular' or 'template' type.
     """
-    group_name = group_name + time.strftime("-%a-%d-%b-%Y-%H:%M:%S:%MS")
+    group_name = f'{group_name}-{time.strftime("%a-%d-%b-%Y-%H:%M:%S:%MS")}'
     at_group = IMPL.ansible_tower.create_inventory_groups(
         group_name,
         group_type,
         context['at_server_id'],
         context['at_inventory_id'])
-    return at_group['group']['id']
+
+    context['at_group_type'] = group_type
+    context['at_group_name'] = group_name
+    context['at_group_id'] = at_group['group']['id']
 
 
 def assert_at_group_exists_in_inventory(group_id: str):
@@ -214,13 +221,13 @@ def assert_credential_exists_on_at_server(credentials_name: str, key: str):
             f'Credential: {credentials_name} with id: {key} not found in Ansible Tower server.'
 
 
-def get_at_job_template_id(job_template_name: str):
+def set_at_job_template_id(context: dict, job_template_name: str):
     with at_settings.runtime_values(**at_config):
         res = at_get_resource('job_template')
         job_template_info = res.get(name=job_template_name)
         assert job_template_name in job_template_info['name'], \
             f'Job template {job_template_name}: not found in Ansible Tower.\nResponse from server: {job_template_info}.'
-        return job_template_info['id']
+        context['job_template_id'] = job_template_info['id']
 
 
 def assert_hostname_exists_on_at_server(server: api.Server, negation: bool=False):
