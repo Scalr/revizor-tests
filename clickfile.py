@@ -5,6 +5,7 @@ import sys
 import subprocess
 
 import click
+import requests
 
 CHROMEDRIVER_VERSION = '2.46'
 GECKODRIVER_VERSION = '0.24.0'
@@ -100,20 +101,31 @@ def run_webtests(test, browser, te_id, te_remove, is_local, debug):
 @click.option('--token', required=True, help='GitHub access token to revizor repo')
 @click.option('--push', is_flag=True, default=False, help='Push to github or not')
 def build_container(token, push):
-    branch = local('git status', log=False).stdout.splitlines()[0].split()[-1]
+    branch = local('git status', log=False).stdout.decode().splitlines()[0].split()[-1].lower().replace('/', '-')
     print(f'Build image for branch {branch}')
-    local(f'docker build -t gcr.io/scalr-labs/revizor-tests/{branch.lower()}:latest . --build-arg TOKEN={token}')
+    local(f'docker build -t gcr.io/scalr-labs/revizor-tests/{branch}:latest . --build-arg TOKEN={token}')
     if push:
-        print(f'Push image gcr.io/scalr-labs/revizor-tests/{branch.lower()}:latest')
-        local(f'docker push gcr.io/scalr-labs/revizor-tests/{branch.lower()}:latest')
+        print(f'Push image gcr.io/scalr-labs/revizor-tests/{branch}:latest')
+        local(f'docker push gcr.io/scalr-labs/revizor-tests/{branch}:latest')
 
 
 @tests.command(name='runjob', help='Run job from revizor')
 def run_job():
-    print('Run job successfully run!')
-    print('Job ID: %s' % os.environ.get('REVIZOR_TESTSUITE_ID'))
-    print('------')
-    print('All env: %s' % os.environ)
+    print('Run job from revizor')
+    token = os.environ.get('REVIZOR_API_TOKEN')
+    if not token:
+        print('You must provide revizor api token to run tests!')
+        sys.exit(0)
+    revizor_url = os.environ.get('REVIZOR_URL', 'https://revizor.scalr-labs.com')
+    testsuite_id = os.environ.get('REVIZOR_TESTSUITE_ID')
+    test = requests.get(f'{revizor_url}/api/tests/retrieve/{testsuite_id}', headers={'Authorization': f'Token {token}'})
+    print('Test response body: %s' % test.text)
+    if test.status_code == 404:
+        print(red(f'Tests not found for {testsuite_id} test suite!'))
+        sys.exit(0)
+    elif test.status_code == 200:
+        body = test.json()
+        subprocess.run(body['params'], shell=True)
 
 
 if __name__ == '__main__':
