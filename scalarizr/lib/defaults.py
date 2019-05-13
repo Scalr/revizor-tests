@@ -149,17 +149,15 @@ class Defaults(object):
             params.bootstrap_with_chef.runlist = '["role[always_fail]"]'
             params.bootstrap_with_chef.daemonize = True
 
-    # @staticmethod
-    # def set_chef_hostname(params):
-    #     if CONF.feature.dist.id != Dist('coreos').id:
-    #         chef_host_name = getattr(world, 'chef_hostname_for_cookbook')
-    #         params.bootstrap_with_chef.enabled = True
-    #         params.bootstrap_with_chef.server = farmrole.ChefServer(
-    #             url='https://api.opscode.com/organizations/webta')
-    #         params.bootstrap_with_chef.runlist = '["recipe[set_hostname_attr::default]"]'
-    #         params.bootstrap_with_chef.daemonize = True
-    #         params.bootstrap_with_chef.attributes = '{"new_hostname": "%s"}' % chef_host_name
-    #         params.network.hostname_template = ''
+    @staticmethod
+    def set_chef_hostname(params, chef_host_name):
+        if CONF.feature.dist.id != Dist('coreos').id:
+            params.bootstrap_with_chef.enabled = True
+            params.bootstrap_with_chef.server = farmrole.ChefServer(url='https://api.opscode.com/organizations/webta')
+            params.bootstrap_with_chef.runlist = '["recipe[set_hostname_attr::default]"]'
+            params.bootstrap_with_chef.daemonize = True
+            params.bootstrap_with_chef.attributes = f'{{"new_hostname": "{chef_host_name}"}}'
+            params.network.hostname_template = ''
 
     @staticmethod
     def set_winchef(params):
@@ -337,3 +335,35 @@ class Defaults(object):
             farmrole.Variable(name='rev_very_long_var', value='a' * 8192),
             farmrole.Variable(name='rev_nonascii_var', value='ревизор')
         ]
+
+    @staticmethod
+    def set_ansible_tower(params, context):
+        credentials_name = context['credentials_name']
+        pk = context[f'at_cred_primary_key_{credentials_name}']
+        boot_config_name = ''.join((credentials_name, str(pk)))
+        at_configuration_id = context['at_configuration_id']
+        params.bootstrap_with_at.enabled = True
+        params.bootstrap_with_at.hostname = 'publicIp'
+        params.bootstrap_with_at.configurations = [
+            farmrole.AnsibleTowerConfiguration(id=at_configuration_id, name=boot_config_name, variables='')
+        ]
+
+    @staticmethod
+    def set_ansible_orchestration(params, context):
+        at_configuration_id = context['at_configuration_id']
+        job_template_id = context['job_template_id']
+        at_python_path = ''
+        if not CONF.feature.dist.is_windows:
+            at_python_path = ''.join((context['at_python_path'], '\n'))
+        params.orchestration.rules = [
+            farmrole.OrchestrationRule(event='HostUp', configuration=at_configuration_id,
+                                       jobtemplate=job_template_id,
+                                       variables=at_python_path + 'dir2: Extra_Var_HostUp'),
+            farmrole.OrchestrationRule(event='RebootComplete', configuration=at_configuration_id,
+                                       jobtemplate=job_template_id,
+                                       variables=at_python_path + 'dir2: Extra_Var_RebootComplete'),
+            farmrole.OrchestrationRule(event='ResumeComplete', configuration=at_configuration_id,
+                                       jobtemplate=job_template_id,
+                                       variables=at_python_path + 'dir2: Extra_Var_ResumeComplete')
+        ]
+

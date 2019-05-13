@@ -56,6 +56,7 @@ def verify_recipes_in_runlist(step, serv_as, recipes):
 
 @step("chef bootstrap failed in ([\w\d]+)")
 def chef_bootstrap_failed(step, serv_as):
+    # NOTE: migrated
     server = getattr(world, serv_as)
     node = world.cloud.get_node(server)
     if CONF.feature.dist.is_windows:

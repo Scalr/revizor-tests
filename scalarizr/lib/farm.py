@@ -148,8 +148,14 @@ def setup_farmrole_params(context: dict,
             role_params.database.redis_processes = int(redis_count)
         elif 'chef-solo' in opt:
             Defaults.set_chef_solo(role_params, opt)
+        elif 'chef-hostname' in opt:
+            Defaults.set_chef_hostname(role_params, context.get('chef_hostname_for_cookbook'))
         elif 'efs' in opt:
             Defaults.set_efs_storages(role_params, context.get('linked_services'))
+        elif 'ansible-tower' in opt:
+            Defaults.set_ansible_tower(role_params, context)
+        elif 'ansible-orchestration' in opt:
+            Defaults.set_ansible_orchestration(role_params, context)
         else:
             Defaults.apply_option(role_params, opt)
 

@@ -5,6 +5,7 @@ from revizor2.api import Farm
 from revizor2.cloud import Cloud
 from revizor2.consts import ServerStatus, Platform, FarmStatus
 from scalarizr.lib import farm as lib_farm
+from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import lifecycle, provision
 
@@ -41,15 +42,15 @@ class TestStopResume:
         server = servers['M1']
         node = cloud.get_node(server)
         context['chef_deployment_time'] = provision.get_chef_bootstrap_stat(node)
-        provision.check_process_options(node, 'memcached', '-m 1024')
-        provision.check_process_options(node, 'chef-client', '--daemonize')
-        provision.verify_chef_hostname(cloud, server)
+        lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
+        lib_node.assert_process_has_options(cloud, server, process='chef-client', options='--daemonize')
+        provision.assert_chef_node_name_equal_hostname(cloud, server)
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'], family=['windows'])
     def test_chef_deployment_windows(self, context: dict, cloud: Cloud, servers: dict):
         """Verify chef executed fine"""
         node = cloud.get_node(servers['M1'])
-        provision.check_file_exist_on_win(node, 'C:\\chef_result_file')
+        lib_server.assert_file_exist(node, 'C:\\chef_result_file')
         provision.remove_file_on_win(node, 'C:\\chef_result_file')
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'])
@@ -61,7 +62,7 @@ class TestStopResume:
         lib_server.assert_server_message(cloud, farm, msgtype='out', msg='BeforeHostTerminate', server=server)
         lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.SUSPENDED)
         lib_server.assert_server_event(server, ['HostDown (Suspend)'])
-        provision.check_node_exists_on_chef_server(server)
+        provision.assert_node_exists_on_chef_server(server)
         servers['M2'] = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         lib_server.execute_server_action(server, 'resume')
         lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.RESUMING)
@@ -78,14 +79,14 @@ class TestStopResume:
         assert context['chef_deployment_time'] == provision.get_chef_bootstrap_stat(node), \
             'Chef was started after resume!'
         provision.check_process_status(node, 'memcached', False)
-        provision.check_process_options(node, 'chef-client', '--daemonize')
-        provision.verify_chef_hostname(cloud, server)
+        lib_node.assert_process_has_options(cloud, server, process='chef-client', options='--daemonize')
+        provision.assert_chef_node_name_equal_hostname(cloud, server)
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'], family=['windows'])
-    def test_chef_after_resume_windows(self, context: dict, cloud: Cloud, servers: dict, farm: Farm):
+    def test_chef_after_resume_windows(self, cloud: Cloud, servers: dict):
         """Verify chef not executed after resume"""
         node = cloud.get_node(servers['M1'])
-        provision.check_file_exist_on_win(node, 'C:\\chef_result_file', exist=False)
+        lib_server.assert_file_exist(node, 'C:\\chef_result_file', exist=False)
 
     @pytest.mark.run_only_if(platform=['ec2', 'gce', 'openstack', 'azure'], family=['!windows'])
     def test_attached_storages_after_resume(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
