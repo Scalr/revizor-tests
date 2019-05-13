@@ -18,7 +18,7 @@ from scalarizr.lib import farm as lib_farm
 
 LOG = logging.getLogger(__name__)
 
-at_config = CONF.credentials.ansible_tower
+AT_CONFIG = CONF.credentials.ansible_tower
 
 
 def get_chef_bootstrap_stat(node: ExtendedNode):
@@ -88,11 +88,11 @@ def remove_file_on_win(node: ExtendedNode, filename: str):
 
 def change_chef_client_interval_value(node: ExtendedNode, interval: int):
     node.run(f'echo -e "INTERVAL={interval}" >> /etc/default/chef-client')
-    node.run("systemctl restart chef-client")
+    node.run("service chef-client restart ")
 
 
 def assert_chef_client_interval_value(node: ExtendedNode, interval: int):
-    res = node.run("systemctl status chef-client")
+    res = node.run("service chef-client status")
     assert not res.std_err, f'Error on chef-client, ended with code: [{res.status_code}].\n{res.std_err}'
     assert f'chef-client -i {interval}' in res.std_out
 
@@ -100,7 +100,7 @@ def assert_chef_client_interval_value(node: ExtendedNode, interval: int):
 def assert_chef_runs_time(node: ExtendedNode, interval: int):
     interval = int(interval) * 3
     time.sleep(interval)
-    res = node.run("systemctl status chef-client")
+    res = node.run("service chef-client status")
     active_line = res.std_out.splitlines()[2]
     match = re.search('(?:(\d+)min)? (\d+)s', active_line)
     minutes = match.group(1)
@@ -116,9 +116,10 @@ def assert_script_data_deleted(cloud: Cloud, server: api.Server):
     if not server.scriptlogs:
         raise AssertionError("No orchestration logs found on %s" % server.id)
     task_dir = server.scriptlogs[0].execution_id.replace('-', '')
-    cmd = CONF.feature.dist.is_windows \
-        and f'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\{task_dir} /b /s /ad | findstr /e "\\bin \\data"' \
-        or f'find /var/lib/scalarizr/tasks/{task_dir} -type d -regex ".*/\\(bin\\|data\\)"'
+    if CONF.feature.dist.is_windows:
+        cmd = f'dir c:\\opt\\scalarizr\\var\\lib\\tasks\\{task_dir} /b /s /ad | findstr /e "\\bin \\data"'
+    else:
+        cmd = f'find /var/lib/scalarizr/tasks/{task_dir} -type d -regex ".*/\\(bin\\|data\\)"'
     with node.remote_connection() as conn:
         result = conn.run(cmd)
         assert not result.std_err, f"Command: {cmd} execution error:\n {result.std_err}"
@@ -156,7 +157,7 @@ def create_copy_at_inventory(context: dict, inventory_name: str):
     """
     new_name = f'{CONF.feature.dist.id}-{time.strftime("%H:%M:%S:%MS")}'
     kwargs = {'description': new_name}
-    with at_settings.runtime_values(**at_config):
+    with at_settings.runtime_values(**AT_CONFIG):
         res = at_get_resource('inventory')
         inventory = list(filter(
             lambda i: i['name'] == inventory_name,
@@ -186,7 +187,7 @@ def create_at_group(context: dict, group_type: str, group_name: str):
 
 
 def assert_at_group_exists_in_inventory(group_id: str):
-    with at_settings.runtime_values(**at_config):
+    with at_settings.runtime_values(**AT_CONFIG):
         res = at_get_resource('group')
         pk = group_id
         find_group = res.get(pk=pk)
@@ -194,7 +195,7 @@ def assert_at_group_exists_in_inventory(group_id: str):
             f'Group with id: {pk} not found in Ansible Tower. Response from server: {find_group}.'
 
 
-def create_credential(context: dict, os: str):
+def create_at_credential(context: dict, os: str):
     at_server_id = context['at_server_id']
     credentials_name = context['credentials_name']
     os = 1 if os == 'linux' else 2
@@ -214,7 +215,7 @@ def create_credential(context: dict, os: str):
 
 
 def assert_credential_exists_on_at_server(credentials_name: str, key: str):
-    with at_settings.runtime_values(**at_config):
+    with at_settings.runtime_values(**AT_CONFIG):
         res = at_get_resource('credential')
         cred_list = res.list(all_pages=True)
         assert any(credentials_name in c['name'] and c['id'] == key for c in cred_list['results']), \
@@ -222,7 +223,7 @@ def assert_credential_exists_on_at_server(credentials_name: str, key: str):
 
 
 def set_at_job_template_id(context: dict, job_template_name: str):
-    with at_settings.runtime_values(**at_config):
+    with at_settings.runtime_values(**AT_CONFIG):
         res = at_get_resource('job_template')
         job_template_info = res.get(name=job_template_name)
         assert job_template_name in job_template_info['name'], \
@@ -236,7 +237,7 @@ def assert_hostname_exists_on_at_server(server: api.Server, negation: bool=False
     Check what value is in defaults!
     """
     hostname = server.public_ip
-    with at_settings.runtime_values(**at_config):
+    with at_settings.runtime_values(**AT_CONFIG):
         res = at_get_resource('host')
         hosts_list = res.list(group=None, host_filter=None)
         for m in hosts_list['results']:
@@ -271,7 +272,7 @@ def launch_ansible_tower_job(context: dict, job_name: str, job_result: str):
     at_python_path = ''
     if not CONF.feature.dist.is_windows:
         at_python_path = context['at_python_path']
-    with at_settings.runtime_values(**at_config):
+    with at_settings.runtime_values(**AT_CONFIG):
         res = at_get_resource('job')
         job_settings = {
             "credential_id": pk,
@@ -297,7 +298,7 @@ def launch_ansible_tower_job(context: dict, job_name: str, job_result: str):
 
 def assert_deployment_work(cloud: Cloud, server: api.Server, expected_output: str):
     node = cloud.get_node(server)
-    cmd = CONF.feature.dist.is_windows and 'dir /B C:\scalr-ansible' or 'ls /home/scalr-ansible/'
+    cmd = 'dir /B C:\scalr-ansible' if CONF.feature.dist.is_windows else 'ls /home/scalr-ansible/'
     with node.remote_connection() as conn:
         actual_output = conn.run(cmd).std_out.split()
         assert expected_output in actual_output, f'Deployment does not work! Output: {actual_output}'

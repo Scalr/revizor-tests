@@ -105,17 +105,15 @@ class TestAnsibleTowerProvisionWindows:
     """ Windows server provision with Ansible Tower
     """
 
-    order = ('test_setup_ansible_tower_configuration',
+    order = (
              'test_bootstrapping_role_with_at',
              'test_launch_at_job',
              'test_verify_at_job_execution',
              'test_verify_node_deletion_from_at'
              )
 
-    @pytest.mark.boot
-    @pytest.mark.run_only_if(
-        platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
-    def test_setup_ansible_tower_configuration(self, context: dict):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_ansible_tower_configuration(self, context: dict):
         """Setup Ansible Tower bootstrap configurations"""
         at_group_type = 'regular'
         at_group_name = 'G1'
@@ -130,7 +128,7 @@ class TestAnsibleTowerProvisionWindows:
             group_type=at_group_type,
             group_name=at_group_name)
         provision.assert_at_group_exists_in_inventory(context['at_group_id'])
-        provision.create_credential(context, 'windows')
+        provision.create_at_credential(context, 'windows')
         provision.assert_credential_exists_on_at_server(
             credentials_name=at_credentials_name,
             key=context[f'at_cred_primary_key_{at_credentials_name}'])

@@ -3,6 +3,8 @@ import time
 import pytest
 import logging
 
+from uuid import uuid4
+
 from revizor2.cloud import Cloud
 from revizor2.api import Farm
 from revizor2.consts import ServerStatus, Platform
@@ -25,7 +27,7 @@ class TestChefProvisionLinux:
              'test_checking_deletion_chef_fixtures',
              'test_chef_solo_bootstrapping',
              'test_chef_bootstrap_failure',
-             'test_bootstrapping_form_chef_role',
+             'test_bootstrapping_from_chef_role',
              'test_chef_bootstrapping_via_cookbooks_with_hostname_configured'
              )
 
@@ -59,17 +61,12 @@ class TestChefProvisionLinux:
 
     @pytest.mark.run_only_if(
         platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
-    def test_checking_deletion_chef_fixtures(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+    def test_checking_deletion_chef_fixtures(self, farm: Farm, servers: dict):
         """Verify Scalr delete chef-fixtures"""
         server = servers['M1']
         farm.terminate()
         lib_server.wait_servers_state(farm, 'terminated')
         provision.assert_node_exists_on_chef_server(server, exist=False)
-        farm.launch()
-        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
-        lib_node.assert_process_has_options(cloud, server, process='chef-client', options='--daemonize')
-        provision.assert_chef_node_name_equal_hostname(cloud, server)
 
     @pytest.mark.boot
     @pytest.mark.parametrize('role_options', ['chef-solo-private', 'chef-solo-public', 'chef-solo-public-branch'])
@@ -101,7 +98,7 @@ class TestChefProvisionLinux:
 
     @pytest.mark.run_only_if(
         platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
-    def test_bootstrapping_form_chef_role(self, context: dict, cloud: Cloud, farm: Farm):
+    def test_bootstrapping_from_chef_role(self, context: dict, cloud: Cloud, farm: Farm):
         """Bootstrapping from chef role"""
         lib_farm.clear(farm)
         farm.terminate()
@@ -118,7 +115,7 @@ class TestChefProvisionLinux:
         platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_chef_bootstrapping_via_cookbooks_with_hostname_configured(self, context: dict, cloud: Cloud, farm: Farm):
         """Chef bootstrapping with hostname configured via cookbooks"""
-        hostname = 'hostname-for-test-LIX050'
+        hostname = f'hostname-LIX{uuid4().hex[16:24]}'
         lib_farm.clear(farm)
         farm.terminate()
         context['chef_hostname_for_cookbook'] = hostname
@@ -135,17 +132,15 @@ class TestAnsibleTowerProvisionLinux:
     """ Linux server provision with Ansible Tower
     """
 
-    order = ('test_setup_ansible_tower_configuration',
+    order = (
              'test_bootstrapping_role_with_at',
              'test_launch_at_job',
              'test_verify_at_job_execution',
              'test_verify_node_deletion_from_at'
              )
 
-    @pytest.mark.boot
-    @pytest.mark.run_only_if(
-        platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
-    def test_setup_ansible_tower_configuration(self, context: dict):
+    @pytest.fixture(scope="class", autouse=True)
+    def setup_ansible_tower_configuration(self, context: dict):
         """Setup Ansible Tower bootstrap configurations"""
         at_group_type = 'regular'
         at_group_name = 'G1'
@@ -160,7 +155,7 @@ class TestAnsibleTowerProvisionLinux:
             group_type=at_group_type,
             group_name=at_group_name)
         provision.assert_at_group_exists_in_inventory(context['at_group_id'])
-        provision.create_credential(context, 'linux')
+        provision.create_at_credential(context, 'linux')
         provision.assert_credential_exists_on_at_server(
             credentials_name=at_credentials_name,
             key=context[f'at_cred_primary_key_{at_credentials_name}'])
