@@ -105,7 +105,10 @@ def run_webtests(test, browser, te_id, te_remove, is_local, debug):
 def build_container(token, push):
     branch = local('git status', log=False).stdout.decode().splitlines()[0].split()[-1].lower().replace('/', '-')
     print(f'Build image for branch {branch}')
-    local(f'docker build -t gcr.io/scalr-labs/revizor-tests/{branch}:latest . --build-arg TOKEN={token}')
+    res = local(f'docker build -t gcr.io/scalr-labs/revizor-tests/{branch}:latest . --build-arg TOKEN={token}')
+    if res.returncode != 1:
+        print(red('Build failed!'))
+        sys.exit(1)
     if push:
         print(f'Push image gcr.io/scalr-labs/revizor-tests/{branch}:latest')
         local(f'docker push gcr.io/scalr-labs/revizor-tests/{branch}:latest')
@@ -131,8 +134,10 @@ def run_job():
     status = 'COMPLETED'
     if process.returncode != 0:
         status = 'FAILED'
-    requests.post(f'{revizor_url}/api/tests/result/{body["id"]}', headers={'Authorization': f'Token {token}'},
-                  json={'status': status})
+    print('Report test status')
+    resp = requests.post(f'{revizor_url}/api/tests/result/{body["id"]}', headers={'Authorization': f'Token {token}'},
+                         json={'status': status})
+    print(resp.text)
 
 
 if __name__ == '__main__':
