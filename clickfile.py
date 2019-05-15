@@ -42,13 +42,15 @@ def install_selenium_drivers():
     if sys.platform == 'darwin':
         urls = [
             f'https://chromedriver.storage.googleapis.com/{CHROMEDRIVER_VERSION}/chromedriver_mac64.zip',
-            f'https://github.com/mozilla/geckodriver/releases/download/v{GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-macos.tar.gz',
+            f'https://github.com/mozilla/geckodriver/releases/download/'
+            f'v{GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-macos.tar.gz',
         ]
 
     elif sys.platform == 'linux':
         urls = [
             f'https://chromedriver.storage.googleapis.com/{CHROMEDRIVER_VERSION}/chromedriver_linux64.zip',
-            f'https://github.com/mozilla/geckodriver/releases/download/v{GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-linux64.tar.gz']
+            f'https://github.com/mozilla/geckodriver/releases/download/'
+            f'v{GECKODRIVER_VERSION}/geckodriver-v{GECKODRIVER_VERSION}-linux64.tar.gz']
     else:
         raise NotImplementedError(
             'Your OS is not MacOS or Linux type. You need to install chromedriver and geckodriver manually.')
@@ -119,13 +121,18 @@ def run_job():
     revizor_url = os.environ.get('REVIZOR_URL', 'https://revizor.scalr-labs.com')
     testsuite_id = os.environ.get('REVIZOR_TESTSUITE_ID')
     test = requests.get(f'{revizor_url}/api/tests/retrieve/{testsuite_id}', headers={'Authorization': f'Token {token}'})
-    print('Test response body: %s' % test.text)
     if test.status_code == 404:
         print(red(f'Tests not found for {testsuite_id} test suite!'))
         sys.exit(0)
-    elif test.status_code == 200:
-        body = test.json()
-        subprocess.run(body['params'], shell=True)
+
+    body = test.json()
+    process = subprocess.run(body['params'], shell=True)
+
+    status = 'COMPLETED'
+    if process.returncode != 0:
+        status = 'FAILED'
+    requests.post(f'{revizor_url}/api/tests/result/{body["id"]}', headers={'Authorization': f'Token {token}'},
+                  json={'status': status})
 
 
 if __name__ == '__main__':
