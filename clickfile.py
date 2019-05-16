@@ -106,7 +106,7 @@ def build_container(token, push):
     branch = local('git status', log=False).stdout.decode().splitlines()[0].split()[-1].lower().replace('/', '-')
     print(f'Build image for branch {branch}')
     res = local(f'docker build -t gcr.io/scalr-labs/revizor-tests/{branch}:latest . --build-arg TOKEN={token}')
-    if res.returncode != 1:
+    if res.returncode != 0:
         print(red('Build failed!'))
         sys.exit(1)
     if push:

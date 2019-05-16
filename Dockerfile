@@ -9,6 +9,7 @@ RUN apt update && \
     git config --global url."https://$TOKEN:@github.com/".insteadOf "https://github.com/" && \
     pip install -r /tests/requirements.txt && \
     cp -r /usr/local/lib/python3.6/site-packages/revizor2/config /root/.revizor && \
-    mkdir /root/.revizor/logs
+    mkdir /root/.revizor/logs && \
+    mkdir /root/.revizor/keys
 
 WORKDIR /tests
