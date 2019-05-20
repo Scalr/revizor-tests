@@ -129,6 +129,7 @@ def run_job():
         sys.exit(0)
 
     body = test.json()
+    os.environ['REVIZOR_TESTINSTANCE_ID'] = body['id']
     process = subprocess.run(body['params'], shell=True)
 
     status = 'COMPLETED'
