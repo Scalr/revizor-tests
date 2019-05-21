@@ -129,8 +129,12 @@ def run_job():
         sys.exit(0)
 
     body = test.json()
-    os.environ['REVIZOR_TESTINSTANCE_ID'] = body['id']
-    process = subprocess.run(body['params'], shell=True)
+    os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])
+    command = body['params']  #FIXME: Automate this in surefire side?
+    command += ' --report-surefire'
+
+    print(f'Start test with command "{command}"')
+    process = subprocess.run(command, shell=True)
 
     status = 'COMPLETED'
     if process.returncode != 0:
