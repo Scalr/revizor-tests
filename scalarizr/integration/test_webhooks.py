@@ -1,4 +1,5 @@
 import pytest
+import pymysql
 
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
@@ -77,6 +78,7 @@ class TestWebhooks:
             "Verify webhooks with ssl_verify=False",
             "Verify webhooks with ssl_verify=True"])
     def test_webhooks(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv, ssl_verify: bool, webhooks: list, expected_results: list):
+        """Test webhooks"""
         server = servers.get('F1')
         params = {
             "scalr.system.webhooks.scalr_labs_workflow_engine": True,
@@ -106,6 +108,7 @@ class TestWebhooks:
         assert not testenv.check_service_log("workflow-engine", "Traceback"), "Found Traceback in workflow-engine service log!"
 
     def test_scalr_mail_service(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv):
+        """Test SCALR_MAIL_SERVICE option"""
         server = servers.get('F1')
         url = "http://%s.test-env.scalr.com/webhook_mail.php" % testenv.te_id
         params = {"scalr.system.webhooks.scalr_mail_service_url": url}
@@ -117,8 +120,10 @@ class TestWebhooks:
             endpoint_name = "http://mail.test"
             endpoint = IMPL.webhooks.create_endpoint(endpoint_name, endpoint_name)
             endpoint['id'] = endpoint['endpointId']
-            cmd = """mysql --database="scalr" --execute 'update webhook_endpoints set url="SCALR_MAIL_SERVICE" where url="http://mail.test"'"""
-            testenv.get_ssh().run(cmd)  # Change url to SCALR_MAIL_SERVICE
+            with testenv.mysql_connection() as conn:
+                cursor = conn.cursor(pymysql.cursors.DictCursor)
+                cursor.execute("UPDATE webhook_endpoints set url='SCALR_MAIL_SERVICE' where url='http://mail.test'")
+                conn.commit()
         webhook_name = "test_mail_service"
         trigger_event = 'ScalrEvent'
         webhook = IMPL.webhooks.create_webhook(
@@ -137,16 +142,19 @@ class TestWebhooks:
         assert not testenv.check_service_log("workflow-engine", "Traceback"), "Found Traceback in workflow-engine service log!"
 
     def test_webhooks_in_proxy(self, context: dict, cloud: Cloud, farm: Farm, servers: dict, testenv):
+        """Test webhooks over proxy"""
         server = servers.get('F1')
-        lib_farm.add_role_to_farm(context, farm, dist='ubuntu1404')
+        lib_farm.add_role_to_farm(context, farm, dist='ubuntu1604')
         farm.launch()
         proxy_server = lib_server.wait_server_status(
             context, cloud, farm, status=ServerStatus.RUNNING)
         servers['P1'] = proxy_server
         lib_server.execute_script(context, farm, proxy_server,
-                                  script_name='https://git.io/vA52O',
-                                  is_local=True,
+                                  script_name='Install squid proxy',
                                   synchronous=True)
+        lib_server.assert_last_script_result(context, cloud, proxy_server,
+                                             name='Install squid proxy',
+                                             new_only=True)
         lib_scalr.configure_scalr_proxy(testenv, proxy_server, 'system.webhooks')
         testenv.restart_service("workflow-engine")
         testenv.restart_service("zmq_service")
