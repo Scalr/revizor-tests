@@ -40,7 +40,7 @@ class SurefireRESTReporter:
                              }, headers={'Authorization': f'Token {self._token}'})
         self._testcase_id = resp.json()['id']
 
-    def log_test_finish(self, nodeid: str, status: str, exception: str):
+    def log_test_status(self, nodeid: str, status: str, exception: str):
         status = {'passed': 'COMPLETED', 'failed': 'FAILED'}[status]
         requests.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_id}',
                        json={
@@ -54,6 +54,6 @@ class SurefireRESTReporter:
         report = become.get_result()
         if call.when == 'setup':
             self.log_test_start(item.nodeid)
-        elif call.when == 'call':
-            self.log_test_finish(item.nodeid, report.outcome, str(report.longrepr))
+        if (call.when == 'setup' and report.outcome == 'failed') or call.when == 'call':
+            self.log_test_status(item.nodeid, report.outcome, str(report.longrepr))
         return report
