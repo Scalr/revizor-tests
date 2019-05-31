@@ -31,6 +31,11 @@ def local(command, log=True):
     return out
 
 
+def get_gcloud_project():
+    print('Get current google project')
+    return local('gcloud config get-value project').stdout.decode().strip().replace(':', '/')
+
+
 @click.group()
 def tests():
     pass
@@ -104,14 +109,15 @@ def run_webtests(test, browser, te_id, te_remove, is_local, debug):
 @click.option('--push', is_flag=True, default=False, help='Push to github or not')
 def build_container(token, push):
     branch = local('git status', log=False).stdout.decode().splitlines()[0].split()[-1].lower().replace('/', '-')
-    print(f'Build image for branch {branch}')
-    res = local(f'docker build -t gcr.io/scalr-labs/revizor-tests/{branch}:latest . --build-arg TOKEN={token}')
+    project = get_gcloud_project()
+    print(f'Build image for branch {branch} and project {project}')
+    res = local(f'docker build -t gcr.io/{project}/revizor-tests/{branch}:latest . --build-arg TOKEN={token}')
     if res.returncode != 0:
         print(red('Build failed!'))
         sys.exit(1)
     if push:
-        print(f'Push image gcr.io/scalr-labs/revizor-tests/{branch}:latest')
-        local(f'docker push gcr.io/scalr-labs/revizor-tests/{branch}:latest')
+        print(f'Push image gcr.io/{project}/revizor-tests/{branch}:latest')
+        local(f'docker push gcr.io/{project}/revizor-tests/{branch}:latest')
 
 
 @tests.command(name='runjob', help='Run job from revizor')
