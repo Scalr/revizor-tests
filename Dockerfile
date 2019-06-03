@@ -5,6 +5,7 @@ ADD . /tests
 ARG TOKEN
 
 RUN apt update && \
+    apt upgrade -y && \
     apt install git && \
     git config --global url."https://$TOKEN:@github.com/".insteadOf "https://github.com/" && \
     pip install -r /tests/requirements.txt && \
