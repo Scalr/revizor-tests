@@ -146,7 +146,7 @@ def farm(request: FixtureRequest) -> Farm:
                 try:
                     LOG.info('Wait all servers in farm terminated before delete')
                     wait_until(lib_server.farm_servers_state,
-                               args=(test_farm, 'terminated'),
+                               args=(test_farm, 'Terminated'),
                                timeout=1800,
                                error_text='Servers in farm not terminated too long')
                     test_farm.destroy()
