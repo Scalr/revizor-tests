@@ -9,13 +9,15 @@ import pytest
 from _pytest.fixtures import FixtureRequest
 from paramiko.ssh_exception import NoValidConnectionsError
 
-import scalarizr.lib.farm as lib_farm
-import scalarizr.lib.server as lib_server
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
 from revizor2.testenv import TestEnv
 from revizor2.utils import wait_until
+
+import scalarizr.lib.farm as lib_farm
+import scalarizr.lib.server as lib_server
+
 
 LOG = logging.getLogger(__name__)
 
@@ -42,6 +44,7 @@ def testenv(request) -> TestEnv:
         if CONF.credentials.scalr.accounts.default.username:
             notes += (' <%s>' % CONF.credentials.scalr.accounts.default.username)
         te = TestEnv.create(branch=CONF.scalr.branch, notes=notes)
+        LOG.info(f'TestEnv for tests created: {te.te_id}')
         for _ in range(5):
             try:
                 services = te.get_service_status()
@@ -61,6 +64,32 @@ def testenv(request) -> TestEnv:
             # Removing TestEnv only if it was created by test and no tests failed
             # or when --te-remove flag was given
             te.destroy()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def upload_scripts(testenv):
+    if CONF.scalr.te_id:
+        LOG.info("Uploading scripts to test env")
+        existing_scripts = [script['name'] for script in IMPL.script.list()]
+        path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
+        upload_counter = 0
+        for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
+            LOG.debug(f'Upload script {script_path}')
+            with (path_to_scripts / script_path).open(mode='r') as f:
+                script_params = json.load(f)
+            if script_params['name'] in existing_scripts:
+                LOG.info(f"Script '{script_params['name']}' already exists")
+                continue
+            script_type = script_params.get('type', 'scalr')
+            if script_type == 'git':
+                repo_params = script_params['credentials']
+                if repo_params['auth_type'] == 'ssh' and 'ssh_key' not in repo_params.keys():
+                    repo_params['ssh_key'] = CONF.credentials.github.ssh_key_path
+                script_params['repo_id'] = IMPL.services.git.create_repository(**repo_params)['id']
+            getattr(IMPL.script, f"create_{script_type}_script")(**script_params)
+            LOG.info(f"Script '{script_params['name']}' successfully uploaded")
+            upload_counter += 1
+        LOG.info(f"Total number of uploaded scripts: {upload_counter}")
 
 
 @pytest.fixture(scope='session')
@@ -124,29 +153,3 @@ def farm(request: FixtureRequest) -> Farm:
                 except Exception as e:
                     LOG.warning(f'Farm cannot be deleted: {str(e)}')
         LOG.info('Farm finalize complete')
-
-
-@pytest.fixture(scope="session", autouse=True)
-def upload_scripts(testenv):
-    if CONF.scalr.te_id:
-        LOG.info("Uploading scripts.")
-        existing_scripts = [script['name'] for script in IMPL.script.list()]
-        path_to_scripts = CONF.main.home / 'fixtures' / 'testusing' / 'scripts'
-        upload_counter = 0
-        for _, script_path in enumerate(os.listdir(str(path_to_scripts))):
-            LOG.debug(f'Upload script {script_path}')
-            with (path_to_scripts / script_path).open(mode='r') as f:
-                script_params = json.load(f)
-            if script_params['name'] in existing_scripts:
-                LOG.info("Script '%s' already exists." % (script_params['name']))
-                continue
-            script_type = script_params.get('type', 'scalr')
-            if script_type == 'git':
-                repo_params = script_params['credentials']
-                if repo_params['auth_type'] == 'ssh' and 'ssh_key' not in repo_params.keys():
-                    repo_params['ssh_key'] = CONF.credentials.github.ssh_key_path
-                script_params['repo_id'] = IMPL.services.git.create_repository(**repo_params)['id']
-            getattr(IMPL.script, f"create_{script_type}_script")(**script_params)
-            LOG.info("Script '%s' successfully uploaded." % (script_params['name']))
-            upload_counter += 1
-        LOG.info("Total number of uploaded scripts: %s" % upload_counter)

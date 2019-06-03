@@ -1,5 +1,4 @@
 import os
-import typing as tp
 
 import requests
 import pytest

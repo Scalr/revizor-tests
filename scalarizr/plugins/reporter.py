@@ -21,7 +21,8 @@ def pytest_configure(config: Config):
     rev_reporter = RevizorTerminalReporter(old_reporter.config)
     config.pluginmanager.unregister(old_reporter)
     config.pluginmanager.register(rev_reporter, 'terminalreporter')
-    rev_reporter.clear()
+    if 'REVIZOR_TESTSUITE_ID' not in os.environ:
+        rev_reporter.clear()
 
 
 def get_test_repr(item: Function, status: str = None):
