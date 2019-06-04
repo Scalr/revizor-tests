@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import subprocess
 
 import click
@@ -134,7 +135,11 @@ def run_job():
         print(red(f'Tests not found for {testsuite_id} test suite!'))
         sys.exit(0)
 
-    body = test.json()
+    try:
+        body = test.json()
+    except json.decoder.JSONDecodeError:
+        print(red(f'Error in get test suite id: {test.text}'))
+        return
     os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])
     command = body['params']  #FIXME: Automate this in surefire side?
     command += ' --report-surefire'

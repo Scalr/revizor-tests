@@ -1,4 +1,5 @@
 import os
+import json
 
 import requests
 import pytest
@@ -37,7 +38,10 @@ class SurefireRESTReporter:
                                  'test': self._testsuite_id,
                                  'name': nodeid
                              }, headers={'Authorization': f'Token {self._token}'})
-        self._testcase_id = resp.json()['id']
+        try:
+            self._testcase_id = resp.json()['id']
+        except json.decoder.JSONDecodeError:
+            print(f'Error in test case creation: {resp.text}')
 
     def log_test_status(self, nodeid: str, status: str, exception: str):
         status = {'passed': 'COMPLETED', 'failed': 'FAILED'}[status]
