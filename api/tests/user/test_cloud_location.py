@@ -1,5 +1,5 @@
 import pytest
-import requests 
+import requests
 
 
 class TestCloudLocation(object):
@@ -15,8 +15,8 @@ class TestCloudLocation(object):
             "/api/v1beta0/user/envId/clouds/cloudPlatform/cloud-locations/",
             params=dict(
                 envId=self.env_id,
-                cloudPlatform=self.cloud_platform),
-                filters=dict(cloudLocation=self.cloud_location)) 
+                cloudPlatform=self.cloud_platform))
+                # filters=dict(cloudPlatform=self.cloud_location))
         assert resp.json()['data'][0]['cloudLocation'] == self.cloud_location
 
     def test_cloud_location_list_invalid_cloud_platform(self, api):
@@ -92,4 +92,8 @@ class TestCloudLocation(object):
                 cloudLocation=invalid_cloud_location))
         assert err.value.response.status_code == 409
         assert exc_message in err.value.response.text 
+<<<<<<< HEAD
     
+=======
+    """
+>>>>>>> 2ef890216a4eef9528f0524b8746f8c8694984ae

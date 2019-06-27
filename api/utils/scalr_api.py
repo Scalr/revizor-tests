@@ -79,6 +79,7 @@ class ScalrApiSession(requests.Session):
         # Set string to sign
         query_filters = urlencode(sorted(filters.items())) if filters else ""
         # Set url
+        orig_url = url
         url = urlunparse((parsed_url[0],
                           parsed_url[1],
                           parsed_url[2],
@@ -87,6 +88,8 @@ class ScalrApiSession(requests.Session):
                           ''))
         body = json.dumps(body, default=serializer) if body else body
         resp = super().request(method.lower(), url, data=body, *args, **kwargs)
+        resp.path_url = orig_url
+        resp.params = params
         try:
             resp.raise_for_status()
         except requests.HTTPError as e:
