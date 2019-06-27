@@ -4,7 +4,6 @@ from openapi_core.wrappers.base import BaseOpenAPIRequest, BaseOpenAPIResponse
 
 class RequestsOpenAPIRequest(BaseOpenAPIRequest):
     def __init__(self, response):
-        print('------REQUEST OPEN API---')
         self._response = response
         parsed_url = urllib.parse.urlparse(self._response.url)
         self.host_url = f'{parsed_url.scheme}://{parsed_url.netloc}'
