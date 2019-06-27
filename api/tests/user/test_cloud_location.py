@@ -1,5 +1,5 @@
 import pytest
-import requests 
+import requests
 
 
 class TestCloudLocation(object):
@@ -15,8 +15,8 @@ class TestCloudLocation(object):
             "/api/v1beta0/user/envId/clouds/cloudPlatform/cloud-locations/",
             params=dict(
                 envId=self.env_id,
-                cloudPlatform=self.cloud_platform),
-                filters=dict(cloudLocation=self.cloud_location)) 
+                cloudPlatform=self.cloud_platform))
+                # filters=dict(cloudPlatform=self.cloud_location))
         assert resp.json()['data'][0]['cloudLocation'] == self.cloud_location
 
     """
