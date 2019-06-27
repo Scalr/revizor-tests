@@ -19,7 +19,6 @@ class TestCloudLocation(object):
                 filters=dict(cloudLocation=self.cloud_location)) 
         assert resp.json()['data'][0]['cloudLocation'] == self.cloud_location
 
-    """
     def test_cloud_location_list_invalid_cloud_platform(self, api):
         invalid_cloud_platform = "qwert"
         exc_message = f"Requested 'cloudPlatform' ({invalid_cloud_platform}) was not found."
@@ -93,4 +92,4 @@ class TestCloudLocation(object):
                 cloudLocation=invalid_cloud_location))
         assert err.value.response.status_code == 409
         assert exc_message in err.value.response.text 
-    """
+    
