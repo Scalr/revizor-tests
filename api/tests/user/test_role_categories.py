@@ -6,6 +6,7 @@ class TestRoleCategories(object):
     account_id = "1"
     role_categories_id = 1
 
+
     def test_userscope_role_categories_list(self, api):
         # Execute request
         resp = api.list(
@@ -71,3 +72,63 @@ class TestRoleCategories(object):
                 accountId=noaccess_accountId))
         assert err.value.response.status_code == 403
         assert exc_message in err.value.response.text  
+
+    def test_userscope_role_categories_get(self, api):
+        # Execute request
+        resp = api.list(
+            "/api/v1beta0/user/envId/role-categories/roleCategoryId/",
+            params=dict(
+                envId=self.env_id,
+                roleCategoryId=self.role_categories_id))
+        assert resp.json()['data']['id'] == self.role_categories_id 
+
+    def test_accountscope_role_categories_get(self, api):
+        # Execute request
+        resp = api.list(
+            "/api/v1beta0/account/accountId/role-categories/roleCategoryId/",
+            params=dict(
+                accountId=self.account_id,
+                roleCategoryId=self.role_categories_id))
+        assert resp.json()['data']['id'] == self.role_categories_id 
+
+    def test_adminscope_role_categories_get(self, api):
+        resp = api.list(
+            "/api/v1beta0/global/role-categories/roleCategoryId/",
+            params=dict(
+                roleCategoryId=self.role_categories_id))
+        assert resp.json()['data']['id'] == self.role_categories_id 
+
+    def test_userscope_role_categories_get_invalid_rolecategoriesId(self, api):
+        invalid_rolecategoriesId = 99999
+        exc_message = f"'RoleCategory.id' ({invalid_rolecategoriesId}) either was not found or isn't from current scope."
+        with pytest.raises(requests.exceptions.HTTPError) as err:
+            resp = api.list(
+            "/api/v1beta0/user/envId/role-categories/roleCategoryId/",
+            params=dict(
+                envId=self.env_id,
+                roleCategoryId=invalid_rolecategoriesId))
+        assert err.value.response.status_code == 404
+        assert exc_message in err.value.response.text   
+    
+    def test_accountscope_role_categories_get_invalid_rolecategoriesId(self, api):
+        invalid_rolecategoriesId = 99999
+        exc_message = f"'RoleCategory.id' ({invalid_rolecategoriesId}) either was not found or isn't from current scope."
+        with pytest.raises(requests.exceptions.HTTPError) as err:
+            resp = api.list(
+            "/api/v1beta0/account/accountId/role-categories/roleCategoryId/",
+            params=dict(
+                accountId=self.account_id,
+                roleCategoryId=invalid_rolecategoriesId))
+        assert err.value.response.status_code == 404
+        assert exc_message in err.value.response.text  
+
+    def test_admintscope_role_categories_get_invalid_rolecategoriesId(self, api):
+        invalid_rolecategoriesId = 99999
+        exc_message = f"'RoleCategory.id' ({invalid_rolecategoriesId}) either was not found or isn't from current scope."
+        with pytest.raises(requests.exceptions.HTTPError) as err:
+            resp = api.list(
+            "/api/v1beta0/global/role-categories/roleCategoryId/",
+            params=dict(
+                roleCategoryId=invalid_rolecategoriesId))
+        assert err.value.response.status_code == 404
+        assert exc_message in err.value.response.text   
