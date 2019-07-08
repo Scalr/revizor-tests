@@ -6,7 +6,7 @@ class TestRoleCategoriesUserScope(object):
     role_categories_id = 1
     
     #test list
-    def test_userscope_role_categories_list(self, api):
+    def test_role_categories_list(self, api):
         resp = api.list(
             "/api/v1beta0/user/envId/role-categories/",
             params=dict(
@@ -14,7 +14,7 @@ class TestRoleCategoriesUserScope(object):
                 filters=dict(id=self.role_categories_id))
         assert resp.json()['data'][0]['id'] == self.role_categories_id
 
-    def test_userscope_role_categories_list_invalid_envId(self, api):
+    def test_role_categories_list_invalid_envId(self, api):
         invalid_envId = 4
         exc_message = "Invalid environment."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -25,7 +25,7 @@ class TestRoleCategoriesUserScope(object):
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
 
-    def test_userscope_role_categories_list_noassecc_envId(self, api):
+    def test_role_categories_list_noassecc_envId(self, api):
         noaccess_envId = 13
         exc_message = "You don't have access to the environment."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -37,7 +37,7 @@ class TestRoleCategoriesUserScope(object):
         assert exc_message in err.value.response.text
 
     #test get
-    def test_userscope_role_categories_get(self, api):
+    def test_role_categories_get(self, api):
         resp = api.list(
             "/api/v1beta0/user/envId/role-categories/roleCategoryId/",
             params=dict(
@@ -45,7 +45,7 @@ class TestRoleCategoriesUserScope(object):
                 roleCategoryId=self.role_categories_id))
         assert resp.json()['data']['id'] == self.role_categories_id 
 
-    def test_userscope_role_categories_get_invalid_rolecategoriesId(self, api):
+    def test_role_categories_get_invalid_rolecategoriesId(self, api):
         invalid_rolecategoriesId = 99999
         exc_message = f"'RoleCategory.id' ({invalid_rolecategoriesId}) either was not found or isn't from current scope."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -58,7 +58,7 @@ class TestRoleCategoriesUserScope(object):
         assert exc_message in err.value.response.text   
 
     #test edit
-    def test_userscope_role_categories_edit(self, api):
+    def test_role_categories_edit(self, api):
         create_resp = api.create("/api/v1beta0/user/envId/role-categories/",
             params=dict(envId=self.env_id),
             body=dict(
@@ -75,7 +75,7 @@ class TestRoleCategoriesUserScope(object):
         assert edit_resp.json()['data']['name'] == "edit category"
 
     #test create
-    def test_userscope_role_categories_create(self, api):
+    def test_role_categories_create(self, api):
         create_resp = api.create("/api/v1beta0/user/envId/role-categories/",
             params=dict(envId=self.env_id),
             body=dict(
@@ -83,7 +83,7 @@ class TestRoleCategoriesUserScope(object):
                 ))
         return create_resp.box().data
 
-    def test_userscope_role_categories_create_name_duplicate(self, api):
+    def test_role_categories_create_name_duplicate(self, api):
         create_resp = api.create("/api/v1beta0/user/envId/role-categories/",
             params=dict(envId=self.env_id),
             body=dict(
@@ -101,7 +101,7 @@ class TestRoleCategoriesUserScope(object):
         assert exc_message in err.value.response.text
 
     #test delete
-    def test_userscope_role_categories_delete(self, api):
+    def test_role_categories_delete(self, api):
         create_resp = api.create("/api/v1beta0/user/envId/role-categories/",
             params=dict(envId=self.env_id),
             body=dict(
@@ -128,14 +128,14 @@ class TestRoleCategoriesAccountScope(object):
     role_categories_id = 1
 
     #test list
-    def test_accountscope_role_categories_list(self, api):
+    def test_role_categories_list(self, api):
         resp = api.list(
             "/api/v1beta0/account/accountId/role-categories/",
             params=dict(
                 accountId=self.account_id))
         assert resp.json()['data'][0]['id'] == self.role_categories_id 
 
-    def test_accountscope_role_categories_list_invalid_accountId(self, api):
+    def test_role_categories_list_invalid_accountId(self, api):
         invalid_accountId = 2
         exc_message = "Invalid account."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -146,7 +146,7 @@ class TestRoleCategoriesAccountScope(object):
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
 
-    def test_accountscope_role_categories_list_noaccess_accountId(self, api):
+    def test_role_categories_list_noaccess_accountId(self, api):
         noaccess_accountId = 3
         exc_message = f"You don't have access to the account with ID '{noaccess_accountId}'."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -158,7 +158,7 @@ class TestRoleCategoriesAccountScope(object):
         assert exc_message in err.value.response.text 
 
     #test get
-    def test_accountscope_role_categories_get(self, api):
+    def test_role_categories_get(self, api):
         resp = api.list(
             "/api/v1beta0/account/accountId/role-categories/roleCategoryId/",
             params=dict(
@@ -166,7 +166,7 @@ class TestRoleCategoriesAccountScope(object):
                 roleCategoryId=self.role_categories_id))
         assert resp.json()['data']['id'] == self.role_categories_id
 
-    def test_accountscope_role_categories_get_invalid_rolecategoriesId(self, api):
+    def test_role_categories_get_invalid_rolecategoriesId(self, api):
         invalid_rolecategoriesId = 99999
         exc_message = f"'RoleCategory.id' ({invalid_rolecategoriesId}) either was not found or isn't from current scope."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -179,7 +179,7 @@ class TestRoleCategoriesAccountScope(object):
         assert exc_message in err.value.response.text 
 
     #test edit
-    def test_accountscope_role_categories_edit(self, api):
+    def test_role_categories_edit(self, api):
         create_resp = api.create("/api/v1beta0/account/accountId/role-categories/",
             params=dict(accountId=self.account_id),
             body=dict(
@@ -196,7 +196,7 @@ class TestRoleCategoriesAccountScope(object):
         assert edit_resp.json()['data']['name'] == "edit category"
 
     #test create
-    def test_accountscope_role_categories_create(self, api):
+    def test_role_categories_create(self, api):
         create_resp = api.create("/api/v1beta0/account/accountId/role-categories/",
             params=dict(accountId=self.account_id),
             body=dict(
@@ -204,7 +204,7 @@ class TestRoleCategoriesAccountScope(object):
                 ))
         return create_resp.box().data
 
-    def test_accountscope_role_categories_create_name_duplicate(self, api):
+    def test_role_categories_create_name_duplicate(self, api):
         create_resp = api.create("/api/v1beta0/account/accountId/role-categories/",
             params=dict(accountId=self.account_id),
             body=dict(
@@ -222,7 +222,7 @@ class TestRoleCategoriesAccountScope(object):
         assert exc_message in err.value.response.text
 
     #test delete
-    def test_accountscope_role_categories_delete(self, api):
+    def test_role_categories_delete(self, api):
         create_resp = api.create("/api/v1beta0/account/accountId/role-categories/",
             params=dict(accountId=self.account_id),
             body=dict(
@@ -242,26 +242,26 @@ class TestRoleCategoriesAccountScope(object):
         assert err.value.response.status_code == 404
         errors = err.value.response.json()['errors']
         assert errors[0]['code'] == "ObjectNotFound"
-        
+
 
 class TestRoleCategoriesAdminScope(object):
     role_categories_id = 1    
 
     #test list
-    def test_adminscope_role_categories_list(self, api):
+    def test_role_categories_list(self, api):
         resp = api.list(
             "/api/v1beta0/global/role-categories/")
         assert resp.json()['data'][0]['id'] == self.role_categories_id 
 
     #test get
-    def test_adminscope_role_categories_get(self, api):
+    def test_role_categories_get(self, api):
         resp = api.list(
             "/api/v1beta0/global/role-categories/roleCategoryId/",
             params=dict(
                 roleCategoryId=self.role_categories_id))
         assert resp.json()['data']['id'] == self.role_categories_id 
 
-    def test_admintscope_role_categories_get_invalid_rolecategoriesId(self, api):
+    def test_role_categories_get_invalid_rolecategoriesId(self, api):
         invalid_rolecategoriesId = 99999
         exc_message = f"'RoleCategory.id' ({invalid_rolecategoriesId}) either was not found or isn't from current scope."
         with pytest.raises(requests.exceptions.HTTPError) as err:
@@ -273,7 +273,7 @@ class TestRoleCategoriesAdminScope(object):
         assert exc_message in err.value.response.text 
 
     #test edit
-    def test_adminscope_role_categories_edit(self, api):
+    def test_role_categories_edit(self, api):
         create_resp = api.create("/api/v1beta0/global/role-categories/",
             body=dict(
                 name= "my category"
@@ -288,14 +288,14 @@ class TestRoleCategoriesAdminScope(object):
         assert edit_resp.json()['data']['name'] == "edit category"
     
     #test create
-    def test_adminscope_role_categories_create(self, api):
+    def test_role_categories_create(self, api):
         create_resp = api.create("/api/v1beta0/global/role-categories/",
             body=dict(
                 name= "admin category"
                 ))
         return create_resp.box().data
 
-    def test_adminscope_role_categories_create_name_duplicate(self, api):
+    def test_role_categories_create_name_duplicate(self, api):
         create_resp = api.create("/api/v1beta0/global/role-categories/",
             body=dict(
                 name = "test category"
@@ -311,7 +311,7 @@ class TestRoleCategoriesAdminScope(object):
         assert exc_message in err.value.response.text 
 
     #test delete
-    def test_adminscope_role_categories_delete(self, api):
+    def test_role_categories_delete(self, api):
         create_resp = api.create("/api/v1beta0/global/role-categories/",
             body=dict(
                 name = "delete category"
