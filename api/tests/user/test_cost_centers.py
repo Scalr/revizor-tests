@@ -5,7 +5,6 @@ import requests
 class TestCostCentersUserScope(object):
     env_id = "5"
     cost_center_id = "3f54770e-bf1a-11e3-92c5-000feae9c516"
-    invalid_envId = "1"
 
         #env_cc_list
     def test_cost_centers_env_list(self, api):
@@ -16,12 +15,13 @@ class TestCostCentersUserScope(object):
         assert resp.json()['data'][0]['id'] == self.cost_center_id
 
     def test_cost_centers_invalid_environment_list(self, api):
+        invalid_env_Id = 1
         exc_message = "Invalid environment."
         with pytest.raises(requests.exceptions.HTTPError) as err:
             resp = api.list(
                 "/api/v1beta0/user/envId/cost-centers/",
                 params=dict(
-                envId=self.invalid_envId))
+                envId=invalid_env_Id))
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
 
