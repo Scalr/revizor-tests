@@ -6,7 +6,7 @@ docker==3.7.2
 pytest==4.4.1
 semver==2.8.1
 requests==2.21.0
-git+https://github.com/Scalr/revizor.git#egg=revizor2
+#git+https://github.com/Scalr/revizor.git#egg=revizor2
 git+https://github.com/Scalr/libcloud.git@trunk#egg=libcloud
 
 # api tests
