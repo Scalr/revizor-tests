@@ -141,7 +141,7 @@ def run_job():
         print(red(f'Error in get test suite id: {test.text}'))
         return
     os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])
-    command = body['params']  #FIXME: Automate this in surefire side?
+    command = body['run_command']  #FIXME: Automate this in surefire side?
     command += ' --report-surefire'
 
     print(f'Start test with command "{command}"')
