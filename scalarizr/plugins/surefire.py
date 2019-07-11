@@ -1,5 +1,6 @@
 import os
 import json
+import pathlib
 
 import requests
 import pytest
@@ -7,6 +8,9 @@ from _pytest.config import Config
 from _pytest.python import Function
 from _pytest.runner import CallInfo
 from _pytest.reports import TestReport
+
+
+BASE_PATH = str(pathlib.Path(__file__).parent.parent.parent)
 
 
 def pytest_addoption(parser):
@@ -59,7 +63,7 @@ class SurefireRESTReporter:
         modules = []
         for i in items:
             module = i.listchain()[2]
-            module_path = module.fspath.strpath.split('revizor-tests')[1][1:]
+            module_path = module.fspath.strpath.split(BASE_PATH)[0]
             if module_path not in modules:
                 modules.append(module_path)
         for m in modules:
