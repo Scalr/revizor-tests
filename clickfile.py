@@ -150,7 +150,7 @@ def run_job():
     status = 'COMPLETED'
     if process.returncode != 0:
         status = 'FAILED'
-    print('Report test status')
+    print(f'Report test status {status} for test {body["id"]}')
     resp = requests.post(f'{revizor_url}/api/tests/result/{body["id"]}', headers={'Authorization': f'Token {token}'},
                          json={'status': status})
     print(resp.text)

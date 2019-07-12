@@ -72,6 +72,8 @@ class SurefireRESTReporter:
                                      'name': m,
                                      'test_run': self._testsuite_id
                                  }, headers={'Authorization': f'Token {self._token}'})
+            if resp.status_code != 200:
+                raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
         for i in items:
             module_name = i.listchain()[2].fspath.strpath.split('revizor-tests')[1][1:]
