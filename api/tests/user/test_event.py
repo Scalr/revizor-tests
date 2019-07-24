@@ -45,14 +45,3 @@ class TestEventsUserScope(object):
                 envId=invalid_envId))
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
-
-    def test_role_categories_list_noassecc_envId(self, api):
-        noaccess_envId = 13
-        exc_message = "You don't have access to the environment."
-        with pytest.raises(requests.exceptions.HTTPError) as err:
-           resp = api.list(
-            "/api/v1beta0/user/envId/events/",
-            params=dict(
-                envId=noaccess_envId))
-        assert err.value.response.status_code == 403
-        assert exc_message in err.value.response.text
