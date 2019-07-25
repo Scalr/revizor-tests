@@ -33,10 +33,14 @@ def download_specs(working_dir, te_id):
         spec_dir.mkdir()
 
     for spec in specs:
+        spec_path = spec_dir / f'{spec}'
+        if spec_path.is_file():
+            continue
+        ColorPrint.print_info(f'Download spec {spec} to file {spec_path}')
         resp = requests.get(f'http://{te_id}.test-env.scalr.com/api/{spec}')
         if resp.status_code != 200:
             continue
-        with open(spec_dir/f'{spec}', 'w+') as fp:
+        with open(spec_path, 'w+') as fp:
             fp.write(resp.text)
 
 
