@@ -1,6 +1,7 @@
 import os
 import json
 import pathlib
+import logging
 
 import requests
 import pytest
@@ -11,6 +12,9 @@ from _pytest.reports import TestReport
 
 
 BASE_PATH = str(pathlib.Path(__file__).parent.parent.parent)
+
+
+LOG = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -63,20 +67,21 @@ class SurefireRESTReporter:
         modules = []
         for i in items:
             module = i.listchain()[2]
-            module_path = module.fspath.strpath.split(BASE_PATH)[0]
+            module_path = module.fspath.strpath.split(BASE_PATH)[1][1:]
             if module_path not in modules:
                 modules.append(module_path)
         for m in modules:
+            LOG.info(f'Create module in revizor with name {m} for test run {self._testsuite_id}')
             resp = requests.post(f'{self._revizor_url}/api/tests/modules',
                                  json={
                                      'name': m,
                                      'test_run': self._testsuite_id
                                  }, headers={'Authorization': f'Token {self._token}'})
-            if resp.status_code != 200:
+            if resp.status_code != 201:
                 raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
         for i in items:
-            module_name = i.listchain()[2].fspath.strpath.split('revizor-tests')[1][1:]
+            module_name = i.listchain()[2].fspath.strpath.split(BASE_PATH)[1][1:]
             module_id = self._module_ids[module_name]
             name = f'{i.parent.parent.name}::{i.name}'  # FIXME: Cases without class and better check for class
             doc = i.obj.__doc__
