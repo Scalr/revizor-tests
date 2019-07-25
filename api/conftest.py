@@ -43,7 +43,7 @@ def download_specs(working_dir, te_id):
 def pytest_addoption(parser):
     group = parser.getgroup("revizor api testing", after="general")
     group.addoption(
-        "--flex-validation", "--fv", dest="flex_validation", action="store_true", default=True,
+        "--no-validate", dest="api_validation", action="store_false",
         help="Set default behavior of validation util, if 'False' api response not validate by flex"
     )
     group.addoption(
