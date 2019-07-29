@@ -3,8 +3,10 @@ import time
 import logging
 
 import chef
+
 from tower_cli import get_resource as at_get_resource
 from tower_cli.conf import settings as at_settings
+from typing import Mapping
 
 from revizor2 import api
 from revizor2.conf import CONF
@@ -26,6 +28,12 @@ def get_chef_bootstrap_stat(node: ExtendedNode):
     bootstrap_stat = node.run('stat -c %Y /etc/chef/client.pem').std_out.split()[0]
     LOG.debug(f'Chef client.pem, last modification time: {bootstrap_stat}')
     return bootstrap_stat
+
+
+def get_chef_bootstrap_logs(server: api.Server):
+    server.scriptlogs.reload()
+    log_lable = '[Scalr built-in] Chef bootstrap'
+    return list(filter(lambda l: l.name == log_lable, server.scriptlogs))
 
 
 def check_process_status(node: ExtendedNode, process: str, work: bool = False):
@@ -50,11 +58,18 @@ def assert_chef_node_name_equal_hostname(cloud: Cloud, server: api.Server):
 
 
 def assert_chef_log_contains_text(server: api.Server, pattern: str):
-    server.scriptlogs.reload()
-    log_lable = '[Scalr built-in] Chef bootstrap'
-    chef_log = list(filter(lambda l: l.name == log_lable, server.scriptlogs))
+    chef_log = get_chef_bootstrap_logs(server)
     if not(chef_log and pattern in chef_log[0].message or False):
         raise AssertionError(f'Text "{pattern}" not found in chef bootstrap:\n{chef_log}')
+
+
+def assert_chef_log_not_contains_level(server: api.Server, log_levels: Mapping[str, list]):
+    if not isinstance(log_levels, list):
+        log_levels = [log_levels]
+    chef_log = get_chef_bootstrap_logs(server)
+    logs = chef_log and chef_log[0].message or None
+    if not logs or any(level in logs for level in log_levels):
+        raise AssertionError(f"Log is empty or one of log levels: {log_levels} found in chef bootstrap:\n{logs}")
 
 
 def assert_node_exists_on_chef_server(server: api.Server, exist: bool = True):
@@ -302,4 +317,14 @@ def assert_deployment_work(cloud: Cloud, server: api.Server, expected_output: st
     with node.remote_connection() as conn:
         actual_output = conn.run(cmd).std_out.split()
         assert expected_output in actual_output, f'Deployment does not work! Output: {actual_output}'
+
+
+def assert_param_exists_in_config(node: ExtendedNode, config_name: str, param_name: str, param_value: str):
+    with node.remote_connection() as conn:
+        cmd = f"cat {config_name}"
+        config_data = conn.run(cmd).std_out
+        config_pams = dict(
+            line.split() for line in filter(None, config_data.splitlines())
+        )
+        assert config_pams.get(param_name) == param_value
 

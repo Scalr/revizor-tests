@@ -40,6 +40,8 @@ class TestChefProvisionLinux:
         farm.launch()
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
+        node = cloud.get_node(server)
+        chef_client_cfg = "/etc/chef/client.rb"
         lib_server.assert_scalarizr_log_errors(cloud, server)
         lifecycle.assert_szr_version_last(server)
         lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
@@ -47,6 +49,18 @@ class TestChefProvisionLinux:
         provision.assert_node_exists_on_chef_server(server)
         provision.assert_chef_node_name_equal_hostname(cloud, server)
         provision.assert_chef_log_contains_text(server, "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK")
+        provision.assert_param_exists_in_config(
+            node,
+            config_name=chef_client_cfg,
+            param_name="verbose_logging",
+            param_value="false")
+        lib_server.assert_file_exist(node, f'/var/chef/lock')
+        provision.assert_param_exists_in_config(
+            node,
+            config_name=chef_client_cfg,
+            param_name="log_level",
+            param_value=":fatal")
+        provision.assert_chef_log_not_contains_level(server, ['INFO', 'DEBUG'])
 
     @pytest.mark.run_only_if(
         platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
@@ -69,7 +83,13 @@ class TestChefProvisionLinux:
         provision.assert_node_exists_on_chef_server(server, exist=False)
 
     @pytest.mark.boot
-    @pytest.mark.parametrize('role_options', ['chef-solo-private', 'chef-solo-public', 'chef-solo-public-branch'])
+    @pytest.mark.parametrize('role_options',
+                             [
+                                 'chef-solo-custom_url',
+                                 'chef-solo-private',
+                                 'chef-solo-public',
+                                 'chef-solo-public-branch',
+                             ])
     @pytest.mark.run_only_if(
         platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
     def test_chef_solo_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, role_options: str):
@@ -82,6 +102,7 @@ class TestChefProvisionLinux:
         node = cloud.get_node(server)
         lib_server.assert_file_exist(node, f'/root/{role_options}')
         provision.assert_script_data_deleted(cloud, server)
+        lib_server.assert_file_exist(node, f'/var/chef/lock')
 
     @pytest.mark.run_only_if(
         platform=[Platform.EC2, Platform.GCE, Platform.VMWARE, Platform.OPENSTACK, Platform.RACKSPACENGUS])
@@ -125,7 +146,7 @@ class TestChefProvisionLinux:
         lib_server.assert_scalarizr_log_errors(cloud, server)
         server.reload()
         assert server.hostname == hostname, \
-            f'Hostname on server "{saerver.hostname}" != chef hostname configured via the cookbook "{hostname}"'
+            f'Hostname on server "{server.hostname}" != chef hostname configured via the cookbook "{hostname}"'
 
 
 class TestAnsibleTowerProvisionLinux:
