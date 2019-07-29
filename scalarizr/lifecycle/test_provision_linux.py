@@ -41,7 +41,6 @@ class TestChefProvisionLinux:
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
         node = cloud.get_node(server)
-        chef_client_cfg = "/etc/chef/client.rb"
         lib_server.assert_scalarizr_log_errors(cloud, server)
         lifecycle.assert_szr_version_last(server)
         lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
@@ -51,13 +50,11 @@ class TestChefProvisionLinux:
         provision.assert_chef_log_contains_text(server, "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK")
         provision.assert_param_exists_in_config(
             node,
-            config_name=chef_client_cfg,
             param_name="verbose_logging",
             param_value="false")
         lib_server.assert_file_exist(node, f'/var/chef/lock')
         provision.assert_param_exists_in_config(
             node,
-            config_name=chef_client_cfg,
             param_name="log_level",
             param_value=":fatal")
         provision.assert_chef_log_not_contains_level(server, ['INFO', 'DEBUG'])

@@ -319,7 +319,8 @@ def assert_deployment_work(cloud: Cloud, server: api.Server, expected_output: st
         assert expected_output in actual_output, f'Deployment does not work! Output: {actual_output}'
 
 
-def assert_param_exists_in_config(node: ExtendedNode, config_name: str, param_name: str, param_value: str):
+def assert_param_exists_in_config(node: ExtendedNode, param_name: str, param_value: str, config_name: str = None):
+    config_name = config_name or "/etc/chef/client.rb"
     with node.remote_connection() as conn:
         cmd = f"cat {config_name}"
         config_data = conn.run(cmd).std_out
