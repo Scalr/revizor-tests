@@ -114,14 +114,14 @@ class TestEventsUserScope(object):
         with pytest.raises(requests.exceptions.HTTPError) as err:
             delete_resp = api.delete("/api/v1beta0/user/envId/events/eventId/",
                 params=dict(
-                    envId=self.env_id, 
+                    envId=self.env_id,
                     eventId= 999999999999))
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text 
         errors = err.value.response.json()['errors']
         assert errors[0]['code'] == "ObjectNotFound"
     
-    #test edit . не работает 
+    #test edit
     def test_events_edit(self, api):
         create_resp = api.create("/api/v1beta0/user/envId/events/",
             params=dict(envId=self.env_id),
@@ -135,7 +135,8 @@ class TestEventsUserScope(object):
                envId=self.env_id,
                eventId=id_events),
             body=dict(
-                  description= "test"
+                id=id_events, 
+                description= "test"
                ))
         assert edit_resp.json()['data']['description'] == "test"
 
@@ -259,7 +260,7 @@ class TestEventsAccountScope(object):
         errors = err.value.response.json()['errors']
         assert errors[0]['code'] == "ObjectNotFound"
     
-    #test edit . не работает 
+    #test edit 
     def test_events_edit(self, api):
         create_resp = api.create("/api/v1beta0/account/accountId/events/",
             params=dict(accountId=self.account_id),
@@ -273,6 +274,7 @@ class TestEventsAccountScope(object):
                accountId=self.account_id,
                eventId=id_events),
             body=dict(
+                  id=id_events,
                   description= "test"
                ))
         assert edit_resp.json()['data']['description'] == "test"
