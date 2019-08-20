@@ -5,10 +5,11 @@ Created on 02.04.19
 """
 
 import logging
+import json
 
-from revizor2.cloud import Cloud
 from revizor2.backend import IMPL
 from revizor2.utils import wait_until
+from revizor2.api import Server
 
 LOG = logging.getLogger(__name__)
 

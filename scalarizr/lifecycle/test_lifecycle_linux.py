@@ -113,7 +113,7 @@ class TestLifecycleLinux:
                                            record='HostUp')
 
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE])
     def test_attached_storages(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Check attached storages"""
         server = servers['M1']
@@ -121,7 +121,7 @@ class TestLifecycleLinux:
         context['M1_hostup_volumes'] = lifecycle.get_config_from_message(cloud,
                                                                          server,
                                                                          config_group='volumes',
-                                                                         message='HostUp')
+                                                                         message='HostInitResponse')
         if CONF.feature.platform.is_gce:
             lifecycle.assert_attached_disk_types(context, cloud, farm)
         lifecycle.assert_path_exist(cloud, server, '/media/diskmount')
@@ -143,7 +143,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE])
     def test_storages_fstab(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab"""
         server = servers['M1']
@@ -165,7 +165,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE])
     def test_storages_fstab_reboot(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab after reboot"""
         server = servers['M1']
@@ -376,7 +376,7 @@ class TestLifecycleLinux:
             raise AssertionError(f'Servers {server.id} has only 1 volume after 30 seconds')
         assert volume_id in volume_ids, f'Server {server.id} not have volume {volume_id}'
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.GCE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.GCE, Platform.VMWARE])
     def test_server_rebundle(self, context: dict, cloud: Cloud, farm: Farm):
         """Verify server rebundle work"""
         lib_farm.clear(farm)

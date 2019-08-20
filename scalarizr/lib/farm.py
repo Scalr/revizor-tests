@@ -138,6 +138,9 @@ def setup_farmrole_params(context: dict,
     if not (setup_bundled_role and len(f'{farm.name}-{alias}') < 63):
         Defaults.set_hostname(role_params)
 
+    if CONF.feature.platform.is_vmware:
+        Defaults.set_vmware_attributes(role_params)
+
     for opt in role_options:
         LOG.info(f'Inspect role option: {opt}')
         if opt in ('branch_latest', 'branch_stable'):

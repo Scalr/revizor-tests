@@ -243,7 +243,7 @@ def assert_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.Di
 
         LOG.debug(f'Fstab and mount table state for {mount_point}: {fstab[mount_point]} {mount_table[mount_point]}')
 
-        if 'by-uuid' in fstab[mount_point]:
+        if any(link in fstab[mount_point] for link in ['by-path', 'by-uuid']):
             LOG.debug(f'Fstab mount point has by-uuid, get real path for {fstab[mount_point]}')
             fstab_real_path_disk = conn.run(f'readlink -f {fstab[mount_point]}').std_out.strip()
             LOG.debug(f'Fstab real path for disk: {fstab_real_path_disk}')

@@ -1,6 +1,8 @@
 import re
+import json
 import logging
 from datetime import datetime
+from revizor2.conf import CONF
 
 from revizor2.api import Server
 from revizor2.utils import wait_until
@@ -12,7 +14,19 @@ LOG = logging.getLogger(__name__)
 def start_server_rebundle(server: Server) -> int:
     """Start rebundle for server"""
     name = 'tmp-%s-%s' % (server.role.name, datetime.now().strftime('%m%d%H%M'))
-    bundle_id = server.create_snapshot(name)
+    kwargs = dict(
+        name=name
+    )
+    if CONF.feature.platform.is_vmware:
+        farm_role_settings = next(filter(
+            lambda r: int(r['farm_role_id']) == int(server.farm_role_id),
+            server.farm.settings['farm']['roles']))['settings']
+        kwargs.update(dict(
+            vmware_folder=farm_role_settings['vmware.folder'],
+            vmware_compute_resource=farm_role_settings['vmware.compute_resource'],
+            vmware_host=json.loads(farm_role_settings['vmware.host_system']),
+            vmware_datastore=farm_role_settings['vmware.datastore']))
+    bundle_id = server.create_snapshot(**kwargs)
     return bundle_id
 
 
