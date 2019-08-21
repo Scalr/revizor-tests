@@ -23,7 +23,7 @@ def start_server_rebundle(server: Server) -> int:
         kwargs.update(dict(
             vmware_folder=settings['folder'],
             vmware_compute_resource=settings['compute_resource'],
-            vmware_host=settings['host_system'],
+            vmware_host=settings['host'],
             vmware_datastore=settings['datastore']))
     bundle_id = server.create_snapshot(**kwargs)
     return bundle_id
