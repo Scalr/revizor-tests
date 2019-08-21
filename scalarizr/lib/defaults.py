@@ -130,6 +130,8 @@ class Defaults(object):
             params.bootstrap_with_chef.runlist = '["recipe[memcached::default]", "recipe[revizorenv]"]'
             params.bootstrap_with_chef.attributes = '{"memcached": {"memory": "1024"}}'
             params.bootstrap_with_chef.daemonize = True
+            params.bootstrap_with_chef.client_rb_template = "verbose_logging false\nlockfile '/var/chef/lock'"
+            params.bootstrap_with_chef.log_level = "fatal"
 
     @staticmethod
     def set_chef_role(params):
@@ -178,19 +180,24 @@ class Defaults(object):
     @staticmethod
     def set_chef_solo(params, options):
         chef_opts = options.split('-')
+        url_type = 'git'
+        params.bootstrap_with_chef.enabled = True
+        params.bootstrap_with_chef.runlist = '["recipe[revizor-chef]"]'
+        params.bootstrap_with_chef.attributes = '{"chef-solo":{"result":"%s"}}' % options.strip()
+        params.bootstrap_with_chef.solo_rb_template = "lockfile '/var/chef/lock'"
         if chef_opts[2] == 'private':
             url = 'git@github.com:Scalr/int-cookbooks.git'
             params.bootstrap_with_chef.path = 'cookbooks'
             params.bootstrap_with_chef.private_key = CONF.ssh.private_key.read_text()
+        elif chef_opts[2] == 'custom_url':
+            url = 'https://cookbooks.msk.scalr.net/cookbooks.zip'
+            url_type = 'http'
         else:
             url = 'https://github.com/Scalr/sample-chef-repo.git'
         if chef_opts[-1] == 'branch':
             url = ''.join((url, '@revizor-test'))
-        params.bootstrap_with_chef.enabled = True
         params.bootstrap_with_chef.cookbook_url = url
-        params.bootstrap_with_chef.runlist = '["recipe[revizor-chef]"]'
-        params.bootstrap_with_chef.attributes = '{"chef-solo":{"result":"%s"}}' % options.strip()
-        params.bootstrap_with_chef.url_type = 'git'
+        params.bootstrap_with_chef.url_type = url_type
 
     @staticmethod
     def set_noiptables(params):
