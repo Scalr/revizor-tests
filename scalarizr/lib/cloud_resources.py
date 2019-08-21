@@ -75,3 +75,15 @@ def delete_efs(cloud_id, cloud_location, **kwargs):
         error_text=f"An Amazon efs [{cloud_id}] mount targets was not properly removed"
     )
     IMPL.aws_tools.efs_delete(cloud_id, cloud_location)
+
+
+def get_vmware_attrs_from_farm(server: Server) -> dict:
+    farm_role_settings = next(filter(
+            lambda r: int(r['farm_role_id']) == int(server.farm_role_id),
+            server.farm.settings['farm']['roles']))['settings']
+    return dict(
+        folder=farm_role_settings['vmware.folder'],
+        compute_resource=farm_role_settings['vmware.compute_resource'],
+        host=json.loads(farm_role_settings['vmware.host_system']),
+        datastore=farm_role_settings['vmware.datastore'],
+        resource_pool=farm_role_settings["vmware.resource_pool"])

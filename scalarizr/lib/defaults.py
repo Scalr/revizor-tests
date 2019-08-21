@@ -392,7 +392,7 @@ class Defaults(object):
         ]
 
     @staticmethod
-    def set_vmware_attributes(params, folder_name=None, compute_resource_name=None, network_name=None):
+    def set_vmware_attributes(params, plasement_strategy, folder_name=None, compute_resource_name=None, network_name=None):
         vmtools = IMPL.vmware_tools
         location = CONF.feature.platform.location
         folder = next(filter(
@@ -401,24 +401,24 @@ class Defaults(object):
         compute_resource = next(filter(
             lambda cr: cr['name'] == (compute_resource_name or 'C1'),
             vmtools.compute_resources_list(location)))['id']
-        host = vmtools.hostsystems_list(
-            location,
-            compute_resource)[0]['id']
-        datastore = vmtools.datastore_list(
-            location,
-            compute_resource)[0]['id']
-        resource_pools = vmtools.resource_pools_list(
-            location,
-            compute_resource)[0]['id']
         network = next(filter(
             lambda n: n['name'] == (network_name or 'Internet'),
             vmtools.networks_list(location, compute_resource)))['id']
-
         params.cloud_location = location
         params.vmware.folder = folder
-        params.vmware.compute_resource = compute_resource
-        params.vmware.resource_pool = resource_pools
-        params.vmware.host_system = json.dumps([host])
-        params.vmware.datastore = datastore
         params.network.network = json.dumps({network: {"primary": 1}})
-
+        params.vmware.placement_strategy = plasement_strategy
+        if plasement_strategy == 'manual':
+            host = vmtools.hostsystems_list(
+                location,
+                compute_resource)[0]['id']
+            datastore = vmtools.datastore_list(
+                location,
+                compute_resource)[0]['id']
+            resource_pools = vmtools.resource_pools_list(
+                location,
+                compute_resource)[0]['id']
+            params.vmware.compute_resource = compute_resource
+            params.vmware.resource_pool = resource_pools
+            params.vmware.host_system = json.dumps([host])
+            params.vmware.datastore = datastore

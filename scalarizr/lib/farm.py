@@ -139,7 +139,13 @@ def setup_farmrole_params(context: dict,
         Defaults.set_hostname(role_params)
 
     if CONF.feature.platform.is_vmware:
-        Defaults.set_vmware_attributes(role_params)
+        if 'scalr-auto' in role_options:
+            placement_strategy = role_options.pop()
+        else:
+            placement_strategy = 'manual'
+        Defaults.set_vmware_attributes(
+            role_params,
+            plasement_strategy=placement_strategy)
 
     for opt in role_options:
         LOG.info(f'Inspect role option: {opt}')

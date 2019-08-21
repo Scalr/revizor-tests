@@ -6,6 +6,7 @@ from revizor2.conf import CONF
 
 from revizor2.api import Server
 from revizor2.utils import wait_until
+from scalarizr.lib import cloud_resources as lib_resources
 
 
 LOG = logging.getLogger(__name__)
@@ -18,14 +19,12 @@ def start_server_rebundle(server: Server) -> int:
         name=name
     )
     if CONF.feature.platform.is_vmware:
-        farm_role_settings = next(filter(
-            lambda r: int(r['farm_role_id']) == int(server.farm_role_id),
-            server.farm.settings['farm']['roles']))['settings']
+        settings = lib_resources.get_vmware_attrs_from_farm(server)
         kwargs.update(dict(
-            vmware_folder=farm_role_settings['vmware.folder'],
-            vmware_compute_resource=farm_role_settings['vmware.compute_resource'],
-            vmware_host=json.loads(farm_role_settings['vmware.host_system']),
-            vmware_datastore=farm_role_settings['vmware.datastore']))
+            vmware_folder=settings['folder'],
+            vmware_compute_resource=settings['compute_resource'],
+            vmware_host=settings['host_system'],
+            vmware_datastore=settings['datastore']))
     bundle_id = server.create_snapshot(**kwargs)
     return bundle_id
 

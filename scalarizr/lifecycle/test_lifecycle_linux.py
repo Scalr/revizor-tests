@@ -76,7 +76,8 @@ class TestLifecycleLinux:
              'test_failed_hostname',
              'test_efs_bootstrapping',
              'test_attach_disk_to_running_server',
-             'test_server_rebundle'
+             'test_server_rebundle',
+             'test_bootstrapping_auto_placement_strategy'
              )
 
     @pytest.mark.boot
@@ -356,7 +357,7 @@ class TestLifecycleLinux:
         lifecycle.assert_path_exist(cloud, server, efs_mount_point)
         lifecycle.assert_file_count(cloud, server, count=100, directory=efs_mount_point)
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
         """Attach disk to running server"""
         lib_farm.clear(farm)
@@ -389,6 +390,17 @@ class TestLifecycleLinux:
         new_role_id = rebundle.wait_bundle_complete(server, bundle_id)
         farm.clear_roles()
         lib_farm.add_role_to_farm(context, farm, role=Role.get(new_role_id))
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        lifecycle.assert_szr_version_last(server)
+        lib_server.assert_scalarizr_log_errors(cloud, server)
+
+    @pytest.mark.run_only_if(platform=[Platform.VMWARE])
+    def test_bootstrapping_auto_placement_strategy(self, context: dict, cloud: Cloud, farm: Farm):
+        """Verify server bootstrapping with scalr auto placement strategy"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm, role_options=['scalr-auto'])
+        farm.launch()
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         lifecycle.assert_szr_version_last(server)
         lib_server.assert_scalarizr_log_errors(cloud, server)
