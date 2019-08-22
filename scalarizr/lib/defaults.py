@@ -392,7 +392,7 @@ class Defaults(object):
         ]
 
     @staticmethod
-    def set_vmware_attributes(params, plasement_strategy, folder_name=None, compute_resource_name=None, network_name=None):
+    def set_vmware_attributes(params, placement_strategy, folder_name=None, compute_resource_name=None, network_name=None):
         vmtools = IMPL.vmware_tools
         location = CONF.feature.platform.location
         folder = next(filter(
@@ -407,8 +407,8 @@ class Defaults(object):
         params.cloud_location = location
         params.vmware.folder = folder
         params.network.network = json.dumps({network: {"primary": 1}})
-        params.vmware.placement_strategy = plasement_strategy
-        if plasement_strategy == 'manual':
+        params.vmware.placement_strategy = placement_strategy
+        if placement_strategy == 'manual':
             host = vmtools.hostsystems_list(
                 location,
                 compute_resource)[0]['id']

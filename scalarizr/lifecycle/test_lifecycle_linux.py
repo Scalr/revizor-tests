@@ -122,7 +122,7 @@ class TestLifecycleLinux:
         context['M1_hostup_volumes'] = lifecycle.get_config_from_message(cloud,
                                                                          server,
                                                                          config_group='volumes',
-                                                                         message='HostInitResponse')
+                                                                         message='HostUp')
         if CONF.feature.platform.is_gce:
             lifecycle.assert_attached_disk_types(context, cloud, farm)
         lifecycle.assert_path_exist(cloud, server, '/media/diskmount')
@@ -399,7 +399,7 @@ class TestLifecycleLinux:
         """Verify server bootstrapping with scalr auto placement strategy"""
         lib_farm.clear(farm)
         farm.terminate()
-        lib_farm.add_role_to_farm(context, farm, role_options=['scalr-auto'])
+        lib_farm.add_role_to_farm(context, farm, role_options=['vmware-scalr-auto'])
         farm.launch()
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         lifecycle.assert_szr_version_last(server)

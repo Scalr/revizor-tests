@@ -78,10 +78,6 @@ def pytest_addoption(parser):
                     action='store_true',
                     default=False,
                     help='Destroy TestEnv even when some tests fail.')
-    group.addoption('--backend-timeout',
-                    action='store',
-                    default=False,
-                    help='Timeout for scalr backend http requests')
 
 
 def pytest_sessionstart(session: Session):
@@ -92,12 +88,9 @@ def pytest_sessionstart(session: Session):
     dist = session.config.getoption('--dist')
     branch = session.config.getoption('--branch')
     to_branch = session.config.getoption('--to-branch')
-    backend_timeout = int(session.config.getoption('--backend-timeout'))
 
     if te_id:
         CONF.scalr.te_id = te_id
-    if backend_timeout:
-        CONF.scalr.backend_timeout = backend_timeout
     if scalr_branch:
         CONF.scalr.branch = scalr_branch
     if farm_id:
