@@ -218,7 +218,8 @@ class Defaults(object):
 
     @staticmethod
     def set_noiptables(params):
-        if not CONF.feature.platform.is_cloudstack and not CONF.feature.platform.is_rackspacengus:
+        if not CONF.feature.platform.is_cloudstack and not CONF.feature.platform.is_rackspacengus and \
+                not (CONF.feature.dist.is_centos and CONF.feature.platform.is_vmware):
             params.advanced.disable_iptables_mgmt = True
 
     @staticmethod

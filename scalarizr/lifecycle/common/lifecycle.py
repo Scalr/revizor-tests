@@ -60,8 +60,8 @@ def assert_hostname(server: Server):
 
 def assert_iptables_ports_status(cloud: Cloud, server: Server, ports: tp.List[int], invert: bool = False):
     LOG.info(f'Verify ports {ports} in iptables')
-    if CONF.feature.platform.is_cloudstack:
-        LOG.info('Skip iptables check for Cloudstack')
+    if CONF.feature.platform.is_cloudstack or (CONF.feature.platform.is_vmware and CONF.feature.dist.is_centos):
+        LOG.info(f'Skip iptables check for {CONF.faeture.platform}')
         return
     iptables_rules = lib_server.get_iptables_rules(cloud, server)
     LOG.debug(f'iptables rules:\n{iptables_rules}')
