@@ -12,11 +12,13 @@ import scalarizr.lib.server as lib_server
 from revizor2 import CONF
 from revizor2.api import Server, Farm
 from revizor2.backend import IMPL
-from revizor2.cloud import Cloud, ExtendedNode
-from revizor2.consts import ServerStatus, Platform
+from revizor2.cloud import Cloud
+from revizor2.consts import ServerStatus
 from revizor2.fixtures import resources
 from revizor2.utils import wait_until
+from revizor2.helpers.farmrole import VMWARE_VOLUME_PROVISIONING_TYPE as vmware_provision
 from scalarizr.lib.common import get_platform_backend_tools
+from scalarizr.lib import cloud_resources as lib_resources
 
 LOG = logging.getLogger(__name__)
 
@@ -58,8 +60,8 @@ def assert_hostname(server: Server):
 
 def assert_iptables_ports_status(cloud: Cloud, server: Server, ports: tp.List[int], invert: bool = False):
     LOG.info(f'Verify ports {ports} in iptables')
-    if CONF.feature.platform.is_cloudstack:
-        LOG.info('Skip iptables check for Cloudstack')
+    if CONF.feature.platform.is_cloudstack or (CONF.feature.platform.is_vmware and CONF.feature.dist.is_centos):
+        LOG.info(f'Skip iptables check for {CONF.feature.platform}')
         return
     iptables_rules = lib_server.get_iptables_rules(cloud, server)
     LOG.debug(f'iptables rules:\n{iptables_rules}')
@@ -243,7 +245,7 @@ def assert_mount_point_in_fstab(cloud: Cloud, server: Server, mount_table: tp.Di
 
         LOG.debug(f'Fstab and mount table state for {mount_point}: {fstab[mount_point]} {mount_table[mount_point]}')
 
-        if 'by-uuid' in fstab[mount_point]:
+        if any(link in fstab[mount_point] for link in ['by-path', 'by-uuid']):
             LOG.debug(f'Fstab mount point has by-uuid, get real path for {fstab[mount_point]}')
             fstab_real_path_disk = conn.run(f'readlink -f {fstab[mount_point]}').std_out.strip()
             LOG.debug(f'Fstab real path for disk: {fstab_real_path_disk}')
@@ -370,19 +372,20 @@ def szradm_execute_command(command: str, cloud: Cloud, server: Server, format_ou
     with node.remote_connection() as conn:
         result = conn.run(command)
         if result.status_code:
-            raise AssertionError(f"An error has occurred while execute szradm:\n {out.std_err}")
+            raise AssertionError(f"An error has occurred while execute szradm:\n {result.std_err}")
         return format_output and json.loads(result.std_out) or result.std_out
 
 
 def create_and_attach_volume(server: Server, size: int) -> str:
-    if CONF.feature.platform == Platform.EC2:
+    platform = CONF.feature.platform
+    if platform.is_ec2:
         volume_id = IMPL.aws_tools.volume_create(
             cloud_location=server.details['cloudLocation'],
             zone=server.details['properties']['placement.availabilityZone'],
             size=size,
             server_id=server.id
         )
-    elif CONF.feature.platform == Platform.AZURE:
+    elif platform.is_azure:
         volume_id = IMPL.azure_tools.volume_create(
             cloud_location=server.details['cloudLocation'],
             resource_group=CONF.feature.platform.resource_group.split('/')[-1],
@@ -390,4 +393,27 @@ def create_and_attach_volume(server: Server, size: int) -> str:
             size=size,
             server_id=server.id
         ).split('/')[-1]
+    elif platform.is_vmware:
+        volumes_list = IMPL.vmware_tools.volumes_list
+        kwargs = dict(
+            location=platform.location,
+            farm_id=server.farm.id,
+            cloud_server_id=server.cloud_server_id)
+        existing_volumes = volumes_list(**kwargs)
+        farm_settings = lib_resources.get_vmware_attrs_from_farm(server)
+        if not IMPL.vmware_tools.volume_create(
+                cloud_location=platform.location,
+                datastore_id=farm_settings['datastore'],
+                hosts=farm_settings['host'],
+                server_id=server.id,
+                provisioning=vmware_provision['thin_provision']['index']):
+            raise RuntimeError(f"Can't add volume to the server: {server.id}")
+        volume_id = wait_until(
+            lambda **params:
+                [v for v in volumes_list(**params)
+                 if v not in existing_volumes],
+            kwargs=kwargs,
+            timeout=300
+        )[0]['id']
+    LOG.debug(f"New volume was attached successfully: {volume_id}")
     return volume_id

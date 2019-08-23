@@ -1,8 +1,10 @@
 import re
+import json
 
 from revizor2.conf import CONF
 from revizor2.consts import Dist, Platform
 from revizor2.helpers import farmrole
+from revizor2.api import IMPL
 
 
 class Defaults(object):
@@ -45,22 +47,37 @@ class Defaults(object):
                 farmrole.Volume(size=2, fs='ntfs', mount='F'),
                 farmrole.Volume(size=1, fs='ntfs', mount='E', label='test_label')
             ]
-        if CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE]:
+        elif CONF.feature.platform.is_vmware:
+            vmware_provision = farmrole.VMWARE_VOLUME_PROVISIONING_TYPE
+            params.storage.volumes = [
+                farmrole.Volume(
+                    engine=provision['type'],
+                    size=3,
+                    mount='C:\diskmount' if provision['index'] == 1 else f'C:\diskmount_{provision["type"]}',
+                    fs='ntfs') for provision in vmware_provision.values()]
+        elif CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE]:
             params.storage.volumes.append(
                 params.storage,
-                farmrole.Volume(size=3, fs='ntfs', mount='C:\diskmount')
+                farmrole.Volume(size=3, fs='ntfs', mount='C:\diskmount' )
             )
 
     @staticmethod
     def set_storages_linux(params):
         if CONF.feature.platform.is_rackspacengus:
             return
-        if CONF.feature.platform in [Platform.AZURE, Platform.EC2]:
+        elif CONF.feature.platform in [Platform.AZURE, Platform.EC2]:
             params.storage.volumes = [
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True),
                 farmrole.Volume(size=1, mount='/media/partition', re_build=True)
             ]
-
+        elif CONF.feature.platform.is_vmware:
+            vmware_provision = farmrole.VMWARE_VOLUME_PROVISIONING_TYPE
+            params.storage.volumes = [
+                farmrole.Volume(
+                    engine=provision['type'],
+                    size=1,
+                    mount='/media/diskmount' if provision['index'] == 1 else f'/media/diskmount_{provision["type"]}',
+                    re_build=True) for provision in vmware_provision.values()]
         else:
             params.storage.volumes = [
                 farmrole.Volume(size=1, mount='/media/diskmount', re_build=True)
@@ -201,7 +218,8 @@ class Defaults(object):
 
     @staticmethod
     def set_noiptables(params):
-        if not CONF.feature.platform.is_cloudstack and not CONF.feature.platform.is_rackspacengus:
+        if not CONF.feature.platform.is_cloudstack and not CONF.feature.platform.is_rackspacengus and \
+                not (CONF.feature.dist.is_centos and CONF.feature.platform.is_vmware):
             params.advanced.disable_iptables_mgmt = True
 
     @staticmethod
@@ -374,3 +392,34 @@ class Defaults(object):
                                        variables=at_python_path + 'dir2: Extra_Var_ResumeComplete')
         ]
 
+    @staticmethod
+    def set_vmware_attributes(params, placement_strategy, folder_name=None, compute_resource_name=None, network_name=None):
+        vmtools = IMPL.vmware_tools
+        location = CONF.feature.platform.location
+        folder = next(filter(
+            lambda f: f['name'] == (folder_name or 'Scalr Sandbox'),
+            vmtools.folders_list(location)))['id']
+        compute_resource = next(filter(
+            lambda cr: cr['name'] == (compute_resource_name or 'C1'),
+            vmtools.compute_resources_list(location)))['id']
+        network = next(filter(
+            lambda n: n['name'] == (network_name or 'Internet'),
+            vmtools.networks_list(location, compute_resource)))['id']
+        params.cloud_location = location
+        params.vmware.folder = folder
+        params.network.network = json.dumps({network: {"primary": 1}})
+        params.vmware.placement_strategy = placement_strategy
+        if placement_strategy == 'manual':
+            host = vmtools.hostsystems_list(
+                location,
+                compute_resource)[0]['id']
+            datastore = vmtools.datastore_list(
+                location,
+                compute_resource)[0]['id']
+            resource_pools = vmtools.resource_pools_list(
+                location,
+                compute_resource)[0]['id']
+            params.vmware.compute_resource = compute_resource
+            params.vmware.resource_pool = resource_pools
+            params.vmware.host_system = json.dumps([host])
+            params.vmware.datastore = datastore

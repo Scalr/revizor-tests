@@ -76,7 +76,8 @@ class TestLifecycleLinux:
              'test_failed_hostname',
              'test_efs_bootstrapping',
              'test_attach_disk_to_running_server',
-             'test_server_rebundle'
+             'test_server_rebundle',
+             'test_bootstrapping_auto_placement_strategy'
              )
 
     @pytest.mark.boot
@@ -113,7 +114,7 @@ class TestLifecycleLinux:
                                            record='HostUp')
 
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE])
     def test_attached_storages(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Check attached storages"""
         server = servers['M1']
@@ -143,7 +144,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE])
     def test_storages_fstab(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab"""
         server = servers['M1']
@@ -165,7 +166,7 @@ class TestLifecycleLinux:
 
     @pytest.mark.fstab
     @pytest.mark.storages
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE])
     def test_storages_fstab_reboot(self, context: dict, cloud: Cloud, servers: dict):
         """Verify attached storages in fstab after reboot"""
         server = servers['M1']
@@ -356,7 +357,7 @@ class TestLifecycleLinux:
         lifecycle.assert_path_exist(cloud, server, efs_mount_point)
         lifecycle.assert_file_count(cloud, server, count=100, directory=efs_mount_point)
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
         """Attach disk to running server"""
         lib_farm.clear(farm)
@@ -376,7 +377,7 @@ class TestLifecycleLinux:
             raise AssertionError(f'Servers {server.id} has only 1 volume after 30 seconds')
         assert volume_id in volume_ids, f'Server {server.id} not have volume {volume_id}'
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.GCE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.GCE, Platform.VMWARE])
     def test_server_rebundle(self, context: dict, cloud: Cloud, farm: Farm):
         """Verify server rebundle work"""
         lib_farm.clear(farm)
@@ -389,6 +390,17 @@ class TestLifecycleLinux:
         new_role_id = rebundle.wait_bundle_complete(server, bundle_id)
         farm.clear_roles()
         lib_farm.add_role_to_farm(context, farm, role=Role.get(new_role_id))
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        lifecycle.assert_szr_version_last(server)
+        lib_server.assert_scalarizr_log_errors(cloud, server)
+
+    @pytest.mark.run_only_if(platform=[Platform.VMWARE])
+    def test_bootstrapping_auto_placement_strategy(self, context: dict, cloud: Cloud, farm: Farm):
+        """Verify server bootstrapping with scalr auto placement strategy"""
+        lib_farm.clear(farm)
+        farm.terminate()
+        lib_farm.add_role_to_farm(context, farm, role_options=['vmware-scalr-auto'])
+        farm.launch()
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         lifecycle.assert_szr_version_last(server)
         lib_server.assert_scalarizr_log_errors(cloud, server)
