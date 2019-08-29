@@ -11,11 +11,14 @@ import pytest
 import requests
 from paramiko import ssh_exception
 
+from revizor2.helpers import logutil
 from revizor2.testenv import TestEnv
 from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from api.utils.helpers import ColorPrint
 
+logutil.basic_config(path=CONF.logging_path,  filename='api')
+logutil.get_logger(__name__).info('API: logging configuration has been changed')
 
 TE_HOST_TPL = "{}.test-env.scalr.com"
 

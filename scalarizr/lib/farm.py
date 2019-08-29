@@ -1,18 +1,18 @@
 import re
 import time
-import logging
+#import logging
 import typing as tp
 
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL, Role, FarmRole
 from revizor2.consts import BEHAVIORS_ALIASES, DATABASE_BEHAVIORS, Dist
 from revizor2.exceptions import NotFound
-from revizor2.helpers import farmrole
+from revizor2.helpers import farmrole, logutil
 from revizor2.helpers.roles import get_role_versions
 from scalarizr.lib.defaults import Defaults
 from scalarizr.lib import cloud_resources as lib_resources
 
-LOG = logging.getLogger(__name__)
+LOG = logutil.get_logger(__name__)
 
 
 def clear(farm: Farm):
