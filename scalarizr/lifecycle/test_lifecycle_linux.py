@@ -1,7 +1,7 @@
 import json
 import time
 import pytest
-
+import logging
 from random import randint
 from _pytest.fixtures import FixtureRequest
 
@@ -9,7 +9,6 @@ from revizor2 import CONF
 from revizor2.cloud import Cloud
 from revizor2.api import Farm, Role
 from revizor2.consts import ServerStatus, Platform
-from revizor2.helpers import logutil
 
 from scalarizr.lib import scalr
 from scalarizr.lib import farm as lib_farm
@@ -18,7 +17,7 @@ from scalarizr.lib import server as lib_server
 from scalarizr.lifecycle.common import lifecycle, szradm, rebundle
 from scalarizr.lib import cloud_resources as lib_resources
 
-LOG = logutil.get_logger(__name__)
+LOG = logging.getLogger(__name__)
 
 
 @pytest.fixture
@@ -87,14 +86,14 @@ class TestLifecycleLinux:
         """Bootstrapping"""
         lib_farm.add_role_to_farm(context, farm, role_options=['storages', 'noiptables'])
         farm.launch()
-        #server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        #servers['M1'] = server
-        #lifecycle.assert_vcpu_count(server)
-        #lifecycle.assert_szr_version_last(server)
-        #lifecycle.assert_hostname(server)
-        #lifecycle.assert_iptables_ports_status(cloud, server, [8008, 8010, 8012, 8013, 8014], invert=True)
-        #lifecycle.assert_server_message_count(context, server, 'BlockDeviceMounted')
-        #lib_server.assert_scalarizr_log_errors(cloud, server)
+        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+        servers['M1'] = server
+        lifecycle.assert_vcpu_count(server)
+        lifecycle.assert_szr_version_last(server)
+        lifecycle.assert_hostname(server)
+        lifecycle.assert_iptables_ports_status(cloud, server, [8008, 8010, 8012, 8013, 8014], invert=True)
+        lifecycle.assert_server_message_count(context, server, 'BlockDeviceMounted')
+        lib_server.assert_scalarizr_log_errors(cloud, server)
 
     @pytest.mark.szradm
     @pytest.mark.run_only_if(
