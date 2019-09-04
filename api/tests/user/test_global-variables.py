@@ -6,6 +6,7 @@ class TestGlobalVariablesUserScope(object):
     env_id = "5"
 
     #test create GlobalVariablesString
+    @pytest.mark.no_validate
     def test_global_variablesString_create_hiddenlocked_true(self, api):
         ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
