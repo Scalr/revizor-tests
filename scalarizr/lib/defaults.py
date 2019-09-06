@@ -8,6 +8,7 @@ from revizor2.api import IMPL
 
 
 class Defaults(object):
+
     @staticmethod
     def apply_option(params, opt):
         opt = re.sub('[^\w]', '_', opt)
@@ -38,28 +39,25 @@ class Defaults(object):
 
     @staticmethod
     def set_storages_windows(params):
-        if CONF.feature.platform.is_cloudstack:
+        platform = CONF.feature.platform
+        if platform.is_cloudstack:
             params.storage.volumes = [
                 farmrole.Volume(size=1, fs='ntfs', type='custom')
             ]
-        elif not CONF.feature.platform.is_rackspacengus:
+        elif not platform.is_rackspacengus:
             params.storage.volumes = [
                 farmrole.Volume(size=2, fs='ntfs', mount='F'),
                 farmrole.Volume(size=1, fs='ntfs', mount='E', label='test_label')
             ]
-        elif CONF.feature.platform.is_vmware:
-            vmware_provision = farmrole.VMWARE_VOLUME_PROVISIONING_TYPE
-            params.storage.volumes = [
-                farmrole.Volume(
-                    engine=provision['type'],
-                    size=3,
-                    mount='C:\diskmount' if provision['index'] == 1 else f'C:\diskmount_{provision["type"]}',
-                    fs='ntfs') for provision in vmware_provision.values()]
-        elif CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE]:
+        if platform in [Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE]:
+            engine = platform.is_vmware and farmrole.VMWARE_VOLUME_PROVISIONING_TYPE['thin_provision']['index'] or None
             params.storage.volumes.append(
                 params.storage,
-                farmrole.Volume(size=3, fs='ntfs', mount='C:\diskmount' )
-            )
+                farmrole.Volume(
+                    size=3,
+                    fs='ntfs',
+                    mount='C:\diskmount',
+                    engine=engine))
 
     @staticmethod
     def set_storages_linux(params):
