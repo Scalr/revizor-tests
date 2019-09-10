@@ -31,7 +31,7 @@ class TestLifecycleWindows:
              'test_attach_disk_to_running_server')
 
     @pytest.mark.boot
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_bootstrapping(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstrapping"""
         lib_farm.add_role_to_farm(context, farm, role_options=['storages'])
@@ -39,7 +39,7 @@ class TestLifecycleWindows:
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         servers['M1'] = server
         lifecycle.assert_vcpu_count(server)
-        if CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE]:
+        if CONF.feature.platform in [Platform.EC2, Platform.GCE, Platform.AZURE, Platform.VMWARE]:
             windows.assert_attached_disks_size(cloud, server, [
                 ('E:\\', 'test_label', 1),
                 ('F:\\', '', 2),
@@ -49,7 +49,7 @@ class TestLifecycleWindows:
         lifecycle.assert_hostname(server)
 
     @pytest.mark.scripting
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_execute_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Basic script execution"""
         server = servers['M1']
@@ -62,7 +62,7 @@ class TestLifecycleWindows:
                                              new_only=True)
 
     @pytest.mark.scripting
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_execute_git_script(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Git script execution on windows"""
         server = servers['M1']
@@ -74,7 +74,7 @@ class TestLifecycleWindows:
                                              log_contains='Multiplatform script successfully executed')
 
     @pytest.mark.szradm
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_szradm_listroles(self, cloud: Cloud, servers: dict):
         """Verify szradm list-roles"""
         server = servers['M1']
@@ -90,7 +90,7 @@ class TestLifecycleWindows:
                                            record='HostUp')
 
     @pytest.mark.restart
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_restart_scalarizr(self, cloud: Cloud, servers: dict):
         """Restart scalarizr"""
         server = servers['M1']
@@ -101,7 +101,7 @@ class TestLifecycleWindows:
         windows.assert_errors_in_szr_logs(cloud, server)
 
     @pytest.mark.reboot
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_windows_reboot(self, cloud: Cloud, farm: Farm, servers: dict):
         """Windows reboot"""
         server = servers['M1']
@@ -113,7 +113,7 @@ class TestLifecycleWindows:
         lib_node.assert_service_work(cloud, server, 'scalr-upd-client')
 
     @pytest.mark.restartfarm
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_restart_farm(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Restart farm"""
         farm.terminate()
@@ -123,7 +123,7 @@ class TestLifecycleWindows:
         servers['M1'] = server
         lifecycle.assert_hostname(server)
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_restart_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
         """Bootstraping on restart"""
         lib_farm.clear(farm)
@@ -147,7 +147,7 @@ class TestLifecycleWindows:
         windows.assert_attached_disks_size(cloud, server, [('Z:\\', 'test_label', 4)])
         lifecycle.assert_szr_version_last(server)
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
         """Attach disk to running server"""
         lib_farm.clear(farm)
