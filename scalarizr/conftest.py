@@ -2,13 +2,15 @@ import time
 import uuid
 import os
 import json
+import logging
+
 from datetime import datetime
+
 
 import pytest
 from _pytest.fixtures import FixtureRequest
 from paramiko.ssh_exception import NoValidConnectionsError
 
-from revizor2.helpers import logutil
 from revizor2 import CONF
 from revizor2.api import Farm, IMPL
 from revizor2.cloud import Cloud
@@ -18,9 +20,7 @@ from revizor2.utils import wait_until
 import scalarizr.lib.farm as lib_farm
 import scalarizr.lib.server as lib_server
 
-logutil.basic_config(path=CONF.logging_path,  filename='scalarizr')
-LOG = logutil.get_logger(__name__)
-LOG.info('Scalarizr: logging configuration has been changed')
+LOG = logging.getLogger(__name__)
 
 pytest_plugins = [
     'scalarizr.plugins.revizor',

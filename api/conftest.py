@@ -17,9 +17,6 @@ from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from api.utils.helpers import ColorPrint
 
-logutil.basic_config(path=CONF.logging_path,  filename='api')
-logutil.get_logger(__name__).info('API: logging configuration has been changed')
-
 TE_HOST_TPL = "{}.test-env.scalr.com"
 
 
