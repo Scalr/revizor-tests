@@ -8,7 +8,6 @@ from contextlib import contextmanager
 import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
 
-from revizor2.helpers import logutil
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
 from revizor2.testenv import TestEnv
