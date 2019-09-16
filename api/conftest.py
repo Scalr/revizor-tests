@@ -16,7 +16,6 @@ from revizor2.backend import IMPL
 from revizor2.conf import CONF
 from api.utils.helpers import ColorPrint
 
-
 TE_HOST_TPL = "{}.test-env.scalr.com"
 
 

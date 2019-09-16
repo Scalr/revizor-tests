@@ -1,9 +1,11 @@
-import logging
 import time
 import uuid
 import os
 import json
+import logging
+
 from datetime import datetime
+
 
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -17,7 +19,6 @@ from revizor2.utils import wait_until
 
 import scalarizr.lib.farm as lib_farm
 import scalarizr.lib.server as lib_server
-
 
 LOG = logging.getLogger(__name__)
 

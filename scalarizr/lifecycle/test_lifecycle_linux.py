@@ -2,7 +2,6 @@ import json
 import time
 import pytest
 import logging
-
 from random import randint
 from _pytest.fixtures import FixtureRequest
 
