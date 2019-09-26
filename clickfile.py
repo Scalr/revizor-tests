@@ -144,6 +144,7 @@ def run_job():
     command = body['run_command']  #FIXME: Automate this in surefire side?
     command += ' --report-surefire'
 
+    os.chdir('/tests')
     print(f'Start test with command "{command}"')
     process = subprocess.run(command, shell=True)
 

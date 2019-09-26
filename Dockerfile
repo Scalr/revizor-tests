@@ -14,4 +14,6 @@ RUN apt update && \
     mkdir /root/.revizor/keys && \
     rm -rf /root/.cache/pip
 
+ENV PYTHONPATH=/tests/
+
 WORKDIR /tests
