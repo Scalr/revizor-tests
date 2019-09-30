@@ -54,13 +54,13 @@ class SurefireRESTReporter:
     def pytest_runtest_makereport(self, item: Function, call: CallInfo) -> TestReport:
         become = yield
         report = become.get_result()
-        if call.when == 'setup':
+
+        if call.when == 'setup' and report.outcome == 'passed':
             self.log_test_status(item, 'STARTED')
-        elif call.when == 'call':
-            status = 'COMPLETED'
-            if report.outcome == 'failed':
-                status = 'FAILED'
-            self.log_test_status(item, status, str(report.longrepr))
+        elif call.when in ('setup', 'call') and report.outcome == 'failed':
+            self.log_test_status(item, 'FAILED', str(report.longrepr))
+        elif call.when == 'call' and report.outcome == 'passed':
+            self.log_test_status(item, 'COMPLETED')
         return report
 
     def pytest_collection_modifyitems(self, session, config, items):
