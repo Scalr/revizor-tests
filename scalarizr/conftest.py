@@ -44,7 +44,16 @@ def testenv(request) -> TestEnv:
         notes = 'Revizor Scalarizr tests'
         if CONF.credentials.scalr.accounts.default.username:
             notes += (' <%s>' % CONF.credentials.scalr.accounts.default.username)
-        te = TestEnv.create(branch=CONF.scalr.branch, notes=notes)
+
+        for _ in range(3):
+            try:
+                te = TestEnv.create(branch=CONF.scalr.branch, notes=notes)
+                break
+            except Exception as e:
+                LOG.error(f'Error on container creation {e}')
+                time.sleep(20)
+        else:
+            raise AssertionError('Container not created for 3 attempts, please check')
         LOG.info(f'TestEnv for tests created: {te.te_id}')
         for _ in range(5):
             try:
