@@ -142,7 +142,7 @@ def run_job():
         return
     os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])
     command = body['run_command']  #FIXME: Automate this in surefire side?
-    command += ' --report-surefire'
+    command += ' --report-surefire --te-remove'
 
     os.chdir('/tests')
     print(f'Start test with command "{command}"')
