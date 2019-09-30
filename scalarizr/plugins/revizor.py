@@ -142,7 +142,8 @@ def pytest_collection_modifyitems(session, config: Config, items: tp.List[Functi
             else:
                 if item not in remaining:
                     remaining.append(item)
-
+    #FIXME: modify to https://stackoverflow.com/questions/32247736/mark-test-as-skipped-from-pytest-collection
+    # -modifyitems
     if deselected:
         config.hook.pytest_deselected(items=deselected)
         items[:] = remaining

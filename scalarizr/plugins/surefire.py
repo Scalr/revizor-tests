@@ -63,9 +63,11 @@ class SurefireRESTReporter:
             self.log_test_status(item, 'COMPLETED')
         return report
 
-    def pytest_collection_modifyitems(self, session, config, items):
+    def pytest_collection_finish(self, session):
         modules = []
-        for i in items:
+        for i in session.items:
+            if i.get_closest_marker('skip'):
+                continue
             module = i.listchain()[2]
             module_path = module.fspath.strpath.split(BASE_PATH)[1][1:]
             if module_path not in modules:
@@ -80,7 +82,9 @@ class SurefireRESTReporter:
             if resp.status_code != 201:
                 raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
-        for i in items:
+        for i in session.items:
+            if i.get_closest_marker('skip'):
+                continue
             module_name = i.listchain()[2].fspath.strpath.split(BASE_PATH)[1][1:]
             module_id = self._module_ids[module_name]
             name = f'{i.parent.parent.name}::{i.name}'  # FIXME: Cases without class and better check for class
