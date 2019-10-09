@@ -1,0 +1,137 @@
+import time
+import typing as tp
+
+import pytest
+from selene.api import s, by
+from selene.conditions import visible, text, exist, css_class
+
+from revizor2.conf import CONF
+
+from ui.utils.components import tooltip
+from ui.utils.datagenerator import generate_name
+from ui.pages.terraform.vcs import GithubAuthPage, EditVCSForm, DeleteConfirmationModal, VCSPage
+
+
+class TestVCSProviders:
+    @pytest.fixture(autouse=True)
+    def prepare_env(self, tf_dashboard, vcs_provider):
+        self.dashboard = tf_dashboard
+        self.vcs_provider = vcs_provider
+        self._created_oauth = []
+        yield
+        for name in self._created_oauth:
+            self.vcs_provider.delete_oauth(name)
+
+    def add_provider(self, name: str, secret: tp.Optional[str] = None, wait_message: bool = True) -> VCSPage:
+        vcs_page = self.dashboard.menu.open_vcs_providers()
+        vcs_page.new_vcs_button.click()
+        new_form = vcs_page.new_vcs_form
+        new_form.name.set(name)
+        self.vcs_provider.create_oauth(name, new_form.callback_url.get_attribute('value'), 'http://my.scalr.com')
+        self._created_oauth.append(name)
+        settings = self.vcs_provider.get_app_settings(name)
+        new_form.client_id.set(settings['key'])
+        if secret is None:
+            secret = settings['secret']
+        new_form.client_secret.set(secret)
+        new_form.create_button.click()
+        github = GithubAuthPage()
+        if not github.authorized:
+            github.username.set(CONF.credentials.github.username)
+            github.password.set(CONF.credentials.github.password)
+            github.submit.click()
+        github.authorize_user.click()
+        s('div#loading').should_not_be(exist, timeout=10)
+        s('div.x-mask').should_not_be(visible)
+        if wait_message:
+            tip = tooltip('Successfully Authorized.')
+            tip.element.should_be(visible)
+            tip.close()
+        return vcs_page
+
+    def test_add_provider(self):
+        vcs_name = generate_name('test-')
+        vcs_page = self.add_provider(vcs_name)
+        edit_form = EditVCSForm()
+        assert edit_form.name.get_attribute('value') == vcs_name
+        edit_form.reauthorize_button.should_be(visible)
+        assert len(vcs_page.providers) == 1
+        assert vcs_page.providers[0].name == vcs_name
+        assert vcs_page.providers[0].usage == 'Not used'
+        # vcs_page.search.element('div.x-tagfield-item-text').should(have.text('vcs-'))
+
+    def test_delete_provider(self):
+        vcs_name = generate_name('test-')
+        vcs_page = self.add_provider(vcs_name)
+        vcs_page.providers[0].toggle()
+        vcs_page.delete_button.click()
+        confirm = DeleteConfirmationModal()
+        confirm.visible()
+        confirm.delete_button.click()
+        tip = tooltip('VCS provider successfully deleted.')
+        tip.element.should_be(visible)
+        tip.close()
+        for provider in vcs_page.providers:
+            assert provider.name != vcs_name, f'Provider {provider.name} is exist!'
+
+    def test_add_exist_name(self):
+        vcs_name = generate_name('test-')
+        vcs_page = self.add_provider(vcs_name)
+        vcs_page.new_vcs_button.click()
+        new_form = vcs_page.new_vcs_form
+        new_form.name.set(vcs_name)
+        new_form.client_id.set('dsfsdfs')
+        new_form.client_secret.set('sdsadasd')
+        new_form.create_button.click()
+        new_form.name.should_have(css_class('x-form-invalid-field'))
+        new_form.name.parent_element.following_sibling.hover()
+        s('div#ext-form-error-tip-body').should_be(visible)\
+            .should_have(text('VCS Provider name must be unique within current scope.'))
+
+    def test_reauthorize(self):
+        vcs_name = generate_name('test-')
+        self.add_provider(vcs_name)
+        edit_form = EditVCSForm()
+        edit_form.reauthorize_button.click()
+        tip = tooltip('Successfully Authorized.')
+        tip.element.should_be(visible, timeout=20)
+
+    def test_add_client_id_twice(self):
+        vcs_name = generate_name('test-')
+        vcs_page = self.add_provider(vcs_name)
+        vcs_page.new_vcs_button.click()
+        new_form = vcs_page.new_vcs_form
+        new_form.name.set(generate_name('test-'))
+        settings = self.vcs_provider.get_app_settings(vcs_name)
+        new_form.client_id.set(settings['key'])
+        new_form.client_secret.set('sdsadasd')
+        new_form.create_button.click()
+        new_form.client_id.should_have(css_class('x-form-invalid-field'))
+        new_form.client_id.parent_element.following_sibling.hover()
+        s('div#ext-form-error-tip-body').should_be(visible) \
+            .should_have(text('VCS Provider with same Client ID already exist.'))
+
+    def test_add_invalid_secret(self):
+        vcs_name = generate_name('test-')
+        vcs_page = self.add_provider(vcs_name, 'invalidsecret', wait_message=False)
+        provider = vcs_page.providers[0]
+        provider.element.s('img.x-icon-colored-status-failed').should_be(visible)
+        edit_page = EditVCSForm()
+        edit_page.error.should_be(visible).should_have(text("incorrect_client_credentials"))
+
+    def test_search(self):
+        vcs_name = generate_name('test-')
+        vcs_name2 = generate_name('test-')
+        self.add_provider(vcs_name)
+        vcs_page = self.add_provider(vcs_name2)
+        vcs_page.clean_search_field()
+        vcs_page.search.set(vcs_name)
+        time.sleep(1)
+        assert len(vcs_page.providers) == 1
+        assert vcs_page.providers[0].name == vcs_name
+        vcs_page.clean_search_field()
+        vcs_page.search.set(vcs_name2)
+        # s(by.xpath('//div[text()="Loading..."]')).should_be(visible).should_not_be(visible)
+        time.sleep(1)
+        assert len(vcs_page.providers) == 1
+        assert vcs_page.providers[0].name == vcs_name2
