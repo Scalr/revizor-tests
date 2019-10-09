@@ -1,16 +1,17 @@
-import os
 import time
-import uuid
-
-from contextlib import contextmanager
-
 
 import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
 
+from selene.api import browser, s
+from selene.conditions import visible
+
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
 from revizor2.testenv import TestEnv
+
+from pages.login import LoginPage
+from pages.terraform.dashboard import TerraformEnvDashboard
 
 
 def pytest_addoption(parser):
@@ -27,13 +28,6 @@ def pytest_addoption(parser):
         "--te-id", "--test-environment-id", dest="te_id", action="store",
         help="Scalr test environment id to use existing env", default=None
     )
-
-
-def pytest_runtest_makereport(item, call):
-    """Saves screenshot when test fails and saves it in /ui directory.
-    """
-    if call.when == 'call' and call.excinfo:
-        item.instance.driver.save_screenshot(os.getcwd() + "/ui/%s.png" % (item.name + '-' + str(uuid.uuid1())))
 
 
 @pytest.fixture(scope="class")
@@ -76,50 +70,15 @@ def mock_ssmtp(request):
     ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
 
 
-@pytest.fixture
-def selenium_driver(driver):
-    """Provides patched Selenium driver instance.
-
-    Changed:
-        ``implicitly_wait``       -- added wrapper that saves last used ``time_to_wait`` value
-                                     to ``implicit_time_to_wait`` instance attribute
-
-    Added:
-        ``implicit_time_to_wait`` -- instance attribute that holds last set ``time_to_wait`` value
-
-        ``implicitly_wait_time``  -- context manager that allows to temporary change implicit wait time
-                                     for a code block
-
-    Usage::
-
-        driver.implicitly_wait(10)
-        LOG.debug('outer implicit_time_to_wait is %s' % driver.implicit_time_to_wait)
-        with driver.implicitly_wait_time(3):
-            LOG.debug('inner implicit_time_to_wait is %s' % driver.implicit_time_to_wait)
-
-        > outer implicit_time_to_wait is 10
-        > inner implicit_time_to_wait is 3
-    """
-    implicitly_wait_inner = driver.implicitly_wait
-
-    def implicitly_wait_wrapper(self, time_to_wait):
-        self.implicit_time_to_wait = time_to_wait
-        implicitly_wait_inner(time_to_wait)
-
-    @contextmanager
-    def implicitly_wait_time(self, time_to_wait: int):
-        prev_wait_time = getattr(self, 'implicit_time_to_wait', 0)
-        self.implicitly_wait(time_to_wait)
-        try:
-            yield
-        finally:
-            self.implicitly_wait(prev_wait_time)
-
-    driver.implicitly_wait = implicitly_wait_wrapper.__get__(driver, None)
-    driver.implicitly_wait_time = implicitly_wait_time.__get__(driver, None)
-    return driver
-
-
-def pytest_sessionstart(session):
-    session.config.admin_login = CONF.credentials.testenv.accounts.admin['username']
-    session.config.admin_pass = CONF.credentials.testenv.accounts.admin['password']
+@pytest.fixture()
+def tf_dashboard(testenv):
+    browser.open_url(f'https://{testenv.te_id}.test-env.scalr.com')
+    s('#loading').should_not_be(visible, timeout=20)
+    url = browser.driver().current_url
+    if '#/dashboard' in url:
+        return TerraformEnvDashboard()
+    else:
+        login_page = LoginPage()
+        login_page.set_username(CONF.credentials.testenv.accounts.terraform.username)
+        login_page.set_password(CONF.credentials.testenv.accounts.terraform.password)
+        return login_page.submit()
