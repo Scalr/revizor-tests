@@ -4,10 +4,10 @@ import requests
 
 class TestGlobalVariablesUserScope(object):
     env_id = "5"
-
+    
     #test create GlobalVariablesString
     def test_global_variablesString_create_hiddenlocked_true(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
@@ -18,17 +18,16 @@ class TestGlobalVariablesUserScope(object):
                 type="GlobalVariableString",
                 validationPattern="/test/",
                 value="/test/",
-                name="alltrue"
+                name="NewGV"
                 ))
         assert create_resp.json()['data']['hidden'] == True
-        assert create_resp.json()['data']['losked'] == True
+        assert create_resp.json()['data']['locked'] == True
         assert create_resp.json()['data']['type'] == "GlobalVariableString"
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['definedIn'] == "environment"
-
-    """
+  
     def test_global_variablesString_create_hiddenlocked_false(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
@@ -39,16 +38,16 @@ class TestGlobalVariablesUserScope(object):
                 type="GlobalVariableString",
                 validationPattern="/test/",
                 value="/test/",
-                name="allfalse"
+                name="Allfalse"
                 ))
         assert create_resp.json()['data']['hidden'] == False
-        assert create_resp.json()['data']['losked'] == False
+        assert create_resp.json()['data']['locked'] == False
         assert create_resp.json()['data']['type'] == "GlobalVariableString"
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['definedIn'] == "environment"
-
+    
     def test_global_variablesString_create_hidden_true_locked_false(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
@@ -59,16 +58,16 @@ class TestGlobalVariablesUserScope(object):
                 type="GlobalVariableString",
                 validationPattern="/test/",
                 value="/test/",
-                name="true/false"
+                name="truefalse"
                 ))
         assert create_resp.json()['data']['hidden'] == True
-        assert create_resp.json()['data']['losked'] == False
+        assert create_resp.json()['data']['locked'] == False
         assert create_resp.json()['data']['type'] == "GlobalVariableString"
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['definedIn'] == "environment"
-
+   
     def test_global_variablesString_create_hidden_false_locked_true(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
@@ -79,33 +78,33 @@ class TestGlobalVariablesUserScope(object):
                 type="GlobalVariableString",
                 validationPattern="/test/",
                 value="/test/",
-                name="true/false"
+                name="true_false"
                 ))
         assert create_resp.json()['data']['hidden'] == False
-        assert create_resp.json()['data']['losked'] == True
+        assert create_resp.json()['data']['locked'] == True
         assert create_resp.json()['data']['type'] == "GlobalVariableString"
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['definedIn'] == "environment"
-
+    
     def test_global_variablesString_create_required_farmcope(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
-                requiredIn="Farm"
+                requiredIn="farm",
                 description="desc",
                 outputFormat="%&",
                 type="GlobalVariableString",
                 validationPattern="/test/",
                 value="/test/",
-                name="farmscoperequired"
+                name="farmscoprequired"
                 ))
         assert create_resp.json()['data']['declaredIn'] == "environment"
-        assert create_resp.json()['data']['requiredId'] == "farm"
+        assert create_resp.json()['data']['requiredIn'] == "farm"
         assert create_resp.json()['data']['type'] == "GlobalVariableString"
-
+   
     def test_global_variablesString_create_name_duplicate(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 type="GlobalVariableString",
@@ -114,7 +113,7 @@ class TestGlobalVariablesUserScope(object):
         name_duplicate = create_resp.json()['data']['name']
         exc_message = "'GlobalVariable.name' (duplicate) already exists on (Environment) scope."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create.resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
             type="GlobalVariableString",
@@ -122,15 +121,14 @@ class TestGlobalVariablesUserScope(object):
             ))
         assert err.value.response.status_code == 409
         assert exc_message in err.value.response.text
-
+    
     def test_global_variablesString_create_invalid_value(self, api):
-        exc_message = "'GlobalVariable.value'(GV) doesn't match to 'validationPattern' (/test/)."
+        exc_message = "\'GlobalVariable.value\'(\\/GV\\/) doesn\'t match to \'validationPattern\' (\\/test\\/)"
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="Farm"
                     description="desc",
                     outputFormat="%&",
                     type="GlobalVariableString",
@@ -140,15 +138,15 @@ class TestGlobalVariablesUserScope(object):
                     ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
-
+    
     def test_global_variablesString_create_invalid_format(self, api):
         exc_message = "'GlobalVariable.outputFormat' (string) is invalid. Output format should consists of a percent sign %, followed by type specifier."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="Farm"
+                    requiredIn="Farm",
                     description="desc",
                     outputFormat="string",
                     type="GlobalVariableString",
@@ -156,41 +154,41 @@ class TestGlobalVariablesUserScope(object):
                     ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
-
+    
     def test_global_variablesString_create_invalid_requiredIn(self, api):
         exc_message = "'GlobalVariable.requiredIn'(scalr) is invalid scope"
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="scalr"
+                    requiredIn="scalr",
                     description="desc",
                     type="GlobalVariableString",
                     name="invalidrequired"
                     ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
-
+    
     def test_global_variables_create_invalid_type(self, api):
         exc_message = "'GlobalVariable.type' (GlobalVariable) is invalid. Valid type are (GlobalVariableString, GlobalVariableJson, GlobalVariableList, GlobalVariableRemoteList)."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="scalr"
+                    requiredIn="scalr",
                     description="desc",
                     outputFormat="string",
                     type="GlobalVariable",
                     name="invalidValue"
-                    ))
+                ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
     
     #test create GlobalVariableJson
     def test_global_variablesJson_create(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
@@ -201,23 +199,55 @@ class TestGlobalVariablesUserScope(object):
             ))
         assert create_resp.json()['data']['value'] == "{ \"global_variables\": \"json\" }" 
         assert create_resp.json()['data']['type'] == "GlobalVariableJson"
-
-    def test_global_variablesString_create_required_farmrolecope(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+    
+    def test_global_variablesJson_create_required_farmrolecope(self, api):
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
-                requiredIn="Farmrole"
+                requiredIn="farmrole",
                 type="GlobalVariableJson",
-                name="farmrolescoprequired"
+                name="FarmrolescoprequiredJson"
                 ))
         assert create_resp.json()['data']['declaredIn'] == "environment"
-        assert create_resp.json()['data']['requiredId'] == "farmrole"
+        assert create_resp.json()['data']['requiredIn'] == "farmrole"
         assert create_resp.json()['data']['type'] == "GlobalVariableJson"
-
+    
+    def test_global_variablesJson_create_hiddenlocked_true(self, api):
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            params=dict(envId=self.env_id),
+            body=dict(
+                category="new",
+                hidden=True,
+                locked=True,
+                description="desc",
+                type="GlobalVariableJson",
+                value="{ \"global_variables\": \"json\" }",
+                name="alltruejson"
+                ))
+        assert create_resp.json()['data']['hidden'] == True
+        assert create_resp.json()['data']['locked'] == True
+        assert create_resp.json()['data']['type'] == "GlobalVariableJson"
+        
+    def test_global_variablesJson_create_hiddenlocked_false(self, api):
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            params=dict(envId=self.env_id),
+            body=dict(
+                category="new",
+                hidden=False,
+                locked=False,
+                description="desc",
+                type="GlobalVariableJson",
+                value="{ \"global_variables\": \"json\" }",
+                name="allfalsejson1"
+                ))
+        assert create_resp.json()['data']['hidden'] == False
+        assert create_resp.json()['data']['locked'] == False 
+        assert create_resp.json()['data']['type'] == "GlobalVariableJson"
+    
     def test_global_variablesJson_create_invalid_value(self, api):
         exc_message = "'GlobalVariable.value' is invalid JSON."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                 category="new",
@@ -228,50 +258,18 @@ class TestGlobalVariablesUserScope(object):
             ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
-
-    def test_global_variablesJson_create_hiddenlocked_true(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
-            params=dict(envId=self.env_id),
-            body=dict(
-                category="new",
-                hidden=True,
-                locked=True,
-                description="desc",
-                type="GlobalVariableJson",
-                value="{ \"global_variables\": \"json\" }",
-                name="alltrue1"
-                ))
-        assert create_resp.json()['data']['hidden'] == True
-        assert create_resp.json()['data']['losked'] == True
-        assert create_resp.json()['data']['type'] == "GlobalVariableList"
-        
-    def test_global_variablesJson_create_hiddenlocked_false(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
-            params=dict(envId=self.env_id),
-            body=dict(
-                category="new",
-                hidden=False,
-                locked=False,
-                description="desc",
-                type="GlobalVariableJson",
-                value="{ \"global_variables\": \"json\" }",
-                name="allfalse1"
-                ))
-        assert create_resp.json()['data']['hidden'] == False
-        assert create_resp.json()['data']['losked'] == False 
-        assert create_resp.json()['data']['type'] == "GlobalVariableJson"
-
+    
     def test_global_variablesJson_create_name_duplicate(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 type="GlobalVariableJson",
-                name="duplicatejson"
+                name="duplicatejson2"
                 ))
         name_duplicate = create_resp.json()['data']['name']
-        exc_message = "'GlobalVariable.name' (duplicate) already exists on (Environment) scope."
+        exc_message = "\'GlobalVariable.name\' (duplicatejson2) already exists on (Environment) scope."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
             type="GlobalVariableJson",
@@ -279,15 +277,15 @@ class TestGlobalVariablesUserScope(object):
             ))
         assert err.value.response.status_code == 409
         assert exc_message in err.value.response.text 
-
+    
     def test_global_variablesJson_create_invalid_requiredIn(self, api):
         exc_message = "'GlobalVariable.requiredIn'(scalr) is invalid scope"
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="scalr"
+                    requiredIn="scalr",
                     description="desc",
                     type="GlobalVariableJson",
                     name="invalidrequired"
@@ -297,15 +295,15 @@ class TestGlobalVariablesUserScope(object):
     
     #test create GlobalVariableList
     def test_global_variablesList_create_hiddenlocked_true(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
-                category="new",
+            category="new",
                 hidden=True,
                 locked=True,
                 description="desc",
                 type="GlobalVariableList",
-                name="listus"
+                name="typelist",
                 allowedValues= [
                     {
                         "value": "value3",
@@ -322,20 +320,20 @@ class TestGlobalVariablesUserScope(object):
                 ]
                 ))
         assert create_resp.json()['data']['hidden'] == True
-        assert create_resp.json()['data']['losked'] == True
+        assert create_resp.json()['data']['locked'] == True
         assert create_resp.json()['data']['type'] == "GlobalVariableList"
         assert create_resp.json()['data']['definedIn'] == "environment"
-
+    
     def test_global_variableslist_create_hiddenlocked_false(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
                 hidden=False,
                 locked=False,
                 description="desc",
-                type="GlobalVariablelList",
-                name="testcreate"
+                type="GlobalVariableList",
+                name="testcreateGV",
                 allowedValues=[
                     {
                         "value": "value3",
@@ -353,12 +351,12 @@ class TestGlobalVariablesUserScope(object):
                 value="value3"
                 ))
         assert create_resp.json()['data']['hidden'] == False
-        assert create_resp.json()['data']['losked'] == False
+        assert create_resp.json()['data']['locked'] == False
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['type'] == "GlobalVariableList"
 
     def test_global_variablesList_create_hidden_true_locked_false(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
@@ -366,7 +364,7 @@ class TestGlobalVariablesUserScope(object):
                 locked=False,
                 description="desc",
                 type="GlobalVariableList",
-                name="true/falselist",
+                name="truefalselist",
                 allowedValues= [
                     {
                         "value": "value",
@@ -375,17 +373,18 @@ class TestGlobalVariablesUserScope(object):
                 ]
                 ))
         assert create_resp.json()['data']['hidden'] == True
-        assert create_resp.json()['data']['losked'] == False
+        assert create_resp.json()['data']['locked'] == False
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['type'] == "GlobalVariableList"
-
+    
     def test_global_variableslist_create_hidden_false_locked_true(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 type="GlobalVariableList",
-                validationPattern="/test/",
-                name="true/false",
+                name="GVTrueFalse",
+                hidden=False,
+                locked=True,
                 allowedValues=[
                     {
                         "value": "value",
@@ -394,17 +393,17 @@ class TestGlobalVariablesUserScope(object):
                 ]                
                 ))
         assert create_resp.json()['data']['hidden'] == False
-        assert create_resp.json()['data']['losked'] == True
+        assert create_resp.json()['data']['locked'] == True
         assert create_resp.json()['data']['declaredIn'] == "environment"
         assert create_resp.json()['data']['type'] == "GlobalVariableList"
-
+    
     def test_global_variablesList_create_required_farmcope(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
-                requiredIn="Farm"
+                requiredIn="farm",
                 type="GlobalVariableList",
-                name="farmscoperequired",
+                name="farmscoperequiredl",
                 allowedValues= [
                     {
                         "value": "value",
@@ -414,16 +413,16 @@ class TestGlobalVariablesUserScope(object):
                 value="value"   
                 ))
         assert create_resp.json()['data']['declaredIn'] == "environment"
-        assert create_resp.json()['data']['requiredId'] == "farm"
+        assert create_resp.json()['data']['requiredIn'] == "farm"
         assert create_resp.json()['data']['type'] == "GlobalVariableList"
-
+    
     def test_global_variablesList_create_name_duplicate(self, api):
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 type="GlobalVariableList",
-                name="duplicate",
-                value="allowedValues": [
+                name="duplicateGV",
+                allowedValues=[
                     {
                         "value": "value",
                         "label": "3"
@@ -431,14 +430,14 @@ class TestGlobalVariablesUserScope(object):
                 ]
                 ))
         name_duplicate = create_resp.json()['data']['name']
-        exc_message = "'GlobalVariable.name' (duplicate) already exists on (Environment) scope."
+        exc_message = "'GlobalVariable.name' (duplicateGV) already exists on (Environment) scope."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
             type="GlobalVariableList",
             name=name_duplicate,
-            value="allowedValues": [
+            allowedValues=[
                     {
                         "value": "value",
                         "label": "3"
@@ -447,18 +446,18 @@ class TestGlobalVariablesUserScope(object):
             ))
         assert err.value.response.status_code == 409
         assert exc_message in err.value.response.text
-
+    
     def test_global_variablesList_create_invalid_value(self, api):
-        exc_message = "'GlobalVariable.allowedValues.value' is invalid. Each 'value' has to match the pattern '/^(?=.{1,255}$)[a-zA-Z0-9-_.,=@ +*()]+$/'"
+        exc_message = "value\' is invalid. Each \'value\' has to match the pattern \'\\/^(?=.{1,255}$)[a-zA-Z0-9-_.,=@ +*()]+$\\/\'"
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="Farm"
+                    requiredIn="Farm",
                     description="desc",
                     type="GlobalVariableList",
-                    name="invalidValue"
+                    name="invalidValueName",
                     allowedValues= [
                     {
                         "value": "^)))",
@@ -470,16 +469,16 @@ class TestGlobalVariablesUserScope(object):
         assert exc_message in err.value.response.text
     
     def test_global_variablesList_create_inconsistency_value(self, api):
-        exc_message = "'GlobalVariable.value' (test) is invalid."
+        exc_message = "\'GlobalVariable.requiredIn\'(Farm) is invalid scope"
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="Farm"
+                    requiredIn="Farm",
                     description="desc",
                     type="GlobalVariableList",
-                    name="invalidValue"
+                    name="invalidValue",
                     allowedValues= [
                     {
                         "value": "value",
@@ -490,22 +489,17 @@ class TestGlobalVariablesUserScope(object):
                 ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text    
-
+    
     def test_global_variablesList_create_without_allowedValues(self, api):
-        exc_message = "'GlobalVariable.allowedValues' is missing."
+        exc_message = "Property \'GlobalVariable.allowedValues.value\' is required."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
                     type="GlobalVariableList",
-                    name="invalidValue",
-                    allowedValues= [
-                    {
-                        "value": "value",
-                        "label": "3"
-                    }
-                    ]
+                    name="invalidValueGV",
+                    allowedValues= [{}]
                 ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
@@ -513,14 +507,14 @@ class TestGlobalVariablesUserScope(object):
     def test_global_variablesList_create_invalid_requiredIn(self, api):
         exc_message = "'GlobalVariable.requiredIn'(scalr) is invalid scope"
         with pytest.raises(requests.exceptions.HTTPError) as err:
-            ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+            create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
                 params=dict(envId=self.env_id),
                 body=dict(
                     category="new",
-                    requiredIn="scalr"
+                    requiredIn="scalr",
                     description="desc",
-                    type="GlobalVariablelist",
-                    name="invalidrequired",
+                    type="GlobalVariableList",
+                    name="invalidrequiredGV",
                     allowedValues= [
                     {
                         "value": "value",
@@ -530,11 +524,11 @@ class TestGlobalVariablesUserScope(object):
                     ))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text
-
+    
     #test list
     def test_global_variables_list(self, api):
         resp = api.list("/api/v1beta0/user/envId/global-variables/",
-            params=dict(
+           params=dict(
                 envId=self.env_id))
         assert resp.json()['data'][0]['name']
     
@@ -546,48 +540,48 @@ class TestGlobalVariablesUserScope(object):
                     envId=9999999))
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
-
+    
     def test_global_variables_list_invalid_envid(self, api):
         exc_message = "Environment has not been provided with the request."
         with pytest.raises(requests.exceptions.HTTPError) as err:
             resp = api.list("/api/v1beta0/user/envId/global-variables/",
                 params=dict(
-                    envId=id))
+                    envId=0))
         assert err.value.response.status_code == 400
         assert exc_message in err.value.response.text 
-    
+  
     #test get
-    test_global_variables_get(self, api):
-        ceate.resp = api.create( "/api/v1beta0/user/envId/global-variables/",
+    def test_global_variables_get(self, api):
+        create_resp = api.create( "/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 category="new",
                 description="desc",
-                name="create",
+                name="getcreatee",
                 type="GlobalVariableString"
                 ))
-        VariableName = create_resp.json()['data']['id']
-        resp = api.get("/api/v1beta0/user/envId/global-variables/globalVariableName/",
-            param=dict(
+        Variable_Name = create_resp.json()['data']['name']
+        get_resp = api.get("/api/v1beta0/user/envId/global-variables/globalVariableName/",
+            params=dict(
                 envId=self.env_id,
-                globalVariableName=VariableName
+                globalVariableName=Variable_Name
             ))
-        assert get_resp.json()['data']['name'] == VariableName
+        assert get_resp.json()['data']['name'] == Variable_Name
 
-    test_global_variables_get_invalid_VariableName(self, api):
+    def test_global_variables_get_invalid_VariableName(self, api):  
         exc_message = "'GlobalVariable.name' (VariableName) was not found."
         with pytest.raises(requests.exceptions.HTTPError) as err: 
             resp = api.get("/api/v1beta0/user/envId/global-variables/globalVariableName/",
-            param=dict(
-            envId=self.env_id,
-                globalVariableName=VariableName
+            params=dict(
+                envId=self.env_id,
+                globalVariableName="VariableName"
                 )) 
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
     
     #test delete 
     def test_global_variables_delete(self, api): 
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 type="GlobalVariableString",
@@ -608,9 +602,9 @@ class TestGlobalVariablesUserScope(object):
         assert err.value.response.status_code == 404
         errors = err.value.response.json()['errors']
         assert errors[0]['code'] == "ObjectNotFound"
-
+    
     def test_global_variables_delete_invalid_envId(self, api): 
-        ceate.resp = api.create("/api/v1beta0/user/envId/global-variables/",
+        create_resp = api.create("/api/v1beta0/user/envId/global-variables/",
             params=dict(envId=self.env_id),
             body=dict(
                 type="GlobalVariableString",
@@ -619,18 +613,18 @@ class TestGlobalVariablesUserScope(object):
         VariableName = create_resp.json()['data']['name']
         exc_message = "Invalid environment."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-        delete_resp = api.delete('/api/v1beta0/user/envId/global-variables/globalVariableName/',
+            delete_resp = api.delete('/api/v1beta0/user/envId/global-variables/globalVariableName/',
             params=dict(
                 envId=999999999999,
                 globalVariableName=VariableName
                 ))
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
-
+ 
     def test_global_variables_delete_invalid_name(self, api): 
         exc_message = "'GlobalVariable.name' (999999999999) was not found."
         with pytest.raises(requests.exceptions.HTTPError) as err:
-        delete_resp = api.delete('/api/v1beta0/user/envId/global-variables/globalVariableName/',
+            delete_resp = api.delete('/api/v1beta0/user/envId/global-variables/globalVariableName/',
             params=dict(
                 envId=self.env_id,
                 globalVariableName=999999999999
@@ -638,16 +632,4 @@ class TestGlobalVariablesUserScope(object):
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
 
-    def test_global_variables_delete_gv_adminscope(self, api): 
-        exc_message = "'GlobalVariable.name' (CONTAINER_OWNER) delete error. You can only delete GlobalVariable defined in (Environment) scope."
-        with pytest.raises(requests.exceptions.HTTPError) as err:
-        delete_resp = api.delete('/api/v1beta0/user/envId/global-variables/globalVariableName/',
-            params=dict(
-                envId=self.env_id,
-                globalVariableName=self.gv_admin_scope
-                ))
-        assert err.value.response.status_code == 404
-        assert exc_message in err.value.response.texts
-"""
-
-
+    
