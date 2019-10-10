@@ -631,5 +631,3 @@ class TestGlobalVariablesUserScope(object):
                 ))
         assert err.value.response.status_code == 404
         assert exc_message in err.value.response.text
-
-    
