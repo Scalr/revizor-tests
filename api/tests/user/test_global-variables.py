@@ -18,7 +18,7 @@ class TestGlobalVariablesUserScope(object):
                 type="GlobalVariableString",
                 validationPattern="/test/",
                 value="/test/",
-                name="NewGV"
+                name="NewtestGv"
                 ))
         assert create_resp.json()['data']['hidden'] == True
         assert create_resp.json()['data']['locked'] == True
