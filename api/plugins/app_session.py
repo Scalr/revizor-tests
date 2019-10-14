@@ -98,7 +98,7 @@ class AppSession(object):
             **request_kwargs
         )
 
-        if self._request.config.getoption('api_validation'):
+        if self._request.config.getoption('api_validation') and not self._request.node.get_marker('no_validate'):
             self.validate(response, scope)
 
         return response
