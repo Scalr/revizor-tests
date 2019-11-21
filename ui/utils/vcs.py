@@ -53,6 +53,13 @@ class VCSGithub(VCSProvider):
         form = app_tree.xpath('//input[@name="_method" and @value="delete"]/parent::form')[0]
         return self._session.post(f'https://github.com{form.action}', data=dict(form.fields))
 
+    def authorize_app(self, url: str):
+        tree = lxml.html.fromstring(self._session.get(url).text)
+        form = tree.forms[0]
+        fields = dict(form.fields)
+        fields['authorize'] = 1
+        return self._session.post(f'https://github.com{form.action}', data=fields, allow_redirects=False)
+
     def get_app_settings(self, name: str):
         """Return OAuth settings (key, secret)"""
         tree = lxml.html.fromstring(self._session.get('https://github.com/settings/developers').text)

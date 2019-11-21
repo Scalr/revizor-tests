@@ -14,9 +14,9 @@ from ui.pages.terraform.vcs import GithubAuthPage, EditVCSForm, DeleteConfirmati
 
 class TestVCSProviders:
     @pytest.fixture(autouse=True)
-    def prepare_env(self, tf_dashboard, vcs_provider):
+    def prepare_env(self, tf_dashboard, loggined_vcs):
         self.dashboard = tf_dashboard
-        self.vcs_provider = vcs_provider
+        self.vcs_provider = loggined_vcs
         self._created_oauth = []
         yield
         for name in self._created_oauth:

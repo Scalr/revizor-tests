@@ -26,11 +26,11 @@ class LoginPage(BasePage):
         loading_panel.should_not_be(visible, timeout=10)
         url = browser.driver().current_url
 
-        if '#/admin/dashboard' in url:
+        if '/admin/dashboard' in url:
             return AdminDashboard()
-        elif '#/account/dashboard' in url:
+        elif '/account/dashboard' in url:
             return AccountDashboard()
-        elif '#/dashboard' in url:
+        elif '/dashboard' in url:
             return TerraformEnvDashboard()
         else:
             raise AssertionError(f'Current url: {url} but dashboard not exist')

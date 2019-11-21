@@ -30,7 +30,7 @@ def pytest_addoption(parser):
     )
 
 
-@pytest.fixture(scope="class")
+@pytest.fixture(scope="session")
 def testenv(request):
     """Creates and yeild revizor TestEnv container.
        Destroys container after all tests in TestClass were executed,
@@ -75,7 +75,7 @@ def tf_dashboard(testenv):
     browser.open_url(f'https://{testenv.te_id}.test-env.scalr.com')
     s('#loading').should_not_be(visible, timeout=20)
     url = browser.driver().current_url
-    if '#/dashboard' in url:
+    if '/dashboard' in url:
         return TerraformEnvDashboard()
     else:
         login_page = LoginPage()
