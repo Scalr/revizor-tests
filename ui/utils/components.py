@@ -35,6 +35,8 @@ class LoadingModal(BaseComponent):
 
 loading_modal = LoadingModal
 
+#TODO: Add complete component for Loading page modal
+
 
 class Tooltip(BaseComponent):
     def __init__(self, message: str):
