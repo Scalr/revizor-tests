@@ -37,9 +37,19 @@ class SurefireRESTReporter:
         self._config = config
         self._token = os.environ.get('REVIZOR_API_TOKEN')
         self._testsuite_id = os.environ.get('REVIZOR_TESTINSTANCE_ID')
-        self._revizor_url = os.environ.get('REVIZOR_URL', 'https://revizor.scalr-labs.com')
+        self._revizor_url = os.environ.get('REVIZOR_URL', 'https://revizor.scalr-labs.net')
         self._testcase_ids = {}
         self._module_ids = {}
+        self._session = None
+
+    @property
+    def req(self):
+        if not self._session:
+            self._session = requests.Session()
+            self._session.headers = {
+                'Authorization': f'Token {self._token}'
+            }
+        return self._session
 
     def log_test_status(self, item, status: str, exception: str = None):
         body = {
@@ -47,8 +57,7 @@ class SurefireRESTReporter:
         }
         if exception:
             body['error_text'] = exception
-        requests.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}',
-                       json=body, headers={'Authorization': f'Token {self._token}'})
+        self.req.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}', json=body)
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item: Function, call: CallInfo) -> TestReport:
@@ -74,11 +83,11 @@ class SurefireRESTReporter:
                 modules.append(module_path)
         for m in modules:
             LOG.info(f'Create module in revizor with name {m} for test run {self._testsuite_id}')
-            resp = requests.post(f'{self._revizor_url}/api/tests/modules',
+            resp = self.req.post(f'{self._revizor_url}/api/tests/modules',
                                  json={
                                      'name': m,
                                      'test_run': self._testsuite_id
-                                 }, headers={'Authorization': f'Token {self._token}'})
+                                 })
             if resp.status_code != 201:
                 raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
@@ -89,10 +98,10 @@ class SurefireRESTReporter:
             module_id = self._module_ids[module_name]
             name = f'{i.parent.parent.name}::{i.name}'  # FIXME: Cases without class and better check for class
             doc = i.obj.__doc__
-            resp = requests.post(f'{self._revizor_url}/api/tests/cases',
+            resp = self.req.post(f'{self._revizor_url}/api/tests/cases',
                                  json={
                                      'module': module_id,
                                      'name': name,
                                      'description': doc
-                                 }, headers={'Authorization': f'Token {self._token}'})
+                                 })
             self._testcase_ids[i.name] = resp.json()['id']

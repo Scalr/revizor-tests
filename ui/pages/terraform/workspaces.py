@@ -1,8 +1,7 @@
 import typing as tp
 
 from selene.elements import SeleneElement
-from selene.api import s, ss, by, browser
-from selene.conditions import visible, exist, clickable, text, url_containing
+from selene.api import s, ss, by, browser, be
 
 from .base import TfBasePage, BasePage
 from ui.utils.components import button, combobox, toggle, loading_modal, input
@@ -11,8 +10,8 @@ from ui.utils.components import button, combobox, toggle, loading_modal, input
 class CreateWorkspaceModal(BasePage):
     @staticmethod
     def wait_page_loading():
-        s('div#loading').should_not_be(exist, timeout=20)
-        s('div[style*="19000"]').s(by.xpath('//div[text()="New Workspace"]')).should_be(visible, timeout=20)
+        s('div#loading').should(be.existing, timeout=20)
+        s('div[style*="19000"]').s(by.xpath('//div[text()="New Workspace"]')).should(be.visible, timeout=20)
 
     def __init__(self):
         self.form_main = ss('div[id^="workspaceform"] > fieldset')[0]
@@ -112,8 +111,8 @@ class WorkspaceLine:
 class WorkspacePage(TfBasePage):
     @staticmethod
     def wait_page_loading():
-        s('div#loading').should_not_be(exist, timeout=20)
-        loading_modal('Loading...').should_not_be(visible, timeout=10)
+        s('div#loading').should(be.not_.existing, timeout=20)
+        loading_modal('Loading...').should(be.not_.visible, timeout=10)
 
     @property
     def workspaces(self) -> [WorkspaceLine]:

@@ -9,6 +9,11 @@ from pathlib import Path
 from revizor2.conf import CONF
 
 
+pytest_plugins = [
+    'plugins.surefire'
+]
+
+
 @pytest.fixture(scope='session', autouse=True)
 def logging_setup(request):
     package = request.session.items[0].location[0].split('/', maxsplit=1)[0]

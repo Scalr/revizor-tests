@@ -1,6 +1,5 @@
-from selene.api import s, ss, by, browser
-from selene.conditions import visible
-from selenium.common.exceptions import TimeoutException
+from selene.api import s, ss, by, browser, be
+from selene.core.exceptions import TimeoutException
 
 from ui.utils import consts
 from ui.utils import components
@@ -15,19 +14,19 @@ class LoginPage(BasePage):
 
     @staticmethod
     def wait_page_loading():
-        s('#loading').should_not_be(visible, timeout=20)
+        s('#loading').should(be.not_.visible, timeout=20)
 
     def set_username(self, username: str):
-        s('input[name=scalrLogin]').set(username)
+        s('input[name=scalrLogin]').set_value(username)
 
     def set_password(self, password: str):
-        s('input[name=scalrPass]').set(password)
+        s('input[name=scalrPass]').set_value(password)
 
     def submit(self):
         ss(by.xpath('//span[text()="Login"]/ancestor::a'))[1].click()
         loading_panel = s(by.xpath('//div[text()="Loading page ..." and contains(@class, "x-title-text")]'))
-        loading_panel.should_be(visible)
-        loading_panel.should_not_be(visible, timeout=10)
+        # loading_panel.should(be.visible)
+        loading_panel.should(be.not_.visible, timeout=10)
         url = browser.driver().current_url
 
         if '/admin/dashboard' in url:
@@ -35,9 +34,9 @@ class LoginPage(BasePage):
         elif '/account/dashboard' in url:
             return AccountDashboard()
         else:
-            components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should_not_be(visible)
+            components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(be.not_.visible)
             try:
-                s(by.xpath('//strong[text()="Getting started"]')).should_be(visible, timeout=1)
+                s(by.xpath('//strong[text()="Getting started"]')).should(be.visible, timeout=1)
                 return TerraformEnvDashboard()
             except TimeoutException:
                 return ClassicEnvDashboard()

@@ -1,8 +1,7 @@
 import typing as tp
 
 import pytest
-from selene.conditions import visible
-
+from selene.api import be
 
 from ui.utils.datagenerator import generate_name
 from ui.pages.terraform.workspaces import WorkspacePage
@@ -23,8 +22,8 @@ class TestVCSProviders:
         self.workspace_name = generate_name('name')
 
     def wait_workspace_save(self):
-        loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should_be(visible, timeout=10)
-        loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should_not_be(visible, timeout=10)
+        loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.visible, timeout=10)
+        loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.not_.visible, timeout=10)
 
     def test_create_default_workspace(self):
         workspaces_before = len(self.workspace_page.workspaces)
@@ -48,7 +47,7 @@ class TestVCSProviders:
         assert workspace_line.changed_on == '—'
         assert workspace_line.created_by == 'tf@scalr.com'
         assert workspace_line.repository == self.repo_name
-        assert workspace_line.launch_button.should_be(visible)
+        assert workspace_line.launch_button.should(be.visible)
 
     def test_create_with_auto_apply(self):
         modal = self.workspace_page.open_new_workspace()

@@ -2,8 +2,7 @@ import time
 import typing as tp
 
 import pytest
-from selene.api import s, by
-from selene.conditions import visible, text, exist, css_class
+from selene.api import s, be, have
 
 from revizor2.conf import CONF
 
@@ -41,11 +40,11 @@ class TestVCSProviders:
             github.password.set(CONF.credentials.github.password)
             github.submit.click()
         github.authorize_user.click()
-        s('div#loading').should_not_be(exist, timeout=10)
-        s('div.x-mask').should_not_be(visible)
+        s('div#loading').should(be.not_.existing, timeout=10)
+        s('div.x-mask').should(be.not_.visible)
         if wait_message:
             tip = tooltip('Successfully Authorized.')
-            tip.element.should_be(visible)
+            tip.element.should(be.visible)
             tip.close()
         return vcs_page
 
@@ -54,7 +53,7 @@ class TestVCSProviders:
         vcs_page = self.add_provider(vcs_name)
         edit_form = EditVCSForm()
         assert edit_form.name.get_attribute('value') == vcs_name
-        edit_form.reauthorize_button.should_be(visible)
+        edit_form.reauthorize_button.should(be.visible)
         assert len(vcs_page.providers) == 1
         assert vcs_page.providers[0].name == vcs_name
         assert vcs_page.providers[0].usage == 'Not used'
@@ -69,7 +68,7 @@ class TestVCSProviders:
         confirm.visible()
         confirm.delete_button.click()
         tip = tooltip('VCS provider successfully deleted.')
-        tip.element.should_be(visible)
+        tip.element.should(be.visible)
         tip.close()
         for provider in vcs_page.providers:
             assert provider.name != vcs_name, f'Provider {provider.name} is exist!'
@@ -83,10 +82,10 @@ class TestVCSProviders:
         new_form.client_id.set('dsfsdfs')
         new_form.client_secret.set('sdsadasd')
         new_form.create_button.click()
-        new_form.name.should_have(css_class('x-form-invalid-field'))
+        new_form.name.should(have.css_class('x-form-invalid-field'))
         new_form.name.parent_element.following_sibling.hover()
-        s('div#ext-form-error-tip-body').should_be(visible)\
-            .should_have(text('VCS Provider name must be unique within current scope.'))
+        s('div#ext-form-error-tip-body').should(be.visible)\
+            .should(have.text('VCS Provider name must be unique within current scope.'))
 
     def test_reauthorize(self):
         vcs_name = generate_name('test-')
@@ -94,7 +93,7 @@ class TestVCSProviders:
         edit_form = EditVCSForm()
         edit_form.reauthorize_button.click()
         tip = tooltip('Successfully Authorized.')
-        tip.element.should_be(visible, timeout=20)
+        tip.element.should(be.visible, timeout=20)
 
     def test_add_client_id_twice(self):
         vcs_name = generate_name('test-')
@@ -106,18 +105,18 @@ class TestVCSProviders:
         new_form.client_id.set(settings['key'])
         new_form.client_secret.set('sdsadasd')
         new_form.create_button.click()
-        new_form.client_id.should_have(css_class('x-form-invalid-field'))
+        new_form.client_id.should(have.css_class('x-form-invalid-field'))
         new_form.client_id.parent_element.following_sibling.hover()
-        s('div#ext-form-error-tip-body').should_be(visible) \
-            .should_have(text('VCS Provider with same Client ID already exist.'))
+        s('div#ext-form-error-tip-body').should(be.visible) \
+            .should(have.text('VCS Provider with same Client ID already exist.'))
 
     def test_add_invalid_secret(self):
         vcs_name = generate_name('test-')
         vcs_page = self.add_provider(vcs_name, 'invalidsecret', wait_message=False)
         provider = vcs_page.providers[0]
-        provider.element.s('img.x-icon-colored-status-failed').should_be(visible)
+        provider.element.s('img.x-icon-colored-status-failed').should(be.visible)
         edit_page = EditVCSForm()
-        edit_page.error.should_be(visible).should_have(text("incorrect_client_credentials"))
+        edit_page.error.should(be.visible).should(have.text("incorrect_client_credentials"))
 
     def test_search(self):
         vcs_name = generate_name('test-')

@@ -1,10 +1,13 @@
+import os
+import re
 import time
 
 import pytest
 from paramiko.ssh_exception import NoValidConnectionsError
 
-from selene.api import browser, s
-from selene.conditions import visible
+from selenium import webdriver
+from selene.api import s, have, be
+from selene.support.shared import config, browser
 
 from revizor2.conf import CONF
 from revizor2.fixtures import resources
@@ -28,6 +31,46 @@ def pytest_addoption(parser):
         "--te-id", "--test-environment-id", dest="te_id", action="store",
         help="Scalr test environment id to use existing env", default=None
     )
+    group.addoption(
+        "--browser", dest='selenium_browser', action='store', default='chrome79',
+        help='Browser type and version (example: chrome77, firefox50). Version work only with remote driver'
+    )
+
+    group.addoption(
+        '--grid-address', dest='selenium_grid_address', action='store', default='',
+        help='Remote selenium grid address'
+    )
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_driver(request):
+    remote_addr = request.config.getoption('selenium_grid_address')
+    br = re.findall(r'([a-zA-Z]+)(\d+)', request.config.getoption('selenium_browser'))
+
+    if br:
+        browser_name, browser_version = br[0]
+    else:
+        browser_name = request.config.getoption('selenium_browser')
+        browser_version = None
+    browser_name = browser_name.lower()
+
+    if remote_addr:
+        driver = webdriver.Remote(
+            command_executor=f'http://{remote_addr}:4444/wd/hub',
+            desired_capabilities={
+                'browserName': browser_name,
+                'version': f'{browser_version}.0',
+                'enableVNC': True,
+                'enableVideo': False,
+
+            }
+        )
+        driver.maximize_window()
+        config.driver = driver
+    else:
+        config.browser_name = browser_name
+    yield
+    browser.quit()
 
 
 @pytest.fixture(scope="session")
@@ -72,8 +115,8 @@ def mock_ssmtp(request):
 
 @pytest.fixture()
 def tf_dashboard(testenv):
-    browser.open_url(f'https://{testenv.te_id}.test-env.scalr.com')
-    s('#loading').should_not_be(visible, timeout=20)
+    browser.open_url(f'https://{testenv.te_id}.test-env.scalr.net')
+    s('#loading').should(be.not_.visible, timeout=20)
     url = browser.driver().current_url
     if '/dashboard' in url:
         return TerraformEnvDashboard()

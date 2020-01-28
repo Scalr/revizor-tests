@@ -1,7 +1,6 @@
 import time
 
-from selene.api import s, ss, by, browser
-from selene.conditions import visible, exist, clickable, text, url_containing
+from selene.api import s, ss, by, browser, be, have
 
 from .base import TfBasePage, BasePage
 from ui.utils.components import button
@@ -26,7 +25,7 @@ class ProviderLine:
 class NewVCSForm(BasePage):
     @staticmethod
     def wait_page_loading():
-        s(by.xpath('//div[text()="New VCS Provider" and contains(@class, "x-component")]')).should_be(visible)
+        s(by.xpath('//div[text()="New VCS Provider" and contains(@class, "x-component")]')).should(be.visible)
 
     @property
     def vcs_type(self) -> browser.element:
@@ -60,7 +59,7 @@ class NewVCSForm(BasePage):
 class EditVCSForm(NewVCSForm):
     @staticmethod
     def wait_page_loading():
-        s(by.xpath('//div[text()="Edit VCS Provider" and contains(@class, "x-component")]')).should_be(visible)
+        s(by.xpath('//div[text()="Edit VCS Provider" and contains(@class, "x-component")]')).should(be.visible)
 
     @property
     def reauthorize_button(self) -> browser.element:
@@ -73,7 +72,7 @@ class EditVCSForm(NewVCSForm):
 
 class DeleteConfirmationModal:
     def visible(self):
-        return s('div.x-panel-confirm').should_be(visible)
+        return s('div.x-panel-confirm').should(be.visible)
 
     @property
     def message(self):
@@ -92,8 +91,8 @@ class VCSPage(TfBasePage):
     @staticmethod
     def wait_page_loading():
         time.sleep(1)
-        s('div#loading').should_not_be(exist, timeout=20)
-        button('New VCS Provider').should_be(clickable)
+        s('div#loading').should(be.not_.existing, timeout=20)
+        button('New VCS Provider').should(be.clickable)
 
     @property
     def new_vcs_button(self) -> browser.element:
@@ -124,13 +123,13 @@ class GithubAuthPage(BasePage):
 
     @staticmethod
     def wait_page_loading():
-        browser.wait_to(url_containing('github.com'))
+        browser.wait_to(have.url_containing('github.com'))
         url = browser.driver().current_url
         if 'github.com/login/oauth/authorize' in url:
             GithubAuthPage.authorized = True
-            s('p.text-small').should_have(text('Authorizing will redirect to'))
+            s('p.text-small').should(have.text('Authorizing will redirect to'))
         else:
-            s('a[href="https://github.com/contact"]').should_be(visible)
+            s('a[href="https://github.com/contact"]').should(be.visible)
 
     @property
     def username(self) -> browser.element:
@@ -147,5 +146,5 @@ class GithubAuthPage(BasePage):
     @property
     def authorize_user(self) -> browser.element:
         button = s('button[name="authorize"]')
-        button.should_be(clickable)
+        button.should(be.clickable)
         return button

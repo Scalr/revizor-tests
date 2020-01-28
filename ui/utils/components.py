@@ -1,8 +1,7 @@
 import typing as tp
-import time
 
-from selene.api import s, ss, by
-from selene.conditions import visible
+from selene.api import s, ss, by, be
+from selene.core import query
 from selene.elements import SeleneElement
 
 
@@ -54,11 +53,11 @@ class Input(BaseComponent):
         self.element = s(by.xpath(f'//label/span[text()="{label}"]/../parent::div/.//input'))
 
     def has_error(self):
-        return 'x-form-invalid-field' in self.element.get_attribute('class')
+        return 'x-form-invalid-field' in self.element.get(query.attribute('class'))
 
     @property
     def error(self):
-        return self.element.s(by.xpath('parent::div/following-sibling::div//li')).get_attribute('textContent')
+        return self.element.s(by.xpath('parent::div/following-sibling::div//li')).get(query.attribute('textContent'))
 
 
 input = Input
@@ -73,13 +72,13 @@ class Combobox(BaseComponent):
     def bound_id(self):
         if self._bound_id is None:
             self.open()
-            self._bound_id = ss('div.x-boundlist[componentid^="boundlist"]').find_by(visible).get_attribute('id')
+            self._bound_id = ss('div.x-boundlist[componentid^="boundlist"]').element_by(be.visible).get(query.attribute('id'))
             self.close()
         return self._bound_id
 
     def open(self):
         self.element.s('div').click()
-        self.element.s('div.x-form-field-loading').should_not_be(visible, timeout=10)
+        self.element.s('div.x-form-field-loading').should(be.not_.visible, timeout=10)
 
     def close(self):
         self.element.s('div').click()
@@ -105,11 +104,11 @@ class Combobox(BaseComponent):
         self.element.s('div.x-form-field-clear-cache').click()
 
     def has_error(self):
-        return 'x-form-invalid-field' in self.element.s('input').get_attribute('class')
+        return 'x-form-invalid-field' in self.element.s('input').get(query.attribute('class'))
 
     @property
     def error(self):
-        return self.element.s('div[role="alert"]').s('li').get_attribute('textContent')
+        return self.element.s('div[role="alert"]').s('li').get(query.attribute('textContent'))
 
 
 combobox = Combobox
@@ -123,7 +122,7 @@ class Toggle(BaseComponent):
         self.element.s('input').click()
 
     def is_checked(self):
-        return 'x-form-cb-checked' in self.element.get_attribute('class')
+        return 'x-form-cb-checked' in self.element.get(query.attribute('class'))
 
 
 toggle = Toggle
