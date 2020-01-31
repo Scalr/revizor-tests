@@ -13,7 +13,7 @@ class TestVCSProviders:
     workspace_page: WorkspacePage
     vcs_provider: tp.Dict[str, str]
     workspace_name: str
-    repo_name: str = 'Scalr/revizor'
+    repo_name: str = 'Scalr/revizor' #FIXME: Use another repo with access from all
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, tf_dashboard, vcs_provider):
@@ -25,6 +25,7 @@ class TestVCSProviders:
         loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.visible, timeout=10)
         loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.not_.visible, timeout=10)
 
+    #TODO: Add case when try to add repo without permissions for webhooks
     def test_create_default_workspace(self):
         workspaces_before = len(self.workspace_page.workspaces)
         modal = self.workspace_page.open_new_workspace()
