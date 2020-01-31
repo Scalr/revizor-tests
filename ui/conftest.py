@@ -115,7 +115,7 @@ def mock_ssmtp(request):
 
 @pytest.fixture()
 def tf_dashboard(testenv):
-    browser.open_url(f'https://{testenv.te_id}.test-env.scalr.net')
+    browser.open_url(f'https://{testenv.te_id}.test-env.scalr.com')
     s('#loading').should(be.not_.visible, timeout=20)
     url = browser.driver().current_url
     if '/dashboard' in url:
