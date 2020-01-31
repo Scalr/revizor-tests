@@ -1,4 +1,3 @@
-import os
 import re
 import time
 
@@ -93,6 +92,7 @@ def testenv(request):
                 time.sleep(3)
             except NoValidConnectionsError:
                 time.sleep(3)
+    CONF.scalr.te_id = container.te_id
     yield container
     if (request.node.session.testsfailed == 0 and not te_id) or te_remove:
         container.destroy()

@@ -10,7 +10,7 @@ from ui.utils.components import button, combobox, toggle, loading_modal, input
 class CreateWorkspaceModal(BasePage):
     @staticmethod
     def wait_page_loading():
-        s('div#loading').should(be.existing, timeout=20)
+        s('div#loading').should(be.not_.visible, timeout=20)
         s('div[style*="19000"]').s(by.xpath('//div[text()="New Workspace"]')).should(be.visible, timeout=20)
 
     def __init__(self):

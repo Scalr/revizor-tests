@@ -1,4 +1,4 @@
-from selene.api import s, ss, by, browser, be
+from selene.api import s, ss, by, browser, be, have
 from selene.core.exceptions import TimeoutException
 
 from ui.utils import consts
@@ -36,7 +36,8 @@ class LoginPage(BasePage):
         else:
             components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(be.not_.visible)
             try:
-                s(by.xpath('//strong[text()="Getting started"]')).should(be.visible, timeout=1)
+                ss(by.xpath('//*[normalize-space(text())="Getting started"]')).should(have.size(2), timeout=10)
+                ss(by.xpath('//*[normalize-space(text())="Getting started"]')).filtered_by(be.visible).should(have.size(1))
                 return TerraformEnvDashboard()
             except TimeoutException:
                 return ClassicEnvDashboard()
