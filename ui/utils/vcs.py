@@ -26,7 +26,7 @@ class VCSProvider(metaclass=abc.ABCMeta):
 class VCSGithub(VCSProvider):
     def login(self, login: str, password: str) -> requests.Response:
         tree = lxml.html.fromstring(self._session.get('https://github.com/login').text)
-        form = tree.xpath('//form')[0]
+        form = list(filter(lambda f: f.action == '/session', tree.forms))[0]
         form.fields['login'] = login
         form.fields['password'] = password
         form.fields['webauthn-support'] = 'supported'
