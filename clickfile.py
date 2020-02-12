@@ -8,9 +8,6 @@ import subprocess
 import click
 import requests
 
-CHROMEDRIVER_VERSION = '2.46'
-GECKODRIVER_VERSION = '0.24.0'
-
 
 def green(s):
     return click.style(s, fg='green')
