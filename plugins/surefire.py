@@ -66,8 +66,10 @@ class SurefireRESTReporter:
 
         if call.when == 'setup' and report.outcome == 'passed':
             self.log_test_status(item, 'STARTED')
+        elif call.when == 'setup' and report.outcome == 'skipped':
+            self.log_test_status(item, 'SKIPPED', report.longrepr[2])
         elif call.when in ('setup', 'call') and report.outcome == 'failed':
-            self.log_test_status(item, 'FAILED', str(report.longrepr))
+            self.log_test_status(item, 'FAILED', report.longrepr[2])
         elif call.when == 'call' and report.outcome == 'passed':
             self.log_test_status(item, 'COMPLETED')
         return report
@@ -75,8 +77,8 @@ class SurefireRESTReporter:
     def pytest_collection_finish(self, session):
         modules = []
         for i in session.items:
-            if i.get_closest_marker('skip'):
-                continue
+            # if i.get_closest_marker('skip'):
+            #     continue
             module = i.listchain()[2]
             module_path = module.fspath.strpath.split(BASE_PATH)[1][1:]
             if module_path not in modules:
@@ -92,8 +94,8 @@ class SurefireRESTReporter:
                 raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
         for i in session.items:
-            if i.get_closest_marker('skip'):
-                continue
+            # if i.get_closest_marker('skip'):
+            #     continue
             module_name = i.listchain()[2].fspath.strpath.split(BASE_PATH)[1][1:]
             module_id = self._module_ids[module_name]
             name = f'{i.parent.parent.name}::{i.name}'  # FIXME: Cases without class and better check for class
