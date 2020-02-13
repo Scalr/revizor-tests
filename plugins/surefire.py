@@ -50,13 +50,17 @@ class SurefireRESTReporter:
             }
         return self._session
 
-    def log_test_status(self, item, status: str, exception: str = None):
+    def log_test_status(self, item: Function, status: str, exception: str = None):
         body = {
             'status': status
         }
         if exception:
             body['error_text'] = exception
         self.req.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}', json=body)
+
+    def upload_test_file(self, item: Function, file_path: str):
+        self.req.post(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}/upload',
+                      files={'obj': open(file_path, 'rb')})
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item: Function, call: CallInfo) -> TestReport:
@@ -71,6 +75,10 @@ class SurefireRESTReporter:
             self.log_test_status(item, 'FAILED', report.longrepr)
         elif call.when == 'call' and report.outcome == 'passed':
             self.log_test_status(item, 'COMPLETED')
+        elif call.when == 'teardown' and report.outcome == 'failed':
+            f = getattr(item.session, 'screenshot_path', None)
+            if f:
+                self.upload_test_file(item, f)
         return report
 
     def pytest_collection_finish(self, session):
