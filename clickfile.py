@@ -8,9 +8,6 @@ import subprocess
 import click
 import requests
 
-CHROMEDRIVER_VERSION = '2.46'
-GECKODRIVER_VERSION = '0.24.0'
-
 
 def green(s):
     return click.style(s, fg='green')
@@ -72,13 +69,13 @@ def run_job():
     testsuite_id = os.environ.get('REVIZOR_TESTSUITE_ID')
     test = session.get(f'{revizor_url}/api/tests/retrieve/{testsuite_id}')
     if test.status_code == 404:
-        print(red(f'Tests not found for {testsuite_id} test suite!'))
+        print(f'Tests not found for {testsuite_id} test suite!')
         sys.exit(0)
 
     try:
         body = test.json()
     except json.decoder.JSONDecodeError:
-        print(red(f'Error in get test suite id: {test.text}'))
+        print(f'Error in get test suite id: {test.text}')
         return
 
     os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])

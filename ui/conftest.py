@@ -2,6 +2,7 @@ import re
 import time
 
 import pytest
+from _pytest.fixtures import FixtureRequest
 from paramiko.ssh_exception import NoValidConnectionsError
 
 from selenium import webdriver
@@ -125,3 +126,11 @@ def tf_dashboard(testenv):
         login_page.set_username(CONF.credentials.testenv.accounts.terraform.username)
         login_page.set_password(CONF.credentials.testenv.accounts.terraform.password)
         return login_page.submit()
+
+
+@pytest.fixture(autouse=True)
+def save_screenshot_path(request: FixtureRequest):
+    request.session.screenshot_path = browser.last_screenshot = None
+    yield
+    if browser.last_screenshot:
+        request.session.screenshot_path = browser.last_screenshot

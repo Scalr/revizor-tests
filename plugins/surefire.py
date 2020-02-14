@@ -1,5 +1,4 @@
 import os
-import json
 import pathlib
 import logging
 
@@ -51,13 +50,17 @@ class SurefireRESTReporter:
             }
         return self._session
 
-    def log_test_status(self, item, status: str, exception: str = None):
+    def log_test_status(self, item: Function, status: str, exception: str = None):
         body = {
             'status': status
         }
         if exception:
             body['error_text'] = exception
         self.req.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}', json=body)
+
+    def upload_test_file(self, item: Function, file_path: str):
+        self.req.post(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}/upload',
+                      files={'obj': open(file_path, 'rb')})
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item: Function, call: CallInfo) -> TestReport:
@@ -66,17 +69,23 @@ class SurefireRESTReporter:
 
         if call.when == 'setup' and report.outcome == 'passed':
             self.log_test_status(item, 'STARTED')
+        elif call.when == 'setup' and report.outcome == 'skipped':
+            self.log_test_status(item, 'SKIPPED', report.longrepr[2])
         elif call.when in ('setup', 'call') and report.outcome == 'failed':
-            self.log_test_status(item, 'FAILED', str(report.longrepr))
+            self.log_test_status(item, 'FAILED', report.longrepr)
         elif call.when == 'call' and report.outcome == 'passed':
             self.log_test_status(item, 'COMPLETED')
+        elif call.when == 'teardown' and report.outcome == 'failed':
+            f = getattr(item.session, 'screenshot_path', None)
+            if f:
+                self.upload_test_file(item, f)
         return report
 
     def pytest_collection_finish(self, session):
         modules = []
         for i in session.items:
-            if i.get_closest_marker('skip'):
-                continue
+            # if i.get_closest_marker('skip'):
+            #     continue
             module = i.listchain()[2]
             module_path = module.fspath.strpath.split(BASE_PATH)[1][1:]
             if module_path not in modules:
@@ -92,8 +101,8 @@ class SurefireRESTReporter:
                 raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
         for i in session.items:
-            if i.get_closest_marker('skip'):
-                continue
+            # if i.get_closest_marker('skip'):
+            #     continue
             module_name = i.listchain()[2].fspath.strpath.split(BASE_PATH)[1][1:]
             module_id = self._module_ids[module_name]
             name = f'{i.parent.parent.name}::{i.name}'  # FIXME: Cases without class and better check for class
