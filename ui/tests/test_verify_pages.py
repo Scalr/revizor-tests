@@ -43,11 +43,12 @@ class TestPagesForErrors:
             raise AssertionError(f"Browser has an error in console: {logs}")
 
     def authorize(self, username: str, password: str):
-        browser.open_url(
+        browser.open(
             f"https://{self.testenv.te_id}.test-env.scalr.com{self.base_url}"
         )
         s("#loading").should(be.not_.visible, timeout=20)
         login_page = LoginPage()
+        login_page.set_idp_provider('scalr')
         login_page.set_username(username)
         login_page.set_password(password)
         login_page.submit()

@@ -80,7 +80,7 @@ def run_job():
 
     os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])
     command = body['run_command']
-    # command += ' --report-surefire --te-remove'
+    command += ' -s -v'
 
     os.chdir('/tests')
     print(f'Start test with command "{command}"')

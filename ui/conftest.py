@@ -123,6 +123,7 @@ def tf_dashboard(testenv):
         return TerraformEnvDashboard()
     else:
         login_page = LoginPage()
+        login_page.set_idp_provider('scalr')
         login_page.set_username(CONF.credentials.testenv.accounts.terraform.username)
         login_page.set_password(CONF.credentials.testenv.accounts.terraform.password)
         return login_page.submit()

@@ -1,3 +1,5 @@
+import time
+
 from selene.api import s, ss, by, browser, be, have, query
 from selene.core.exceptions import TimeoutException
 
@@ -21,6 +23,11 @@ class LoginPage(BasePage):
 
     def set_password(self, password: str):
         s('input[name=scalrPass]').set_value(password)
+
+    def set_idp_provider(self, name: str = 'scalr'):
+        providers = components.combobox('Identity Provider')
+        providers.set_value(name)
+        time.sleep(1)
 
     def submit(self):
         ss(by.xpath('//span[text()="Login"]/ancestor::a'))[1].click()

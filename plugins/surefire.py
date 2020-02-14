@@ -70,9 +70,9 @@ class SurefireRESTReporter:
         if call.when == 'setup' and report.outcome == 'passed':
             self.log_test_status(item, 'STARTED')
         elif call.when == 'setup' and report.outcome == 'skipped':
-            self.log_test_status(item, 'SKIPPED', report.longrepr[2])
+            self.log_test_status(item, 'SKIPPED', str(report.longrepr[2]))
         elif call.when in ('setup', 'call') and report.outcome == 'failed':
-            self.log_test_status(item, 'FAILED', report.longrepr)
+            self.log_test_status(item, 'FAILED', str(report.longrepr))
         elif call.when == 'call' and report.outcome == 'passed':
             self.log_test_status(item, 'COMPLETED')
         elif call.when == 'teardown' and report.outcome == 'failed':
