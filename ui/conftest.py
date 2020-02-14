@@ -130,7 +130,7 @@ def tf_dashboard(testenv):
 
 @pytest.fixture(autouse=True)
 def save_screenshot_path(request: FixtureRequest):
-    request.session.screenshot_path = browser.last_screenshot = None
+    request.session.config.screenshot_path = browser.last_screenshot = None
     yield
     if browser.last_screenshot:
-        request.session.screenshot_path = browser.last_screenshot
+        request.session.config.screenshot_path = browser.last_screenshot
