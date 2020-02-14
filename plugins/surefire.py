@@ -9,9 +9,7 @@ from _pytest.python import Function
 from _pytest.runner import CallInfo
 from _pytest.reports import TestReport
 
-
 BASE_PATH = str(pathlib.Path(__file__).parent.parent.parent)
-
 
 LOG = logging.getLogger(__name__)
 
@@ -59,8 +57,9 @@ class SurefireRESTReporter:
         self.req.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}', json=body)
 
     def upload_test_file(self, item: Function, file_path: str):
-        self.req.post(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}/upload',
-                      files={'obj': open(file_path, 'rb')})
+        resp = self.req.post(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}/upload',
+                             files={'obj': open(file_path, 'rb')})
+        LOG.debug(f'Response from file upload: {resp.text}')
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item: Function, call: CallInfo) -> TestReport:
@@ -78,6 +77,7 @@ class SurefireRESTReporter:
         elif call.when == 'teardown' and report.outcome == 'failed':
             f = getattr(item.session, 'screenshot_path', None)
             if f:
+                LOG.debug(f'Upload file: f')
                 self.upload_test_file(item, f)
         return report
 
