@@ -76,7 +76,7 @@ class SurefireRESTReporter:
         elif call.when == 'call' and report.outcome == 'passed':
             self.log_test_status(item, 'COMPLETED')
         elif call.when == 'teardown' and report.outcome == 'failed':
-            f = getattr(item.session.config, 'screenshot_path', None)
+            f = getattr(item.session, 'screenshot_path', None)
             if f:
                 self.upload_test_file(item, f)
         return report
