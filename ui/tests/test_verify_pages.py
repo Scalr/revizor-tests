@@ -33,6 +33,8 @@ class TestPagesForErrors:
     def skip_warning_tests(self, request: FixtureRequest):
         if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
             pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
+        elif self.base_url == '/index7.html':
+            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14711')
 
     def assert_errors(self):
         driver = browser.driver()
@@ -43,11 +45,12 @@ class TestPagesForErrors:
             raise AssertionError(f"Browser has an error in console: {logs}")
 
     def authorize(self, username: str, password: str):
-        browser.open_url(
+        browser.open(
             f"https://{self.testenv.te_id}.test-env.scalr.com{self.base_url}"
         )
         s("#loading").should(be.not_.visible, timeout=20)
         login_page = LoginPage()
+        login_page.set_idp_provider('scalr')
         login_page.set_username(username)
         login_page.set_password(password)
         login_page.submit()
@@ -97,6 +100,7 @@ class TestPagesForErrors:
             CONF.credentials.testenv.accounts.super_admin.username,
             CONF.credentials.testenv.accounts.super_admin.password,
         )
+
         self.iterate_scalr_menu()
 
     def test_account_scope_pages(self):

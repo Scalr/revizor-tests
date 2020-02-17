@@ -9,9 +9,12 @@ from _pytest.python import Function
 from _pytest.runner import CallInfo
 from _pytest.reports import TestReport
 
+try:
+    from selene.support.shared import browser
+except:
+    browser = None
 
 BASE_PATH = str(pathlib.Path(__file__).parent.parent.parent)
-
 
 LOG = logging.getLogger(__name__)
 
@@ -59,35 +62,36 @@ class SurefireRESTReporter:
         self.req.patch(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}', json=body)
 
     def upload_test_file(self, item: Function, file_path: str):
-        self.req.post(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}/upload',
-                      files={'obj': open(file_path, 'rb')})
+        resp = self.req.post(f'{self._revizor_url}/api/tests/cases/{self._testcase_ids[item.name]}/upload',
+                             files={'obj': open(file_path, 'rb')})
+        LOG.debug(f'Response from file upload: {resp.text}')
+
+    def test_is_ui(self, item: Function):
+        return 'tests/ui' in item.listchain()[2].fspath.strpath
 
     @pytest.hookimpl(hookwrapper=True)
     def pytest_runtest_makereport(self, item: Function, call: CallInfo) -> TestReport:
         become = yield
         report = become.get_result()
-
         if call.when == 'setup' and report.outcome == 'passed':
             self.log_test_status(item, 'STARTED')
         elif call.when == 'setup' and report.outcome == 'skipped':
-            self.log_test_status(item, 'SKIPPED', report.longrepr[2])
-        elif call.when in ('setup', 'call') and report.outcome == 'failed':
-            self.log_test_status(item, 'FAILED', report.longrepr)
+            self.log_test_status(item, 'SKIPPED', str(report.longrepr[2]))
+        elif call.when in ('setup', 'call', 'teardown') and report.outcome == 'failed':
+            self.log_test_status(item, 'FAILED', str(report.longrepr))
+            if self.test_is_ui(item) and browser.last_screenshot:
+                LOG.debug(f'Upload screenshot: {browser.last_screenshot}')
+                self.upload_test_file(item, browser.last_screenshot)
+                browser._latest_screenshot = None
         elif call.when == 'call' and report.outcome == 'passed':
             self.log_test_status(item, 'COMPLETED')
-        elif call.when == 'teardown' and report.outcome == 'failed':
-            f = getattr(item.session, 'screenshot_path', None)
-            if f:
-                self.upload_test_file(item, f)
         return report
 
     def pytest_collection_finish(self, session):
         modules = []
         for i in session.items:
-            # if i.get_closest_marker('skip'):
-            #     continue
             module = i.listchain()[2]
-            module_path = module.fspath.strpath.split(BASE_PATH)[1][1:]
+            module_path = module.fspath.strpath.split(BASE_PATH, 1)[1]
             if module_path not in modules:
                 modules.append(module_path)
         for m in modules:
@@ -101,9 +105,7 @@ class SurefireRESTReporter:
                 raise AssertionError(f'Can\'t create module in revizor error {resp.text}')
             self._module_ids[m] = resp.json()['id']
         for i in session.items:
-            # if i.get_closest_marker('skip'):
-            #     continue
-            module_name = i.listchain()[2].fspath.strpath.split(BASE_PATH)[1][1:]
+            module_name = i.listchain()[2].fspath.strpath.split(BASE_PATH, 1)[1]
             module_id = self._module_ids[module_name]
             name = f'{i.parent.parent.name}::{i.name}'  # FIXME: Cases without class and better check for class
             doc = i.obj.__doc__

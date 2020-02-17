@@ -14,7 +14,8 @@ pytest_plugins = [
 ]
 
 
-@pytest.fixture(scope='session', autouse=True)
+#FIXME: rework this because py.test override all settings
+# @pytest.fixture(scope='session', autouse=True)
 def logging_setup(request):
     package = request.session.items[0].location[0].split('/', maxsplit=1)[0]
     path = Path(CONF.logging_path) / package
@@ -47,6 +48,11 @@ def logging_setup(request):
             }
         },
         'loggers': {
+            'root': {
+                'level': 'DEBUG',
+                'handlers': ['info', 'debug'],
+                'propagate': True
+            },
             f'{package}': {
                 'level': 'DEBUG',
                 'handlers': ['info', 'debug'],
