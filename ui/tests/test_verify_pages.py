@@ -100,6 +100,7 @@ class TestPagesForErrors:
             CONF.credentials.testenv.accounts.super_admin.username,
             CONF.credentials.testenv.accounts.super_admin.password,
         )
+
         self.iterate_scalr_menu()
 
     def test_account_scope_pages(self):

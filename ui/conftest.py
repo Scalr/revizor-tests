@@ -1,5 +1,6 @@
 import re
 import time
+import logging
 
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -15,6 +16,9 @@ from revizor2.testenv import TestEnv
 
 from pages.login import LoginPage
 from pages.terraform.dashboard import TerraformEnvDashboard
+
+
+LOG = logging.getLogger(__name__)
 
 
 def pytest_addoption(parser):
@@ -127,11 +131,3 @@ def tf_dashboard(testenv):
         login_page.set_username(CONF.credentials.testenv.accounts.terraform.username)
         login_page.set_password(CONF.credentials.testenv.accounts.terraform.password)
         return login_page.submit()
-
-
-@pytest.fixture(autouse=True)
-def save_screenshot_path(request: FixtureRequest):
-    request.session.screenshot_path = browser._latest_screenshot = None
-    yield
-    if browser.last_screenshot:
-        request.session.screenshot_path = browser.last_screenshot
