@@ -33,6 +33,8 @@ class TestPagesForErrors:
     def skip_warning_tests(self, request: FixtureRequest):
         if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
             pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
+        elif self.base_url == '/index7.html':
+            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14711')
 
     def assert_errors(self):
         driver = browser.driver()
