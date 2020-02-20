@@ -21,6 +21,13 @@ class TestPagesForErrors:
     menu_scrolldown: Element
     menu_items: Collection
 
+    @pytest.fixture(autouse=True)
+    def skip_warning_tests(self, request: FixtureRequest):
+        if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
+            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
+        elif self.base_url == '/index7.html':
+            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14711')
+
     @pytest.fixture(autouse=True, params=["/", "/index7.html"], ids=['extjs5', 'extjs7'])
     def set_baseurl(self, request: FixtureRequest, testenv: TestEnv):
         self.testenv = testenv
@@ -29,14 +36,9 @@ class TestPagesForErrors:
         self.assert_errors()
         browser.driver().delete_all_cookies()
 
-    @pytest.fixture(autouse=True)
-    def skip_warning_tests(self, request: FixtureRequest):
-        if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
-            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
-        elif self.base_url == '/index7.html':
-            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14711')
-
     def assert_errors(self):
+        if browser.config.browser_name.lower().startswith('firefox'):
+            return
         driver = browser.driver()
         logs = driver.get_log("browser")
         for log in logs:
