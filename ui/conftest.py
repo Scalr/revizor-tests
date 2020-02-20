@@ -59,17 +59,20 @@ def setup_driver(request):
     browser_name = browser_name.lower()
 
     if remote_addr:
+        LOG.debug('Connect to remote webdriver')
         driver = webdriver.Remote(
             command_executor=f'http://{remote_addr}:4444/wd/hub',
             desired_capabilities={
                 'browserName': browser_name,
                 'version': f'{browser_version}.0',
                 'enableVNC': True,
-                'enableVideo': False,
-
-            }
+                'enableVideo': False
+            },
+            keep_alive=True
         )
+        LOG.debug('Connect succesfull')
         driver.maximize_window()
+        LOG.debug('Save driver to selene')
         config.driver = driver
     else:
         config.browser_name = browser_name
