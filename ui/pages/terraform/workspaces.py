@@ -152,17 +152,18 @@ class WorkspacePage(TfBasePage):
 
 
 class DeleteWorkspaceModal:
-    def visible(self):
-        return s('div.x-panel-confirm').should(be.visible)
+    @property
+    def visible_faild(self) -> browser.element:
+        return s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).should(be.visible)
 
+    @property
+    def visible_button(self) -> browser.element:
+        return s(by.xpath("//span[text()='Delete']/ancestor::span")).should(be.visible)
 
-    def delete_button(self):
-        return s(by.xpath("//div[starts-with(@id, 'workspacedashboard')]//a[contains(@class, 'x-btn')][3]"))
-
-    
+    @property
     def delete_ws(self):
         return s(by.xpath("//span[text()='Delete']/ancestor::span"))
 
-
+    @property
     def cancel_button(self):
         return s(by.xpath("//span[text()='Cancel']/ancestor::span"))
