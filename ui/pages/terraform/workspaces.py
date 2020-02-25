@@ -70,7 +70,7 @@ class CreateWorkspaceModal(BasePage):
     def cancel_button(self) -> button:
         return button('Cancel')
 
-
+    
 class WorkspaceLine:
     def __init__(self, element: browser.element):
         self.element = element
@@ -107,6 +107,10 @@ class WorkspaceLine:
     def dashboard_button(self) -> browser.element:
         return button(ticon='dashboard')
 
+    @property 
+    def ws_dashboard(self) -> browser.element:
+        return s(by.xpath("//a[@data-qtip='Dashboard']"))
+        
 
 class WorkspacePage(TfBasePage):
     @staticmethod
@@ -116,12 +120,38 @@ class WorkspacePage(TfBasePage):
 
     @property
     def workspaces(self) -> [WorkspaceLine]:
-        return [WorkspaceLine(p) for p in ss('tr.x-grid-row')]
+        return [WorkspaceLine(p) for p in ss('tr.x-grid-row') if p.is_displayed()]
 
     def open_new_workspace(self) -> browser.element:
         button('New Workspace').click()
         return CreateWorkspaceModal()
 
     @property
-    def search(self):
-        return
+    def search(self) -> browser.element:
+        return s(by.xpath("//div[text()='Search']"))
+
+    @property
+    def search_text(self) -> input:
+        return s(by.xpath("//div[text()='Search']/following-sibling::input"))
+
+    @property
+    def delete_button(self) -> browser.element:
+        return button(icon='delete')
+
+    @property
+    def ws_page(self) -> browser.element:
+        return s(by.xpath("//span[text()='Workspaces']/ancestor::span"))
+
+
+class DeleteWorkspaceModal:
+    @property
+    def visible_button(self) -> browser.element:
+        return s(by.xpath("//span[text()='Delete']/ancestor::span")).should(be.visible)
+
+    @property
+    def delete_ws(self):     #confirm delete ws
+        return s(by.xpath("//span[text()='Delete']/ancestor::span"))
+
+    @property
+    def cancel_delete_button(self):
+        return s(by.xpath("//span[text()='Cancel']/ancestor::span"))

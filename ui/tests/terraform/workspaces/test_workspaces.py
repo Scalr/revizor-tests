@@ -1,19 +1,20 @@
 import typing as tp
+import time
 
 import pytest
-from selene.api import be
+from selene.api import by,be,s
 
 from ui.utils.datagenerator import generate_name
-from ui.pages.terraform.workspaces import WorkspacePage
+from ui.pages.terraform.workspaces import WorkspacePage, DeleteWorkspaceModal
 from ui.utils.components import loading_modal
 from ui.utils import consts
 
 
-class TestVCSProviders:
+class TestWorkspaces:
     workspace_page: WorkspacePage
     vcs_provider: tp.Dict[str, str]
     workspace_name: str
-    repo_name: str = 'Scalr/revizor' #FIXME: Use another repo with access from all
+    repo_name: str = 'Scalr/tf-revizor-fixtures' #FIXME: Use another repo with access from all
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, tf_dashboard, vcs_provider):
@@ -25,7 +26,7 @@ class TestVCSProviders:
         loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.visible, timeout=10)
         loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.not_.visible, timeout=10)
 
-    #TODO: Add case when try to add repo without permissions for webhooks
+    # #TODO: Add case when try to add repo without permissions for webhooks
     def test_create_default_workspace(self):
         workspaces_before = len(self.workspace_page.workspaces)
         modal = self.workspace_page.open_new_workspace()
@@ -94,7 +95,7 @@ class TestVCSProviders:
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
-        assert workspace_line.repository == f'{self.repo_name} / subdir', f'Subdir not found "{workspace_line.repository}"'
+        assert workspace_line.repository == f'{self.repo_name}/subdir', f'Subdir not found "{workspace_line.repository}"'
 
     def test_create_with_work_dir(self):
         modal = self.workspace_page.open_new_workspace()
@@ -119,3 +120,105 @@ class TestVCSProviders:
         assert modal.vcs_provider.error == 'This field is required', f'Error is not expected: {modal.vcs_provider.error}'
         assert modal.repository.has_error()
         assert modal.repository.error == 'This field is required', f'Error is not expected: {modal.repository.error}'
+
+    def test_search_workspace(self):
+        for i in range(2):
+            modal = self.workspace_page.open_new_workspace()
+            workspace_name = generate_name('test-')
+            modal.name.set_value(workspace_name)
+            modal.vcs_provider.set_value(self.vcs_provider['name'])
+            modal.repository.set_value(self.repo_name)
+            tf_versions = modal.terraform_version.get_values()
+            modal.terraform_version.set_value(tf_versions[0])
+            modal.save_button.click()
+            self.wait_workspace_save()
+        self.workspace_page.search.click()
+        self.workspace_page.search_text.set_value(workspace_name)
+        time.sleep(1)
+        workspace_line = list(filter(lambda x: x.name == workspace_name, self.workspace_page.workspaces))
+        assert len(workspace_line) == 1
+        workspace_line = workspace_line[0]
+        assert workspace_line.name == workspace_name
+
+    def test_search_no_found_workspace(self):
+        modal = self.workspace_page.open_new_workspace()
+        modal.name.set_value(self.workspace_name)
+        modal.vcs_provider.set_value(self.vcs_provider['name'])
+        modal.repository.set_value(self.repo_name)
+        tf_versions = modal.terraform_version.get_values()
+        modal.terraform_version.set_value(tf_versions[0])
+        modal.save_button.click()
+        self.wait_workspace_save()
+        self.workspace_page.search.click()
+        self.workspace_page.search_text.set_value("qqqqqqqqqqqqqq")
+        time.sleep(1)
+        assert len(self.workspace_page.workspaces) == 0
+
+    def test_dashboard_workspace(self):
+        modal = self.workspace_page.open_new_workspace()
+        ws_name = self.workspace_name
+        modal.name.set_value(ws_name)
+        modal.vcs_provider.set_value(self.vcs_provider['name'])
+        modal.repository.set_value(self.repo_name)
+        tf_versions = modal.terraform_version.get_values()
+        modal.terraform_version.set_value(tf_versions[0])
+        modal.save_button.click()
+        self.wait_workspace_save()
+        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        assert len(workspace_line) == 1
+        workspace_line[0].ws_dashboard().click()
+        time.sleep(1)
+        name = s(by.xpath("//label/span[text()='Name']/ancestor::label/following-sibling::div/div"))
+        configuration_version = s(by.xpath("//label/span[text()='Configuration version']/ancestor::label/following-sibling::div/div"))
+        terraform_version = s(by.xpath("//label/span[text()='Terraform version']/ancestor::label/following-sibling::div/div"))
+        assert name.text == ws_name
+        assert terraform_version.text == tf_versions[0]
+        assert not modal.auto_apply.is_checked()
+
+    def test_delete_workspace(self):
+        modal = self.workspace_page.open_new_workspace()
+        ws_name = self.workspace_name
+        modal.name.set_value(ws_name)
+        modal.vcs_provider.set_value(self.vcs_provider['name'])
+        modal.repository.set_value(self.repo_name)
+        tf_versions = modal.terraform_version.get_values()
+        modal.terraform_version.set_value(tf_versions[0])
+        modal.save_button.click()
+        self.wait_workspace_save()
+        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        assert len(workspace_line) == 1
+        workspace_line[0].ws_dashboard.click()
+        self.workspace_page.delete_button.click()
+        confirm = DeleteWorkspaceModal()
+        s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).set_value(ws_name)
+        confirm.visible_button()
+        confirm.delete_ws.click()
+        self.workspace_page.search.click()
+        self.workspace_page.search_text.set_value(ws_name)
+        time.sleep(1)
+        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        assert len(workspace_line) == 0
+
+    def test_cancel_delete_workspace(self):
+        modal = self.workspace_page.open_new_workspace()
+        ws_name = self.workspace_name
+        modal.name.set_value(ws_name)
+        modal.vcs_provider.set_value(self.vcs_provider['name'])
+        modal.repository.set_value(self.repo_name)
+        tf_versions = modal.terraform_version.get_values()
+        modal.terraform_version.set_value(tf_versions[0])
+        modal.save_button.click()
+        self.wait_workspace_save()
+        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        assert len(workspace_line) == 1
+        workspace_line[0].ws_dashboard.click()
+        self.workspace_page.delete_button.click()
+        confirm = DeleteWorkspaceModal()
+        s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).set_value(ws_name)
+        confirm.cancel_delete_button.click()
+        self.workspace_page.ws_page.click()
+        self.workspace_page.search.click()
+        self.workspace_page.search_text.set_value(ws_name)
+        time.sleep(1)
+        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        assert len(workspace_line) == 1
