@@ -48,6 +48,7 @@ def pytest_addoption(parser):
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_driver(request):
+    LOG.debug('Setup webdriver fixture')
     remote_addr = request.config.getoption('selenium_grid_address')
     br = re.findall(r'([a-zA-Z]+)(\d+)', request.config.getoption('selenium_browser'))
 
@@ -58,8 +59,10 @@ def setup_driver(request):
         browser_version = None
     browser_name = browser_name.lower()
 
+    LOG.debug(f'Browser settings: {browser_name}:{browser_version}')
+
     if remote_addr:
-        LOG.debug('Connect to remote webdriver')
+        LOG.debug(f'Connect to remote webdriver {remote_addr}')
         driver = webdriver.Remote(
             command_executor=f'http://{remote_addr}:4444/wd/hub',
             desired_capabilities={
@@ -70,7 +73,7 @@ def setup_driver(request):
             },
             keep_alive=True
         )
-        LOG.debug('Connect succesfull')
+        LOG.debug('Connect successfully')
         driver.maximize_window()
         LOG.debug('Save driver to selene')
         config.driver = driver
