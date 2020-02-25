@@ -127,7 +127,7 @@ class WorkspacePage(TfBasePage):
         return CreateWorkspaceModal()
 
     @property
-    def search(self) -> input:
+    def search(self) -> browser.element:
         return s(by.xpath("//div[text()='Search']"))
 
     @property
@@ -139,31 +139,19 @@ class WorkspacePage(TfBasePage):
         return button(icon='delete')
 
     @property
-    def delete_ws(self) -> browser.element:
-        return s(by.xpath("//span[text()='Delete']/ancestor::span"))
-
-    @property
-    def cancel_button(self) -> browser.element:
-        return s(by.xpath("//span[text()='Cancel']/ancestor::span"))
-
-    @property
     def ws_page(self) -> browser.element:
         return s(by.xpath("//span[text()='Workspaces']/ancestor::span"))
 
 
 class DeleteWorkspaceModal:
     @property
-    def visible_faild(self) -> browser.element:
-        return s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).should(be.visible)
-
-    @property
     def visible_button(self) -> browser.element:
         return s(by.xpath("//span[text()='Delete']/ancestor::span")).should(be.visible)
 
     @property
-    def delete_ws(self):
+    def delete_ws(self):     #confirm delete ws
         return s(by.xpath("//span[text()='Delete']/ancestor::span"))
 
     @property
-    def cancel_button(self):
+    def cancel_delete_button(self):
         return s(by.xpath("//span[text()='Cancel']/ancestor::span"))

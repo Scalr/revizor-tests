@@ -215,7 +215,7 @@ class TestWorkspaces:
         self.workspace_page.delete_button.click()
         confirm = DeleteWorkspaceModal()
         s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).set_value(ws_name)
-        confirm.cancel_button.click()
+        confirm.cancel_delete_button.click()
         self.workspace_page.ws_page.click()
         self.workspace_page.search.click()
         self.workspace_page.search_text.set_value(ws_name)
