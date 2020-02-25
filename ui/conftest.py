@@ -47,7 +47,33 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_driver(request):
+def testenv(request):
+    """Creates and yeild revizor TestEnv container.
+       Destroys container after all tests in TestClass were executed,
+       unless some of the tests failed.
+    """
+    te_id = request.config.getoption("te_id")
+    te_remove = request.config.getoption("te_remove")
+    if te_id:
+        container = TestEnv(te_id)
+    else:
+        container = TestEnv.create(branch='master', notes='Selenium test container')
+        for _ in range(10):
+            try:
+                services = container.get_service_status()
+                if all(service['state'] == 'RUNNING' for service in services):
+                    break
+                time.sleep(3)
+            except NoValidConnectionsError:
+                time.sleep(3)
+    CONF.scalr.te_id = container.te_id
+    yield container
+    if (request.node.session.testsfailed == 0 and not te_id) or te_remove:
+        container.destroy()
+
+
+@pytest.fixture(scope="session", autouse=True)
+def setup_driver(request, testenv):
     LOG.debug('Setup webdriver fixture')
     remote_addr = request.config.getoption('selenium_grid_address')
     br = re.findall(r'([a-zA-Z]+)(\d+)', request.config.getoption('selenium_browser'))
@@ -81,32 +107,6 @@ def setup_driver(request):
         config.browser_name = browser_name
     yield
     browser.quit()
-
-
-@pytest.fixture(scope="session")
-def testenv(request):
-    """Creates and yeild revizor TestEnv container.
-       Destroys container after all tests in TestClass were executed,
-       unless some of the tests failed.
-    """
-    te_id = request.config.getoption("te_id")
-    te_remove = request.config.getoption("te_remove")
-    if te_id:
-        container = TestEnv(te_id)
-    else:
-        container = TestEnv.create(branch='master', notes='Selenium test container')
-        for _ in range(10):
-            try:
-                services = container.get_service_status()
-                if all(service['state'] == 'RUNNING' for service in services):
-                    break
-                time.sleep(3)
-            except NoValidConnectionsError:
-                time.sleep(3)
-    CONF.scalr.te_id = container.te_id
-    yield container
-    if (request.node.session.testsfailed == 0 and not te_id) or te_remove:
-        container.destroy()
 
 
 @pytest.fixture(scope="function")
