@@ -5,7 +5,7 @@ import pytest
 from selene.api import by,be,s
 
 from ui.utils.datagenerator import generate_name
-from ui.pages.terraform.workspaces import WorkspacePage, DeleteWorkspaceModal
+from ui.pages.terraform.workspaces import WorkspacePage, WorkspaceDashboard, DeleteWorkspaceModal
 from ui.utils.components import loading_modal
 from ui.utils import consts
 
@@ -132,8 +132,7 @@ class TestWorkspaces:
             modal.terraform_version.set_value(tf_versions[0])
             modal.save_button.click()
             self.wait_workspace_save()
-        self.workspace_page.search.click()
-        self.workspace_page.search_text.set_value(workspace_name)
+        self.workspace_page.search.set_value(workspace_name)
         time.sleep(1)
         workspace_line = list(filter(lambda x: x.name == workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
@@ -149,8 +148,7 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        self.workspace_page.search.click()
-        self.workspace_page.search_text.set_value("qqqqqqqqqqqqqq")
+        self.workspace_page.search.set_value("qqqqqqqqqqqqqq")
         time.sleep(1)
         assert len(self.workspace_page.workspaces) == 0
 
@@ -166,13 +164,11 @@ class TestWorkspaces:
         self.wait_workspace_save()
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
-        workspace_line[0].ws_dashboard().click()
+        dashboard = workspace_line[0].open_dashboard()
         time.sleep(1)
-        name = s(by.xpath("//label/span[text()='Name']/ancestor::label/following-sibling::div/div"))
-        configuration_version = s(by.xpath("//label/span[text()='Configuration version']/ancestor::label/following-sibling::div/div"))
-        terraform_version = s(by.xpath("//label/span[text()='Terraform version']/ancestor::label/following-sibling::div/div"))
-        assert name.text == ws_name
-        assert terraform_version.text == tf_versions[0]
+        assert len(dashboard.id.text) > 0
+        assert dashboard.name.text == ws_name
+        assert dashboard.terraform_version.text == tf_versions[0]
         assert not modal.auto_apply.is_checked()
 
     def test_delete_workspace(self):
@@ -187,14 +183,13 @@ class TestWorkspaces:
         self.wait_workspace_save()
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
-        workspace_line[0].ws_dashboard.click()
-        self.workspace_page.delete_button.click()
+        dashboard = workspace_line[0].open_dashboard()
+        dashboard.delete_button.click()
         confirm = DeleteWorkspaceModal()
-        s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).set_value(ws_name)
+        confirm.input_ws.set_value(ws_name)
         confirm.visible_button()
         confirm.delete_ws.click()
-        self.workspace_page.search.click()
-        self.workspace_page.search_text.set_value(ws_name)
+        self.workspace_page.search.set_value(ws_name)
         time.sleep(1)
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 0
@@ -211,14 +206,13 @@ class TestWorkspaces:
         self.wait_workspace_save()
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
-        workspace_line[0].ws_dashboard.click()
-        self.workspace_page.delete_button.click()
+        dashboard = workspace_line[0].open_dashboard()
+        dashboard.delete_button.click()
         confirm = DeleteWorkspaceModal()
-        s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']")).set_value(ws_name)
+        confirm.input_ws.set_value(ws_name)
         confirm.cancel_delete_button.click()
         self.workspace_page.ws_page.click()
-        self.workspace_page.search.click()
-        self.workspace_page.search_text.set_value(ws_name)
+        self.workspace_page.search.set_value(ws_name)
         time.sleep(1)
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
