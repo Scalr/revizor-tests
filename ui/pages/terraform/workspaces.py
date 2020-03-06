@@ -107,7 +107,7 @@ class WorkspaceLine:
     def dashboard_button(self) -> button:
         return button(qtip='Dashboard')
 
-    def open_dashboard(self) -> browser.element:
+    def open_dashboard(self) :
         self.dashboard_button.click()
         return WorkspaceDashboard()
         
@@ -135,7 +135,7 @@ class WorkspacePage(TfBasePage):
         return s(by.xpath("//span[text()='Workspaces']/ancestor::span"))
 
 
-class WorkspaceDashboard():
+class WorkspaceDashboard(TfBasePage):
     @staticmethod
     def wait_page_loading():
         loading_modal('Loading...').should(be.not_.visible, timeout=10)
