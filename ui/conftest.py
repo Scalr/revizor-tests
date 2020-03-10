@@ -36,7 +36,7 @@ def pytest_addoption(parser):
         help="Scalr test environment id to use existing env", default=None
     )
     group.addoption(
-        "--scalr-branch", "--test-environment-id", dest="scalr_branch", action="store",
+        "--scalr-branch", "--scalr-branch", dest="scalr_branch", action="store",
         help="Scalr test environment branch", default='master'
     )
     group.addoption(

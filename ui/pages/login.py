@@ -33,8 +33,8 @@ class LoginPage(BasePage):
         ss(by.xpath('//span[text()="Login"]/ancestor::a'))[1].click()
         loading_panel = components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE)
         loading_panel.should(be.not_.visible, timeout=10)
-        topmenu = s('div.x-toolbar.x-topmenu-menu').should(be.visible)
-        s('a.x-btn-scalr').should(be.visible).should(be.clickable)
+        topmenu = ss('div.x-toolbar.x-topmenu-menu').filtered_by(be.visible)[0].should(be.visible)
+        s(by.xpath('//span[contains(@class, "x-btn-inner-default-toolbar") and text()="Dashboard"]/ancestor::a')).should(be.visible).should(be.clickable)
         url = browser.driver().current_url
 
         if '/admin/dashboard' in url:
