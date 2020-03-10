@@ -107,7 +107,7 @@ class WorkspaceLine:
     def dashboard_button(self) -> button:
         return button(qtip='Dashboard')
 
-    def open_dashboard(self) :
+    def open_dashboard(self) -> "WorkspaceDashboard":
         self.dashboard_button.click()
         return WorkspaceDashboard()
         
@@ -129,10 +129,6 @@ class WorkspacePage(TfBasePage):
     @property
     def search(self) -> search:
         return search()
-
-    @property
-    def ws_page(self) -> browser.element:
-        return s(by.xpath("//span[text()='Workspaces']/ancestor::span"))
 
 
 class WorkspaceDashboard(TfBasePage):
@@ -201,11 +197,11 @@ class DeleteWorkspaceModal():
         return s(by.xpath("//span[text()='Delete']/ancestor::span")).should(be.visible)
 
     @property
-    def input_ws(self): 
+    def input_name(self): 
         return s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']"))
 
     @property
-    def delete_ws(self):     #confirm delete ws
+    def delete_button(self):     #confirm delete ws
         return s(by.xpath("//span[text()='Delete']/ancestor::span"))
 
     @property

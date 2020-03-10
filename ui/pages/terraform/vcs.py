@@ -3,7 +3,7 @@ import time
 from selene.api import s, ss, by, browser, be, have
 
 from .base import TfBasePage, BasePage
-from ui.utils.components import button
+from ui.utils import components
 
 
 class ProviderLine:
@@ -28,8 +28,8 @@ class NewVCSForm(BasePage):
         s(by.xpath('//div[text()="New VCS Provider" and contains(@class, "x-component")]')).should(be.visible)
 
     @property
-    def vcs_type(self) -> browser.element:
-        return s(by.xpath('//input[@name="type"]'))
+    def vcs_type(self) -> components.combobox:
+        return components.combobox('Type')
 
     @property
     def name(self) -> browser.element:
@@ -49,11 +49,11 @@ class NewVCSForm(BasePage):
 
     @property
     def create_button(self) -> browser.element:
-        return button('Create')
+        return components.button('Create')
 
     @property
     def cancel_button(self) -> browser.element:
-        return button('Cancel')
+        return components.button('Cancel')
 
 
 class EditVCSForm(NewVCSForm):
@@ -63,7 +63,7 @@ class EditVCSForm(NewVCSForm):
 
     @property
     def reauthorize_button(self) -> browser.element:
-        return button('Reauthorize on GitHub')
+        return components.button('Reauthorize on GitHub')
 
     @property
     def error(self) -> browser.element:
@@ -92,15 +92,15 @@ class VCSPage(TfBasePage):
     def wait_page_loading():
         time.sleep(1)
         s('div#loading').should(be.not_.existing, timeout=20)
-        button('New VCS Provider').should(be.clickable)
+        components.button('New VCS Provider').should(be.clickable)
 
     @property
-    def new_vcs_button(self) -> browser.element:
-        return button('New VCS Provider')
+    def new_vcs_button(self) -> components.button:
+        return components.button('New VCS Provider')
 
     @property
-    def delete_button(self) -> browser.element:
-        return button(icon='delete')
+    def delete_button(self) -> components.button:
+        return components.button(icon='delete')
 
     @property
     def search(self) -> browser.element:
