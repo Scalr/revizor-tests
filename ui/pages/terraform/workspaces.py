@@ -130,9 +130,9 @@ class WorkspacePage(TfBasePage):
     def search(self) -> search:
         return search()
 
-    @property
-    def ws_page(self) -> browser.element:
-        return s(by.xpath("//span[text()='Workspaces']/ancestor::span"))
+    # @property
+    # def ws_page(self) -> browser.element:
+    #     return s(by.xpath("//span[text()='Workspaces']/ancestor::span"))
 
 
 class WorkspaceDashboard(TfBasePage):
