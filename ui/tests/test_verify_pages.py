@@ -14,6 +14,13 @@ from ui.utils import components
 from pages.login import LoginPage
 
 
+IGNORE_ERRORS = [
+    "WAI-ARIA compatibility warnings can be suppressed by adding the following",  # SCALRCORE-14849
+    "[Ext.Loader] Synchronously loading 'Scalr.component.navigation.MainToolbar';",  # SCALRCORE-15109
+    "Synchronous XMLHttpRequest"
+]
+
+
 class TestPagesForErrors:
     testenv: TestEnv
     topmenu_button: Element = s('a[data-qa-id="topmenu-mainmenu-btn"]')
@@ -21,12 +28,10 @@ class TestPagesForErrors:
     menu_scrolldown: Element
     menu_items: Collection
 
-    @pytest.fixture(autouse=True)
-    def skip_warning_tests(self, request: FixtureRequest):
-        if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
-            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
-        elif self.base_url == '/index7.html':
-            pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14711')
+    # @pytest.fixture(autouse=True)
+    # def skip_warning_tests(self, request: FixtureRequest):
+    #     if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
+    #         pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
 
     @pytest.fixture(autouse=True, params=["/", "/index7.html"], ids=['extjs5', 'extjs7'])
     def set_baseurl(self, request: FixtureRequest, testenv: TestEnv):
@@ -44,6 +49,8 @@ class TestPagesForErrors:
         for log in logs:
             if log["source"] == "network":
                 continue
+            if any([m in log["message"] for m in IGNORE_ERRORS]):
+                continue
             raise AssertionError(f"Browser has an error in console: {logs}")
 
     def authorize(self, username: str, password: str):
@@ -55,7 +62,7 @@ class TestPagesForErrors:
         login_page.set_idp_provider('scalr')
         login_page.set_username(username)
         login_page.set_password(password)
-        login_page.submit()
+        return login_page.submit()
 
     def get_menu_items_count(self):
         self.topmenu_button.click()
@@ -121,17 +128,16 @@ class TestPagesForErrors:
 
         self.iterate_scalr_menu()
 
-    @pytest.mark.parametrize(
-        'username,password', [
-            pytest.param(CONF.credentials.testenv.accounts.default.username,
-                         CONF.credentials.testenv.accounts.default.password, id="classic_env"),
-            pytest.param(CONF.credentials.testenv.accounts.terraform.username,
-                         CONF.credentials.testenv.accounts.terraform.password, id="terraform_env")
-        ]
-    )
-    def test_environment_scope_pages(self, username: str, password: str):
-        self.authorize(username, password)
+    def test_environment_scope_pages(self):
+        self.authorize(CONF.credentials.testenv.accounts.default.username,
+                       CONF.credentials.testenv.accounts.default.password)
         s("div.x-mask").should(be.not_.visible)
 
         self.iterate_scalr_menu()
 
+    def test_terraform_scope_pages(self):
+        menu = self.authorize(CONF.credentials.testenv.accounts.terraform.username,
+                       CONF.credentials.testenv.accounts.terraform.password)
+        s("div.x-mask").should(be.not_.visible)
+        menu.open_workspaces()
+        menu.open_vcs_providers()

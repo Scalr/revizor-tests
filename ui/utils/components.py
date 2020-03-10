@@ -67,14 +67,17 @@ input = Input
 
 class Combobox(BaseComponent):
     def __init__(self, label: str):
-        self.element = s(by.xpath(f'//label/span[text()="{label}"]/../parent::div'))
+        self.element = s(by.xpath(f'//label//span[text()="{label}"]/ancestor::div[1]'))
         self._bound_id = None
 
     @property
     def bound_id(self):
         if self._bound_id is None:
             self.open()
-            self._bound_id = ss('div.x-boundlist[componentid^="boundlist"]').element_by(be.visible).get(query.attribute('id'))
+            if self.element.get(query.attribute('role')):  # In ext js 7 exist
+                self._bound_id = '{}-picker'.format(self.element.get(query.attribute('id')))
+            else:
+                self._bound_id = ss('div.x-boundlist[componentid^="boundlist"]').element_by(be.visible).get(query.attribute('id'))
             self.close()
         return self._bound_id
 
