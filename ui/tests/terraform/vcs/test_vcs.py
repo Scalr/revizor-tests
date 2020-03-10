@@ -25,6 +25,7 @@ class TestVCSProviders:
         vcs_page = self.dashboard.menu.open_vcs_providers()
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
+        new_form.vcs_type.set_value('GitHub')
         new_form.name.set(name)
         self.vcs_provider.create_oauth(name, new_form.callback_url.get_attribute('value'), 'http://my.scalr.com')
         self._created_oauth.append(name)
@@ -78,6 +79,7 @@ class TestVCSProviders:
         vcs_page = self.add_provider(vcs_name)
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
+        new_form.vcs_type.set_value('GitHub')
         new_form.name.set(vcs_name)
         new_form.client_id.set('dsfsdfs')
         new_form.client_secret.set('sdsadasd')
@@ -100,6 +102,7 @@ class TestVCSProviders:
         vcs_page = self.add_provider(vcs_name)
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
+        new_form.vcs_type.set_value('GitHub')
         new_form.name.set(generate_name('test-'))
         settings = self.vcs_provider.get_app_settings(vcs_name)
         new_form.client_id.set(settings['key'])

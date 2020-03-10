@@ -36,6 +36,10 @@ def pytest_addoption(parser):
         help="Scalr test environment id to use existing env", default=None
     )
     group.addoption(
+        "--scalr-branch", "--scalr-branch", dest="scalr_branch", action="store",
+        help="Scalr test environment branch", default='master'
+    )
+    group.addoption(
         "--browser", dest='selenium_browser', action='store', default='chrome79',
         help='Browser type and version (example: chrome77, firefox50). Version work only with remote driver'
     )
@@ -57,7 +61,10 @@ def testenv(request):
     if te_id:
         container = TestEnv(te_id)
     else:
-        container = TestEnv.create(branch='master', notes='Selenium test container')
+        container = TestEnv.create(
+            branch=request.config.getoption("scalr_branch"),
+            notes='Selenium test container'
+        )
         for _ in range(10):
             try:
                 services = container.get_service_status()
