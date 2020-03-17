@@ -1,4 +1,5 @@
 import time
+import typing as tp
 
 import pytest
 from _pytest.fixtures import FixtureRequest
@@ -12,12 +13,19 @@ from revizor2.testenv import TestEnv
 from ui.utils import consts
 from ui.utils import components
 from pages.login import LoginPage
+from ui.pages.admin.dashboard import AdminDashboard
+from ui.pages.account.dashboard import AccountDashboard
+from ui.pages.classic.dashboard import ClassicEnvDashboard
+from ui.pages.terraform.dashboard import TerraformEnvDashboard
 
 
 IGNORE_ERRORS = [
     "WAI-ARIA compatibility warnings can be suppressed by adding the following",  # SCALRCORE-14849
+    "[W] Ext.ariaWarn = Ext.emptyFn;",  # SCALRCORE-14849
+    "http://www.w3.org/TR/wai-aria-practices/#menubutton",  # SCALRCORE-14849
     "[Ext.Loader] Synchronously loading 'Scalr.component.navigation.MainToolbar';",  # SCALRCORE-15109
-    "Synchronous XMLHttpRequest"
+    "Synchronous XMLHttpRequest",
+    "Scalr.ui.ComboAddNewPlugin",  # SCALRCORE-14307
 ]
 
 
@@ -53,7 +61,8 @@ class TestPagesForErrors:
                 continue
             raise AssertionError(f"Browser has an error in console: {logs}")
 
-    def authorize(self, username: str, password: str):
+    def authorize(self, username: str, password: str) -> tp.Union[
+        AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
         browser.open(
             f"https://{self.testenv.te_id}.test-env.scalr.com{self.base_url}"
         )
@@ -136,8 +145,15 @@ class TestPagesForErrors:
         self.iterate_scalr_menu()
 
     def test_terraform_scope_pages(self):
-        menu = self.authorize(CONF.credentials.testenv.accounts.terraform.username,
+        tf_page: TerraformEnvDashboard = self.authorize(CONF.credentials.testenv.accounts.terraform.username,
                        CONF.credentials.testenv.accounts.terraform.password)
         s("div.x-mask").should(be.not_.visible)
+        menu = tf_page.menu
         menu.open_workspaces()
+        menu.open_modules()
         menu.open_vcs_providers()
+        menu.open_gv()
+        menu.open_offerings_request()
+        menu.open_offerings_management()
+        menu.open_offerings_categories()
+

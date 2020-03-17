@@ -1,7 +1,7 @@
 import time
+import typing as tp
 
-from selene.api import s, ss, by, browser, be, have, query
-from selene.core.exceptions import TimeoutException
+from selene.api import s, ss, by, browser, be, query
 
 from ui.utils import consts
 from ui.utils import components
@@ -29,12 +29,12 @@ class LoginPage(BasePage):
         providers.set_value(name)
         time.sleep(1)
 
-    def submit(self):
+    def submit(self) -> tp.Union[AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
         ss(by.xpath('//span[text()="Login"]/ancestor::a'))[1].click()
         loading_panel = components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE)
         loading_panel.should(be.not_.visible, timeout=10)
         topmenu = ss('div.x-toolbar.x-topmenu-menu').filtered_by(be.visible)[0].should(be.visible)
-        s(by.xpath('//span[contains(@class, "x-btn-inner-default-toolbar") and text()="Dashboard"]/ancestor::a')).should(be.visible).should(be.clickable)
+        s(by.xpath('//span[contains(@class, "x-btn-inner-default-toolbar") and contains(text(), "Dashboard")]/ancestor::a')).should(be.visible).should(be.clickable)
         url = browser.driver().current_url
 
         if '/admin/dashboard' in url:
