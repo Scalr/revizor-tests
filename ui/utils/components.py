@@ -13,25 +13,35 @@ class BaseComponent:
 
 
 class Button(BaseComponent):
-    def __init__(self, title: tp.Optional[str] = None, icon: tp.Optional[str] = None, ticon: tp.Optional[str] = None, qtip: tp.Optional[str] = None):
+    def __init__(self, title: tp.Optional[str] = None,
+                 icon: tp.Optional[str] = None,
+                 ticon: tp.Optional[str] = None,
+                 qtip: tp.Optional[str] = None,
+                 parent: tp.Optional[SeleneElement] = None):
         if title:
-            self.element = s(by.xpath(f'//span[text()="{title}"]//ancestor::a'))
+            selector = f'//span[text()="{title}"]//ancestor::a'
         elif icon:
-            self.element = s(by.xpath(f'//span[contains(@class, "x-btn-icon-{icon}")]//ancestor::a'))
+            selector = f'//span[contains(@class, "x-btn-icon-{icon}")]//ancestor::a'
         elif ticon:
-            self.element = s(by.xpath(f'//a[contains(@class, "x-grid-action-button-{ticon}")]'))
+            selector = f'//a[contains(@class, "x-grid-action-button-{ticon}")]'
         elif qtip:
-            self.element = s(by.xpath(f'//a[@data-qtip="{qtip}"]'))
+            selector = f'//a[@data-qtip="{qtip}"]'
         else:
             raise AssertionError('You must set one of input parameters')
+        if parent:
+            self.element = parent.s(by.xpath(f'.{selector}'))
+        else:
+            self.element = s(by.xpath(selector))
 
 
 button = Button
 
 
 class LoadingModal(BaseComponent):
-    def __init__(self, title: str):
+    def __init__(self, title: str, parent: tp.Optional[SeleneElement] = None):
         self.element = s(by.xpath(f'//div[text()="{title}" and contains(@class, "x-title-text")]'))
+        if parent:
+            self.element = parent.s(by.xpath(f'.//div[text()="{title}" and contains(@class, "x-title-text")]'))
 
 
 loading_modal = LoadingModal
@@ -40,8 +50,11 @@ loading_modal = LoadingModal
 
 
 class Tooltip(BaseComponent):
-    def __init__(self, message: str):
+    def __init__(self, message: str, parent: tp.Optional[SeleneElement] = None):
         self.element = s(by.xpath(f'//div[text()="{message}"]/ancestor::div[contains(@class, "x-tip-message")]'))
+        if parent:
+            self.element = parent.s(
+                by.xpath(f'.//div[text()="{message}"]/ancestor::div[contains(@class, "x-tip-message")]'))
 
     def close(self):
         self.element.s('img').click()
@@ -51,8 +64,10 @@ tooltip = Tooltip
 
 
 class Input(BaseComponent):
-    def __init__(self, label: str):
+    def __init__(self, label: str, parent: tp.Optional[SeleneElement]):
         self.element = s(by.xpath(f'//label/span[text()="{label}"]/../parent::div/.//input'))
+        if parent:
+            self.element = parent.s(by.xpath(f'.//label/span[text()="{label}"]/../parent::div/.//input'))
 
     def has_error(self):
         return 'x-form-invalid-field' in self.element.get(query.attribute('class'))
@@ -66,8 +81,10 @@ input = Input
 
 
 class Combobox(BaseComponent):
-    def __init__(self, label: str):
+    def __init__(self, label: str, parent: tp.Optional[SeleneElement] = None):
         self.element = s(by.xpath(f'//label//span[text()="{label}"]/ancestor::div[1]'))
+        if parent:
+            self.element = parent.s(by.xpath(f'.//label//span[text()="{label}"]/ancestor::div[1]'))
         self._bound_id = None
 
     @property
@@ -102,8 +119,8 @@ class Combobox(BaseComponent):
                 return
             self.element.s('input').press_down()
 
-    def get_active_item(self) -> SeleneElement:
-        return s(f'#{self.bound_id} .x-boundlist-item-over[role="option"]').text.strip()
+    def get_active_item(self) -> str:
+        return s(f'#{self.bound_id} .x-boundlist-item-over[role="option"]').get(query.text).strip()
 
     def reload(self):
         self.element.s('div.x-form-field-clear-cache').click()
@@ -120,8 +137,10 @@ combobox = Combobox
 
 
 class Toggle(BaseComponent):
-    def __init__(self, label: str):
+    def __init__(self, label: str, parent: tp.Optional[SeleneElement] = None):
         self.element = s(by.xpath(f'//label/span[text()="{label}"]/../parent::div'))
+        if parent:
+            self.element = parent.s(by.xpath(f'.//label/span[text()="{label}"]/../parent::div'))
 
     def toggle(self):
         self.element.s('input').click()
@@ -132,9 +151,12 @@ class Toggle(BaseComponent):
 
 toggle = Toggle
 
+
 class SearchField(BaseComponent):
-    def __init__(self):
+    def __init__(self, parent: tp.Optional[SeleneElement] = None):
         self.element = s(by.xpath("//div[text()='Search']"))
+        if parent:
+            self.element = parent.s(by.xpath(".//div[text()='Search']"))
 
     def set_value(self, value):
         self.element.click()

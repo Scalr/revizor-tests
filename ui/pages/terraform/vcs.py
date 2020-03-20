@@ -1,6 +1,5 @@
 import time
-
-from selene.api import s, ss, by, browser, be, have
+from selene.api import s, ss, by, browser, be, have, query
 
 from .base import TfBasePage, BasePage
 from ui.utils import components
@@ -76,7 +75,7 @@ class DeleteConfirmationModal:
 
     @property
     def message(self):
-        return s('div.x-panel-confirm div.message').text
+        return s('div.x-panel-confirm div.message').get(query.text)
 
     @property
     def delete_button(self):
@@ -90,12 +89,16 @@ class DeleteConfirmationModal:
 class VCSPage(TfBasePage):
     @staticmethod
     def wait_page_loading():
-        time.sleep(1)
         s('div#loading').should(be.not_.existing, timeout=20)
-        components.button('New VCS Provider').should(be.clickable)
+        ss('div.x-grid-buffered-loader').should(be.not_.visible, timeout=10)
+        components.button('New VCS Provider')\
+            .should(be.visible)\
+            .should(have.no.css_class('x-item-disabled'))\
+            .should(have.no.css_class('x-btn-disabled'))
 
     @property
     def new_vcs_button(self) -> components.button:
+        print('Buttons %s' % len(ss(by.xpath('//span[text()="New VCS Provider"]//ancestor::a'))))
         return components.button('New VCS Provider')
 
     @property

@@ -2,19 +2,22 @@ import typing as tp
 import time
 
 import pytest
-from selene.api import by,be,s
+from selene.api import by, be, s
 
 from ui.utils.datagenerator import generate_name
 from ui.pages.terraform.workspaces import WorkspacePage, WorkspaceDashboard, DeleteWorkspaceModal
 from ui.utils.components import loading_modal
 from ui.utils import consts
 
-
+# TODO: Add cases
+# 1. Start run and check statuses
+# 2. approve/decline run and check status
+# 3. check success message after start
 class TestWorkspaces:
     workspace_page: WorkspacePage
     vcs_provider: tp.Dict[str, str]
     workspace_name: str
-    repo_name: str = 'Scalr/tf-revizor-fixtures' #FIXME: Use another repo with access from all
+    repo_name: str = 'Scalr/tf-revizor-fixtures'
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, tf_dashboard, vcs_provider):
@@ -30,7 +33,7 @@ class TestWorkspaces:
     def test_create_default_workspace(self):
         workspaces_before = len(self.workspace_page.workspaces)
         modal = self.workspace_page.open_new_workspace()
-        modal.name.set(self.workspace_name)
+        modal.name.set_value(self.workspace_name)
         assert len(modal.vcs_provider.get_values()) >= 1
         modal.vcs_provider.set_value(self.vcs_provider['name'])
         assert len(modal.repository.get_values()) > 5
@@ -45,15 +48,15 @@ class TestWorkspaces:
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
-        assert workspace_line.last_run == '—'
-        assert workspace_line.changed_on == '—'
-        assert workspace_line.created_by == 'tf@scalr.com'
-        assert workspace_line.repository == self.repo_name
+        assert workspace_line.last_run.text.strip() == '—'
+        assert workspace_line.changed_on.text.strip() == '—'
+        assert workspace_line.created_by.text.strip() == 'tf@scalr.com'
+        assert workspace_line.repository.text.strip() == self.repo_name
         assert workspace_line.launch_button.should(be.visible)
 
     def test_create_with_auto_apply(self):
         modal = self.workspace_page.open_new_workspace()
-        modal.name.set(self.workspace_name)
+        modal.name.set_value(self.workspace_name)
         modal.vcs_provider.set_value(self.vcs_provider['name'])
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
@@ -67,7 +70,7 @@ class TestWorkspaces:
 
     def test_create_with_branch(self):
         modal = self.workspace_page.open_new_workspace()
-        modal.name.set(self.workspace_name)
+        modal.name.set_value(self.workspace_name)
         modal.vcs_provider.set_value(self.vcs_provider['name'])
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
@@ -83,13 +86,13 @@ class TestWorkspaces:
 
     def test_create_with_subdirectotry(self):
         modal = self.workspace_page.open_new_workspace()
-        modal.name.set(self.workspace_name)
+        modal.name.set_value(self.workspace_name)
         modal.vcs_provider.set_value(self.vcs_provider['name'])
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
         modal.terraform_version.set_value(tf_versions[0])
         modal.toggle_additional()
-        modal.subdirectory.set('subdir')
+        modal.subdirectory.set_value('subdir')
         modal.save_button.click()
         self.wait_workspace_save()
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
@@ -99,13 +102,13 @@ class TestWorkspaces:
 
     def test_create_with_work_dir(self):
         modal = self.workspace_page.open_new_workspace()
-        modal.name.set(self.workspace_name)
+        modal.name.set_value(self.workspace_name)
         modal.vcs_provider.set_value(self.vcs_provider['name'])
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
         modal.terraform_version.set_value(tf_versions[0])
         modal.toggle_additional()
-        modal.work_directory.set('workdir')
+        modal.work_directory.set_value('workdir')
         modal.save_button.click()
         self.wait_workspace_save()
         workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
@@ -125,19 +128,19 @@ class TestWorkspaces:
         for i in range(2):
             modal = self.workspace_page.open_new_workspace()
             workspace_name = generate_name('test-')
-            modal.name.set_value(workspace_name)
+            modal.name.set_value(self.workspace_name)
             modal.vcs_provider.set_value(self.vcs_provider['name'])
             modal.repository.set_value(self.repo_name)
             tf_versions = modal.terraform_version.get_values()
             modal.terraform_version.set_value(tf_versions[0])
             modal.save_button.click()
             self.wait_workspace_save()
-        self.workspace_page.search.set_value(workspace_name)
+        self.workspace_page.search.set_value(self.workspace_name)
         time.sleep(1)
         workspace_line = list(filter(lambda x: x.name == workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
-        assert workspace_line.name == workspace_name
+        assert workspace_line.name == self.workspace_name
 
     def test_search_no_found_workspace(self):
         modal = self.workspace_page.open_new_workspace()
