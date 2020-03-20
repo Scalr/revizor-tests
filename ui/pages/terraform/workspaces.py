@@ -11,7 +11,7 @@ class CreateWorkspaceModal(BasePage):
     @staticmethod
     def wait_page_loading():
         s('div#loading').should(be.not_.visible, timeout=20)
-        s('div[style*="19000"]').s(by.xpath('//div[text()="New Workspace"]')).should(be.visible, timeout=20)
+        s('div[id^=workspaceform]').s(by.xpath('//div[text()="New Workspace"]')).should(be.visible, timeout=20)
         s('div[id^=workspaceform][id$=body]').should(be.visible)
 
     def __init__(self):
@@ -178,8 +178,8 @@ class WorkspaceDashboard(TfBasePage):
         return s(by.xpath("//label/span[text()='Locking']/ancestor::label/following-sibling::div/div"))
 
     @property
-    def auto_apply(self) -> SeleneElement:
-        return s(by.xpath("//label/span[text()='Auto Apply']/ancestor::label/following-sibling::div/div"))
+    def auto_apply(self) -> toggle:
+        return toggle('Auto Apply')
 
     @property
     def tags(self) -> SeleneElement:

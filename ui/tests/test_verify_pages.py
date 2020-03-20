@@ -23,6 +23,7 @@ IGNORE_ERRORS = [
     "WAI-ARIA compatibility warnings can be suppressed by adding the following",  # SCALRCORE-14849
     "[W] Ext.ariaWarn = Ext.emptyFn;",  # SCALRCORE-14849
     "http://www.w3.org/TR/wai-aria-practices/#menubutton",  # SCALRCORE-14849
+    "[W] For WAI-ARIA compliance, IMG elements SHOULD have an alt attribute.",  # SCALRCORE-15240
     "[Ext.Loader] Synchronously loading 'Scalr.component.navigation.MainToolbar';",  # SCALRCORE-15109
     "Synchronous XMLHttpRequest",
     "Scalr.ui.ComboAddNewPlugin",  # SCALRCORE-14307
@@ -59,7 +60,7 @@ class TestPagesForErrors:
                 continue
             if any([m in log["message"] for m in IGNORE_ERRORS]):
                 continue
-            raise AssertionError(f"Browser has an error in console: {logs}")
+            raise AssertionError(f"Browser has an error in console on page {browser.driver().current_url}: {logs}")
 
     def authorize(self, username: str, password: str) -> tp.Union[
         AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:

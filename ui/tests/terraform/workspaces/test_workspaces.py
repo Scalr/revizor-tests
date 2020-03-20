@@ -2,10 +2,10 @@ import typing as tp
 import time
 
 import pytest
-from selene.api import by, be, s
+from selene.api import by, be, s, query
 
 from ui.utils.datagenerator import generate_name
-from ui.pages.terraform.workspaces import WorkspacePage, WorkspaceDashboard, DeleteWorkspaceModal
+from ui.pages.terraform.workspaces import WorkspacePage, DeleteWorkspaceModal
 from ui.utils.components import loading_modal
 from ui.utils import consts
 
@@ -28,6 +28,7 @@ class TestWorkspaces:
     def wait_workspace_save(self):
         loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.visible, timeout=10)
         loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.not_.visible, timeout=10)
+        s(by.xpath('//div[text()="New Workspace"]')).should(be.not_.visible)
 
     # #TODO: Add case when try to add repo without permissions for webhooks
     def test_create_default_workspace(self):
@@ -45,7 +46,7 @@ class TestWorkspaces:
         modal.save_button.click()
         self.wait_workspace_save()
         assert len(self.workspace_page.workspaces) > workspaces_before
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
         assert workspace_line.last_run.text.strip() == '—'
@@ -65,7 +66,7 @@ class TestWorkspaces:
         assert modal.auto_apply.is_checked()
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
 
     def test_create_with_branch(self):
@@ -81,7 +82,7 @@ class TestWorkspaces:
         modal.branch.set_value(branches[1])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
 
     def test_create_with_subdirectotry(self):
@@ -95,10 +96,10 @@ class TestWorkspaces:
         modal.subdirectory.set_value('subdir')
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
-        assert workspace_line.repository == f'{self.repo_name}/subdir', f'Subdir not found "{workspace_line.repository}"'
+        assert workspace_line.repository.get(query.text) == f'{self.repo_name}/subdir', f'Subdir not found "{workspace_line.repository}"'
 
     def test_create_with_work_dir(self):
         modal = self.workspace_page.open_new_workspace()
@@ -111,7 +112,7 @@ class TestWorkspaces:
         modal.work_directory.set_value('workdir')
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
 
     def test_save_without_inputs(self):
@@ -125,22 +126,23 @@ class TestWorkspaces:
         assert modal.repository.error == 'This field is required', f'Error is not expected: {modal.repository.error}'
 
     def test_search_workspace(self):
+        workspace_name = ''
         for i in range(2):
-            modal = self.workspace_page.open_new_workspace()
             workspace_name = generate_name('test-')
-            modal.name.set_value(self.workspace_name)
+            modal = self.workspace_page.open_new_workspace()
+            modal.name.set_value(workspace_name)
             modal.vcs_provider.set_value(self.vcs_provider['name'])
             modal.repository.set_value(self.repo_name)
             tf_versions = modal.terraform_version.get_values()
             modal.terraform_version.set_value(tf_versions[0])
             modal.save_button.click()
             self.wait_workspace_save()
-        self.workspace_page.search.set_value(self.workspace_name)
+        self.workspace_page.search.set_value(workspace_name)
         time.sleep(1)
-        workspace_line = list(filter(lambda x: x.name == workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
-        assert workspace_line.name == self.workspace_name
+        assert workspace_line.name.get(query.text) == workspace_name
 
     def test_search_no_found_workspace(self):
         modal = self.workspace_page.open_new_workspace()
@@ -165,14 +167,14 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         dashboard = workspace_line[0].open_dashboard()
         time.sleep(1)
         assert len(dashboard.id.text) > 0
-        assert dashboard.name.text == ws_name
-        assert dashboard.terraform_version.text == tf_versions[0]
-        assert not modal.auto_apply.is_checked()
+        assert dashboard.name.get(query.text) == ws_name
+        assert dashboard.terraform_version.get(query.text) == tf_versions[0]
+        assert not dashboard.auto_apply.is_checked()
 
     def test_delete_workspace(self):
         modal = self.workspace_page.open_new_workspace()
@@ -184,7 +186,7 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         dashboard = workspace_line[0].open_dashboard()
         dashboard.delete_button.click()
@@ -194,7 +196,7 @@ class TestWorkspaces:
         confirm.delete_button.click()
         self.workspace_page.search.set_value(ws_name)
         time.sleep(1)
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 0
 
     def test_cancel_delete_workspace(self):
@@ -207,7 +209,7 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1
         dashboard = workspace_line[0].open_dashboard()
         dashboard.delete_button.click()
@@ -217,5 +219,5 @@ class TestWorkspaces:
         dashboard.menu.open_workspaces()
         self.workspace_page.search.set_value(ws_name)
         time.sleep(1)
-        workspace_line = list(filter(lambda x: x.name == self.workspace_name, self.workspace_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == self.workspace_name, self.workspace_page.workspaces))
         assert len(workspace_line) == 1

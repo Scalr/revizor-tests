@@ -26,4 +26,4 @@ class OfferingsCategoriesPage(TfBasePage):
     def wait_page_loading():
         loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(be.not_.visible, timeout=20)
         ss('div.x-grid-buffered-loader').should(be.not_.visible, timeout=10)
-        s('[id^=breadcrumbs]').should(have.text('Management'))
+        s('[id^=breadcrumbs]').should(have.text('Categories'))

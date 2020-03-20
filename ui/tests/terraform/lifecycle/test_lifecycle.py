@@ -1,6 +1,5 @@
-import time
 import pytest
-from selene.api import by, be, s, have, query
+from selene.api import be, have, query
 
 from ui.pages.terraform.runs import RunDashboard
 from ui.utils import consts
@@ -58,7 +57,7 @@ class TestTerraformLifecycle(VCSMixin):
         modal.save_button.click()
         self.wait_workspace_save()
         assert len(ws_page.workspaces) > 0
-        workspace_line = list(filter(lambda x: x.name.text.strip() == workspace_name, ws_page.workspaces))
+        workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == workspace_name, ws_page.workspaces))
         assert len(workspace_line) == 1
         workspace_line = workspace_line[0]
         assert workspace_line.last_run.text.strip() == '—'
