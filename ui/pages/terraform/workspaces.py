@@ -110,6 +110,10 @@ class WorkspaceLine:
         self.dashboard_button.click()
         return WorkspaceDashboard()
 
+    def open_variable_dashboard(self) -> "WorkspaceVariablePage":
+        self.gv_button.click()
+        return WorkspaceVariablePage()
+
 
 class WorkspacePage(TfBasePage):
     @staticmethod
@@ -207,3 +211,91 @@ class DeleteWorkspaceModal:
     @property
     def cancel_delete_button(self):
         return s(by.xpath("//span[text()='Cancel']/ancestor::span"))
+
+class WorkspaceVariablePage():
+    @staticmethod
+    def wait_page_loading():
+        loading_modal('Loading...').should(be.not_.visible, timeout=10)
+        s(by.xpath("//span[text()='Save']/ancestor::span")).should(be.not_.visible, timeout=20)
+
+    # @property
+    # def tf_variables(self) -> [TFVariableLine]:
+    #     return [TFVariableLine(p) for p in ss('tr.x-grid-row') if p.is_displayed()]
+    
+    # @property
+    # def env_variables(self) -> [EnvVariableLine]:
+    #     return [EnvVariableLine(p) for p in ss('tr.x-grid-row') if p.is_displayed()]
+
+    @property
+    def search(self) -> search:
+        return search()
+
+    @property
+    def new_variable(self) -> button:
+        return button(title='New Variable')
+
+    @property
+    def new_tf_variable(self) -> button:
+        return button(title='New Terraform Variable')
+
+    @property
+    def new_env_variable(self) -> button:
+        return button(title='New Environment Variable')
+
+    @property
+    def refresh(self) -> button:
+        return button(qtip='Refresh') 
+ 
+    @property
+    def save(self) -> button:
+        return button(title='Save')
+
+    # @property   потом нужно удалить
+    # def input_name(self):
+    #     return s(by.xpath("//td[@data-columnid='name']/descendant::input")
+    #  //div[starts-with(@id, 'terraformvariablefield')]
+
+
+class TFVariableLine:
+    def __init__(self, element: browser.element):
+        self.element = element
+    
+    @property
+    def name(self) -> str:
+        return self.element.ss('td')[0].s('a').text
+
+    @property
+    def value(self) -> str:
+        return self.element.ss('td')[0].s('a').text
+
+    @property
+    def sensitive_button(self) -> button:
+        return button(title='Sensitive', parent=self.element)
+
+    @property
+    def hcl_button(self) -> button:
+        return button(title='HCL', parent=self.element)
+    
+    @property
+    def delete_button(self) button:
+        return button(qtip=='Delete', parent=self.element)
+    
+
+class EnvVariableLine:
+    def __init__(self, element: browser.element):
+        self.element = element
+    
+    @property
+    def name(self) -> str:
+        return self.element.ss('td')[0].s('a').text
+
+    @property
+    def value(self) -> str:
+        return self.element.ss('td')[0].s('a').text
+
+    @property
+    def sensitive_button(self) -> button:
+        return button(title='Sensitive', parent=self.element)
+
+        
+ 
