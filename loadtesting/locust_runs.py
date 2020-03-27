@@ -8,6 +8,14 @@ from locust import Locust, TaskSequence, task, between, seq_task, events
 from ui.utils import vcs
 
 
+VCS_SETTINGS = {
+    'id': None,
+    'name': None,
+    'org_id': None,
+    'provider': None
+}
+
+
 class RunsTaskSet(TaskSequence):
     wait_time = between(1, 10)
 
@@ -29,9 +37,20 @@ class RunsTaskSet(TaskSequence):
                                     response_length=0)
 
     def _plan_run(self):
+        try:
+            IMPL.workspace.update_variable(self.workspace_id, 'run_id', generate_name())
+        except Exception as e:
+            time.sleep(1)
+            self._plan_run()
         start_time = time.time()
-        IMPL.workspace.update_variable(self.workspace_id, 'run_id', generate_name())
-        IMPL.run.create(self.workspace_id)
+        try:
+            IMPL.run.create(self.workspace_id)
+        except Exception as e:
+            total_time = int((time.time() - start_time) * 1000)
+            events.request_failure.fire(request_type='wait', name='plan-run', response_time=total_time, exception=e,
+                                        response_length=0)
+            time.sleep(1)
+            self._plan_run()
         status = None
         while status != 'cost_estimated':
             time.sleep(10)
@@ -41,9 +60,16 @@ class RunsTaskSet(TaskSequence):
 
     def _approve_run(self):
         start_time = time.time()
-        IMPL.run.apply(
-            IMPL.workspace.get(self.workspace_id)['run_id']
-        )
+        try:
+            IMPL.run.apply(
+                IMPL.workspace.get(self.workspace_id)['run_id']
+            )
+        except Exception as e:
+            total_time = int((time.time() - start_time) * 1000)
+            events.request_failure.fire(request_type='approve', name='run', response_time=total_time, exception=e,
+                                        response_length=0)
+            time.sleep(1)
+            self._approve_run()
         total_time = int((time.time() - start_time) * 1000)
         events.request_success.fire(request_type='approve', name='run', response_time=total_time, response_length=0)
 
@@ -59,15 +85,22 @@ class RunsTaskSet(TaskSequence):
     @seq_task(1)
     def create_workspace(self):
         start_time = time.time()
-        self.workspace_id = IMPL.workspace.create(
-            name=self.workspace_name,
-            terraform_version='0.12.19',
-            auto_apply=False,
-            provider=self.parent.vcs_id,
-            repository='Scalr/tf-revizor-fixtures',
-            branch='master',
-            path='local_wait'
-        )
+        try:
+            self.workspace_id = IMPL.workspace.create(
+                name=self.workspace_name,
+                terraform_version='0.12.19',
+                auto_apply=False,
+                provider=VCS_SETTINGS['id'],
+                repository='Scalr/tf-revizor-fixtures',
+                branch='master',
+                path='local_wait'
+            )
+        except Exception as e:
+            total_time = int((time.time() - start_time) * 1000)
+            events.request_failure.fire(request_type='create', name='workspace', response_time=total_time, exception=e,
+                                        response_length=0)
+            time.sleep(2)
+            self.create_workspace()
         IMPL.workspace.add_variable(self.workspace_id, 'run_id', generate_name())
         total_time = int((time.time() - start_time) * 1000)
         events.request_success.fire(request_type='create', name='workspace', response_time=total_time, response_length=0)
@@ -92,10 +125,10 @@ class APIUserRuns(Locust):
         """Create a VCS and save org-id"""
         provider = vcs.VCSGithub()
         provider.login(CONF.credentials.github.username, CONF.credentials.github.password)
-        self.vcs_name = create_vcs(provider)['name']
-        self.vcs_id = list(filter(lambda x: x['name'] == self.vcs_name, IMPL.vcs.list()))[0]['id']
-        self.provider = provider
-        self.org_id = IMPL.get_session('terraform').get('/guest/xInit')['initParams']['context']['user']['organizationId']
+        VCS_SETTINGS['name'] = create_vcs(provider)['name']
+        VCS_SETTINGS['id'] = list(filter(lambda x: x['name'] == VCS_SETTINGS['name'], IMPL.vcs.list()))[0]['id']
+        VCS_SETTINGS['provider'] = provider
+        VCS_SETTINGS['org_id'] = IMPL.get_session('terraform').get('/guest/xInit')['initParams']['context']['user']['organizationId']
 
     def teardown(self):
-        self.provider.delete_oauth(self.vcs_name)
+        VCS_SETTINGS['provider'].delete_oauth(VCS_SETTINGS['name'])

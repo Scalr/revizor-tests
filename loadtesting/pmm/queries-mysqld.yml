@@ -1,0 +1,18 @@
+active_runs:
+  query: "SELECT COUNT(*) as active_cnt FROM scalr.tf_runs WHERE status IN ('planning', 'cost_estimating', 'policy_checking', 'applying')"
+  metrics:
+    - active_cnt:
+        usage: "GAUGE"
+        description: "Number of runs"
+all_runs:
+  query: "SELECT COUNT(*) as all_cnt FROM scalr.tf_runs"
+  metrics:
+    - all_cnt:
+        usage: "GAUGE"
+        description: "Number of all runs"
+failed_runs:
+  query: "SELECT COUNT(*) as failed_cnt FROM scalr.tf_runs WHERE status='errored'"
+  metrics:
+    - failed_cnt:
+        usage: "GAUGE"
+        description: "Number of failed runs"
