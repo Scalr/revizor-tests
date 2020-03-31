@@ -1,13 +1,12 @@
 import re
-import time
 import logging
+import typing as tp
 
 import pytest
 from _pytest.fixtures import FixtureRequest
-from paramiko.ssh_exception import NoValidConnectionsError
 
 from selenium import webdriver
-from selene.api import s, have, be
+from selene.api import s, be
 from selene.support.shared import config, browser
 
 from revizor2.conf import CONF
@@ -15,7 +14,10 @@ from revizor2.fixtures import resources
 from revizor2.testenv import TestEnv
 
 from pages.login import LoginPage
-from pages.terraform.dashboard import TerraformEnvDashboard
+from ui.pages.admin.dashboard import AdminDashboard
+from ui.pages.account.dashboard import AccountDashboard
+from ui.pages.classic.dashboard import ClassicEnvDashboard
+from ui.pages.terraform.dashboard import TerraformEnvDashboard
 
 
 LOG = logging.getLogger(__name__)
@@ -51,7 +53,7 @@ def pytest_addoption(parser):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def testenv(request):
+def testenv(request: FixtureRequest) -> TestEnv:
     """Creates and yeild revizor TestEnv container.
        Destroys container after all tests in TestClass were executed,
        unless some of the tests failed.
@@ -80,7 +82,7 @@ def testenv(request):
 
 
 @pytest.fixture(scope="session", autouse=True)
-def setup_driver(request, testenv):
+def setup_driver(request: FixtureRequest, testenv: TestEnv):
     LOG.debug('Setup webdriver fixture')
     remote_addr = request.config.getoption('selenium_grid_address')
     br = re.findall(r'([a-zA-Z]+)(\d+)', request.config.getoption('selenium_browser'))
@@ -117,7 +119,7 @@ def setup_driver(request, testenv):
 
 
 @pytest.fixture(scope="function")
-def mock_ssmtp(request):
+def mock_ssmtp(request: FixtureRequest):
     if hasattr(request.instance, 'container'):
         container = request.instance.container
     else:
@@ -132,7 +134,8 @@ def mock_ssmtp(request):
 
 
 @pytest.fixture()
-def tf_dashboard(testenv):
+def tf_dashboard(testenv: TestEnv) -> tp.Union[
+    AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
     browser.open_url(f'https://{testenv.te_id}.test-env.scalr.com')
     s('#loading').should(be.not_.visible, timeout=20)
     url = browser.driver().current_url
