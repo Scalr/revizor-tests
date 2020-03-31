@@ -65,14 +65,14 @@ def testenv(request):
             branch=request.config.getoption("scalr_branch"),
             notes='Selenium test container'
         )
-        for _ in range(10):
-            try:
-                services = container.get_service_status()
-                if all(service['state'] == 'RUNNING' for service in services):
-                    break
-                time.sleep(3)
-            except NoValidConnectionsError:
-                time.sleep(3)
+        # for _ in range(10):
+        #     try:
+        #         services = container.get_service_status()
+        #         if all(service['state'] == 'RUNNING' for service in services):
+        #             break
+        #         time.sleep(3)
+        #     except NoValidConnectionsError:
+        #         time.sleep(3)
     CONF.scalr.te_id = container.te_id
     yield container
     if (request.node.session.testsfailed == 0 and not te_id) or te_remove:
