@@ -78,7 +78,7 @@ class TestTerraformLifecycle(VCSMixin):
         assert run_dashboard.steps[0].title.text.strip() == '1. Plan'
         assert run_dashboard.steps[0].status.text.strip() == 'Finished'
         run_dashboard.steps[0].activate()
-        assert 'Plan: 1 to add, 0 to change, 0 to destroy.' in run_dashboard.console.get(query.text)
+        assert 'Plan: 2 to add, 0 to change, 0 to destroy.' in run_dashboard.console.get(query.text)
         assert 'Traceback' not in run_dashboard.console.get(query.text)
         assert run_dashboard.steps[1].title.text.strip() == '2. Cost estimate'
         assert run_dashboard.steps[1].status.text.strip() == 'Finished'
@@ -90,5 +90,5 @@ class TestTerraformLifecycle(VCSMixin):
         assert run_dashboard.steps[3].title.text.strip() == '4. Apply'
         assert run_dashboard.steps[3].status.text.strip() == 'Finished'
         run_dashboard.steps[3].activate()
-        assert 'Apply complete! Resources: 1 added, 0 changed, 0 destroyed.' in run_dashboard.console.get(query.text)
+        assert 'Apply complete! Resources: 2 added, 0 changed, 0 destroyed.' in run_dashboard.console.get(query.text)
         assert 'Traceback' not in run_dashboard.console.get(query.text)

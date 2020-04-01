@@ -1,7 +1,11 @@
 import abc
+import logging
 
 import lxml.html
 import requests
+
+
+LOG = logging.getLogger(__name__)
 
 
 class VCSProvider(metaclass=abc.ABCMeta):

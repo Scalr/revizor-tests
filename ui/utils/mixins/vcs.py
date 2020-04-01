@@ -1,6 +1,6 @@
 import typing as tp
 
-from selene.api import s, be
+from selene.api import s, be, query
 from revizor2.conf import CONF
 
 from ui.utils.components import tooltip
@@ -24,6 +24,7 @@ class VCSMixin:
         if secret is None:
             secret = settings['secret']
         new_form.client_secret.set(secret)
+        new_form.client_secret.get(query.value)
         new_form.create_button.click()
         github = GithubAuthPage()
         if not github.authorized:
