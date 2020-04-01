@@ -47,7 +47,7 @@ class TestTerraformLifecycle(VCSMixin):
         modal.name.set_value(workspace_name)
         assert len(modal.vcs_provider.get_values()) >= 1
         modal.vcs_provider.set_value(vcs_name)
-        assert len(modal.repository.get_values()) > 5
+        assert len(modal.repository.get_values()) >= 1
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
         assert len(tf_versions) >= 1
