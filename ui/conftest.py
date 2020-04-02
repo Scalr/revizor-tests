@@ -1,10 +1,12 @@
 import re
+import time
 import logging
 import typing as tp
 
 import pytest
 from _pytest.fixtures import FixtureRequest
 
+import requests
 from selenium import webdriver
 from selene.api import s, be
 from selene.support.shared import config, browser
@@ -67,6 +69,11 @@ def testenv(request: FixtureRequest) -> TestEnv:
             branch=request.config.getoption("scalr_branch"),
             notes='Selenium test container'
         )
+        for _ in range(10):
+            resp = requests.get(container.url)
+            if 'Scalr CMP' in resp.text:
+                break
+            time.sleep(5)
         # for _ in range(10):
         #     try:
         #         services = container.get_service_status()
