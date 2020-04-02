@@ -74,7 +74,7 @@ class TestTerraformLifecycle(VCSMixin):
         run_dashboard.approve_button.click()
         button('Yes').should(be.visible).click()
         run_dashboard.status.should(have.text('APPLYING'), timeout=10)
-        run_dashboard.status.should(have.text('APPLIED'), timeout=60)
+        run_dashboard.status.should(have.text('APPLIED'), timeout=120)
         assert run_dashboard.steps[0].title.text.strip() == '1. Plan'
         assert run_dashboard.steps[0].status.text.strip() == 'Finished'
         run_dashboard.steps[0].activate()

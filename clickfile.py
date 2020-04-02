@@ -8,6 +8,8 @@ import subprocess
 import click
 import requests
 
+from revizor2.conf import CONF
+
 
 def green(s):
     return click.style(s, fg='green')
@@ -40,9 +42,11 @@ def tests():
 
 
 @tests.command(name='build', help='Build docker container')
-@click.option('--token', required=True, help='GitHub access token to revizor repo')
+@click.option('--token', required=None, help='GitHub access token to revizor repo')
 @click.option('--push', is_flag=True, default=False, help='Push to github or not')
 def build_container(token, push):
+    if token is None:
+        token = CONF.credentials.github.access_token
     branch = local('git status', log=False).stdout.decode().splitlines()[0].split()[-1].lower().replace('/', '-')
     project = get_gcloud_project()
     print(f'Build image for branch {branch} and project {project}')

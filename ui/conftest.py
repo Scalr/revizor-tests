@@ -69,11 +69,14 @@ def testenv(request: FixtureRequest) -> TestEnv:
             branch=request.config.getoption("scalr_branch"),
             notes='Selenium test container'
         )
-        for _ in range(10):
+        for _ in range(24):
+            LOG.debug(f'Check container {container.url} return Scalr page')
             resp = requests.get(container.url)
             if 'Scalr CMP' in resp.text:
                 break
             time.sleep(5)
+        else:
+            raise TimeoutError(f'Container {container.url} not return Scalr CMP page')
         # for _ in range(10):
         #     try:
         #         services = container.get_service_status()
