@@ -37,7 +37,7 @@ class TestWorkspaces:
         modal.name.set_value(self.workspace_name)
         assert len(modal.vcs_provider.get_values()) >= 1
         modal.vcs_provider.set_value(self.vcs_provider['name'])
-        assert len(modal.repository.get_values()) > 5
+        assert len(modal.repository.get_values()) >= 1
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
         assert len(tf_versions) >= 1
