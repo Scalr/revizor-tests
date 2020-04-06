@@ -1,5 +1,6 @@
 import typing as tp
 
+
 from selene.elements import SeleneElement
 from selene.api import s, ss, by, browser, be
 
@@ -212,61 +213,18 @@ class DeleteWorkspaceModal:
     def cancel_delete_button(self):
         return s(by.xpath("//span[text()='Cancel']/ancestor::span"))
 
-class WorkspaceVariablePage():
-    @staticmethod
-    def wait_page_loading():
-        loading_modal('Loading...').should(be.not_.visible, timeout=10)
-        s(by.xpath("//span[text()='Save']/ancestor::span")).should(be.not_.visible, timeout=20)
-
-    # @property
-    # def tf_variables(self) -> [TFVariableLine]:
-    #     return [TFVariableLine(p) for p in ss('tr.x-grid-row') if p.is_displayed()]
-    
-    # @property
-    # def env_variables(self) -> [EnvVariableLine]:
-    #     return [EnvVariableLine(p) for p in ss('tr.x-grid-row') if p.is_displayed()]
-
-    @property
-    def search(self) -> search:
-        return search()
-
-    @property
-    def new_variable(self) -> button:
-        return button(title='New Variable')
-
-    @property
-    def new_tf_variable(self) -> button:
-        return button(title='New Terraform Variable')
-
-    @property
-    def new_env_variable(self) -> button:
-        return button(title='New Environment Variable')
-
-    @property
-    def refresh(self) -> button:
-        return button(qtip='Refresh') 
- 
-    @property
-    def save(self) -> button:
-        return button(title='Save')
-
-    # @property   потом нужно удалить
-    # def input_name(self):
-    #     return s(by.xpath("//td[@data-columnid='name']/descendant::input")
-    #  //div[starts-with(@id, 'terraformvariablefield')]
-
 
 class TFVariableLine:
     def __init__(self, element: browser.element):
         self.element = element
     
     @property
-    def name(self) -> str:
-        return self.element.ss('td')[0].s('a').text
+    def name(self) -> SeleneElement:
+        return self.element.ss('td[@data-columnid="name"]//input')
 
     @property
-    def value(self) -> str:
-        return self.element.ss('td')[0].s('a').text
+    def value(self) -> SeleneElement:
+        return self.element.ss('td[@data-columnid="value"]//input')
 
     @property
     def sensitive_button(self) -> button:
@@ -277,25 +235,86 @@ class TFVariableLine:
         return button(title='HCL', parent=self.element)
     
     @property
-    def delete_button(self) button:
-        return button(qtip=='Delete', parent=self.element)
-    
+    def delete_button(self) -> button:
+        return button(qtip='Delete', parent=self.element)
 
+    @property
+    def input_name(self):
+        return self.element.ss(".//td[@data-columnid='name']//input")[-1]
+
+    @property
+    def input_value(self):
+        return self.element.ss(".//td[@data-columnid='value']//input")[-1]
+ 
+    
 class EnvVariableLine:
     def __init__(self, element: browser.element):
         self.element = element
     
     @property
-    def name(self) -> str:
-        return self.element.ss('td')[0].s('a').text
+    def name(self) -> SeleneElement :
+        return self.element.ss('td[@data-columnid="name"]//input')
 
     @property
-    def value(self) -> str:
-        return self.element.ss('td')[0].s('a').text
+    def value(self) -> SeleneElement:
+        return self.element.ss('td[@data-columnid="value"]//input')
 
     @property
     def sensitive_button(self) -> button:
         return button(title='Sensitive', parent=self.element)
 
-        
+    @property
+    def delete_button(self) -> button:
+        return button(qtip='Delete', parent=self.element)
+
+    @property
+    def input_name(self) :
+        return self.element.ss(".//td[@data-columnid='name']//input")[-1]
  
+    @property
+    def input_value(self):
+        return self.element.ss(".//td[@data-columnid='value']//input")[-1]
+
+
+class WorkspaceVariablePage(TfBasePage):
+    @staticmethod
+    def wait_page_loading():
+        loading_modal('Loading...').should(be.not_.visible, timeout=10)
+        s(by.xpath("//span[text()='Save']/ancestor::span")).should(be.visible, timeout=20)
+        s(by.xpath("//div[contains(text(),'Environment Variable')]/ancestor::fieldset//tr")).should(be.visible, timeout=20)
+
+
+    @property
+    def tf_variables(self) -> [TFVariableLine]:
+        return [TFVariableLine(p) for p in ss('//div[contains(text(),"Terraform Variable")]/ancestor::fieldset//tr') if p.is_displayed()]
+
+    @property
+    def env_variables(self) -> [EnvVariableLine]:
+        return [EnvVariableLine(p) for p in ss('//div[contains(text(),"Environment Variable")]/ancestor::fieldset//tr') if p.is_displayed()]
+
+    # @property
+    # def search(self) -> search:
+    #     parent = s(by.xpath("//div[starts-with(@id, 'workspacevariablesearchfield')]"))
+    #     return search(parent)
+
+    @property
+    def new_tf_variable(self) -> button:
+        button(title='New Variable').click()
+        return button(title='New Terraform Variable')
+
+    @property
+    def new_env_variable(self) -> button:
+        button(title='New Variable').click()
+        return button(title='New Environment Variable')
+
+    @property
+    def refresh(self) -> button:
+        return button(qtip='Refresh') 
+ 
+    @property
+    def save(self) -> button:
+        return button(title='Save')
+
+    @property
+    def empty_tf_variable(sefl) -> SeleneElement:
+        return s(by.xpath("//div[text()='You have no variables added yet.']"))

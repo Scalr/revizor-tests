@@ -1,4 +1,5 @@
 import typing as tp
+import time
 
 from selene.api import s, ss, by, be
 from selene.core import query
