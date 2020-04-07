@@ -47,7 +47,7 @@ class TestTerraformLifecycle(VCSMixin):
         modal.name.set_value(workspace_name)
         assert len(modal.vcs_provider.get_values()) >= 1
         modal.vcs_provider.set_value(vcs_name)
-        assert len(modal.repository.get_values()) > 5
+        assert len(modal.repository.get_values()) >= 1
         modal.repository.set_value(self.repo_name)
         tf_versions = modal.terraform_version.get_values()
         assert len(tf_versions) >= 1
@@ -74,11 +74,11 @@ class TestTerraformLifecycle(VCSMixin):
         run_dashboard.approve_button.click()
         button('Yes').should(be.visible).click()
         run_dashboard.status.should(have.text('APPLYING'), timeout=10)
-        run_dashboard.status.should(have.text('APPLIED'), timeout=60)
+        run_dashboard.status.should(have.text('APPLIED'), timeout=120)
         assert run_dashboard.steps[0].title.text.strip() == '1. Plan'
         assert run_dashboard.steps[0].status.text.strip() == 'Finished'
         run_dashboard.steps[0].activate()
-        assert 'Plan: 1 to add, 0 to change, 0 to destroy.' in run_dashboard.console.get(query.text)
+        assert 'Plan: 2 to add, 0 to change, 0 to destroy.' in run_dashboard.console.get(query.text)
         assert 'Traceback' not in run_dashboard.console.get(query.text)
         assert run_dashboard.steps[1].title.text.strip() == '2. Cost estimate'
         assert run_dashboard.steps[1].status.text.strip() == 'Finished'
@@ -90,5 +90,5 @@ class TestTerraformLifecycle(VCSMixin):
         assert run_dashboard.steps[3].title.text.strip() == '4. Apply'
         assert run_dashboard.steps[3].status.text.strip() == 'Finished'
         run_dashboard.steps[3].activate()
-        assert 'Apply complete! Resources: 1 added, 0 changed, 0 destroyed.' in run_dashboard.console.get(query.text)
+        assert 'Apply complete! Resources: 2 added, 0 changed, 0 destroyed.' in run_dashboard.console.get(query.text)
         assert 'Traceback' not in run_dashboard.console.get(query.text)

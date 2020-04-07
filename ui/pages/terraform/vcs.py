@@ -98,7 +98,6 @@ class VCSPage(TfBasePage):
 
     @property
     def new_vcs_button(self) -> components.button:
-        print('Buttons %s' % len(ss(by.xpath('//span[text()="New VCS Provider"]//ancestor::a'))))
         return components.button('New VCS Provider')
 
     @property
