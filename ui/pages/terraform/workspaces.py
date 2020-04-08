@@ -214,39 +214,6 @@ class DeleteWorkspaceModal:
         return s(by.xpath("//span[text()='Cancel']/ancestor::span"))
 
 
-class TFVariableLine:
-    def __init__(self, element: browser.element):
-        self.element = element
-    
-    @property
-    def name(self) -> SeleneElement:
-        return self.element.ss('td[@data-columnid="name"]//input')
-
-    @property
-    def value(self) -> SeleneElement:
-        return self.element.ss('td[@data-columnid="value"]//input')
-
-    @property
-    def sensitive_button(self) -> button:
-        return button(title='Sensitive', parent=self.element)
-
-    @property
-    def hcl_button(self) -> button:
-        return button(title='HCL', parent=self.element)
-    
-    @property
-    def delete_button(self) -> button:
-        return button(qtip='Delete', parent=self.element)
-
-    @property
-    def input_name(self):
-        return self.element.ss(".//td[@data-columnid='name']//input")[-1]
-
-    @property
-    def input_value(self):
-        return self.element.ss(".//td[@data-columnid='value']//input")[-1]
- 
-    
 class EnvVariableLine:
     def __init__(self, element: browser.element):
         self.element = element
@@ -268,13 +235,19 @@ class EnvVariableLine:
         return button(qtip='Delete', parent=self.element)
 
     @property
-    def input_name(self) :
+    def input_name(self):
         return self.element.ss(".//td[@data-columnid='name']//input")[-1]
  
     @property
     def input_value(self):
         return self.element.ss(".//td[@data-columnid='value']//input")[-1]
 
+
+class TFVariableLine(EnvVariableLine):
+    @property
+    def hcl_button(self) -> button:
+        return button(title='HCL', parent=self.element)
+    
 
 class WorkspaceVariablePage(TfBasePage):
     @staticmethod
@@ -309,8 +282,8 @@ class WorkspaceVariablePage(TfBasePage):
 
     @property
     def refresh(self) -> button:
-        return button(qtip='Refresh') 
- 
+        return s(by.xpath("//div[starts-with(@id, 'workspacedashboardvariables')]//a[@data-qtip='Refresh']"))
+        
     @property
     def save(self) -> button:
         return button(title='Save')
