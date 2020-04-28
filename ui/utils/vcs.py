@@ -28,6 +28,8 @@ class VCSProvider(metaclass=abc.ABCMeta):
 
 
 class VCSGithub(VCSProvider):
+    name = 'github'
+
     def login(self, login: str, password: str) -> requests.Response:
         tree = lxml.html.fromstring(self._session.get('https://github.com/login').text)
         form = list(filter(lambda f: f.action == '/session', tree.forms))[0]

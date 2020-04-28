@@ -8,7 +8,7 @@ from revizor2.consts import ServerStatus, Platform
 
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import server as lib_server
-from scalarizr.lifecycle.common import lifecycle, provision, orchestration
+from scalarizr.lifecycle.common import lifecycle, provision
 
 LOG = logging.getLogger(__name__)
 
@@ -18,7 +18,7 @@ class TestChefProvisionWindows:
     """
 
     order = ('test_bootstrapping_with_chef',
-             'test_checking_deletion_chef_fixtures',
+             # 'test_checking_deletion_chef_fixtures',
              'test_chef_solo_bootstrapping',
              'test_chef_bootstrap_failure',
              'test_bootstrapping_form_chef_role'
@@ -35,22 +35,22 @@ class TestChefProvisionWindows:
         servers['M1'] = server
         lib_server.assert_scalarizr_log_errors(cloud, server)
         lifecycle.assert_szr_version_last(server)
-        provision.assert_node_exists_on_chef_server(server)
-        orchestration.assert_recipes_in_runlist(server, ['windows_file_create', 'revizorenv', 'revizor_chef_multi'])
+        # provision.assert_node_exists_on_chef_server(server)
+        # orchestration.assert_recipes_in_runlist(server, ['windows_file_create', 'revizorenv', 'revizor_chef_multi'])
         node = cloud.get_node(server)
         lib_server.assert_file_exist(node, 'C:\chef_result_file')
         lib_server.assert_file_exist(node, 'C:\changed_result')
         provision.assert_chef_node_name_equal_hostname(cloud, server)
         provision.assert_chef_log_contains_text(server, "revizor_chef_variable=REVIZOR_CHEF_VARIABLE_VALUE_WORK")
 
-    @pytest.mark.run_only_if(
-        platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
-    def test_checking_deletion_chef_fixtures(self, farm: Farm, servers: dict):
-        """Verify Scalr delete chef-fixtures"""
-        server = servers['M1']
-        farm.terminate()
-        lib_server.wait_servers_state(farm, 'terminated')
-        provision.assert_node_exists_on_chef_server(server, exist=False)
+    # @pytest.mark.run_only_if(
+    #     platform=[Platform.EC2, Platform.GCE, Platform.OPENSTACK, Platform.AZURE])
+    # def test_checking_deletion_chef_fixtures(self, farm: Farm, servers: dict):
+    #     """Verify Scalr delete chef-fixtures"""
+    #     server = servers['M1']
+    #     farm.terminate()
+    #     lib_server.wait_servers_state(farm, 'terminated')
+        # provision.assert_node_exists_on_chef_server(server, exist=False)
 
     @pytest.mark.boot
     @pytest.mark.parametrize('role_options', ['chef-solo-private', 'chef-solo-public', 'chef-solo-public-branch'])
@@ -101,6 +101,7 @@ class TestChefProvisionWindows:
         lifecycle.assert_hostname(server)
 
 
+@pytest.mark.skip('AT Server not work')
 class TestAnsibleTowerProvisionWindows:
     """ Windows server provision with Ansible Tower
     """

@@ -103,7 +103,7 @@ def get_config_from_message(cloud: Cloud, server: Server, config_group: str, mes
 def assert_server_message_body(cloud: Cloud, server: Server, config_group: str, message: str, old_details: dict):
     message_details = get_config_from_message(cloud, server, config_group, message)
     LOG.debug(f'New message details: {message_details}')
-    assert old_details == message_details, f'Message details old and new not equal!'
+    assert old_details == message_details
 
 
 def assert_attached_disk_types(context: dict, cloud: Cloud, farm: Farm):

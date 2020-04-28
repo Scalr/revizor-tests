@@ -6,7 +6,7 @@ from revizor2.consts import ServerStatus
 from scalarizr.lib import farm as lib_farm
 from scalarizr.lib import node as lib_node
 from scalarizr.lib import server as lib_server
-from scalarizr.lifecycle.common import lifecycle, orchestration, windows
+from scalarizr.lifecycle.common import lifecycle, windows
 
 
 WINDOWS_BOOTSTRAP_SCRIPTS = [
@@ -139,7 +139,7 @@ class TestOrchestration:
         lib_server.assert_file_exist(node, file_path='/root/chef_solo_result')
         lib_server.assert_file_exist(node, file_path='/root/chef_hostup_result')
         lib_node.assert_process_has_options(cloud, server, process='memcached', options='-m 1024')
-        orchestration.assert_recipes_in_runlist(server, recipes=['memcached', 'revizorenv'])
+        # orchestration.assert_recipes_in_runlist(server, recipes=['memcached', 'revizorenv'])
 
     def test_execute_scripts(self, context: dict, cloud: Cloud, farm: Farm, servers: dict,
                              script_name: str, synchronous: bool, is_local: bool, output: str, stderr: bool):
@@ -210,7 +210,7 @@ class TestOrchestration:
         farm.launch()
         server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.FAILED)
         assert server.is_init_failed, "Server %s failed not on Initializing" % server.id
-        lookup_substrings = ['BeforeHostUp',
+        lookup_substrings = ['hostUp',
                              'Multiplatform_exit_1.ps1&quot; exited with code 1' if CONF.feature.dist.is_windows
                               else 'Multiplatform_exit_1&quot; exited with code 1']
         fail_message = server.get_failed_status_message()

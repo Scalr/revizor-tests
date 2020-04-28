@@ -62,7 +62,7 @@ class TestStopResume:
         lib_server.assert_server_message(cloud, farm, msgtype='out', msg='BeforeHostTerminate', server=server)
         lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.SUSPENDED)
         lib_server.assert_server_event(server, ['HostDown (Suspend)'])
-        provision.assert_node_exists_on_chef_server(server)
+        # provision.assert_node_exists_on_chef_server(server)
         servers['M2'] = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
         lib_server.execute_server_action(server, 'resume')
         lib_server.wait_server_status(context, cloud, farm, server=server, status=ServerStatus.RESUMING)

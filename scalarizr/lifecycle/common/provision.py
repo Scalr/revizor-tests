@@ -2,7 +2,8 @@ import re
 import time
 import logging
 
-import chef
+#FIXME: Chef not work on os x 10.15 and new python
+# import chef
 
 from tower_cli import get_resource as at_get_resource
 from tower_cli.conf import settings as at_settings
@@ -72,21 +73,21 @@ def assert_chef_log_not_contains_level(server: api.Server, log_levels: Mapping[s
         raise AssertionError(f"Log is empty or one of log levels: {log_levels} found in chef bootstrap:\n{logs}")
 
 
-def assert_node_exists_on_chef_server(server: api.Server, exist: bool = True):
-    # NOTE: migrated
-    hostname = lib_server.get_hostname_by_server_format(server)
-    LOG.debug(f'Chef node name: {hostname}')
-
-    chef_api = chef.autoconfigure()
-
-    if not isinstance(chef_api, chef.api.ChefAPI):
-        raise AssertionError("Can't initialize ChefAPI instance.")
-
-    node = chef.Node(hostname, api=chef_api)
-
-    if node.exists != exist:
-        raise AssertionError(f'Server {server.id} with hostname {hostname} in state {node.exists} '
-                             f'on Chef server but need: {exist}')
+# def assert_node_exists_on_chef_server(server: api.Server, exist: bool = True):
+#     # NOTE: migrated
+#     hostname = lib_server.get_hostname_by_server_format(server)
+#     LOG.debug(f'Chef node name: {hostname}')
+#
+#     chef_api = chef.autoconfigure()
+#
+#     if not isinstance(chef_api, chef.api.ChefAPI):
+#         raise AssertionError("Can't initialize ChefAPI instance.")
+#
+#     node = chef.Node(hostname, api=chef_api)
+#
+#     if node.exists != exist:
+#         raise AssertionError(f'Server {server.id} with hostname {hostname} in state {node.exists} '
+#                              f'on Chef server but need: {exist}')
 
 
 def wait_for_farm_state(farm: api.Farm, state):

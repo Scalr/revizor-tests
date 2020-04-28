@@ -27,7 +27,7 @@ class TestLifecycleWindows:
              'test_windows_reboot',
              'test_restart_farm',
              'test_restart_bootstrap',
-             'test_eph_bootstrap',
+             # 'test_eph_bootstrap',
              'test_attach_disk_to_running_server')
 
     @pytest.mark.boot
@@ -134,18 +134,18 @@ class TestLifecycleWindows:
         servers['M1'] = server
         lifecycle.assert_hostname(server)
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2])
-    def test_eph_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
-        """Bootstraping with ephemeral"""
-        lib_farm.clear(farm)
-        farm.terminate()
-        lib_farm.add_role_to_farm(context, farm, role_options=['ephemeral'])
-        farm.launch()
-        server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
-        servers['M1'] = server
-        lifecycle.assert_vcpu_count(server)
-        windows.assert_attached_disks_size(cloud, server, [('Z:\\', 'test_label', 4)])
-        lifecycle.assert_szr_version_last(server)
+    # @pytest.mark.run_only_if(platform=[Platform.EC2])
+    # def test_eph_bootstrap(self, context: dict, cloud: Cloud, farm: Farm, servers: dict):
+    #     """Bootstraping with ephemeral"""
+    #     lib_farm.clear(farm)
+    #     farm.terminate()
+    #     lib_farm.add_role_to_farm(context, farm, role_options=['ephemeral'])
+    #     farm.launch()
+    #     server = lib_server.wait_server_status(context, cloud, farm, status=ServerStatus.RUNNING)
+    #     servers['M1'] = server
+    #     lifecycle.assert_vcpu_count(server)
+    #     windows.assert_attached_disks_size(cloud, server, [('Z:\\', 'test_label', 4)])
+    #     lifecycle.assert_szr_version_last(server)
 
     @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
     def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
