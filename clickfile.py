@@ -84,7 +84,7 @@ def run_job():
 
     os.environ['REVIZOR_TESTINSTANCE_ID'] = str(body['id'])
     command = body['run_command']
-    command += ' -s -v --log-level=debug --log-cli-level=debug --log-file=/root/ui.log --log-file-level=debug --te-remove'
+    command += ' -s -v --log-level=debug --log-cli-level=debug --log-file-level=debug --te-remove'
 
     os.chdir('/tests')
     print(f'Start test with command "{command}"')

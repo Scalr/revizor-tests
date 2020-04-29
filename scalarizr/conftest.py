@@ -161,9 +161,7 @@ def farm(request: FixtureRequest) -> Farm:
     finally:
         failed_count = request.session.testsfailed
         LOG.info("Failed tests: %s" % failed_count)
-        if (failed_count == 0 and CONF.feature.stop_farm) or (
-            CONF.feature.stop_farm and CONF.scalr.te_id
-        ):
+        if CONF.feature.stop_farm:
             LOG.info("Clear and stop farm...")
             test_farm.terminate()
             IMPL.farm.clear_roles(test_farm.id)
