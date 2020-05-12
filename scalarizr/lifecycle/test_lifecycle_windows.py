@@ -147,7 +147,7 @@ class TestLifecycleWindows:
     #     windows.assert_attached_disks_size(cloud, server, [('Z:\\', 'test_label', 4)])
     #     lifecycle.assert_szr_version_last(server)
 
-    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.AZURE, Platform.VMWARE])
+    @pytest.mark.run_only_if(platform=[Platform.EC2, Platform.OPENSTACK, Platform.VMWARE])
     def test_attach_disk_to_running_server(self, context: dict, cloud: Cloud, farm: Farm):
         """Attach disk to running server"""
         lib_farm.clear(farm)

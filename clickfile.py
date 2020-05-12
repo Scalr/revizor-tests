@@ -45,6 +45,7 @@ def tests():
 @click.option('--token', required=None, help='GitHub access token to revizor repo')
 @click.option('--push', is_flag=True, default=False, help='Push to github or not')
 def build_container(token, push):
+    #FIXME: Copy gce-development.json  in terraform
     if token is None:
         token = CONF.credentials.github.access_token
     branch = local('git status', log=False).stdout.decode().splitlines()[0].split()[-1].lower().replace('/', '-')

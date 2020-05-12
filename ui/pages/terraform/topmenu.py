@@ -38,7 +38,7 @@ class TfTopMenu:
     def open_offerings_request(self) -> offerings.OfferingsRequestPage:
         s(by.xpath(
             '//span[contains(@class, "x-btn-inner-default-toolbar-small") and text('
-            ')="Offerings"]/ancestor::a')).click()
+            ')="Templates registry"]/ancestor::a')).click()
         s(by.xpath(
             '//span[contains(@class, "x-menu-item-indent") and text()="Request"]/ancestor::a'
         )).click()
@@ -47,7 +47,7 @@ class TfTopMenu:
     def open_offerings_management(self) -> offerings.OfferingsManagementPage:
         s(by.xpath(
             '//span[contains(@class, "x-btn-inner-default-toolbar-small") and text('
-            ')="Offerings"]/ancestor::a')).click()
+            ')="Templates registry"]/ancestor::a')).click()
         s(by.xpath(
             '//span[contains(@class, "x-menu-item-indent") and text()="Management"]/ancestor::a'
         )).click()
@@ -56,7 +56,7 @@ class TfTopMenu:
     def open_offerings_categories(self) -> offerings.OfferingsCategoriesPage:
         s(by.xpath(
             '//span[contains(@class, "x-btn-inner-default-toolbar-small") and text('
-            ')="Offerings"]/ancestor::a')).click()
+            ')="Templates registry"]/ancestor::a')).click()
         s(by.xpath(
             '//span[contains(@class, "x-menu-item-indent") and text()="Categories"]/ancestor::a'
         )).click()
