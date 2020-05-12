@@ -5,6 +5,7 @@ from selene.elements import SeleneElement
 from selene.api import s, ss, by, browser, be
 
 from .base import TfBasePage, BasePage
+from ui.pages.terraform.runs import WorkspaceRunsPage
 from ui.utils.components import button, combobox, toggle, loading_modal, input, search
 
 
@@ -114,6 +115,11 @@ class WorkspaceLine:
     def open_variable_dashboard(self) -> "WorkspaceVariablePage":
         self.gv_button.click()
         return WorkspaceVariablePage()
+
+    def open_runs_page(self) -> "WorkspaceRunsPage":
+        self.dashboard_button.click()
+        button(title='Runs').click()
+        return WorkspaceRunsPage()
 
 
 class WorkspacePage(TfBasePage):
