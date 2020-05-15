@@ -55,8 +55,7 @@ class TestWorkspaceRun:
 
     def test_error_run(self):
         run_page = self.new_workspace_runs_page("error_plan")
-        # time.sleep(1)
-        self.run_page.queue_run.should(be.clickable)
+        time.sleep(1)
         self.run_page.queue_run.click()
         confirm = QueueNewRunModal()
         confirm.queue_button.click()
@@ -72,68 +71,68 @@ class TestWorkspaceRun:
         assert run_line.triggered_by.get(query.text) == "tf@scalr.com"
         assert run_line.triggered_from.get(query.text) == " Manual"
 
-    # def test_planned_and_finished_run(self):
-    #     run_page = self.new_workspace_runs_page()
-    #     time.sleep(1)
-    #     self.run_page.queue_run.click()
-    #     confirm = QueueNewRunModal()
-    #     confirm.queue_button.click()
-    #     self.wait_run_queued()
-    #     assert len(self.run_page.workspace_runs) == 1
-    #     self.run_page.refresh.click()
-    #     time.sleep(1)
-    #     run_line = self.run_page.workspace_runs[0]
-    #     assert run_line.carrent.get(query.text) == "CURRENT"
-    #     run_line.status.should(have.text("PLANNING"), timeout=40)
-    #     run_line.status.should(have.text("PLANNED AND FINISHED"), timeout=20)
-    #     assert run_line.status.get(query.text) == "PLANNED AND FINISHED"
-    #     assert run_line.triggered_by.get(query.text) == "tf@scalr.com"
-    #     assert run_line.triggered_from.get(query.text) == " Manual"
+    def test_planned_and_finished_run(self):
+        run_page = self.new_workspace_runs_page()
+        time.sleep(1)
+        self.run_page.queue_run.click()
+        confirm = QueueNewRunModal()
+        confirm.queue_button.click()
+        self.wait_run_queued()
+        assert len(self.run_page.workspace_runs) == 1
+        self.run_page.refresh.click()
+        time.sleep(1)
+        run_line = self.run_page.workspace_runs[0]
+        assert run_line.carrent.get(query.text) == "CURRENT"
+        run_line.status.should(have.text("PLANNING"), timeout=40)
+        run_line.status.should(have.text("PLANNED AND FINISHED"), timeout=20)
+        assert run_line.status.get(query.text) == "PLANNED AND FINISHED"
+        assert run_line.triggered_by.get(query.text) == "tf@scalr.com"
+        assert run_line.triggered_from.get(query.text) == " Manual"
 
-    # def test_approve_run(self):
-    #     run_page = self.new_workspace_runs_page("local_wait")
-    #     time.sleep(1) 
-    #     self.run_page.queue_run.click()
-    #     confirm = QueueNewRunModal()
-    #     confirm.queue_button.click()
-    #     self.wait_run_queued()
-    #     assert len(self.run_page.workspace_runs) > 0
-    #     self.run_page.refresh.click()
-    #     time.sleep(1)
-    #     run_line = self.run_page.workspace_runs[0]
-    #     assert run_line.carrent.get(query.text) == "CURRENT"
-    #     run_line.status.should(have.text("PLANNING"))
-    #     run_line.status.should(have.text("NEEDS CONFIRMATION"), timeout=300)
-    #     run_line.run_details_button.click()
-    #     confirm = RunDashboard()
-    #     confirm.approve_button.click()
-    #     confirm.confirm_approve.click()
-    #     confirm.open_ws_runs.click()
-    #     time.sleep(3)
-    #     run_line = self.run_page.workspace_runs[0]
-    #     run_line.status.should(have.text("APPLIED"), timeout=100)
-    #     assert run_line.status.get(query.text) == "APPLIED\n+2 ⇄0–0"
+    def test_approve_run(self):
+        run_page = self.new_workspace_runs_page("local_wait")
+        time.sleep(1) 
+        self.run_page.queue_run.click()
+        confirm = QueueNewRunModal()
+        confirm.queue_button.click()
+        self.wait_run_queued()
+        assert len(self.run_page.workspace_runs) > 0
+        self.run_page.refresh.click()
+        time.sleep(1)
+        run_line = self.run_page.workspace_runs[0]
+        assert run_line.carrent.get(query.text) == "CURRENT"
+        run_line.status.should(have.text("PLANNING"))
+        run_line.status.should(have.text("NEEDS CONFIRMATION"), timeout=300)
+        run_line.run_details_button.click()
+        confirm = RunDashboard()
+        confirm.approve_button.click()
+        confirm.confirm_approve.click()
+        confirm.open_ws_runs.click()
+        time.sleep(3)
+        run_line = self.run_page.workspace_runs[0]
+        run_line.status.should(have.text("APPLIED"), timeout=100)
+        assert run_line.status.get(query.text) == "APPLIED\n+2 ⇄0–0"
 
-    # def test_discared_run(self):
-    #     run_page = self.new_workspace_runs_page("local_wait")
-    #     time.sleep(1)
-    #     self.run_page.queue_run.click()
-    #     confirm = QueueNewRunModal()
-    #     confirm.queue_button.click()
-    #     self.wait_run_queued()
-    #     assert len(self.run_page.workspace_runs) > 0
-    #     self.run_page.refresh.click()
-    #     time.sleep(1)
-    #     run_line = self.run_page.workspace_runs[0]
-    #     assert run_line.carrent.get(query.text) == "CURRENT"
-    #     run_line.status.should(have.text("PLANNING"))
-    #     run_line.status.should(have.text("NEEDS CONFIRMATION"), timeout=300)
-    #     run_line.run_details_button.click()
-    #     confirm = RunDashboard()
-    #     confirm.decline_button.click()
-    #     confirm.confirm_decline.click()
-    #     confirm.open_ws_runs.click()
-    #     # s('tr.x-grid-row').should(have.size_greater_than(1))
-    #     time.sleep(3)
-    #     run_line = self.run_page.workspace_runs[0]
-    #     assert run_line.status.get(query.text) == "DISCARDED"
+    def test_discared_run(self):
+        run_page = self.new_workspace_runs_page("local_wait")
+        time.sleep(1)
+        self.run_page.queue_run.click()
+        confirm = QueueNewRunModal()
+        confirm.queue_button.click()
+        self.wait_run_queued()
+        assert len(self.run_page.workspace_runs) > 0
+        self.run_page.refresh.click()
+        time.sleep(1)
+        run_line = self.run_page.workspace_runs[0]
+        assert run_line.carrent.get(query.text) == "CURRENT"
+        run_line.status.should(have.text("PLANNING"))
+        run_line.status.should(have.text("NEEDS CONFIRMATION"), timeout=300)
+        run_line.run_details_button.click()
+        confirm = RunDashboard()
+        confirm.decline_button.click()
+        confirm.confirm_decline.click()
+        confirm.open_ws_runs.click()
+        # s('tr.x-grid-row').should(have.size_greater_than(1))
+        time.sleep(3)
+        run_line = self.run_page.workspace_runs[0]
+        assert run_line.status.get(query.text) == "DISCARDED"
