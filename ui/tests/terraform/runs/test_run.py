@@ -1,12 +1,12 @@
-import typing as tp
 import time
+import typing as tp
 
 import pytest
-from selene.api import by, be, s,ss, query, have
+from selene.api import by, be, s, query, have
 
 from ui.utils.datagenerator import generate_name
 from ui.pages.terraform.workspaces import WorkspacePage
-from ui.pages.terraform.runs import WorkspaceRunsPage, QueueNewRunModal, RunDashboard
+from ui.pages.terraform.runs import QueueNewRunModal, RunDashboard
 from ui.utils.components import loading_modal
 from ui.utils import consts
 from revizor2.api import IMPL
@@ -16,7 +16,7 @@ class TestWorkspaceRun:
     workspace_page: WorkspacePage
     name = None
     repo_name: str = "Scalr/tf-revizor-fixtures"
-    vcs_provider: str = None
+    vcs_provider: tp.Dict[str, str] = None
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, tf_dashboard, vcs_provider):
@@ -25,9 +25,7 @@ class TestWorkspaceRun:
 
     def wait_run_queued(self):
         # loading_modal(consts.LoadingModalMessages.QUEUEING_RUN).should(be.visible, timeout=3)
-        loading_modal(consts.LoadingModalMessages.QUEUEING_RUN).should(
-            be.not_.visible, timeout=5
-        )
+        loading_modal(consts.LoadingModalMessages.QUEUEING_RUN).should(be.not_.visible, timeout=5)
         s(by.xpath("//div[text()='Run successfully queued']")).should(be.visible)
 
     def new_workspace_runs_page(self, subdirectory=None):
@@ -91,7 +89,7 @@ class TestWorkspaceRun:
 
     def test_approve_run(self):
         run_page = self.new_workspace_runs_page("local_wait")
-        time.sleep(1) 
+        time.sleep(1)
         self.run_page.queue_run.click()
         confirm = QueueNewRunModal()
         confirm.queue_button.click()

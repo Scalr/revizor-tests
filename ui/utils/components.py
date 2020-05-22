@@ -1,6 +1,6 @@
 import typing as tp
-import time
 
+from selenium.webdriver.common.keys import Keys
 from selene.api import s, ss, by, be
 from selene.core import query
 from selene.elements import SeleneElement
@@ -101,7 +101,7 @@ class Combobox(BaseComponent):
 
     def open(self):
         self.element.s('div').click()
-        self.element.s('div.x-form-field-loading').should(be.not_.visible, timeout=10)
+        self.element.s('div.x-form-field-loading').should(be.not_.visible, timeout=15)
 
     def close(self):
         self.element.s('div').click()
@@ -114,11 +114,11 @@ class Combobox(BaseComponent):
     def set_value(self, value: str):
         values = self.get_values()
         self.open()
-        for _ in range(len(values)):
+        for _ in range(len(values) + 1):
             if self.get_active_item() == value:
-                self.element.s('input').press_enter()
+                self.element.s('input').type(Keys.ENTER)
                 return
-            self.element.s('input').press_down()
+            self.element.s('input').type(Keys.ARROW_DOWN)
 
     def get_active_item(self) -> str:
         return s(f'#{self.bound_id} .x-boundlist-item-over[role="option"]').get(query.text).strip()

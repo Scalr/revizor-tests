@@ -133,7 +133,7 @@ class WorkspacePage(TfBasePage):
     def workspaces(self) -> [WorkspaceLine]:
         return [WorkspaceLine(p) for p in ss('tr.x-grid-row') if p.is_displayed()]
 
-    def open_new_workspace(self) -> browser.element:
+    def open_new_workspace(self) -> CreateWorkspaceModal:
         button('New Workspace').click()
         return CreateWorkspaceModal()
 
@@ -223,7 +223,7 @@ class DeleteWorkspaceModal:
 class EnvVariableLine:
     def __init__(self, element: browser.element):
         self.element = element
-    
+
     @property
     def name(self) -> SeleneElement :
         return self.element.ss('td[@data-columnid="name"]//input')
@@ -243,7 +243,7 @@ class EnvVariableLine:
     @property
     def input_name(self):
         return self.element.ss(".//td[@data-columnid='name']//input")[-1]
- 
+
     @property
     def input_value(self):
         return self.element.ss(".//td[@data-columnid='value']//input")[-1]
@@ -253,7 +253,7 @@ class TFVariableLine(EnvVariableLine):
     @property
     def hcl_button(self) -> button:
         return button(title='HCL', parent=self.element)
-    
+
 
 class WorkspaceVariablePage(TfBasePage):
     @staticmethod
@@ -289,7 +289,7 @@ class WorkspaceVariablePage(TfBasePage):
     @property
     def refresh(self) -> button:
         return s(by.xpath("//div[starts-with(@id, 'workspacedashboardvariables')]//a[@data-qtip='Refresh']"))
-        
+
     @property
     def save(self) -> button:
         return button(title='Save')
