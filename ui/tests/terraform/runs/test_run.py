@@ -2,7 +2,7 @@ import typing as tp
 import time
 
 import pytest
-from selene.api import by, be, s,ss, query, have
+from selene.api import by, be, s, ss, query, have
 
 from ui.utils.datagenerator import generate_name
 from ui.pages.terraform.workspaces import WorkspacePage
@@ -24,11 +24,14 @@ class TestWorkspaceRun:
         self.vcs_provider = vcs_provider
 
     def wait_run_queued(self):
-        # loading_modal(consts.LoadingModalMessages.QUEUEING_RUN).should(be.visible, timeout=3)
-        loading_modal(consts.LoadingModalMessages.QUEUEING_RUN).should(
-            be.not_.visible, timeout=5
-        )
+        loading_modal(consts.LoadingModalMessages.QUEUEING_RUN).should(be.not_.visible, timeout=5)
+        s("div#loading").should(be.not_.visible, timeout=20)
         s(by.xpath("//div[text()='Run successfully queued']")).should(be.visible)
+
+    def wait_runstab_loading(self):
+        s(
+            by.xpath("//div[starts-with(@id, 'workspacedashboardruns')]//div[text()='Loading...']")
+        ).should(be.not_.visible, timeout=20)
 
     def new_workspace_runs_page(self, subdirectory=None):
         self.workspace_name = generate_name("name")
@@ -53,16 +56,26 @@ class TestWorkspaceRun:
         self.run_page = workspace_line[0].open_runs_page()
         return self.run_page
 
+    def test_cancel_run(self):
+        run_page = self.new_workspace_runs_page("error_plan")
+        self.wait_runstab_loading()
+        self.run_page.queue_run.click()
+        confirm = QueueNewRunModal()
+        confirm.cancel_queue_button.click()
+        self.run_page.refresh.click()
+        self.wait_runstab_loading()
+        assert len(self.run_page.workspace_runs) == 0
+
     def test_error_run(self):
         run_page = self.new_workspace_runs_page("error_plan")
-        time.sleep(1)
+        self.wait_runstab_loading()
         self.run_page.queue_run.click()
         confirm = QueueNewRunModal()
         confirm.queue_button.click()
         self.wait_run_queued()
         assert len(self.run_page.workspace_runs) == 1
         self.run_page.refresh.click()
-        time.sleep(1)
+        self.wait_runstab_loading()
         run_line = self.run_page.workspace_runs[0]
         run_line.status.should(have.text("PLANNING"), timeout=40)
         run_line.status.should(have.text("ERRORED"), timeout=20)
@@ -73,14 +86,14 @@ class TestWorkspaceRun:
 
     def test_planned_and_finished_run(self):
         run_page = self.new_workspace_runs_page()
-        time.sleep(1)
+        self.wait_runstab_loading()
         self.run_page.queue_run.click()
         confirm = QueueNewRunModal()
         confirm.queue_button.click()
         self.wait_run_queued()
         assert len(self.run_page.workspace_runs) == 1
         self.run_page.refresh.click()
-        time.sleep(1)
+        self.wait_runstab_loading()
         run_line = self.run_page.workspace_runs[0]
         assert run_line.carrent.get(query.text) == "CURRENT"
         run_line.status.should(have.text("PLANNING"), timeout=40)
@@ -91,14 +104,14 @@ class TestWorkspaceRun:
 
     def test_approve_run(self):
         run_page = self.new_workspace_runs_page("local_wait")
-        time.sleep(1) 
+        self.wait_runstab_loading()
         self.run_page.queue_run.click()
         confirm = QueueNewRunModal()
         confirm.queue_button.click()
         self.wait_run_queued()
         assert len(self.run_page.workspace_runs) > 0
         self.run_page.refresh.click()
-        time.sleep(1)
+        self.wait_runstab_loading()
         run_line = self.run_page.workspace_runs[0]
         assert run_line.carrent.get(query.text) == "CURRENT"
         run_line.status.should(have.text("PLANNING"))
@@ -108,21 +121,22 @@ class TestWorkspaceRun:
         confirm.approve_button.click()
         confirm.confirm_approve.click()
         confirm.open_ws_runs.click()
-        time.sleep(3)
+        self.run_page.refresh.click()
+        self.wait_runstab_loading()
         run_line = self.run_page.workspace_runs[0]
-        run_line.status.should(have.text("APPLIED"), timeout=100)
+        run_line.status.should(have.text("APPLIED"), timeout=300)
         assert run_line.status.get(query.text) == "APPLIED\n+2 ⇄0–0"
 
     def test_discared_run(self):
         run_page = self.new_workspace_runs_page("local_wait")
-        time.sleep(1)
+        self.wait_runstab_loading()
         self.run_page.queue_run.click()
         confirm = QueueNewRunModal()
         confirm.queue_button.click()
         self.wait_run_queued()
         assert len(self.run_page.workspace_runs) > 0
         self.run_page.refresh.click()
-        time.sleep(1)
+        self.wait_runstab_loading()
         run_line = self.run_page.workspace_runs[0]
         assert run_line.carrent.get(query.text) == "CURRENT"
         run_line.status.should(have.text("PLANNING"))
@@ -132,7 +146,7 @@ class TestWorkspaceRun:
         confirm.decline_button.click()
         confirm.confirm_decline.click()
         confirm.open_ws_runs.click()
-        # s('tr.x-grid-row').should(have.size_greater_than(1))
-        time.sleep(3)
+        self.run_page.refresh.click()
+        self.wait_runstab_loading()
         run_line = self.run_page.workspace_runs[0]
         assert run_line.status.get(query.text) == "DISCARDED"

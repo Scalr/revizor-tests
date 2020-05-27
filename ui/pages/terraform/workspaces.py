@@ -121,7 +121,6 @@ class WorkspaceLine:
         button(title='Runs').click()
         return WorkspaceRunsPage()
 
-
 class WorkspacePage(TfBasePage):
     @staticmethod
     def wait_page_loading():
@@ -141,6 +140,9 @@ class WorkspacePage(TfBasePage):
     def search(self) -> search:
         return search()
 
+    @property
+    def empty_ws_table(self) -> SeleneElement:
+        return s(by.xpath("//div[text()='No Workspaces found.']"))
 
 class WorkspaceDashboard(TfBasePage):
     @staticmethod
