@@ -1,12 +1,11 @@
 import time
-import typing as tp
 
 import pytest
 from selene.api import s, be, have
 
 from ui.utils.components import tooltip
 from ui.utils.datagenerator import generate_name
-from ui.pages.terraform.vcs import GithubAuthPage, EditVCSForm, DeleteConfirmationModal, VCSPage
+from ui.pages.terraform.vcs import EditVCSForm, DeleteConfirmationModal
 from ui.utils.mixins.vcs import VCSMixin
 
 
@@ -29,7 +28,6 @@ class TestVCSProviders(VCSMixin):
         assert len(vcs_page.providers) == 1
         assert vcs_page.providers[0].name == vcs_name
         assert vcs_page.providers[0].usage == 'Not used'
-        # vcs_page.search.element('div.x-tagfield-item-text').should(have.text('vcs-'))
 
     def test_delete_provider(self):
         vcs_name = generate_name('test-')
