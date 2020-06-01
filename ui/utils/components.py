@@ -58,7 +58,7 @@ class Tooltip(BaseComponent):
                 by.xpath(f'.//div[text()="{message}"]/ancestor::div[contains(@class, "x-tip-message")]'))
 
     def close(self):
-        self.element.s('img').click()
+        self.element.s('.x-tool-close-white').click()
 
 
 tooltip = Tooltip

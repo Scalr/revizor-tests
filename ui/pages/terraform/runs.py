@@ -149,7 +149,7 @@ class QueueNewRunModal:
     @staticmethod
     def wait_page_loading():
         s("div#loading").should(be.not_.visible, timeout=20)
-        s(by.xpath("//span[text()='Cancel']/ancestor::span")).should(be.visible)
+        s(by.xpath("//span[text()='Cancel']/ancestor::span")).should(be.visible, timeout=10)
 
     @property
     def queue_button(self) -> button:
@@ -164,7 +164,7 @@ class WorkspaceRunsPage(TfBasePage):
     @staticmethod
     def wait_page_loading():
         loading_modal("Loading...").should(be.not_.visible, timeout=10)
-        s(by.xpath("//span[text()='Queue run']/ancestor::span")).should(
+        s(by.xpath("//span[text()='Queue run']/ancestor::a")).should(
             be.visible, timeout=20
         )
 

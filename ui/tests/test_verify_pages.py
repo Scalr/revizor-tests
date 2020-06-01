@@ -20,9 +20,9 @@ from ui.pages.terraform.dashboard import TerraformEnvDashboard
 
 
 IGNORE_ERRORS = [
-    "WAI-ARIA compatibility warnings can be suppressed by adding the following",  # SCALRCORE-14849
-    "[W] Ext.ariaWarn = Ext.emptyFn;",  # SCALRCORE-14849
-    "http://www.w3.org/TR/wai-aria-practices/#menubutton",  # SCALRCORE-14849
+    # "WAI-ARIA compatibility warnings can be suppressed by adding the following",  # SCALRCORE-14849
+    # "[W] Ext.ariaWarn = Ext.emptyFn;",  # SCALRCORE-14849
+    # "http://www.w3.org/TR/wai-aria-practices/#menubutton",  # SCALRCORE-14849
     "[W] For WAI-ARIA compliance, IMG elements SHOULD have an alt attribute.",  # SCALRCORE-15240
     "[Ext.Loader] Synchronously loading 'Scalr.component.navigation.MainToolbar';",  # SCALRCORE-15109
     "Synchronous XMLHttpRequest",
@@ -42,10 +42,9 @@ class TestPagesForErrors:
     #     if request.node.name.startswith('test_account_scope_pages') and self.base_url == '/index7.html':
     #         pytest.skip('https://scalr-labs.atlassian.net/browse/SCALRCORE-14849')
 
-    @pytest.fixture(autouse=True, params=["/", "/index7.html"], ids=['extjs5', 'extjs7'])
-    def set_baseurl(self, request: FixtureRequest, testenv: TestEnv):
+    @pytest.fixture(autouse=True)
+    def set_baseurl(self, testenv: TestEnv):
         self.testenv = testenv
-        self.base_url = request.param
         yield
         self.assert_errors()
         browser.driver().delete_all_cookies()
@@ -65,7 +64,7 @@ class TestPagesForErrors:
     def authorize(self, username: str, password: str) -> tp.Union[
         AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
         browser.open(
-            f"https://{self.testenv.te_id}.test-env.scalr.com{self.base_url}"
+            f"https://{self.testenv.te_id}.test-env.scalr.com/"
         )
         s("#loading").should(be.not_.visible, timeout=20)
         login_page = LoginPage()
@@ -76,9 +75,7 @@ class TestPagesForErrors:
 
     def get_menu_items_count(self):
         self.topmenu_button.click()
-        attr = 'componentid'
-        if '7' in self.base_url:
-            attr = 'data-componentid'
+        attr = 'data-componentid'
         self.topmenu = s('div[data-qa-id="{}-menu"]'.format(
             self.topmenu_button.get(query.attribute(attr))
         ))

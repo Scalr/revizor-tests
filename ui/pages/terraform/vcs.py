@@ -10,7 +10,7 @@ class ProviderLine:
         self.element = element
 
     def toggle(self):
-        self.element.s('div.x-grid-row-checker').click()
+        self.element.s('div.x-grid-checkcolumn-cell-inner').click()
 
     @property
     def usage(self):
