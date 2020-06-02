@@ -1,4 +1,5 @@
 import pytest
+import time
 from selene.api import be, have, query
 
 from ui.pages.terraform.runs import RunDashboard
@@ -67,7 +68,7 @@ class TestTerraformLifecycle(VCSMixin):
         assert workspace_line.launch_button.should(have._not_.css_class('x-grid-action-button-disabled'), timeout=20)  # Wait conf version uploaded
         workspace_line.launch_button.click()
         button('OK').click()
-        workspace_line.last_run.should(have.text('NEEDS CONFIRMATION'), timeout=20)
+        workspace_line.last_run.should(have.text('NEEDS CONFIRMATION'), timeout=60)
         workspace_line.last_run.s('a').click()
         run_dashboard = RunDashboard()
         run_dashboard.status.should(have.text('NEEDS CONFIRMATION'))

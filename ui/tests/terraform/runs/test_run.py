@@ -43,7 +43,7 @@ class TestWorkspaceRun:
             provider=provider_id,
             repository="Scalr/tf-revizor-fixtures",
             branch="master",
-            patch=subdirectory,
+            path=subdirectory,
         )
         time.sleep(1)
         workspace_line = list(

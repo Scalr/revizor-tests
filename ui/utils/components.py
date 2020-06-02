@@ -1,6 +1,6 @@
 import typing as tp
-import time
 
+from selenium.webdriver.common.keys import Keys
 from selene.api import s, ss, by, be
 from selene.core import query
 from selene.elements import SeleneElement
@@ -66,9 +66,9 @@ tooltip = Tooltip
 
 class Input(BaseComponent):
     def __init__(self, label: str, parent: tp.Optional[SeleneElement]):
-        self.element = s(by.xpath(f'//label/span[text()="{label}"]/../parent::div/.//input'))
+        self.element = s(by.xpath(f'//span[contains(@class, "x-form-item-label-text") and text()="{label}"]/following::div/input'))
         if parent:
-            self.element = parent.s(by.xpath(f'.//label/span[text()="{label}"]/../parent::div/.//input'))
+            self.element = parent.s(by.xpath(f'.//span[contains(@class, "x-form-item-label-text") and text()="{label}"]/following::div/input'))
 
     def has_error(self):
         return 'x-form-invalid-field' in self.element.get(query.attribute('class'))
@@ -83,19 +83,16 @@ input = Input
 
 class Combobox(BaseComponent):
     def __init__(self, label: str, parent: tp.Optional[SeleneElement] = None):
-        self.element = s(by.xpath(f'//label//span[text()="{label}"]/ancestor::div[1]'))
+        self.element = s(by.xpath(f'//span[contains(@class, "x-form-item-label-text") and text()="{label}"]/following::div[1]/div'))
         if parent:
-            self.element = parent.s(by.xpath(f'.//label//span[text()="{label}"]/ancestor::div[1]'))
+            self.element = parent.s(by.xpath(f'.//span[contains(@class, "x-form-item-label-text") and text()="{label}"]/following::div[1]/div'))
         self._bound_id = None
 
     @property
     def bound_id(self):
         if self._bound_id is None:
             self.open()
-            if self.element.get(query.attribute('role')):  # In ext js 7 exist
-                self._bound_id = '{}-picker'.format(self.element.get(query.attribute('id')))
-            else:
-                self._bound_id = ss('div.x-boundlist[componentid^="boundlist"]').element_by(be.visible).get(query.attribute('id'))
+            self._bound_id = '{}-picker'.format(self.element.get(query.attribute('id')).rsplit("-", 1)[0])
             self.close()
         return self._bound_id
 
@@ -116,9 +113,9 @@ class Combobox(BaseComponent):
         self.open()
         for _ in range(len(values)):
             if self.get_active_item() == value:
-                self.element.s('input').press_enter()
+                self.element.s('input').type(Keys.ENTER)
                 return
-            self.element.s('input').press_down()
+            self.element.s('input').type(Keys.ARROW_DOWN)
 
     def get_active_item(self) -> str:
         return s(f'#{self.bound_id} .x-boundlist-item-over[role="option"]').get(query.text).strip()
@@ -139,16 +136,18 @@ combobox = Combobox
 
 class Toggle(BaseComponent):
     def __init__(self, label: str, parent: tp.Optional[SeleneElement] = None):
-        self.element = s(by.xpath(f'//label/span[text()="{label}"]/../parent::div'))
+        self.element = s(by.xpath(f'//span[contains(@class, "x-form-item-label-text") and text()="'
+                                  f'{label}"]/following::div[1]'))
         if parent:
-            self.element = parent.s(by.xpath(f'.//label/span[text()="{label}"]/../parent::div'))
+            self.element = parent.s(by.xpath(f'//span[contains(@class, "x-form-item-label-text") and text()="'
+                                             f'{label}"]/following::div[1]'))
 
     def toggle(self):
         self.element.s('input').click()
 
     def is_checked(self):
-        return 'x-form-cb-checked' in self.element.get(query.attribute('class'))
-
+        # return 'x-form-cb-checked' in self.element.get(query.attribute('class'))
+        return self.element.s('input').get(query.attribute("checked"))
 
 toggle = Toggle
 
@@ -157,7 +156,7 @@ class SearchField(BaseComponent):
     def __init__(self, parent: tp.Optional[SeleneElement] = None):
         self.element = s(by.xpath("//div[text()='Search']"))
         if parent:
-            self.element = parent.s(by.xpath(".//div[text()='Search']"))
+            self.element = parent.s(by.xpath("//div[text()='Search']"))
 
     def set_value(self, value):
         self.element.click()
