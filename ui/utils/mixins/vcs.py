@@ -37,7 +37,7 @@ class VCSMixin:
         if secret is None:
             secret = settings["secret"]
         new_form.client_secret.set_value(secret)
-        #new_form.client_secret.get(query.value)
+        new_form.client_secret.get(query.value)
         new_form.create_button.click()
         provider_page = getattr(elements, f"{self.vcs_provider.name}AuthPage")()
         if not provider_page.authorized:
