@@ -173,14 +173,9 @@ class TestWorkspaces:
             modal.save_button.click()
             self.wait_workspace_save()
         self.workspace_page.search.set_value(workspace_name)
-        workspace_line = list(
-            filter(
-                lambda x: x.name.get(query.text).strip() == workspace_name,
-                self.workspace_page.workspaces,
-            )
-        )
-        assert len(workspace_line) == 1
-        workspace_line = workspace_line[0]
+        time.sleep(1)
+        assert len(self.workspace_page.workspaces) == 1
+        workspace_line = self.workspace_page.workspaces[0]
         assert workspace_line.name.get(query.text) == workspace_name
 
     def test_search_no_found_workspace(self):
@@ -206,15 +201,10 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(
-            filter(
-                lambda x: x.name.get(query.text).strip() == self.workspace_name,
-                self.workspace_page.workspaces,
-            )
-        )
-        assert len(workspace_line) == 1
-        dashboard = workspace_line[0].open_dashboard()
-        assert len(dashboard.id.text) > 0
+        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
+        workspace = [ws for ws in self.workspace_page.workspaces if ws.name.get(query.text)][0]
+        dashboard = workspace.open_dashboard()
+        assert dashboard.id.get(query.text).startswith("ws")
         assert dashboard.name.get(query.text) == ws_name
         assert dashboard.terraform_version.get(query.text) == tf_versions[0]
         assert not dashboard.auto_apply.is_checked()
@@ -229,14 +219,9 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(
-            filter(
-                lambda x: x.name.get(query.text).strip() == self.workspace_name,
-                self.workspace_page.workspaces,
-            )
-        )
-        assert len(workspace_line) == 1
-        dashboard = workspace_line[0].open_dashboard()
+        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
+        workspace = [ws for ws in self.workspace_page.workspaces if ws.name.get(query.text)][0]
+        dashboard = workspace.open_dashboard()
         dashboard.delete_button.click()
         confirm = DeleteWorkspaceModal()
         confirm.input_name.set_value(ws_name)
@@ -244,13 +229,7 @@ class TestWorkspaces:
         confirm.delete_button.click()
         self.workspace_page.search.set_value(ws_name)
         self.workspace_page.empty_ws_table.should(have.text("No Workspaces found."), timeout=10)
-        workspace_line = list(
-            filter(
-                lambda x: x.name.get(query.text).strip() == self.workspace_name,
-                self.workspace_page.workspaces,
-            )
-        )
-        assert len(workspace_line) == 0
+        assert len(self.workspace_page.workspaces) == 0
 
     def test_cancel_delete_workspace(self):
         modal = self.workspace_page.open_new_workspace()
@@ -262,24 +241,14 @@ class TestWorkspaces:
         modal.terraform_version.set_value(tf_versions[0])
         modal.save_button.click()
         self.wait_workspace_save()
-        workspace_line = list(
-            filter(
-                lambda x: x.name.get(query.text).strip() == self.workspace_name,
-                self.workspace_page.workspaces,
-            )
-        )
-        assert len(workspace_line) == 1
-        dashboard = workspace_line[0].open_dashboard()
+        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
+        workspace = [ws for ws in self.workspace_page.workspaces if ws.name.get(query.text)][0]
+        dashboard = workspace.open_dashboard()
         dashboard.delete_button.click()
         confirm = DeleteWorkspaceModal()
         confirm.input_name.set_value(ws_name)
         confirm.cancel_delete_button.click()
         dashboard.menu.open_workspaces()
         self.workspace_page.search.set_value(ws_name)
-        workspace_line = list(
-            filter(
-                lambda x: x.name.get(query.text).strip() == self.workspace_name,
-                self.workspace_page.workspaces,
-            )
-        )
-        assert len(workspace_line) == 1
+        time.sleep(1)
+        assert len(self.workspace_page.workspaces) == 1

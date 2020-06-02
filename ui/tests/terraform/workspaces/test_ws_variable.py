@@ -174,21 +174,3 @@ class TestWorkspaceVariable:
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.env_variables[-1]
         assert variable_line.input_name.get(query.value) != var_name
-
-    @pytest.mark.skip
-    # тот что не работает (оставила не всякий случай)
-    def test_search_tf_variable(self):
-        for i in range(2):
-            var_name = generate_name("test-")
-            variable_dashboard.new_tf_variable.click()
-            variable_line = variable_dashboard.tf_variables[-1]
-            variable_line.input_name.set_value(var_name)
-            time.sleep(1)
-        self.var_dashboard.save.click()
-        self.wait_variable_save()
-        time.sleep(2)
-        self.var_dashboard.search.set_value("var_name")
-        time.sleep(1)
-        variable_line = self.var_dashboard.tf_variables[-1]
-        assert len(variable_line) == 1
-        variable_line.input_name.get(query.value) == var_name
