@@ -28,7 +28,7 @@ class VCSProvider(metaclass=abc.ABCMeta):
         raise NotImplementedError
 
 
-class VCSGitlab(VCSProvider):
+class VCSGitLab(VCSProvider):
 
     name = "GitLab"
     _uri = "https://gitlab.com"
@@ -88,7 +88,7 @@ class VCSGitlab(VCSProvider):
         return self._session.post(self._get_url(form.action), data=fields, allow_redirects=False)
 
 
-class VCSGithub(VCSProvider):
+class VCSGitHub(VCSProvider):
 
     name = "GitHub"
 

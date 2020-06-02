@@ -8,20 +8,24 @@ import _pytest.fixtures
 from revizor2.api import IMPL
 from revizor2.conf import CONF
 
-from ui.utils import vcs
+from ui.utils import vcs as providers
 from ui.utils.datagenerator import generate_name
 
 
 VSC_PROVIDERS = (
-    "github",
-    "gitlab",
+    "GitHub",
+    "GitLab",
 )
 
 
 @pytest.fixture(scope="session", params=VSC_PROVIDERS)
-def loggined_vcs(request: _pytest.fixtures.SubRequest) -> tp.Union[vcs.VCSGithub, vcs.VCSGitlab]:
-    provider = getattr(vcs, f"VCS{request.param.capitalize()}")()
-    provider.login(CONF.credentials.github.username, CONF.credentials.github.password)
+def loggined_vcs(
+    request: _pytest.fixtures.SubRequest,
+) -> tp.Union[providers.VCSGitHub, providers.VCSGitLab]:
+    vcs_type = request.param
+    credentials = getattr(CONF.credentials, vcs_type.lower())
+    provider = getattr(providers, f"VCS{vcs_type}")()
+    provider.login(credentials.username, credentials.password)
     return provider
 
 
@@ -35,11 +39,16 @@ def vcs_provider(loggined_vcs, testenv) -> tp.Dict[str, str]:
     loggined_vcs.create_oauth(**oauth_attrs)
     oauth_data = loggined_vcs.get_app_settings(name)
     auth_url = IMPL.vcs.create(
-        callback["id"], name, callback["url"], oauth_data["key"], oauth_data["secret"]
+        callback["id"],
+        name,
+        callback["url"],
+        oauth_data["key"],
+        oauth_data["secret"],
+        loggined_vcs.name.lower(),
     )["auth_url"]
     resp = loggined_vcs.authorize_app(auth_url)
     if "denied" in resp.text:
-        raise AssertionError(f"GitHub is not allowed to oauth: {resp.text}")
+        raise AssertionError(f"{loggined_vcs.name} is not allowed to oauth: {resp.text}")
     resp = requests.get(resp.headers["Location"], allow_redirects=False)
     if not resp.headers["Location"].startswith("/#/vcs"):
         raise AssertionError(f'Scalr return something wrong: {resp.headers["Location"]}')

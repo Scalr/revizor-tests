@@ -48,7 +48,7 @@ class TestVCSProviders(VCSMixin):
         vcs_page = self.add_provider(vcs_name)
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
-        new_form.vcs_type.set_value('GitHub')
+        new_form.vcs_type.set_value(self.vcs_provider.name)
         new_form.name.set(vcs_name)
         new_form.client_id.set('dsfsdfs')
         new_form.client_secret.set('sdsadasd')
@@ -71,7 +71,7 @@ class TestVCSProviders(VCSMixin):
         vcs_page = self.add_provider(vcs_name)
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
-        new_form.vcs_type.set_value('GitHub')
+        new_form.vcs_type.set_value(self.vcs_provider.name)
         new_form.name.set(generate_name('test-'))
         settings = self.vcs_provider.get_app_settings(vcs_name)
         new_form.client_id.set(settings['key'])
@@ -83,12 +83,16 @@ class TestVCSProviders(VCSMixin):
             .should(have.text('VCS Provider with same Client ID already exist.'))
 
     def test_add_invalid_secret(self):
+        err_msgs = dict(
+            GitLab="Client authentication failed",
+            GitHub="incorrect_client_credentials"
+        )
         vcs_name = generate_name('test-')
         vcs_page = self.add_provider(vcs_name, 'invalidsecret', wait_message=False)
         provider = vcs_page.providers[0]
         provider.element.s('img.x-icon-colored-status-failed').should(be.visible)
         edit_page = EditVCSForm()
-        edit_page.error.should(be.visible).should(have.text("incorrect_client_credentials"))
+        edit_page.error.should(be.visible).should(have.text(err_msgs[self.vcs_provider.name]))
 
     def test_search(self):
         vcs_name = generate_name('test-')

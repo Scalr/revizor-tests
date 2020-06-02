@@ -21,8 +21,8 @@ class TestWorkspaces:
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, tf_dashboard, vcs_provider):
-        self.workspace_page = tf_dashboard.menu.open_workspaces()
         self.vcs_provider = vcs_provider
+        self.workspace_page = tf_dashboard.menu.open_workspaces()
         self.workspace_name = generate_name("name")
 
     def wait_workspace_save(self):
