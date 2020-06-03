@@ -10,25 +10,27 @@ class ProviderLine:
         self.element = element
 
     def toggle(self):
-        self.element.s('div.x-grid-checkcolumn-cell-inner').click()
+        self.element.s("div.x-grid-checkcolumn-cell-inner").click()
 
     @property
     def usage(self):
-        return self.element.s('div.x-colored-status').get_attribute('data-qtitle')
+        return self.element.s("div.x-colored-status").get_attribute("data-qtitle")
 
     @property
     def name(self):
-        return self.element.s('div.x-grid-cell-inner').text.strip()
+        return self.element.s("div.x-grid-cell-inner").text.strip()
 
 
 class NewVCSForm(BasePage):
     @staticmethod
     def wait_page_loading():
-        s(by.xpath('//div[text()="New VCS Provider" and contains(@class, "x-component")]')).should(be.visible)
+        s(by.xpath('//div[text()="New VCS Provider" and contains(@class, "x-component")]')).should(
+            be.visible
+        )
 
     @property
     def vcs_type(self) -> components.combobox:
-        return components.combobox('Type')
+        return components.combobox("Type")
 
     @property
     def name(self) -> browser.element:
@@ -48,21 +50,23 @@ class NewVCSForm(BasePage):
 
     @property
     def create_button(self) -> browser.element:
-        return components.button('Create')
+        return components.button("Create")
 
     @property
     def cancel_button(self) -> browser.element:
-        return components.button('Cancel')
+        return components.button("Cancel")
 
 
 class EditVCSForm(NewVCSForm):
     @staticmethod
     def wait_page_loading():
-        s(by.xpath('//div[text()="Edit VCS Provider" and contains(@class, "x-component")]')).should(be.visible)
+        s(by.xpath('//div[text()="Edit VCS Provider" and contains(@class, "x-component")]')).should(
+            be.visible
+        )
 
     @property
     def reauthorize_button(self) -> browser.element:
-        return components.button('Reauthorize on GitHub')
+        return components.button(xpath=f'//span[contains(text(), "Reauthorize on")]//ancestor::a')
 
     @property
     def error(self) -> browser.element:
@@ -71,42 +75,41 @@ class EditVCSForm(NewVCSForm):
 
 class DeleteConfirmationModal:
     def visible(self):
-        return s('div.x-panel-confirm').should(be.visible)
+        return s("div.x-panel-confirm").should(be.visible)
 
     @property
     def message(self):
-        return s('div.x-panel-confirm div.message').get(query.text)
+        return s("div.x-panel-confirm div.message").get(query.text)
 
     @property
     def delete_button(self):
-        return ss('div.x-panel-confirm a.x-btn')[0]
+        return ss("div.x-panel-confirm a.x-btn")[0]
 
     @property
     def cancel_button(self):
-        return ss('div.x-panel-confirm a.x-btn')[1]
+        return ss("div.x-panel-confirm a.x-btn")[1]
 
 
 class VCSPage(TfBasePage):
     @staticmethod
     def wait_page_loading():
-        s('div#loading').should(be.not_.existing, timeout=20)
-        ss('div.x-grid-buffered-loader').should(be.not_.visible, timeout=10)
-        components.button('New VCS Provider')\
-            .should(be.visible)\
-            .should(have.no.css_class('x-item-disabled'))\
-            .should(have.no.css_class('x-btn-disabled'))
+        s("div#loading").should(be.not_.existing, timeout=20)
+        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
+        components.button("New VCS Provider").should(be.visible).should(
+            have.no.css_class("x-item-disabled")
+        ).should(have.no.css_class("x-btn-disabled"))
 
     @property
     def new_vcs_button(self) -> components.button:
-        return components.button('New VCS Provider')
+        return components.button("New VCS Provider")
 
     @property
     def delete_button(self) -> components.button:
-        return components.button(icon='delete')
+        return components.button(icon="delete")
 
     @property
     def search(self) -> browser.element:
-        return s('li.x-tagfield-input>input')
+        return s("li.x-tagfield-input>input")
 
     @property
     def new_vcs_form(self) -> NewVCSForm:
@@ -114,22 +117,22 @@ class VCSPage(TfBasePage):
 
     @property
     def providers(self) -> [ProviderLine]:
-        return [ProviderLine(p) for p in ss('tr.x-grid-row')]
+        return [ProviderLine(p) for p in ss("tr.x-grid-row")]
 
     def clean_search_field(self):
-        return s('div.x-form-filterfield-trigger-cancel-button').click()
+        return s("div.x-form-filterfield-trigger-cancel-button").click()
 
 
-class GithubAuthPage(BasePage):
+class GitHubAuthPage(BasePage):
     authorized = False
 
     @staticmethod
     def wait_page_loading():
-        browser.wait_to(have.url_containing('github.com'))
+        browser.wait_to(have.url_containing("github.com"))
         url = browser.driver().current_url
-        if 'github.com/login/oauth/authorize' in url:
-            GithubAuthPage.authorized = True
-            s('p.text-small').should(have.text('Authorizing will redirect to'))
+        if "github.com/login/oauth/authorize" in url:
+            GitHubAuthPage.authorized = True
+            s("p.text-small").should(have.text("Authorizing will redirect to"))
         else:
             s('a[href="https://github.com/contact"]').should(be.visible)
 
@@ -149,4 +152,37 @@ class GithubAuthPage(BasePage):
     def authorize_user(self) -> browser.element:
         button = s('button[name="authorize"]')
         button.should(be.clickable)
+        return button
+
+
+class GitLabAuthPage(BasePage):
+
+    authorized = False
+
+    @staticmethod
+    def wait_page_loading() -> None:
+        browser.wait_to(have.url_containing("gitlab.com"))
+        url = browser.driver().current_url
+        if "gitlab.com/oauth/authorize" in url:
+            GitLabAuthPage.authorized = True
+            s('input[value="Authorize"]').should(be.visible)
+        else:
+            s('a[href="https://about.gitlab.com/"]').should(be.visible)
+
+    @property
+    def username(self) -> browser.element:
+        return s('input[name="user[login]"]')
+
+    @property
+    def password(self) -> browser.element:
+        return s('input[name="user[password]"]')
+
+    @property
+    def submit(self) -> browser.element:
+        return s('input[name="commit"]')
+
+    @property
+    def authorize_user(self) -> browser.element:
+        button = s('input[value="Authorize"]')
+        button.with_(timeout=5).should(be.visible).should(be.clickable)
         return button
