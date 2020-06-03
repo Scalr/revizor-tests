@@ -26,14 +26,15 @@ class VCSMixin:
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
         new_form.vcs_type.set_value(self.vcs_provider.name)
-        new_form.name.set(name)
-        oauth_attrs = dict(name=name, callback_url=new_form.callback_url.get_attribute("value"))
+        new_form.name.set_value(name)
+        callback_url = new_form.callback_url.get_attribute("value")
+        oauth_attrs = dict(name=name, callback_url=callback_url)
         if self.vcs_provider.name == "GitHub":
             oauth_attrs["homepage"] = "http://my.scalr.com"
         self.vcs_provider.create_oauth(**oauth_attrs)
         self._created_oauth.append(name)
         settings = self.vcs_provider.get_app_settings(name)
-        new_form.client_id.set(settings["key"])
+        new_form.client_id.set_value(settings["key"])
         if secret is None:
             secret = settings["secret"]
         new_form.client_secret.set_value(secret)
