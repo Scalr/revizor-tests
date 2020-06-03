@@ -18,7 +18,8 @@ class Button(BaseComponent):
                  icon: tp.Optional[str] = None,
                  ticon: tp.Optional[str] = None,
                  qtip: tp.Optional[str] = None,
-                 parent: tp.Optional[SeleneElement] = None):
+                 xpath: tp.Optional[str] = None,
+                 parent: tp.Optional[SeleneElement] = None,):
         if title:
             selector = f'//span[text()="{title}"]//ancestor::a'
         elif icon:
@@ -27,6 +28,8 @@ class Button(BaseComponent):
             selector = f'//a[contains(@class, "x-grid-action-button-{ticon}")]'
         elif qtip:
             selector = f'//a[@data-qtip="{qtip}"]'
+        elif xpath:
+            selector = xpath
         else:
             raise AssertionError('You must set one of input parameters')
         if parent:

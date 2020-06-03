@@ -28,29 +28,50 @@ LOG = logging.getLogger(__name__)
 def pytest_addoption(parser):
     group = parser.getgroup("revizor selenium", after="general")
     group.addoption(
-        "--te-remove", dest="te_remove", action="store_true", default=False,
-        help="Destroy TestEnv even when some tests fail."
+        "--te-remove",
+        dest="te_remove",
+        action="store_true",
+        default=False,
+        help="Destroy TestEnv even when some tests fail.",
     )
     group.addoption(
-        "--page-load-timeout", dest="load_timeout", action="store", default=30, type=int,
+        "--page-load-timeout",
+        dest="load_timeout",
+        action="store",
+        default=30,
+        type=int,
         help="Seconds to wait page load",
     )
     group.addoption(
-        "--te-id", "--test-environment-id", dest="te_id", action="store",
-        help="Scalr test environment id to use existing env", default=None
+        "--te-id",
+        "--test-environment-id",
+        dest="te_id",
+        action="store",
+        help="Scalr test environment id to use existing env",
+        default=None,
     )
     group.addoption(
-        "--scalr-branch", "--scalr-branch", dest="scalr_branch", action="store",
-        help="Scalr test environment branch", default='master'
+        "--scalr-branch",
+        "--scalr-branch",
+        dest="scalr_branch",
+        action="store",
+        help="Scalr test environment branch",
+        default="master",
     )
     group.addoption(
-        "--browser", dest='selenium_browser', action='store', default='chrome79',
-        help='Browser type and version (example: chrome77, firefox50). Version work only with remote driver'
+        "--browser",
+        dest="selenium_browser",
+        action="store",
+        default="chrome79",
+        help="Browser type and version (example: chrome77, firefox50). Version work only with remote driver",
     )
 
     group.addoption(
-        '--grid-address', dest='selenium_grid_address', action='store', default='',
-        help='Remote selenium grid address'
+        "--grid-address",
+        dest="selenium_grid_address",
+        action="store",
+        default="",
+        help="Remote selenium grid address",
     )
 
 
@@ -66,17 +87,16 @@ def testenv(request: FixtureRequest) -> TestEnv:
         container = TestEnv(te_id)
     else:
         container = TestEnv.create(
-            branch=request.config.getoption("scalr_branch"),
-            notes='Selenium test container'
+            branch=request.config.getoption("scalr_branch"), notes="Selenium test container"
         )
         for _ in range(24):
-            LOG.debug(f'Check container {container.url} return Scalr page')
+            LOG.debug(f"Check container {container.url} return Scalr page")
             resp = requests.get(container.url)
-            if 'Scalr CMP' in resp.text:
+            if "Scalr CMP" in resp.text:
                 break
             time.sleep(5)
         else:
-            raise TimeoutError(f'Container {container.url} not return Scalr CMP page')
+            raise TimeoutError(f"Container {container.url} not return Scalr CMP page")
         # for _ in range(10):
         #     try:
         #         services = container.get_service_status()
@@ -93,34 +113,34 @@ def testenv(request: FixtureRequest) -> TestEnv:
 
 @pytest.fixture(scope="session", autouse=True)
 def setup_driver(request: FixtureRequest, testenv: TestEnv):
-    LOG.debug('Setup webdriver fixture')
-    remote_addr = request.config.getoption('selenium_grid_address')
-    br = re.findall(r'([a-zA-Z]+)(\d+)', request.config.getoption('selenium_browser'))
+    LOG.debug("Setup webdriver fixture")
+    remote_addr = request.config.getoption("selenium_grid_address")
+    br = re.findall(r"([a-zA-Z]+)(\d+)", request.config.getoption("selenium_browser"))
 
     if br:
         browser_name, browser_version = br[0]
     else:
-        browser_name = request.config.getoption('selenium_browser')
+        browser_name = request.config.getoption("selenium_browser")
         browser_version = None
     browser_name = browser_name.lower()
 
-    LOG.debug(f'Browser settings: {browser_name}:{browser_version}')
+    LOG.debug(f"Browser settings: {browser_name}:{browser_version}")
 
     if remote_addr:
-        LOG.debug(f'Connect to remote webdriver {remote_addr}')
+        LOG.debug(f"Connect to remote webdriver {remote_addr}")
         driver = webdriver.Remote(
-            command_executor=f'http://{remote_addr}:4444/wd/hub',
+            command_executor=f"http://{remote_addr}:4444/wd/hub",
             desired_capabilities={
-                'browserName': browser_name,
-                'version': f'{browser_version}.0',
-                'enableVNC': True,
-                'enableVideo': False
+                "browserName": browser_name,
+                "version": f"{browser_version}.0",
+                "enableVNC": True,
+                "enableVideo": False,
             },
-            keep_alive=True
+            keep_alive=True,
         )
-        LOG.debug('Connect successfully')
+        LOG.debug("Connect successfully")
         driver.maximize_window()
-        LOG.debug('Save driver to selene')
+        LOG.debug("Save driver to selene")
         config.driver = driver
     else:
         config.browser_name = browser_name
@@ -130,30 +150,29 @@ def setup_driver(request: FixtureRequest, testenv: TestEnv):
 
 @pytest.fixture(scope="function")
 def mock_ssmtp(request: FixtureRequest):
-    if hasattr(request.instance, 'container'):
+    if hasattr(request.instance, "container"):
         container = request.instance.container
     else:
         raise AttributeError("Test instance has no TestEnv associated with it!")
     ssh = container.get_ssh()
     ssh.run("rm -f /opt/scalr-server/libexec/mail/ssmtp")
-    ssmtp_script = resources('scripts/ssmtp')
-    container.put_file(
-        ssmtp_script.fp.name,
-        '/opt/scalr-server/libexec/mail/ssmtp')
-    ssh.run('chmod 777 /opt/scalr-server/libexec/mail/ssmtp')
+    ssmtp_script = resources("scripts/ssmtp")
+    container.put_file(ssmtp_script.fp.name, "/opt/scalr-server/libexec/mail/ssmtp")
+    ssh.run("chmod 777 /opt/scalr-server/libexec/mail/ssmtp")
 
 
 @pytest.fixture()
-def tf_dashboard(testenv: TestEnv) -> tp.Union[
-    AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
-    browser.open_url(f'https://{testenv.te_id}.test-env.scalr.com')
-    s('#loading').should(be.not_.visible, timeout=20)
+def tf_dashboard(
+    testenv: TestEnv,
+) -> tp.Union[AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
+    browser.open_url(f"https://{testenv.te_id}.test-env.scalr.com")
+    s("#loading").should(be.not_.visible, timeout=20)
     url = browser.driver().current_url
-    if '/dashboard' in url:
+    if "/dashboard" in url:
         return TerraformEnvDashboard()
     else:
         login_page = LoginPage()
-        login_page.set_idp_provider('scalr')
+        login_page.set_idp_provider("scalr")
         login_page.set_username(CONF.credentials.testenv.accounts.terraform.username)
         login_page.set_password(CONF.credentials.testenv.accounts.terraform.password)
         return login_page.submit()
