@@ -1,6 +1,6 @@
 import typing as tp
 
-from selene.api import s, be, query
+from selene.api import s, be
 
 from revizor2.conf import CONF
 from ui.pages.terraform import vcs as elements
@@ -34,11 +34,10 @@ class VCSMixin:
         self.vcs_provider.create_oauth(**oauth_attrs)
         self._created_oauth.append(name)
         settings = self.vcs_provider.get_app_settings(name)
-        new_form.client_id.set_value(settings["key"])
         if secret is None:
             secret = settings["secret"]
         new_form.client_secret.set_value(secret)
-        new_form.client_secret.get(query.value)
+        new_form.client_id.set_value(settings["key"])
         new_form.create_button.click()
         provider_page = getattr(elements, f"{self.vcs_provider.name}AuthPage")()
         if not provider_page.authorized:
