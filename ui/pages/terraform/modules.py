@@ -1,4 +1,4 @@
-from selene.api import s, ss, be, have, browser
+from selene.api import s, ss, be, have, browser, query
 from selene.core.entity import Element
 
 from .base import TfBasePage
@@ -56,24 +56,24 @@ class ModuleLine:
 
     @property
     def version(self) -> Element:
-        return self.element.ss("div.x-grid-cell-inner > div > div")[2].s("div")
+        return self.element.ss("div.x-grid-cell-inner > div > div")[2]
 
     def activate(self):
         self.element.click()
 
     def is_syncing(self) -> bool:
-        return self.element.ss("div.x-grid-cell-inner > div > div")[2].text.strip() == "Syncing"
+        return self.version.get(query.text).strip().lower() == "syncing"
 
     def is_active(self) -> bool:
         return self.element.matching(have.css_class("x-grid-item-selected"))
 
     @property
     def resync_button(self) -> components.button:
-        return components.button("Resync", parent=self.element)
+        return components.button("Resync")
 
     @property
     def delete_button(self) -> components.button:
-        return components.button("Delete", parent=self.element)
+        return components.button("Delete")
 
     def open_delete(self) -> DeleteModuleModal:
         self.delete_button.click()

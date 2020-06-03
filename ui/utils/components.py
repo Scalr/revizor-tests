@@ -52,10 +52,10 @@ loading_modal = LoadingModal
 
 class Tooltip(BaseComponent):
     def __init__(self, message: str, parent: tp.Optional[SeleneElement] = None):
-        self.element = s(by.xpath(f'//div[text()="{message}"]/ancestor::div[contains(@class, "x-tip-message")]'))
+        self.element = s(by.xpath(f"//div[contains(text(), '{message}')]/ancestor::div[contains(@class, 'x-tip-message')]"))
         if parent:
             self.element = parent.s(
-                by.xpath(f'.//div[text()="{message}"]/ancestor::div[contains(@class, "x-tip-message")]'))
+                by.xpath(f".//div[contains(text(), '{message}')]/ancestor::div[contains(@class, 'x-tip-message')]"))
 
     def close(self):
         self.element.s('.x-tool-close-white').click()
@@ -66,9 +66,9 @@ tooltip = Tooltip
 
 class Input(BaseComponent):
     def __init__(self, label: str, parent: tp.Optional[SeleneElement]):
-        self.element = s(by.xpath(f'//span[contains(@class, "x-form-item-label-text") and text()="{label}"]/following::div/input'))
+        self.element = s(by.xpath(f"//span[contains(@class, 'x-form-item-label-text') and text()='{label}']/following::div/input"))
         if parent:
-            self.element = parent.s(by.xpath(f'.//span[contains(@class, "x-form-item-label-text") and text()="{label}"]/following::div/input'))
+            self.element = parent.s(by.xpath(f".//span[contains(@class, 'x-form-item-label-text') and text()='{label}']/following::div/input"))
 
     def has_error(self):
         return 'x-form-invalid-field' in self.element.get(query.attribute('class'))
@@ -98,7 +98,7 @@ class Combobox(BaseComponent):
 
     def open(self):
         self.element.s('div').click()
-        self.element.s('div.x-form-field-loading').should(be.not_.visible, timeout=15)
+        self.element.s('div.x-form-field-loading').should(be.not_.visible, timeout=30)
 
     def close(self):
         self.element.s('div').click()
@@ -110,6 +110,8 @@ class Combobox(BaseComponent):
 
     def set_value(self, value: str):
         values = self.get_values()
+        if value not in values:
+            raise AssertionError(f"Value {value} not exist in combobox: {values}")
         self.open()
         for _ in range(len(values) + 1):
             if self.get_active_item() == value:
