@@ -15,7 +15,7 @@ from revizor2.conf import CONF
 from revizor2.fixtures import resources
 from revizor2.testenv import TestEnv
 
-from pages.login import LoginPage
+from ui.pages.login import LoginPage
 from ui.pages.admin.dashboard import AdminDashboard
 from ui.pages.account.dashboard import AccountDashboard
 from ui.pages.classic.dashboard import ClassicEnvDashboard
