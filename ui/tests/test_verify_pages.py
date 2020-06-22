@@ -52,7 +52,10 @@ class TestPagesForErrors:
         if browser.config.browser_name.lower().startswith('firefox'):
             return
         driver = browser.driver()
-        logs = driver.get_log("browser")
+        try:
+            logs = driver.get_log("browser")
+        except:
+            return
         for log in logs:
             if log["source"] == "network":
                 continue
