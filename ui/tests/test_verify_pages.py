@@ -2,7 +2,6 @@ import time
 import typing as tp
 
 import pytest
-from _pytest.fixtures import FixtureRequest
 
 from selene.core.entity import Element, Collection
 from selene.api import browser, s, ss, be, query
@@ -12,7 +11,7 @@ from revizor2.testenv import TestEnv
 
 from ui.utils import consts
 from ui.utils import components
-from pages.login import LoginPage
+from ui.pages.login import LoginPage
 from ui.pages.admin.dashboard import AdminDashboard
 from ui.pages.account.dashboard import AccountDashboard
 from ui.pages.classic.dashboard import ClassicEnvDashboard
