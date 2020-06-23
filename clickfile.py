@@ -89,7 +89,7 @@ def run_job():
 
     os.chdir('/tests')
     print(f'Start test with command "{command}"')
-    process = subprocess.run(command, shell=True, stderr=subprocess.STDOUT, stdout=subprocess.STDOUT)
+    process = subprocess.run(command, shell=True, capture_output=True)
 
     status = 'COMPLETED'
     if process.returncode != 0:
