@@ -3,11 +3,10 @@ import time
 
 import pytest
 from selene.api import by, be, s, ss, query, have
+from revizor2.api import IMPL
 
 from ui.utils.datagenerator import generate_name
 from ui.pages.terraform.workspaces import WorkspacePage, DeleteWorkspaceModal
-from ui.utils.components import loading_modal
-from ui.utils import consts
 
 # TODO: Add cases
 # 1. Start run and check statuses
@@ -24,29 +23,22 @@ class TestWorkspaces:
         self.vcs_provider = vcs_provider
         self.workspace_page = tf_dashboard.menu.open_workspaces()
         self.workspace_name = generate_name("name")
+        yield
+        ws_id = [w["id"] for w in IMPL.workspace.list() if w["name"] == self.workspace_name]
+        if len(ws_id) > 0:
+            IMPL.workspace.delete(ws_id[0])
 
-    def wait_workspace_save(self):
-        loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(be.visible, timeout=10)
-        loading_modal(consts.LoadingModalMessages.SAVING_WORKSPACE).should(
-            be.not_.visible, timeout=10
-        )
-        s(by.xpath('//div[text()="New Workspace"]')).should(be.not_.visible)
-
-    #TODO: Add case when try to add repo without permissions for webhooks
+    # TODO: Add case when try to add repo without permissions for webhooks
     def test_create_default_workspace(self):
         workspaces_before = len(self.workspace_page.workspaces)
-        modal = self.workspace_page.open_new_workspace()
-        modal.name.set_value(self.workspace_name)
-        assert len(modal.vcs_provider.get_values()) >= 1
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        assert len(modal.repository.get_values()) >= 1
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        assert len(tf_versions) >= 1
-        modal.terraform_version.set_value(tf_versions[0])
-        assert not modal.auto_apply.is_checked()
-        modal.save_button.click()
-        self.wait_workspace_save()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value(self.workspace_name)
+        assert len(form.vcs_provider.get_values()) >= 1
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        assert len(form.repository.get_values()) >= 1
+        form.repository.set_value(self.repo_name)
+        form.create()
+        self.workspace_page.menu.open_workspaces()
         assert len(self.workspace_page.workspaces) > workspaces_before
         workspace_line = list(
             filter(
@@ -63,16 +55,16 @@ class TestWorkspaces:
         assert workspace_line.launch_button.should(be.visible)
 
     def test_create_with_auto_apply(self):
-        modal = self.workspace_page.open_new_workspace()
-        modal.name.set_value(self.workspace_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.auto_apply.toggle()
-        assert modal.auto_apply.is_checked()
-        modal.save_button.click()
-        self.wait_workspace_save()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value(self.workspace_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        form.toggle_additional().click()
+        form.auto_apply.toggle()
+        assert form.auto_apply.is_checked()
+        dashboard = form.create()
+        assert dashboard.auto_apply.is_checked()
+        self.workspace_page.menu.open_workspaces()
         workspace_line = list(
             filter(
                 lambda x: x.name.get(query.text).strip() == self.workspace_name,
@@ -82,18 +74,16 @@ class TestWorkspaces:
         assert len(workspace_line) == 1
 
     def test_create_with_branch(self):
-        modal = self.workspace_page.open_new_workspace()
-        modal.name.set_value(self.workspace_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.toggle_additional()
-        branches = modal.branch.get_values()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value(self.workspace_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        form.toggle_additional().click()
+        branches = form.branch.get_values()
         assert len(branches) > 1
-        modal.branch.set_value(branches[1])
-        modal.save_button.click()
-        self.wait_workspace_save()
+        form.branch.set_value(branches[1])
+        form.create()
+        self.workspace_page.menu.open_workspaces()
         workspace_line = list(
             filter(
                 lambda x: x.name.get(query.text).strip() == self.workspace_name,
@@ -103,16 +93,15 @@ class TestWorkspaces:
         assert len(workspace_line) == 1
 
     def test_create_with_subdirectotry(self):
-        modal = self.workspace_page.open_new_workspace()
-        modal.name.set_value(self.workspace_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.toggle_additional()
-        modal.subdirectory.set_value("subdir")
-        modal.save_button.click()
-        self.wait_workspace_save()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value(self.workspace_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        form.toggle_additional().click()
+        form.subdirectory.set_value("subdir")
+        dashboard = form.create()
+        assert dashboard.subdirectory.get(query.text).strip() == "subdir"
+        self.workspace_page.menu.open_workspaces()
         workspace_line = list(
             filter(
                 lambda x: x.name.get(query.text).strip() == self.workspace_name,
@@ -126,16 +115,14 @@ class TestWorkspaces:
         ), f'Subdir not found "{workspace_line.repository}"'
 
     def test_create_with_work_dir(self):
-        modal = self.workspace_page.open_new_workspace()
-        modal.name.set_value(self.workspace_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.toggle_additional()
-        modal.work_directory.set_value("workdir")
-        modal.save_button.click()
-        self.wait_workspace_save()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value(self.workspace_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        form.toggle_additional().click()
+        form.work_directory.set_value("workdir")
+        form.create()
+        self.workspace_page.menu.open_workspaces()
         workspace_line = list(
             filter(
                 lambda x: x.name.get(query.text).strip() == self.workspace_name,
@@ -144,34 +131,26 @@ class TestWorkspaces:
         )
         assert len(workspace_line) == 1
 
-    def test_save_without_inputs(self):
-        modal = self.workspace_page.open_new_workspace()
-        modal.save_button.click()
-        assert modal.name.has_error()
+    def test_input_errors(self):
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value("a")
+        form.name.clear()
+        form.create_button.is_disabled()
+        assert form.name.has_error()
         assert (
-            modal.name.error == "This field is required"
-        ), f"Error is not expected: {modal.name.error}"
-        assert modal.vcs_provider.has_error()
-        assert (
-            modal.vcs_provider.error == "This field is required"
-        ), f"Error is not expected: {modal.vcs_provider.error}"
-        assert modal.repository.has_error()
-        assert (
-            modal.repository.error == "This field is required"
-        ), f"Error is not expected: {modal.repository.error}"
+            form.name.error == "This field is required"
+        ), f"Error is not expected: {form.name.error}"
 
     def test_search_workspace(self):
         workspace_name = ""
         for i in range(2):
             workspace_name = generate_name("test-")
-            modal = self.workspace_page.open_new_workspace()
-            modal.name.set_value(workspace_name)
-            modal.vcs_provider.set_value(self.vcs_provider["name"])
-            modal.repository.set_value(self.repo_name)
-            tf_versions = modal.terraform_version.get_values()
-            modal.terraform_version.set_value(tf_versions[0])
-            modal.save_button.click()
-            self.wait_workspace_save()
+            form = self.workspace_page.open_new_workspace().open_from_vcs_form()
+            form.name.set_value(workspace_name)
+            form.vcs_provider.set_value(self.vcs_provider["name"])
+            form.repository.set_value(self.repo_name)
+            form.create()
+            self.workspace_page.menu.open_workspaces()
         self.workspace_page.search.set_value(workspace_name)
         time.sleep(1)
         assert len(self.workspace_page.workspaces) == 1
@@ -179,75 +158,52 @@ class TestWorkspaces:
         assert workspace_line.name.get(query.text) == workspace_name
 
     def test_search_no_found_workspace(self):
-        modal = self.workspace_page.open_new_workspace()
-        modal.name.set_value(self.workspace_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.save_button.click()
-        self.wait_workspace_save()
+        self.workspace_page.menu.open_workspaces()
         self.workspace_page.search.set_value("qqqqqqqqqqqqqq")
         self.workspace_page.empty_ws_table.should(have.text("No Workspaces found."), timeout=10)
         assert len(self.workspace_page.workspaces) == 0
 
-    def test_dashboard_workspace(self):
-        modal = self.workspace_page.open_new_workspace()
+    def test_workspace_dashboard(self):
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
         ws_name = self.workspace_name
-        modal.name.set_value(ws_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.save_button.click()
-        self.wait_workspace_save()
-        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
-        workspace = [ws for ws in self.workspace_page.workspaces if ws.name.get(query.text)][0]
-        dashboard = workspace.open_dashboard()
+        form.name.set_value(ws_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        form.toggle_additional().click()
+        time.sleep(0.5)
+        tf_versions = form.terraform_version.get_values()
+        dashboard = form.create()
         assert dashboard.id.get(query.text).startswith("ws")
         assert dashboard.name.get(query.text) == ws_name
         assert dashboard.terraform_version.get(query.text) == tf_versions[0]
         assert not dashboard.auto_apply.is_checked()
 
     def test_delete_workspace(self):
-        modal = self.workspace_page.open_new_workspace()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
         ws_name = self.workspace_name
-        modal.name.set_value(ws_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.save_button.click()
-        self.wait_workspace_save()
-        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
-        workspace = [ws for ws in self.workspace_page.workspaces if ws.name.get(query.text)][0]
-        dashboard = workspace.open_dashboard()
+        form.name.set_value(ws_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        dashboard = form.create()
         dashboard.delete_button.click()
         confirm = DeleteWorkspaceModal()
         confirm.input_name.set_value(ws_name)
-        confirm.visible_button()
         confirm.delete_button.click()
         self.workspace_page.search.set_value(ws_name)
         self.workspace_page.empty_ws_table.should(have.text("No Workspaces found."), timeout=10)
         assert len(self.workspace_page.workspaces) == 0
 
     def test_cancel_delete_workspace(self):
-        modal = self.workspace_page.open_new_workspace()
+        form = self.workspace_page.open_new_workspace().open_from_vcs_form()
         ws_name = self.workspace_name
-        modal.name.set_value(ws_name)
-        modal.vcs_provider.set_value(self.vcs_provider["name"])
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
-        modal.terraform_version.set_value(tf_versions[0])
-        modal.save_button.click()
-        self.wait_workspace_save()
-        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
-        workspace = [ws for ws in self.workspace_page.workspaces if ws.name.get(query.text)][0]
-        dashboard = workspace.open_dashboard()
+        form.name.set_value(ws_name)
+        form.vcs_provider.set_value(self.vcs_provider["name"])
+        form.repository.set_value(self.repo_name)
+        dashboard = form.create()
         dashboard.delete_button.click()
         confirm = DeleteWorkspaceModal()
         confirm.input_name.set_value(ws_name)
-        confirm.cancel_delete_button.click()
+        confirm.cancel_button.click()
         dashboard.menu.open_workspaces()
         self.workspace_page.search.set_value(ws_name)
         time.sleep(1)

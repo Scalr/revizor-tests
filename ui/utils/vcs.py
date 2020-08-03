@@ -112,7 +112,7 @@ class VCSGitHub(VCSProvider):
         tree = lxml.html.fromstring(
             self._session.get("https://github.com/settings/applications/new").text
         )
-        form = tree.xpath("//form")[3]
+        form = tree.xpath("//form[@id='new_oauth_application']")[0]
         form.fields["oauth_application[name]"] = name
         form.fields["oauth_application[url]"] = homepage
         form.fields["oauth_application[callback_url]"] = callback_url
@@ -126,7 +126,7 @@ class VCSGitHub(VCSProvider):
         )
         app_id = tree.xpath(f'//a[text()="{name}"]')[0].attrib["href"].split("/")[-1]
         app_tree = lxml.html.fromstring(
-            self._session.get(f"https://github.com/settings/applications/{app_id}").text
+            self._session.get(f"https://github.com/settings/applications/{app_id}/advanced").text
         )
         form = app_tree.xpath('//input[@name="_method" and @value="delete"]/parent::form')[0]
         return self._session.post(f"https://github.com{form.action}", data=dict(form.fields))

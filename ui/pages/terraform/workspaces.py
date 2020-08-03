@@ -1,22 +1,71 @@
 import typing as tp
 
-
-from selene.elements import SeleneElement
-from selene.api import s, ss, by, browser, be
+from selene.core.entity import Element
+from selene.api import s, ss, by, browser, be, have
 
 from .base import TfBasePage, BasePage
 from ui.pages.terraform.runs import WorkspaceRunsPage
 from ui.utils.components import button, combobox, toggle, loading_modal, input, search
 
 
-class CreateWorkspaceModal(BasePage):
+class CreateWorkspaceFromVCS(BasePage):
+    @staticmethod
+    def wait_page_loading():
+        ss(by.xpath("//div[text()='Configure workspace']")).element_by(be.visible).with_(timeout=10).should(be.visible)
+
+    @property
+    def name(self) -> input:
+        return input(label="Name")
+
+    @property
+    def vcs_provider(self) -> combobox:
+        return combobox("VCS provider")
+
+    @property
+    def repository(self) -> combobox:
+        return combobox("Repository")
+
+    @property
+    def terraform_version(self) -> combobox:
+        return combobox("Terraform version")
+
+    @property
+    def auto_apply(self) -> toggle:
+        return toggle("Auto apply")
+
+    def toggle_additional(self) -> Element:
+        return ss(by.xpath("//div[text()='Advanced']")).element_by(be.visible)
+
+    @property
+    def branch(self) -> combobox:
+        return combobox("Branch")
+
+    @property
+    def subdirectory(self) -> input:
+        return input("Subdirectory")
+
+    @property
+    def work_directory(self) -> input:
+        return input("Terraform work directory")
+
+    def create(self) -> "WorkspaceDashboard":
+        self.create_button.click()
+        return WorkspaceDashboard()
+
+    @property
+    def create_button(self) -> button:
+        return button("Create")
+
+    @property
+    def cancel_button(self) -> button:
+        return button("Cancel")
+
+
+class CreateWorkspacePage(BasePage):
     @staticmethod
     def wait_page_loading():
         s("div#loading").should(be.not_.visible, timeout=20)
-        s("div[id^=workspaceform]").s(by.xpath('//div[text()="New Workspace"]')).should(
-            be.visible, timeout=20
-        )
-        s("div[id^=workspaceform][id$=body]").should(be.visible)
+        s(by.xpath("//div[text()='New Workspace']")).should(be.visible).with_(timeout=10)
 
     def __init__(self):
         self.element = s(
@@ -27,79 +76,41 @@ class CreateWorkspaceModal(BasePage):
         self.form_main = ss('div[id^="workspaceform"] > fieldset')[0]
         self.form_additional = ss('div[id^="workspaceform"] > fieldset')[1]
 
-    @property
-    def name(self) -> input:
-        return input(label="Name", parent=self.form_main)
+    def open_from_registry_form(self):
+        s(by.xpath("//*[text()='From registry']/ancestor::div[2]")).click()
+        raise NotImplemented("This page not implemented")
 
-    @property
-    def vcs_provider(self) -> combobox:
-        return combobox("VCS Provider", self.form_main)
+    def open_from_vcs_form(self) -> CreateWorkspaceFromVCS:
+        s(by.xpath("//*[text()='From VCS repository']/ancestor::div[2]")).click()
+        return CreateWorkspaceFromVCS()
 
-    @property
-    def repository(self) -> combobox:
-        return combobox("Repository", self.form_main)
-
-    @property
-    def terraform_version(self) -> combobox:
-        return combobox("Terraform Version", self.form_main)
-
-    @property
-    def auto_apply(self) -> toggle:
-        return toggle("Auto Apply", self.form_main)
-
-    def toggle_additional(self) -> SeleneElement:
-        return self.element.s("div#additional-legendTitle").click()
-
-    def set_vcs(self, workspace_type: str = "bind"):
-        """workspace type can be bind or upload"""
-        if workspace_type == "bind":
-            self.form_main.ss("td.x-form-radio-group input")[0].click()
-        elif workspace_type == "upload":
-            self.form_main.ss("td.x-form-radio-group input")[1].click()
-
-    @property
-    def branch(self) -> combobox:
-        return combobox("Branch", self.element)
-
-    @property
-    def subdirectory(self) -> input:
-        return input("Subdirectory", self.form_additional)
-
-    @property
-    def work_directory(self) -> input:
-        return input("Terraform Work Directory", self.form_additional)
-
-    @property
-    def save_button(self) -> button:
-        return button("Save", parent=self.element)
-
-    @property
-    def cancel_button(self) -> button:
-        return button("Cancel", parent=self.element)
+    def open_from_cli_form(self):
+        s(by.xpath("//*[text()='From Terraform CLI or API]/ancestor::div[2]")).click()
+        raise NotImplemented("This page not implemented")
 
 
 class WorkspaceLine:
-    def __init__(self, element: SeleneElement):
+    def __init__(self, element: Element):
         self.element = element
 
     @property
-    def name(self) -> SeleneElement:
+    def name(self) -> Element:
         return self.element.ss("td")[0].s("a")
 
     @property
-    def last_run(self) -> SeleneElement:
+    def last_run(self) -> Element:
         return self.element.ss("td")[1]
 
     @property
-    def changed_on(self) -> SeleneElement:
+    def changed_on(self) -> Element:
         return self.element.ss("td")[2]
 
     @property
-    def created_by(self) -> SeleneElement:
+    def created_by(self) -> Element:
         return self.element.ss("td")[3]
 
     @property
-    def repository(self) -> SeleneElement:
+    def repository(self) -> Element:
         return self.element.ss("td")[4]
 
     @property
@@ -139,25 +150,25 @@ class WorkspacePage(TfBasePage):
     def workspaces(self) -> [WorkspaceLine]:
         return [WorkspaceLine(p) for p in ss("div.x-grid.x-panel-column-left tr.x-grid-row") if p.is_displayed()]
 
-    def open_new_workspace(self) -> CreateWorkspaceModal:
+    def open_new_workspace(self) -> CreateWorkspacePage:
         button('New Workspace').click()
-        return CreateWorkspaceModal()
+        return CreateWorkspacePage()
 
     @property
     def search(self) -> search:
         return search()
 
     @property
-    def empty_ws_table(self) -> SeleneElement:
+    def empty_ws_table(self) -> Element:
         return s(by.xpath("//div[text()='No Workspaces found.']"))
 
 
 class WorkspaceDashboard(TfBasePage):
     @staticmethod
     def wait_page_loading():
-        loading_modal("Loading...").should(be.not_.visible, timeout=10)
-        s(by.xpath("//label/span[text()='ID']/ancestor::label/following-sibling::div/div")).should(
-            be.not_.visible, timeout=20
+        loading_modal("Loading page...").should(be.not_.visible, timeout=10)
+        s(by.xpath("//div[text()='Workspace']")).with_(timeout=20).should(
+            be.visible
         )
 
     @property
@@ -173,21 +184,21 @@ class WorkspaceDashboard(TfBasePage):
         return button(icon="delete")
 
     @property
-    def id(self) -> SeleneElement:
+    def id(self) -> Element:
         return s(by.xpath("//span[text()='ID']/ancestor::label/following-sibling::div/div"))
 
     @property
-    def name(self) -> SeleneElement:
+    def name(self) -> Element:
         return s(by.xpath("//span[text()='Name']/ancestor::label/following-sibling::div/div"))
 
     @property
-    def repository(self) -> SeleneElement:
+    def repository(self) -> Element:
         return s(
             by.xpath("//span[text()='Repository']/ancestor::label/following-sibling::div/div")
         )
 
     @property
-    def subdirectory(self) -> SeleneElement:
+    def subdirectory(self) -> Element:
         return s(
             by.xpath(
                 "//span[text()='Subdirectory']/ancestor::label/following-sibling::div/div"
@@ -195,7 +206,7 @@ class WorkspaceDashboard(TfBasePage):
         )
 
     @property
-    def terraform_version(self) -> SeleneElement:
+    def terraform_version(self) -> Element:
         return s(
             by.xpath(
                 "//span[text()='Terraform version']/ancestor::label/following-sibling::div/div"
@@ -203,7 +214,7 @@ class WorkspaceDashboard(TfBasePage):
         )
 
     @property
-    def configuration_version(self) -> SeleneElement:
+    def configuration_version(self) -> Element:
         return s(
             by.xpath(
                 "//span[text()='Configuration version']/ancestor::label/following-sibling::div/div"
@@ -211,7 +222,7 @@ class WorkspaceDashboard(TfBasePage):
         )
 
     @property
-    def locking(self) -> SeleneElement:
+    def locking(self) -> Element:
         return s(
             by.xpath("//span[text()='Locking']/ancestor::label/following-sibling::div/div")
         )
@@ -221,7 +232,7 @@ class WorkspaceDashboard(TfBasePage):
         return toggle("Auto Apply")
 
     @property
-    def tags(self) -> SeleneElement:
+    def tags(self) -> Element:
         return s(by.xpath("//span[text()='Tags']/ancestor::label/following-sibling::div/div"))
 
 
@@ -229,23 +240,19 @@ class DeleteWorkspaceModal:
     @staticmethod
     def wait_page_loading():
         s("div#loading").should(be.not_.visible, timeout=20)
-        s(by.xpath("//span[text()='Cancel']/ancestor::span")).should(be.visible)
-
-    @property
-    def visible_button(self) -> browser.element:
-        return s(by.xpath("//span[text()='Delete']/ancestor::span")).should(be.visible)
+        s("div.message").should(have.text("Delete Workspace:"))
 
     @property
     def input_name(self):
         return s(by.xpath("//input[@placeholder='Enter the name of the Workspace to be deleted']"))
 
     @property
-    def delete_button(self):  # confirm delete ws
-        return s(by.xpath("//span[text()='Delete']/ancestor::span"))
+    def delete_button(self) -> button:  # confirm delete ws
+        return button("Delete")
 
     @property
-    def cancel_delete_button(self):
-        return s(by.xpath("//span[text()='Cancel']/ancestor::span"))
+    def cancel_button(self) -> button:
+        return button("Cancel")
 
 
 class EnvVariableLine:
@@ -253,11 +260,11 @@ class EnvVariableLine:
         self.element = element
 
     @property
-    def name(self) -> SeleneElement:
+    def name(self) -> Element:
         return self.element.ss('td[@data-columnid="name"]//input')
 
     @property
-    def value(self) -> SeleneElement:
+    def value(self) -> Element:
         return self.element.ss('td[@data-columnid="value"]//input')
 
     @property
@@ -336,5 +343,5 @@ class WorkspaceVariablePage(TfBasePage):
         return button(title="Save")
 
     @property
-    def empty_tf_variable(sefl) -> SeleneElement:
+    def empty_tf_variable(sefl) -> Element:
         return s(by.xpath("//div[text()='You have no variables added yet.']"))

@@ -55,7 +55,7 @@ class TestTerraformLifecycle(VCSMixin):
         modal.terraform_version.set_value('0.12.19')
         modal.toggle_additional()
         modal.subdirectory.set('local_wait')
-        modal.save_button.click()
+        modal.create_button.click()
         self.wait_workspace_save()
         assert len(ws_page.workspaces) > 0
         workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == workspace_name, ws_page.workspaces))
