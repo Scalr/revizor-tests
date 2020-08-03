@@ -14,8 +14,9 @@ from revizor2.api import IMPL
 
 class TestWorkspaceRun:
     workspace_page: WorkspacePage
-    name = None
+    name: tp.Optional[str] = None
     repo_name: str = "Scalr/tf-revizor-fixtures"
+    tf_version: str = "0.12.25"
     vcs_provider: tp.Dict[str, str] = None
 
     @pytest.fixture(autouse=True)
@@ -35,7 +36,6 @@ class TestWorkspaceRun:
 
     def new_workspace_runs_page(self, subdirectory=None):
         self.workspace_name = generate_name("name")
-        self.tf_version = "0.12.19"
         provider_id = self.vcs_provider["id"]
         IMPL.workspace.create(
             self.workspace_name,
@@ -45,7 +45,7 @@ class TestWorkspaceRun:
             branch="master",
             path=subdirectory,
         )
-        time.sleep(1)
+        self.workspace_page.reload()
         workspace_line = list(
             filter(
                 lambda x: x.name.get(query.text).strip() == self.workspace_name,

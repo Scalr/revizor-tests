@@ -33,6 +33,7 @@ class CreateWorkspaceFromVCS(BasePage):
     def auto_apply(self) -> toggle:
         return toggle("Auto apply")
 
+    @property
     def toggle_additional(self) -> Element:
         return ss(by.xpath("//div[text()='Advanced']")).element_by(be.visible)
 
@@ -161,6 +162,15 @@ class WorkspacePage(TfBasePage):
     @property
     def empty_ws_table(self) -> Element:
         return s(by.xpath("//div[text()='No Workspaces found.']"))
+
+    @property
+    def reload_button(self) -> button:
+        return button(icon="refresh")
+
+    def reload(self):
+        self.reload_button.click()
+        ss("div.x-grid-buffered-loader").should(be.visible, timeout=10)
+        ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
 
 
 class WorkspaceDashboard(TfBasePage):

@@ -1,4 +1,4 @@
-from selene.api import s, ss, be, have, browser, query
+from selene.api import s, ss, by, be, have, query
 from selene.core.entity import Element
 
 from .base import TfBasePage
@@ -6,10 +6,10 @@ from ui.utils import consts
 from ui.utils import components
 
 
-class NewModuleDisplay(TfBasePage):
+class CreateModulePage(TfBasePage):
     @staticmethod
     def wait_page_loading():
-        s("//div[contains(@class, 'x-component') and text()='New Module']").should(be.visible)
+        ss(by.xpath("//div[text()='New Module']")).element_by(be.visible).with_(timeout=10).should(be.visible)
 
     @property
     def vcs_provider(self) -> components.combobox:
@@ -27,6 +27,10 @@ class NewModuleDisplay(TfBasePage):
     def cancel_button(self) -> components.button:
         return components.button("Cancel")
 
+    def create(self) -> "ModuleDashboard":
+        self.publish_button.click()
+        return ModuleDashboard()
+
 
 class DeleteModuleModal(TfBasePage):
     @staticmethod
@@ -42,46 +46,53 @@ class DeleteModuleModal(TfBasePage):
         return components.button("Cancel", parent=s("div.x-panel-confirm"))
 
 
+class ModuleDashboard(TfBasePage):
+    @staticmethod
+    def wait_page_loading():
+        components.loading_modal(consts.LoadingModalMessages.PUBLISH_MODULE).with_(timeout=30).should(
+            be.not_.visible
+        )
+        components.loading_page.with_(timeout=180).should(be.not_.visible)
+
+    @property
+    def delete_button(self) -> components.button:
+        return components.button("Delete")
+
+    @property
+    def resync_button(self) -> components.button:
+        return components.button("Resync")
+
+    def open_delete_module(self) -> DeleteModuleModal:
+        self.delete_button.click()
+        return DeleteModuleModal()
+
+
 class ModuleLine:
     def __init__(self, element: Element):
         self.element = element
 
     @property
     def name(self) -> Element:
-        return self.element.s("strong")
+        return self.element.ss("td")[1].s("strong")
 
     @property
     def description(self) -> Element:
-        return self.element.ss("div.x-grid-cell-inner > div > div")[1].s("div")
+        return self.element.ss("td > div.x-grid-cell-inner")[2]
 
     @property
     def version(self) -> Element:
-        return self.element.ss("div.x-grid-cell-inner > div > div")[2]
-
-    def activate(self):
-        self.element.click()
+        return self.element.ss("td > div.x-grid-cell-inner")[3]
 
     def is_syncing(self) -> bool:
         return self.version.get(query.text).strip().lower() == "syncing"
 
-    def is_active(self) -> bool:
-        return self.element.matching(have.css_class("x-grid-item-selected"))
-
     @property
-    def resync_button(self) -> components.button:
-        return components.button("Resync")
+    def dashboard_button(self) -> Element:
+        return self.element.ss("td > div.x-grid-cell-inner")[4].s("a")
 
-    @property
-    def delete_button(self) -> components.button:
-        return components.button("Delete")
-
-    def open_delete(self) -> DeleteModuleModal:
-        self.delete_button.click()
-        return DeleteModuleModal()
-
-    @property
-    def versions(self) -> components.combobox:
-        return components.combobox("")
+    def open_dashboard(self):
+        self.dashboard_button.click()
+        return ModuleDashboard()
 
 
 class ModulesPage(TfBasePage):
@@ -90,20 +101,17 @@ class ModulesPage(TfBasePage):
         components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(
             be.not_.visible, timeout=20
         )
-        s("div.x-grid-buffered-loader-mask").should(be.not_.visible, timeout=10)
+        s("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
         s("[id^=breadcrumbs]").should(have.text("Modules"))
-
-    @property
-    def loader(self) -> Element:
-        return s("svg.x-icon-spinner")
+        components.search().should(be.visible)
 
     @property
     def search(self) -> components.search:
         return components.search()
 
-    def open_new_module(self) -> NewModuleDisplay:
+    def open_new_module(self) -> CreateModulePage:
         components.button("New Module").click()
-        return NewModuleDisplay()
+        return CreateModulePage()
 
     @property
     def reload_button(self) -> components.button:
@@ -111,4 +119,4 @@ class ModulesPage(TfBasePage):
 
     @property
     def modules(self) -> [ModuleLine]:
-        return [ModuleLine(p) for p in ss('table.x-grid-item') if p.is_displayed()]
+        return [ModuleLine(p) for p in ss('table.x-grid-item').filtered_by(be.visible)]

@@ -204,9 +204,9 @@ toggle = Toggle
 
 class SearchField(BaseComponent):
     def __init__(self, parent: tp.Optional[Element] = None):
-        self.element = s(by.xpath("//div[text()='Search']"))
+        self.element = ss(by.xpath("//div[text()='Search']")).element_by(be.visible)
         if parent:
-            self.element = parent.s(by.xpath("//div[text()='Search']"))
+            self.element = parent.ss(by.xpath("//div[text()='Search']")).element_by(be.visible)
 
     def set_value(self, value):
         self.element.click()

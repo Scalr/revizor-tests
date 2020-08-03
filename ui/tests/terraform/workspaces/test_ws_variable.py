@@ -25,7 +25,7 @@ class TestWorkspaceVariable:
         self.var_name = generate_name("name-")
         self.var_value = generate_name("value-")
         IMPL.workspace.create(self.workspace_name, self.tf_version)
-        time.sleep(1)
+        self.workspace_page.reload()
         workspace_line = list(
             filter(
                 lambda x: x.name.get(query.text).strip() == self.workspace_name,
@@ -45,58 +45,51 @@ class TestWorkspaceVariable:
         assert len(self.var_dashboard.env_variables) > 0
 
     def test_create_sensitive_tf_variable(self):
-        var_name = self.var_name
-        var_value = self.var_value
         self.var_dashboard.new_tf_variable.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        variable_line.input_name.set_value(var_name)
-        variable_line.input_value.set_value(var_value)
+        variable_line.input_name.set_value(self.var_name)
+        variable_line.input_value.set_value(self.var_value)
         variable_line.sensitive_button.click()
         self.var_dashboard.save.click()
         self.wait_variable_save()
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
+        assert variable_line.input_name.get(query.value) == self.var_name
         assert variable_line.input_value.get(query.value) == ""
 
     def test_create_hcl_tf_variable(self):
-        var_name = self.var_name
-        var_value = self.var_value
         self.var_dashboard.new_tf_variable.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        variable_line.input_name.set_value(var_name)
-        variable_line.input_value.set_value(var_value)
+        variable_line.input_name.set_value(self.var_name)
+        variable_line.input_value.set_value(self.var_value)
         variable_line.hcl_button.click()
         self.var_dashboard.save.click()
         self.wait_variable_save()
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
-        assert variable_line.input_value.get(query.value) == var_value
+        assert variable_line.input_name.get(query.value) == self.var_name
+        assert variable_line.input_value.get(query.value) == self.var_value
 
     def test_create_tf_variable(self):
-        var_name = self.var_name
-        var_value = self.var_value
         self.var_dashboard.new_tf_variable.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        variable_line.input_name.set_value(var_name)
-        variable_line.input_value.set_value(var_value)
+        variable_line.input_name.set_value(self.var_name)
+        variable_line.input_value.set_value(self.var_value)
         self.var_dashboard.save.click()
         self.wait_variable_save()
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
-        assert variable_line.input_value.get(query.value) == var_value
+        assert variable_line.input_name.get(query.value) == self.var_name
+        assert variable_line.input_value.get(query.value) == self.var_value
 
     def test_update_tf_variable(self):
-        var_name = self.var_name
         self.var_dashboard.new_tf_variable.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        variable_line.input_name.set_value(var_name)
+        variable_line.input_name.set_value(self.var_name)
         self.var_dashboard.save.click()
         self.wait_variable_save()
         variable_line = self.var_dashboard.tf_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
+        assert variable_line.input_name.get(query.value) == self.var_name
         variable_line.input_name.set_value("update-tf")
         self.var_dashboard.save.click()
         self.wait_variable_save()
@@ -105,10 +98,9 @@ class TestWorkspaceVariable:
         assert variable_line.input_name.get(query.value) == "update-tf"
 
     def test_delete_tf_variable(self):
-        var_name = self.var_name
         self.var_dashboard.new_tf_variable.click()
         variable_line = self.var_dashboard.tf_variables[-1]
-        variable_line.input_name.set_value(var_name)
+        variable_line.input_name.set_value(self.var_name)
         self.var_dashboard.save.click()
         self.wait_variable_save()
         variable_line = self.var_dashboard.tf_variables[-1]
@@ -118,43 +110,38 @@ class TestWorkspaceVariable:
         assert len(variable_line) == 0
 
     def test_create_env_variable(self):
-        var_name = self.var_name
-        var_value = self.var_value
         self.var_dashboard.new_env_variable.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        variable_line.input_name.set_value(var_name)
-        variable_line.input_value.set_value(var_value)
+        variable_line.input_name.set_value(self.var_name)
+        variable_line.input_value.set_value(self.var_value)
         self.var_dashboard.save.click()
         self.wait_variable_save()
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
-        assert variable_line.input_value.get(query.value) == var_value
+        assert variable_line.input_name.get(query.value) == self.var_name
+        assert variable_line.input_value.get(query.value) == self.var_value
 
     def test_create_sensitive_env_variable(self):
-        var_name = self.var_name
-        var_value = self.var_value
         self.var_dashboard.new_env_variable.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        variable_line.input_name.set_value(var_name)
-        variable_line.input_value.set_value(var_value)
+        variable_line.input_name.set_value(self.var_name)
+        variable_line.input_value.set_value(self.var_value)
         variable_line.sensitive_button.click()
         self.var_dashboard.save.click()
         self.wait_variable_save()
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
+        assert variable_line.input_name.get(query.value) == self.var_name
         assert variable_line.input_value.get(query.value) == ""
 
     def test_update_env_variable(self):
-        var_name = self.var_name
         self.var_dashboard.new_env_variable.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        variable_line.input_name.set_value(var_name)
+        variable_line.input_name.set_value(self.var_name)
         self.var_dashboard.save.click()
         self.wait_variable_save()
         variable_line = self.var_dashboard.env_variables[-1]
-        assert variable_line.input_name.get(query.value) == var_name
+        assert variable_line.input_name.get(query.value) == self.var_name
         variable_line.input_name.set_value("update-env")
         self.var_dashboard.save.click()
         self.wait_variable_save()
@@ -163,14 +150,13 @@ class TestWorkspaceVariable:
         assert variable_line.input_name.get(query.value) == "update-env"
 
     def test_delete_env_variable(self):
-        var_name = self.var_name
         self.var_dashboard.new_env_variable.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        variable_line.input_name.set_value(var_name)
+        variable_line.input_name.set_value(self.var_name)
         self.var_dashboard.save.click()
         self.wait_variable_save()
         variable_line = self.var_dashboard.env_variables[-1]
         variable_line.delete_button.click()
         self.var_dashboard.refresh.click()
         variable_line = self.var_dashboard.env_variables[-1]
-        assert variable_line.input_name.get(query.value) != var_name
+        assert variable_line.input_name.get(query.value) != self.var_name

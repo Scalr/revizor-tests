@@ -44,19 +44,19 @@ class TestTerraformLifecycle(VCSMixin):
         else:
             raise AssertionError(f'VCS Provider with name {vcs_name} not exist in table!')
         ws_page = self.dashboard.menu.open_workspaces()
-        modal = ws_page.open_new_workspace()
-        modal.name.set_value(workspace_name)
-        assert len(modal.vcs_provider.get_values()) >= 1
-        modal.vcs_provider.set_value(vcs_name)
-        assert len(modal.repository.get_values()) >= 1
-        modal.repository.set_value(self.repo_name)
-        tf_versions = modal.terraform_version.get_values()
+        form = ws_page.open_new_workspace().open_from_vcs_form()
+        form.name.set_value(workspace_name)
+        assert len(form.vcs_provider.get_values()) >= 1
+        form.vcs_provider.set_value(vcs_name)
+        assert len(form.repository.get_values()) >= 1
+        form.repository.set_value(self.repo_name)
+        form.toggle_additional.click()
+        tf_versions = form.terraform_version.get_values()
         assert len(tf_versions) >= 1
-        modal.terraform_version.set_value('0.12.19')
-        modal.toggle_additional()
-        modal.subdirectory.set('local_wait')
-        modal.create_button.click()
-        self.wait_workspace_save()
+        form.terraform_version.set_value('0.12.25')
+        form.subdirectory.set('local_wait')
+        form.create()
+        self.dashboard.menu.open_workspaces()
         assert len(ws_page.workspaces) > 0
         workspace_line = list(filter(lambda x: x.name.get(query.text).strip() == workspace_name, ws_page.workspaces))
         assert len(workspace_line) == 1
