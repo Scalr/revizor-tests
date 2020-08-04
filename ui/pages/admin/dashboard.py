@@ -9,4 +9,4 @@ class AdminDashboard(BasePage):
     @staticmethod
     def wait_page_loading():
         components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(be.not_.visible)
-        s(by.xpath('//div[text()="SCALR HEALTH"]')).should(be.visible, timeout=10)
+        s(by.xpath('//div[text()="License"]')).should(be.visible, timeout=10)

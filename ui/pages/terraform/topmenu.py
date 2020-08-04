@@ -1,7 +1,7 @@
 from selene.api import s, by
 from selenium.webdriver.common.keys import Keys
 
-from ui.pages.terraform import dashboard, vcs, workspaces, modules, gv, offerings
+from ui.pages.terraform import dashboard, vcs, workspaces, modules, gv, offerings, integrations
 
 
 # TODO: Add breadcrumbs element
@@ -61,3 +61,21 @@ class TfTopMenu:
             '//span[contains(@class, "x-menu-item-indent") and text()="Categories"]/ancestor::a'
         )).click()
         return offerings.OfferingsCategoriesPage()
+
+    def open_integrations_endpoints(self) -> integrations.EndpointsPage:
+        s(by.xpath(
+            '//span[contains(@class, "x-btn-inner-default-toolbar-small") and text('
+            ')="Integrations"]/ancestor::a')).click()
+        s(by.xpath(
+            '//span[contains(@class, "x-menu-item-indent") and text()="Endpoints"]/ancestor::a'
+        )).click()
+        return integrations.EndpointsPage()
+
+    def open_integrations_webhooks(self) -> integrations.WebhooksPage:
+        s(by.xpath(
+            '//span[contains(@class, "x-btn-inner-default-toolbar-small") and text('
+            ')="Integrations"]/ancestor::a')).click()
+        s(by.xpath(
+            '//span[contains(@class, "x-menu-item-indent") and text()="Webhooks"]/ancestor::a'
+        )).click()
+        return integrations.WebhooksPage()

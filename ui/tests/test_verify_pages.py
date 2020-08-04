@@ -137,6 +137,7 @@ class TestPagesForErrors:
 
         self.iterate_scalr_menu()
 
+    @pytest.mark.skip("SCALRCORE-16590")
     def test_environment_scope_pages(self):
         self.authorize(CONF.credentials.testenv.accounts.default.username,
                        CONF.credentials.testenv.accounts.default.password)
@@ -151,9 +152,10 @@ class TestPagesForErrors:
         menu = tf_page.menu
         menu.open_workspaces()
         menu.open_modules()
-        menu.open_vcs_providers()
-        menu.open_gv()
         menu.open_offerings_request()
         menu.open_offerings_management()
         menu.open_offerings_categories()
+        menu.open_vcs_providers()
+        menu.open_gv()
+
 
