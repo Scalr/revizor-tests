@@ -14,10 +14,10 @@ class TestModules:
     name = None
     vcs_provider: tp.Dict[str, str] = None
 
-    # @pytest.fixture(scope="class", autouse=True)
-    # def remove_all_modules(self):
-    #     for m in IMPL.modules.list():
-    #         IMPL.modules.delete(m["id"], m["name"])
+    @pytest.fixture(scope="class", autouse=True)
+    def remove_all_modules(self):
+        for m in IMPL.modules.list():
+            IMPL.modules.delete(m["id"], m["name"])
 
     @pytest.fixture(autouse=True)
     def prepare_env(self, tf_dashboard, vcs_provider):
@@ -85,7 +85,8 @@ class TestModules:
     def test_resync_module(self):
         rds_module = self.get_or_create_module("Scalr/terraform-aws-rds")
         assert rds_module.version.with_(timeout=180).should(have.no.text("SYNCING"))
-        assert rds_module.version.get(query.text).strip().replace(".", "").isdigit()
+        version = rds_module.version.get(query.text)
+        assert version.strip().replace(".", "").isdigit(), f"Version is not digit: {version}"
         assert len(rds_module.description.text.strip()) > 10
         dashboard = rds_module.open_dashboard()
         dashboard.resync_button.click()
@@ -98,7 +99,8 @@ class TestModules:
         rds_module = self.get_or_create_module("Scalr/terraform-aws-rds")
         rds_module.version.should(have.text("SYNCING"))
         assert rds_module.version.should(have.no.text("SYNCING"), timeout=180)
-        assert rds_module.version.text.strip().replace(".", "").isdigit()
+        version = rds_module.version.get(query.text)
+        assert version.strip().replace(".", "").isdigit(), f"Version is not digit: {version}"
 
     def test_remove_module(self):
         rds_module = self.get_or_create_module("Scalr/terraform-aws-rds")

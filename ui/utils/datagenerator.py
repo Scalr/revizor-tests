@@ -5,7 +5,12 @@ import typing as tp
 
 
 def generate_name(prefix: str = '', length: int = 12) -> str:
-    return prefix + ''.join(random.choice(string.ascii_lowercase) for _ in range(length - len(prefix)))
+    if prefix:
+        length -= 1
+    name = ''.join(random.choice(string.ascii_lowercase) for _ in range(length - len(prefix)))
+    if prefix:
+        return f"{prefix}-{name}"
+    return name
 
 
 def generate_uuid() -> str:

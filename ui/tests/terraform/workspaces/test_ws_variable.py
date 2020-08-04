@@ -5,13 +5,14 @@ import pytest
 from selene.api import by, be, s, query
 
 from ui.utils.datagenerator import generate_name
-from ui.pages.terraform.workspaces import WorkspacePage, WorkspaceVariablePage, TFVariableLine
+from ui.pages.terraform.workspaces import WorkspacePage, WorkspaceVariablePage
 from ui.utils.components import loading_modal
 from ui.utils import consts
 from revizor2.api import IMPL
 
 
 class TestWorkspaceVariable:
+    #TODO: Rewrite and use one workspace for all cases
     workspace_page: WorkspacePage
     ws_variable: WorkspaceVariablePage
     name = None
@@ -21,7 +22,7 @@ class TestWorkspaceVariable:
         self.workspace_page = tf_dashboard.menu.open_workspaces()
         self.vcs_provider = vcs_provider
         self.workspace_name = generate_name("name")
-        self.tf_version = "0.12.19"
+        self.tf_version = "0.12.25"
         self.var_name = generate_name("name-")
         self.var_value = generate_name("value-")
         IMPL.workspace.create(self.workspace_name, self.tf_version)
@@ -34,6 +35,10 @@ class TestWorkspaceVariable:
         )
         assert len(workspace_line) == 1
         self.var_dashboard = workspace_line[0].open_variable_dashboard()
+        yield
+        ws_id = [w["id"] for w in IMPL.workspace.list() if w["name"] == self.workspace_name]
+        if len(ws_id) > 0:
+            IMPL.workspace.delete(ws_id[0])
 
     def wait_variable_save(self):
         loading_modal(consts.LoadingModalMessages.SAVING).should(be.visible, timeout=10)

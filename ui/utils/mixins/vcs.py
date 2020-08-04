@@ -1,4 +1,6 @@
 import typing as tp
+import time
+import logging
 
 from selene.api import s, be
 
@@ -9,8 +11,10 @@ from ui.utils import vcs
 from ui.utils.components import tooltip
 
 
-class VCSMixin:
+LOG = logging.getLogger(__name__)
 
+
+class VCSMixin:
     dashboard: tp.Optional[TerraformEnvDashboard] = None
     vcs_provider: tp.Optional[tp.Union[vcs.VCSGitHub, vcs.VCSGitLab]] = None
     _created_oauth: tp.List = []
@@ -36,6 +40,7 @@ class VCSMixin:
         settings = self.vcs_provider.get_app_settings(name)
         if secret is None:
             secret = settings["secret"]
+        LOG.info(f"GitHub secrets: {settings['key']}/{settings['secret']}")
         new_form.client_secret.set_value(secret)
         new_form.client_id.set_value(settings["key"])
         new_form.create_button.click()

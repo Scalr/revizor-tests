@@ -87,7 +87,7 @@ class TestTerraformLifecycle(VCSMixin):
         assert 'Resources: 0 of 0 estimated' in run_dashboard.console.get(query.text)
         assert 'Traceback' not in run_dashboard.console.get(query.text)
         assert run_dashboard.steps[2].title.text.strip() == '3. Policy check'
-        assert run_dashboard.steps[2].status.text.strip() == 'Skipped'
+        assert run_dashboard.steps[2].status.text.strip() == 'Passed'
         assert run_dashboard.steps[3].title.text.strip() == '4. Apply'
         assert run_dashboard.steps[3].status.text.strip() == 'Finished'
         run_dashboard.steps[3].activate()

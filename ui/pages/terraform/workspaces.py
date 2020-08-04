@@ -1,4 +1,5 @@
 import typing as tp
+import time
 
 from selene.core.entity import Element
 from selene.api import s, ss, by, browser, be, have
@@ -135,7 +136,7 @@ class WorkspaceLine:
         return WorkspaceVariablePage()
 
     def open_runs_page(self) -> "WorkspaceRunsPage":
-        self.dashboard_button.click()
+        self.open_dashboard()
         button(title="Runs").click()
         return WorkspaceRunsPage()
 
@@ -171,6 +172,7 @@ class WorkspacePage(TfBasePage):
         self.reload_button.click()
         ss("div.x-grid-buffered-loader").should(be.visible, timeout=10)
         ss("div.x-grid-buffered-loader").should(be.not_.visible, timeout=10)
+        time.sleep(0.5)
 
 
 class WorkspaceDashboard(TfBasePage):

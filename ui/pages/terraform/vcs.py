@@ -150,8 +150,7 @@ class GitHubAuthPage(BasePage):
 
     @property
     def authorize_user(self) -> browser.element:
-        button = s('button[name="authorize"]')
-        button.should(be.clickable)
+        button = s(by.xpath('//button[starts-with(text(), "Authorize")]')).should(be.clickable)
         return button
 
 
