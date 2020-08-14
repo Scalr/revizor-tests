@@ -63,4 +63,34 @@ page.submit()
 * --grid-address - адрес удаленного grid'а (для запуска на удаленном сервере)
 
 
+# Написание новых "страниц"
 
+При написнии новых PageObject объектов (страниц), следует руководствоваться следующими правилами:
+
+1. Стараться использовать элементы из utils/components.
+2. Если мы хотим вернуть какой-то selene элемент, то оборачиваем этот метод в property
+3. Именовать проперти необходимо с описанием компонента. Если возвращается кнопка, то элемент следует назвать с суффиксом *button*:
+    ```python
+    @property
+    def refresh_button(self) -> components.button:
+       return components.button("OK")
+    ``` 
+4. Если при нажатии на кнопку, происходит открытие новой страницы или модального окна, то надо создать метод с именем open_, который нажмет кнопку и вернет объект страницы:
+    ```python
+    def open_new_workspace(self) -> NewWorkspaceModal:
+        self.new_workspace_button.click()
+        return NewWorkspaceModal()
+    ```
+5. Используйте для объектов страниц наследовние от TfBasePage для доступа к self.menu, а также для запуска метода wait_page_loading
+    ```python
+    from .base import TfBasePage
+    from ui.utils import consts
+    from ui.utils import components
+    
+    class TerraformEnvDashboard(TfBasePage):
+        @staticmethod
+        def wait_page_loading():
+            components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(be.not_.visible)
+    ```
+6. Называйте классы в соответствии с тем, что это за элемент на странице. Например, если новая страница, то суффикс Page, если модальное окно - Modal и т.п.
+7. Старайтесь избегать использование time.sleep, делайте явные ожидания

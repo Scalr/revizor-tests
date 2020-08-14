@@ -343,7 +343,7 @@ class WorkspaceVariablePage(TfBasePage):
         return button(title="New Environment Variable")
 
     @property
-    def refresh(self) -> button:
+    def refresh(self) -> Element:
         return s(
             by.xpath(
                 "//div[starts-with(@id, 'workspacedashboardvariables')]//a[@data-qtip='Refresh']"
