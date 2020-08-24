@@ -2,7 +2,7 @@ import typing as tp
 import time
 
 import pytest
-from selene.api import be, have, query, s, by, ss
+from selene.api import be, have, query, s
 from revizor2.api import IMPL
 
 from ui.pages.terraform.modules import ModulesPage
@@ -33,6 +33,7 @@ class TestModules:
             ]
             if module:
                 return module[0]
+
         m = get_module(repo_name)
         if m:
             return m

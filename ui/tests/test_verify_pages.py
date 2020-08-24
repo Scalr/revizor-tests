@@ -49,7 +49,7 @@ class TestPagesForErrors:
         browser.driver().delete_all_cookies()
 
     def assert_errors(self):
-        if browser.config.browser_name.lower().startswith('firefox'):
+        if browser.config.browser_name.lower().startswith("firefox"):
             return
         driver = browser.driver()
         try:
@@ -61,26 +61,27 @@ class TestPagesForErrors:
                 continue
             if any([m in log["message"] for m in IGNORE_ERRORS]):
                 continue
-            raise AssertionError(f"Browser has an error in console on page {browser.driver().current_url}: {logs}")
+            raise AssertionError(
+                f"Browser has an error in console on page {browser.driver().current_url}: {logs}"
+            )
 
-    def authorize(self, username: str, password: str) -> tp.Union[
-        AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
-        browser.open(
-            f"https://{self.testenv.te_id}.test-env.scalr.com/"
-        )
+    def authorize(
+        self, username: str, password: str
+    ) -> tp.Union[AdminDashboard, AccountDashboard, TerraformEnvDashboard, ClassicEnvDashboard]:
+        browser.open(f"https://{self.testenv.te_id}.test-env.scalr.com/")
         s("#loading").should(be.not_.visible, timeout=20)
         login_page = LoginPage()
-        login_page.set_idp_provider('scalr')
+        login_page.set_idp_provider("scalr")
         login_page.set_username(username)
         login_page.set_password(password)
         return login_page.submit()
 
     def get_menu_items_count(self):
         self.topmenu_button.click()
-        attr = 'data-componentid'
-        self.topmenu = s('div[data-qa-id="{}-menu"]'.format(
-            self.topmenu_button.get(query.attribute(attr))
-        ))
+        attr = "data-componentid"
+        self.topmenu = s(
+            'div[data-qa-id="{}-menu"]'.format(self.topmenu_button.get(query.attribute(attr)))
+        )
         self.topmenu.should(be.visible)
         menu_items_count = len(self.scalr_menu_items)
         self.topmenu_button.click()
@@ -96,10 +97,10 @@ class TestPagesForErrors:
             while not self.scalr_menu_items[i].matching(be.visible):
                 self.scalr_menu_scrolldown.click()
             ss("div.x-mask").should(be.not_.visible)
-            self.scalr_menu_items[i].element('..').hover().click()
-            components.loading_modal(
-                consts.LoadingModalMessages.LOADING_PAGE
-            ).should(be.not_.visible, timeout=10)
+            self.scalr_menu_items[i].element("..").hover().click()
+            components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(
+                be.not_.visible, timeout=10
+            )
             ss("div.x-mask").should(be.not_.visible)
             self.assert_errors()
 
@@ -109,9 +110,7 @@ class TestPagesForErrors:
 
     @property
     def scalr_menu_items(self):
-        return self.topmenu.ss(
-            "div.x-menu-item[id^=menuitem] > a.x-menu-item-link-href"
-        )
+        return self.topmenu.ss("div.x-menu-item[id^=menuitem] > a.x-menu-item-link-href")
 
     def test_global_scope_pages(self):
         self.authorize(
@@ -129,7 +128,7 @@ class TestPagesForErrors:
         # go to account scope
         s("a.x-btn-environment").click()
         s("div.x-menu-environment").should(be.visible)
-        s("div.x-menu-favorite-account-container").element('..').click()
+        s("div.x-menu-favorite-account-container").element("..").click()
         components.loading_modal(consts.LoadingModalMessages.LOADING_PAGE).should(
             be.visible
         ).should(be.not_.visible, timeout=10)
@@ -139,15 +138,19 @@ class TestPagesForErrors:
 
     @pytest.mark.skip("SCALRCORE-16590")
     def test_environment_scope_pages(self):
-        self.authorize(CONF.credentials.testenv.accounts.default.username,
-                       CONF.credentials.testenv.accounts.default.password)
+        self.authorize(
+            CONF.credentials.testenv.accounts.default.username,
+            CONF.credentials.testenv.accounts.default.password,
+        )
         s("div.x-mask").should(be.not_.visible)
 
         self.iterate_scalr_menu()
 
     def test_terraform_scope_pages(self):
-        tf_page: TerraformEnvDashboard = self.authorize(CONF.credentials.testenv.accounts.terraform.username,
-                       CONF.credentials.testenv.accounts.terraform.password)
+        tf_page: TerraformEnvDashboard = self.authorize(
+            CONF.credentials.testenv.accounts.terraform.username,
+            CONF.credentials.testenv.accounts.terraform.password,
+        )
         s("div.x-mask").should(be.not_.visible)
         menu = tf_page.menu
         menu.open_workspaces()
@@ -157,5 +160,3 @@ class TestPagesForErrors:
         menu.open_offerings_categories()
         menu.open_vcs_providers()
         menu.open_gv()
-
-

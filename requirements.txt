@@ -1,7 +1,7 @@
 # common requirements
 click==7.1.2
 ipython==7.16.1
-githubpy==1.1.0
+pygithub==1.53
 docker==3.7.2
 pytest==5.3.5
 semver==2.8.1

@@ -12,7 +12,7 @@ from revizor2.api import IMPL
 
 
 class TestWorkspaceVariable:
-    #TODO: Rewrite and use one workspace for all cases
+    # TODO: Rewrite and use one workspace for all cases
     workspace_page: WorkspacePage
     ws_variable: WorkspaceVariablePage
     name = None
@@ -23,8 +23,8 @@ class TestWorkspaceVariable:
         self.vcs_provider = vcs_provider
         self.workspace_name = generate_name("name")
         self.tf_version = "0.12.25"
-        self.var_name = generate_name("name-")
-        self.var_value = generate_name("value-")
+        self.var_name = generate_name("name")
+        self.var_value = generate_name("value")
         IMPL.workspace.create(self.workspace_name, self.tf_version)
         self.workspace_page.reload()
         workspace_line = list(

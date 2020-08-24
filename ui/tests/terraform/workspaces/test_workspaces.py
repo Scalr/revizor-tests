@@ -144,7 +144,7 @@ class TestWorkspaces:
     def test_search_workspace(self):
         workspace_name = ""
         for i in range(2):
-            workspace_name = generate_name("test-")
+            workspace_name = generate_name("test")
             form = self.workspace_page.open_new_workspace().open_from_vcs_form()
             form.name.set_value(workspace_name)
             form.vcs_provider.set_value(self.vcs_provider["name"])

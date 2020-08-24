@@ -185,11 +185,11 @@ class WorkspaceDashboard(TfBasePage):
 
     @property
     def launch_button(self) -> button:
-        return button(ticon="launch")
+        return button(icon="launch")
 
     @property
     def configure_button(self) -> button:
-        return button(ticon="configure")
+        return button(icon="configure")
 
     @property
     def delete_button(self) -> button:
@@ -198,6 +198,10 @@ class WorkspaceDashboard(TfBasePage):
     @property
     def id(self) -> Element:
         return s(by.xpath("//span[text()='ID']/ancestor::label/following-sibling::div/div"))
+
+    @property
+    def status(self) -> Element:
+        return s(by.xpath("//span[text()='Status']/ancestor::label/following-sibling::div/div"))
 
     @property
     def name(self) -> Element:
@@ -247,8 +251,27 @@ class WorkspaceDashboard(TfBasePage):
     def tags(self) -> Element:
         return s(by.xpath("//span[text()='Tags']/ancestor::label/following-sibling::div/div"))
 
+    def launch_new_run(self):
+        self.launch_button.click()
+        return ConfirmNewRunModal()
 
-class DeleteWorkspaceModal:
+
+class ConfirmNewRunModal(TfBasePage):
+    @staticmethod
+    def wait_page_loading():
+        s("div#loading").should(be.not_.visible, timeout=20)
+        s("div.message").should(have.text("Are you sure want to queue new Run?"))
+
+    @property
+    def ok_button(self) -> button:  # confirm delete ws
+        return button("OK")
+
+    @property
+    def cancel_button(self) -> button:
+        return button("Cancel")
+
+
+class DeleteWorkspaceModal(TfBasePage):
     @staticmethod
     def wait_page_loading():
         s("div#loading").should(be.not_.visible, timeout=20)

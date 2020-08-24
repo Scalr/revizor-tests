@@ -66,6 +66,11 @@ class ModuleDashboard(TfBasePage):
         self.delete_button.click()
         return DeleteModuleModal()
 
+    def get_instruction_text(self) -> str:
+        s("//div[text()='Instructions']").click()
+        s("//div[text()='Copy and paste this into your Terraform template and set variable values if needed:']").should(be.visible)
+        return s("//textarea").get(query.value)
+
 
 class ModuleLine:
     def __init__(self, element: Element):

@@ -20,7 +20,7 @@ class TestVCSProviders(VCSMixin):
             self.vcs_provider.delete_oauth(name)
 
     def test_add_provider(self):
-        vcs_name = generate_name('test-')
+        vcs_name = generate_name('test')
         vcs_page = self.add_provider(vcs_name)
         edit_form = EditVCSForm()
         assert edit_form.name.get_attribute('value') == vcs_name
@@ -30,7 +30,7 @@ class TestVCSProviders(VCSMixin):
         assert vcs_page.providers[0].usage == 'Not used'
 
     def test_delete_provider(self):
-        vcs_name = generate_name('test-')
+        vcs_name = generate_name('test')
         vcs_page = self.add_provider(vcs_name)
         vcs_page.providers[0].toggle()
         vcs_page.delete_button.click()
@@ -44,7 +44,7 @@ class TestVCSProviders(VCSMixin):
             assert provider.name != vcs_name, f'Provider {provider.name} is exist!'
 
     def test_add_exist_name(self):
-        vcs_name = generate_name('test-')
+        vcs_name = generate_name('test')
         vcs_page = self.add_provider(vcs_name)
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
@@ -59,7 +59,7 @@ class TestVCSProviders(VCSMixin):
             .should(have.text('VCS Provider name must be unique within current scope.'))
 
     def test_reauthorize(self):
-        vcs_name = generate_name('test-')
+        vcs_name = generate_name('test')
         self.add_provider(vcs_name)
         edit_form = EditVCSForm()
         edit_form.reauthorize_button.click()
@@ -67,12 +67,12 @@ class TestVCSProviders(VCSMixin):
         tip.element.should(be.visible, timeout=20)
 
     def test_add_client_id_twice(self):
-        vcs_name = generate_name('test-')
+        vcs_name = generate_name('test')
         vcs_page = self.add_provider(vcs_name)
         vcs_page.new_vcs_button.click()
         new_form = vcs_page.new_vcs_form
         new_form.vcs_type.set_value(self.vcs_provider.name)
-        new_form.name.set(generate_name('test-'))
+        new_form.name.set(generate_name('test'))
         settings = self.vcs_provider.get_app_settings(vcs_name)
         new_form.client_id.set(settings['key'])
         new_form.client_secret.set('sdsadasd')
@@ -87,7 +87,7 @@ class TestVCSProviders(VCSMixin):
             GitLab="Client authentication failed",
             GitHub="incorrect_client_credentials"
         )
-        vcs_name = generate_name('test-')
+        vcs_name = generate_name('test')
         vcs_page = self.add_provider(vcs_name, 'invalidsecret', wait_message=False)
         provider = vcs_page.providers[0]
         provider.element.s('img.x-icon-colored-status-failed').should(be.visible)
@@ -95,8 +95,8 @@ class TestVCSProviders(VCSMixin):
         edit_page.error.should(be.visible).should(have.text(err_msgs[self.vcs_provider.name]))
 
     def test_search(self):
-        vcs_name = generate_name('test-')
-        vcs_name2 = generate_name('test-')
+        vcs_name = generate_name('test')
+        vcs_name2 = generate_name('test')
         self.add_provider(vcs_name)
         vcs_page = self.add_provider(vcs_name2)
         vcs_page.clean_search_field()

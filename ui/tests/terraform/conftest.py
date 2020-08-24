@@ -31,14 +31,13 @@ def pytest_generate_tests(metafunc: _pytest.python.Metafunc) -> None:
     if metafunc.cls.__name__ in _full_providers_stack:
         arg_values = VCS_PROVIDERS
     else:
-        arg_values = (VCS_PROVIDERS[0], )
+        arg_values = (VCS_PROVIDERS[0],)
     metafunc.parametrize("loggined_vcs", arg_values, indirect=True)
 
 
 @pytest.fixture(scope="session")
 def loggined_vcs(
     request: _pytest.fixtures.SubRequest,
-
 ) -> tp.Union[providers.VCSGitHub, providers.VCSGitLab]:
     vcs_type = request.param
     credentials = getattr(CONF.credentials, vcs_type.lower())

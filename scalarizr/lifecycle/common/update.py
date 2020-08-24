@@ -4,6 +4,7 @@ import base64
 import logging
 from distutils.version import LooseVersion
 
+#TODO: Refactor to pygithub
 import github
 import requests
 from libcloud.compute.base import NodeImage
