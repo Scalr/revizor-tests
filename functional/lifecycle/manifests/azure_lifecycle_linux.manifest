@@ -1,9 +1,0 @@
-{
-    "RV_PLATFORM": {
-        "azure": {"tags": ["azure"], "default": true},
-        "ec2": ["ec2"],
-        "gce": ["gce"],
-        "idcf": ["cloudstack"],
-        "rackspacengus": ["rackspaceng"]
-    }
-}

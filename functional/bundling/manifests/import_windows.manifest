@@ -1,6 +1,0 @@
-{
-    "RV_PLATFORM": {
-        "ec2": {"tags": [], "default": true},
-        "gce": []
-    }
-}
